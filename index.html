@@ -1,19 +1,120 @@
 <!doctype html>
 <html lang="en" class="dark">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="KERNAL — The core of every coder. A free, offline-first developer learning platform covering HTML, CSS, JavaScript, Python, SQL, Git and more." />
-    <meta name="theme-color" content="#4fd1c5" />
-    <link rel="manifest" href="/manifest.json" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <title>KERNAL — The core of every coder</title>
-  </head>
-  <body class="bg-k-bg text-k-text antialiased">
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ── Primary SEO ─────────────────────────────────────────────────── -->
+  <title>KERNAL — The core of every coder</title>
+  <meta name="title"       content="KERNAL — The core of every coder" />
+  <meta name="description" content="A free, offline-first developer learning platform. Learn HTML, CSS, JavaScript, Python, SQL, Git and more — entirely in your browser. No account required." />
+  <meta name="keywords"    content="learn coding, web development, HTML tutorial, CSS tutorial, JavaScript tutorial, Python tutorial, SQL, Git, TypeScript, React, Node.js, developer learning, programming courses, offline learning, free coding courses, KERNAL, Dhurta" />
+  <meta name="author"      content="Dhurta.Org" />
+  <meta name="robots"      content="index, follow" />
+  <meta name="language"    content="English" />
+  <meta name="revisit-after" content="7 days" />
+  <link rel="canonical"    href="https://kernal.dhurta.org/" />
+
+  <!-- ── Open Graph / Facebook ────────────────────────────────────────── -->
+  <meta property="og:type"        content="website" />
+  <meta property="og:url"         content="https://kernal.dhurta.org/" />
+  <meta property="og:title"       content="KERNAL — The core of every coder" />
+  <meta property="og:description" content="A free, offline-first developer learning platform. Learn HTML, CSS, JavaScript, Python and more — entirely in your browser." />
+  <meta property="og:image"       content="https://kernal.dhurta.org/og-image.png" />
+  <meta property="og:image:width"  content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt"    content="KERNAL — The core of every coder" />
+  <meta property="og:site_name"   content="KERNAL" />
+  <meta property="og:locale"      content="en_US" />
+
+  <!-- ── Twitter / X ──────────────────────────────────────────────────── -->
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:url"         content="https://kernal.dhurta.org/" />
+  <meta name="twitter:title"       content="KERNAL — The core of every coder" />
+  <meta name="twitter:description" content="A free, offline-first developer learning platform. Learn HTML, CSS, JavaScript, Python and more — entirely in your browser." />
+  <meta name="twitter:image"       content="https://kernal.dhurta.org/og-image.png" />
+  <meta name="twitter:image:alt"   content="KERNAL mascot — the hooded coder" />
+
+  <!-- ── Favicons & Icons ─────────────────────────────────────────────── -->
+  <link rel="icon"             type="image/svg+xml"  href="/favicon.svg" />
+  <link rel="icon"             type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="icon"             type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="mask-icon"        href="/favicon.svg" color="#4fd1c5" />
+  <link rel="manifest"         href="/manifest.json" />
+  <meta name="theme-color"          content="#4fd1c5" />
+  <meta name="msapplication-TileColor" content="#0e1116" />
+  <meta name="msapplication-config"    content="/browserconfig.xml" />
+
+  <!-- ── Structured Data (JSON-LD) ────────────────────────────────────── -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://kernal.dhurta.org/#website",
+        "url": "https://kernal.dhurta.org/",
+        "name": "KERNAL",
+        "description": "A free, offline-first developer learning platform by Dhurta.Org",
+        "publisher": { "@id": "https://kernal.dhurta.org/#organization" },
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://kernal.dhurta.org/#/search?q={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
+      },
+      {
+        "@type": "Organization",
+        "@id": "https://kernal.dhurta.org/#organization",
+        "name": "Dhurta.Org",
+        "url": "https://dhurta.org",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://kernal.dhurta.org/icon-512.png",
+          "width": 512,
+          "height": 512
+        }
+      },
+      {
+        "@type": "WebApplication",
+        "name": "KERNAL",
+        "url": "https://kernal.dhurta.org/",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Any",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "description": "Learn HTML, CSS, JavaScript, Python, SQL, Git, TypeScript, React and Node.js for free — offline-first, no account needed.",
+        "screenshot": "https://kernal.dhurta.org/og-image.png",
+        "featureList": [
+          "Offline-first — works without internet after first load",
+          "No account or sign-up required",
+          "Live code playgrounds in the browser",
+          "Progress tracking saved locally",
+          "HTML, CSS, JavaScript, Python, SQL, Git, TypeScript, React, Node.js"
+        ]
+      },
+      {
+        "@type": "Course",
+        "name": "HTML5 — Structure and Semantics",
+        "description": "Learn HTML5 from scratch — structure, semantic tags, forms, accessibility and more.",
+        "provider": { "@id": "https://kernal.dhurta.org/#organization" },
+        "url": "https://kernal.dhurta.org/#/learn/html",
+        "educationalLevel": "Beginner",
+        "isAccessibleForFree": true,
+        "courseMode": "online",
+        "inLanguage": "en"
+      }
+    ]
+  }
+  </script>
+
+  <!-- ── Fonts ─────────────────────────────────────────────────────────── -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body class="bg-k-bg text-k-text antialiased">
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
 </html>

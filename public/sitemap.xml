@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+
+  <!-- Core pages -->
+  <url>
+    <loc>https://kernal.dhurta.org/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://kernal.dhurta.org/#/roadmap</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://kernal.dhurta.org/#/progress</loc>
+    <changefreq>never</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://kernal.dhurta.org/#/settings</loc>
+    <changefreq>never</changefreq>
+    <priority>0.3</priority>
+  </url>
+
+  <!-- HTML Course -->
+  <url>
+    <loc>https://kernal.dhurta.org/#/learn/html</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://kernal.dhurta.org/#/learn/html/01-introduction</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://kernal.dhurta.org/#/learn/html/02-structure</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://kernal.dhurta.org/#/learn/html/03-semantic-tags</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Coming soon courses (future) -->
+  <url>
+    <loc>https://kernal.dhurta.org/#/learn/css</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://kernal.dhurta.org/#/learn/javascript</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://kernal.dhurta.org/#/learn/python</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+</urlset>
