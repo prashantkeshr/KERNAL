@@ -1,0 +1,23 @@
+{
+  "name": "KERNAL — The core of every coder",
+  "short_name": "KERNAL",
+  "description": "A free, offline-first developer learning platform for HTML, CSS, JavaScript, Python, SQL, Git and more.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0e1116",
+  "theme_color": "#4fd1c5",
+  "orientation": "any",
+  "categories": ["education", "developer", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

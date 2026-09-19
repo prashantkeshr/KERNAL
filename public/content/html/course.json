@@ -1,0 +1,20 @@
+{
+  "id": "html",
+  "name": "HTML5",
+  "description": "Learn to structure web pages with semantic HTML. Go from zero to building accessible, well-structured web pages that search engines and browsers love.",
+  "version": "HTML5",
+  "icon": "html5",
+  "color": "#e34c26",
+  "difficulty": "beginner",
+  "estimatedHours": 20,
+  "modules": [
+    "html-foundations",
+    "html-text-elements",
+    "html-links-images",
+    "html-forms",
+    "html-semantic",
+    "html-accessibility"
+  ],
+  "prerequisites": [],
+  "certificationAvailable": true
+}

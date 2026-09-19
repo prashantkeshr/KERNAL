@@ -1,0 +1,215 @@
+{
+  "id": "02-structure",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "html",
+  "technologyVersion": "HTML5",
+  "module": "html-foundations",
+  "title": "HTML Page Structure",
+  "subtitle": "DOCTYPE, html, head, body — the required bones",
+  "difficulty": "beginner",
+  "estimatedMinutes": 12,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-01-15",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["01-introduction"],
+  "skillsTaught": ["html.document-structure", "html.metadata"],
+  "skillsUsed": ["html.basics"],
+  "relatedConcepts": ["html.semantic-tags", "css.link-element"],
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "Every valid HTML document follows a required structure. Whether you're building a personal blog or a web application used by millions, the outer skeleton is always the same."
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "filename": "structure.html",
+      "code": "<!DOCTYPE html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n    <meta name=\"description\" content=\"A page about HTML structure\" />\n    <title>Page Title</title>\n    <link rel=\"stylesheet\" href=\"style.css\" />\n  </head>\n  <body>\n    <!-- Everything visible goes here -->\n    <h1>Page Heading</h1>\n    <p>Page content...</p>\n    <script src=\"app.js\"></script>\n  </body>\n</html>"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The DOCTYPE declaration"
+    },
+    {
+      "type": "paragraph",
+      "text": "The <code>&lt;!DOCTYPE html&gt;</code> declaration must be the very first thing in any HTML file. It tells the browser this is an HTML5 document. Without it, browsers enter <strong>quirks mode</strong> — an old compatibility mode that renders pages differently."
+    },
+    {
+      "type": "tip",
+      "text": "Always put <code>&lt;!DOCTYPE html&gt;</code> on the first line. No exceptions. It takes one second and prevents a category of difficult bugs."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The &lt;html&gt; element"
+    },
+    {
+      "type": "paragraph",
+      "text": "The <code>&lt;html&gt;</code> element is the root of the document — everything else is inside it. The <code>lang</code> attribute tells browsers and screen readers the language of the page."
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "filename": "lang-examples.html",
+      "code": "<html lang=\"en\">    <!-- English -->\n<html lang=\"hi\">    <!-- Hindi -->\n<html lang=\"es\">    <!-- Spanish -->\n<html lang=\"ar\">    <!-- Arabic (right-to-left) -->"
+    },
+    {
+      "type": "info",
+      "text": "The <code>lang</code> attribute improves accessibility for screen readers and helps search engines understand the page language. Always include it."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The &lt;head&gt; section"
+    },
+    {
+      "type": "paragraph",
+      "text": "The <code>&lt;head&gt;</code> element contains metadata — information <em>about</em> the page, not content on the page. None of it is visible to the user directly."
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "<code>&lt;meta charset=\"UTF-8\"&gt;</code> — character encoding (always include this; UTF-8 supports every language)",
+        "<code>&lt;meta name=\"viewport\"&gt;</code> — controls zoom and layout on mobile devices",
+        "<code>&lt;title&gt;</code> — the tab title shown in the browser and in search results",
+        "<code>&lt;meta name=\"description\"&gt;</code> — the snippet shown in Google search results",
+        "<code>&lt;link rel=\"stylesheet\"&gt;</code> — connects a CSS file to the page",
+        "<code>&lt;link rel=\"icon\"&gt;</code> — the favicon shown in the browser tab"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "The viewport meta tag"
+    },
+    {
+      "type": "paragraph",
+      "text": "Without the viewport tag, mobile browsers zoom out to show the full desktop layout, making text tiny. This tag is essential for responsive design:"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "filename": "viewport.html",
+      "code": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The &lt;body&gt; section"
+    },
+    {
+      "type": "paragraph",
+      "text": "The <code>&lt;body&gt;</code> element contains everything the user sees. Headings, paragraphs, images, forms, buttons — all of it goes inside <code>&lt;body&gt;</code>."
+    },
+    {
+      "type": "tip",
+      "text": "Place <code>&lt;script&gt;</code> tags at the <strong>end</strong> of the body, just before <code>&lt;/body&gt;</code>. This allows the HTML to render before the script runs, making the page feel faster."
+    },
+    {
+      "type": "comparison",
+      "title": "head vs body",
+      "a": {
+        "name": "<head>",
+        "description": "Invisible metadata about the page",
+        "strengths": [
+          "Title (shown in tab and search results)",
+          "Character encoding",
+          "Link to CSS stylesheets",
+          "SEO meta tags",
+          "Favicon link"
+        ],
+        "useWhen": "Adding anything invisible that describes the page"
+      },
+      "b": {
+        "name": "<body>",
+        "description": "Everything the user sees",
+        "strengths": [
+          "Headings, paragraphs, images",
+          "Forms and buttons",
+          "Navigation menus",
+          "Tables, lists, links",
+          "Video and audio"
+        ],
+        "useWhen": "Adding anything the user should see or interact with"
+      }
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n  <title>My Structured Page</title>\n</head>\n<body>\n  <h1>A properly structured page</h1>\n  <p>Edit the head section and try changing the title, then look at the body.</p>\n</body>\n</html>",
+      "title": "Try it: Complete page structure"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "html-structure-q1",
+          "question": "What does the viewport meta tag do?",
+          "type": "multiple-choice",
+          "options": [
+            "Sets the font size for the page",
+            "Controls how mobile browsers scale the page",
+            "Prevents the page from being indexed by search engines",
+            "Loads an external CSS file"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The viewport meta tag tells mobile browsers not to zoom out to fit the desktop layout. Without it, phones show a tiny, zoomed-out version of the page."
+        },
+        {
+          "id": "html-structure-q2",
+          "question": "Which of these belongs in the <head>, not the <body>?",
+          "type": "multiple-choice",
+          "options": [
+            "<h1>Page title</h1>",
+            "<p>Some text</p>",
+            "<meta name=\"description\" content=\"...\" />",
+            "<img src=\"photo.jpg\" />"
+          ],
+          "correctAnswer": 2,
+          "explanation": "<meta> tags go in <head> because they are metadata — information about the page, not visible content. Headings, paragraphs, and images are visible content that belongs in <body>."
+        },
+        {
+          "id": "html-structure-q3",
+          "question": "Placing <script> tags at the end of <body> makes pages load faster.",
+          "type": "true-false",
+          "correctAnswer": "true",
+          "explanation": "Scripts in the <head> block HTML parsing until the script is downloaded and executed. Scripts at the end of <body> allow the HTML to parse and render first, making the page appear faster."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What happens if I omit the DOCTYPE?",
+      "a": "The browser enters 'quirks mode' — a legacy rendering mode that mimics old browsers (IE5, Netscape 4). Your layout will behave inconsistently across browsers. Always include it."
+    },
+    {
+      "q": "Can I have multiple <body> elements?",
+      "a": "No. A valid HTML document has exactly one <html>, one <head>, and one <body>. Browsers may try to correct extra elements, but the behavior is undefined."
+    },
+    {
+      "q": "Why does the title tag matter for SEO?",
+      "a": "The <title> is the blue clickable headline in Google search results. It's one of the most important SEO signals. Keep it under 60 characters and make it descriptive."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — Document and website structure",
+      "url": "https://developer.mozilla.org/en-US/docs/Learn/HTML/Introduction_to_HTML/Document_and_website_structure",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every web page", "email templates", "progressive web apps"],
+    "examples": [
+      "Google uses a minimal head with critical meta tags to maximize page speed",
+      "The viewport meta tag is included on every responsive website since 2012"
+    ]
+  }
+}

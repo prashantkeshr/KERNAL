@@ -1,0 +1,213 @@
+{
+  "id": "03-semantic-tags",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "html",
+  "technologyVersion": "HTML5",
+  "module": "html-foundations",
+  "title": "Semantic HTML Tags",
+  "subtitle": "Give meaning to your structure — don't just use divs",
+  "difficulty": "beginner",
+  "estimatedMinutes": 20,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-01-15",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["01-introduction", "02-structure"],
+  "skillsTaught": ["html.semantic-tags", "html.accessibility-basics"],
+  "skillsUsed": ["html.structure", "html.basics"],
+  "relatedConcepts": ["html.accessibility", "css.selectors", "html.forms"],
+  "whyItExists": {
+    "problem": "Before semantic HTML, developers used <div> for everything — navigation, articles, footers. To a browser or screen reader, a page was just a pile of anonymous boxes with no meaning.",
+    "solution": "Semantic elements describe what their content IS. A <nav> is navigation. An <article> is self-contained content. A <footer> is a footer. This meaning helps browsers, search engines, and assistive technology understand the page.",
+    "whenToUse": "Whenever your content has a clear structural role — navigation, main content, an article, a sidebar. Use the most specific semantic element available.",
+    "whenNotToUse": "Use <div> when no semantic element applies — when you need a container purely for layout or styling purposes, with no inherent meaning."
+  },
+  "explainModes": {
+    "beginner": "Imagine you receive a document with no labels — just paragraphs of text. Now imagine it with headings, section titles, and a clearly marked summary at the end. Semantic HTML adds those labels to your web page.",
+    "standard": "Semantic HTML elements convey the role of their content to browsers, search engines, and assistive technologies like screen readers. Instead of <div class=\"nav\">, you use <nav>. The browser can interpret the intent without reading your CSS class names.",
+    "technical": "Semantic elements map to ARIA landmark roles by default. <nav> maps to role='navigation', <main> to role='main', <header> to role='banner'. This implicit ARIA role support means semantic HTML provides accessibility benefits without requiring explicit ARIA attributes."
+  },
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "Semantic HTML is the practice of using elements whose names describe their content's role. The alternative — wrapping everything in generic <code>&lt;div&gt;</code> elements — creates pages that look the same visually but mean nothing to machines."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The div problem"
+    },
+    {
+      "type": "paragraph",
+      "text": "Here is the same page layout written two ways. Both look identical in a browser. But they mean very different things:"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "filename": "div-soup.html",
+      "caption": "❌ Non-semantic — a screen reader sees anonymous boxes",
+      "code": "<div id=\"header\">\n  <div class=\"nav\">\n    <div class=\"nav-item\"><a href=\"/\">Home</a></div>\n    <div class=\"nav-item\"><a href=\"/about\">About</a></div>\n  </div>\n</div>\n<div id=\"main\">\n  <div class=\"article\">\n    <div class=\"article-title\">My Post</div>\n    <div class=\"article-content\">...</div>\n  </div>\n</div>\n<div id=\"footer\">© 2026</div>"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "filename": "semantic.html",
+      "caption": "✓ Semantic — every element announces its role",
+      "code": "<header>\n  <nav>\n    <a href=\"/\">Home</a>\n    <a href=\"/about\">About</a>\n  </nav>\n</header>\n<main>\n  <article>\n    <h1>My Post</h1>\n    <p>...</p>\n  </article>\n</main>\n<footer>© 2026</footer>"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Key semantic elements"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "<code>&lt;header&gt;</code> — introductory content (logo, navigation, site title)",
+        "<code>&lt;nav&gt;</code> — a set of navigation links",
+        "<code>&lt;main&gt;</code> — the primary content of the page (only one per page)",
+        "<code>&lt;article&gt;</code> — self-contained, independently distributable content (blog post, news story)",
+        "<code>&lt;section&gt;</code> — a thematic grouping of content with a heading",
+        "<code>&lt;aside&gt;</code> — tangentially related content (sidebar, callout box)",
+        "<code>&lt;footer&gt;</code> — closing info (copyright, links, contact)",
+        "<code>&lt;figure&gt;</code> / <code>&lt;figcaption&gt;</code> — an image or diagram with its caption",
+        "<code>&lt;time&gt;</code> — a date or time value",
+        "<code>&lt;address&gt;</code> — contact information"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "A realistic page layout"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "filename": "page-layout.html",
+      "code": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <title>KERNAL Blog</title>\n</head>\n<body>\n\n  <header>\n    <nav aria-label=\"Main navigation\">\n      <a href=\"/\">Home</a>\n      <a href=\"/learn\">Learn</a>\n      <a href=\"/about\">About</a>\n    </nav>\n  </header>\n\n  <main>\n    <article>\n      <header>\n        <h1>Introduction to HTML</h1>\n        <time datetime=\"2026-09-20\">September 20, 2026</time>\n      </header>\n\n      <section>\n        <h2>What is HTML?</h2>\n        <p>HTML stands for HyperText Markup Language...</p>\n      </section>\n\n      <section>\n        <h2>Your first page</h2>\n        <p>Start with this boilerplate...</p>\n      </section>\n    </article>\n\n    <aside>\n      <h2>Related lessons</h2>\n      <ul>\n        <li><a href=\"/learn/html/css-basics\">CSS Basics</a></li>\n      </ul>\n    </aside>\n  </main>\n\n  <footer>\n    <p>&copy; 2026 KERNAL. MIT License.</p>\n  </footer>\n\n</body>\n</html>"
+    },
+    {
+      "type": "info",
+      "text": "<code>&lt;article&gt;</code> can contain its own <code>&lt;header&gt;</code> and <code>&lt;footer&gt;</code>. Semantic elements can be nested — a page header and an article header are both valid uses of <code>&lt;header&gt;</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Why this matters: three reasons"
+    },
+    {
+      "type": "list",
+      "ordered": true,
+      "items": [
+        "<strong>Accessibility.</strong> Screen readers announce landmark roles. When a user presses a key to jump to main content, they jump to &lt;main&gt;. This only works with semantic HTML.",
+        "<strong>SEO.</strong> Search engines use semantic structure to understand your page. &lt;article&gt; signals independent content. &lt;nav&gt; tells Google where the navigation is.",
+        "<strong>Maintainability.</strong> <code>&lt;nav&gt;</code> is more readable than <code>&lt;div class=\"navigation-wrapper\"&gt;</code>. Your future self will thank you."
+      ]
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <title>Semantic Layout</title>\n  <style>\n    body { font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 16px; }\n    header { background: #1a1f2b; color: #e2e8f0; padding: 12px 20px; border-radius: 8px; margin-bottom: 16px; }\n    nav a { color: #4fd1c5; margin-right: 12px; text-decoration: none; }\n    main { display: flex; gap: 16px; }\n    article { flex: 3; }\n    aside { flex: 1; background: #f1f5f9; padding: 12px; border-radius: 8px; font-size: 14px; }\n    footer { margin-top: 16px; padding-top: 12px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b; }\n  </style>\n</head>\n<body>\n  <header>\n    <nav>\n      <a href=\"#\">Home</a>\n      <a href=\"#\">Learn</a>\n      <a href=\"#\">About</a>\n    </nav>\n  </header>\n\n  <main>\n    <article>\n      <h1>Semantic HTML</h1>\n      <p>This page uses proper semantic elements.</p>\n      <p>Try changing the elements and see how the structure changes.</p>\n    </article>\n    <aside>\n      <h3>Related</h3>\n      <p>CSS Basics →</p>\n    </aside>\n  </main>\n\n  <footer>\n    <p>© 2026 KERNAL</p>\n  </footer>\n</body>\n</html>",
+      "title": "Try it: Semantic page layout"
+    },
+    {
+      "type": "misconception",
+      "claim": "Using <div> is fine as long as I add the right CSS class names.",
+      "reality": "CSS class names are invisible to screen readers, search engines, and browsers. Only HTML elements carry semantic meaning. <nav class='nav'> is not the same as <nav> — the class adds nothing the element doesn't already provide."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "html-semantic-q1",
+          "question": "Which element should wrap a blog post's entire content?",
+          "type": "multiple-choice",
+          "options": [
+            "<section>",
+            "<article>",
+            "<div>",
+            "<main>"
+          ],
+          "correctAnswer": 1,
+          "explanation": "<article> represents self-contained content that could stand alone — a blog post, news article, or forum post. <section> is for thematic groups within a page. <main> is for the primary content area, not a single piece of content."
+        },
+        {
+          "id": "html-semantic-q2",
+          "question": "How many <main> elements should a page have?",
+          "type": "multiple-choice",
+          "options": [
+            "As many as needed",
+            "At most two",
+            "Exactly one",
+            "None — use <div id='main'> instead"
+          ],
+          "correctAnswer": 2,
+          "explanation": "A page should have exactly one <main> element. It represents the primary content of the page, unique to that page (not shared navigation, headers, or footers). Multiple <main> elements are invalid."
+        },
+        {
+          "id": "html-semantic-q3",
+          "question": "Semantic HTML improves SEO.",
+          "type": "true-false",
+          "correctAnswer": "true",
+          "explanation": "Search engines use semantic markup to understand page structure and content. <article>, <section>, <header>, and <footer> help crawlers identify the most important content and how parts of the page relate to each other."
+        }
+      ]
+    },
+    {
+      "type": "debugChallenge",
+      "id": "html-semantic-debug-1",
+      "title": "Replace the divs",
+      "description": "This code uses only <div> elements. Replace each one with the correct semantic element.",
+      "brokenCode": "<div id=\"site-header\">\n  <div class=\"site-nav\">\n    <a href=\"/\">Home</a>\n    <a href=\"/about\">About</a>\n  </div>\n</div>\n\n<div id=\"page-content\">\n  <div class=\"blog-post\">\n    <h1>My Post</h1>\n    <p>Content goes here...</p>\n  </div>\n\n  <div class=\"sidebar\">\n    <h2>Tags</h2>\n    <p>HTML, CSS</p>\n  </div>\n</div>\n\n<div id=\"site-footer\">\n  <p>© 2026</p>\n</div>",
+      "language": "html",
+      "hints": [
+        "The site-header div → use <header>",
+        "The site-nav div → use <nav>",
+        "The page-content div → use <main>",
+        "The blog-post div → use <article>",
+        "The sidebar div → use <aside>",
+        "The site-footer div → use <footer>"
+      ],
+      "solution": "<header>\n  <nav>\n    <a href=\"/\">Home</a>\n    <a href=\"/about\">About</a>\n  </nav>\n</header>\n\n<main>\n  <article>\n    <h1>My Post</h1>\n    <p>Content goes here...</p>\n  </article>\n\n  <aside>\n    <h2>Tags</h2>\n    <p>HTML, CSS</p>\n  </aside>\n</main>\n\n<footer>\n  <p>© 2026</p>\n</footer>",
+      "explanation": "Every <div> in this layout had a semantic equivalent. The result is shorter, more readable, and provides accessibility benefits automatically — screen readers can now announce 'navigation region', 'main content', 'complementary', and 'content info'."
+    }
+  ],
+  "faq": [
+    {
+      "q": "When should I use <section> vs <article>?",
+      "a": "Use <article> when the content makes sense on its own — if you copy-paste it to another page, it still has meaning. Use <section> to group related content within a larger context. A blog post is an <article>. The comments section at the bottom is a <section>."
+    },
+    {
+      "q": "Can I still use <div>?",
+      "a": "Yes. <div> is the right choice when you need a container for layout or styling purposes and no semantic element fits. The rule is: use the most specific semantic element available; fall back to <div> only when nothing else is appropriate."
+    },
+    {
+      "q": "Does semantic HTML change how the page looks?",
+      "a": "No. Semantic elements have no built-in visual styling (except some like <h1>-<h6> and <strong>). Visually, a page of <div>s and a page of semantic elements look identical. The difference is in meaning, not appearance."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — HTML elements reference",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTML/Element",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "W3C — HTML5 semantic elements",
+      "url": "https://html.spec.whatwg.org/multipage/sections.html",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["news websites", "blogs", "web apps", "e-commerce sites"],
+    "examples": [
+      "BBC News uses <article> for every story, <nav> for the menu, and <aside> for related articles",
+      "Wikipedia wraps each article in <article> and uses <section> for every heading",
+      "GitHub uses <main> and <nav> for their layout, making keyboard navigation accessible"
+    ]
+  }
+}

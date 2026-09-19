@@ -1,0 +1,65 @@
+[
+  {
+    "id": "html-foundations",
+    "title": "Foundations",
+    "description": "What HTML is, how browsers read it, and the anatomy of a web page.",
+    "order": 1,
+    "lessons": [
+      { "id": "01-introduction",  "title": "Introduction to HTML",  "subtitle": "The backbone of every web page",         "difficulty": "beginner", "estimatedMinutes": 15, "status": "published" },
+      { "id": "02-structure",     "title": "HTML Page Structure",    "subtitle": "DOCTYPE, html, head, body",              "difficulty": "beginner", "estimatedMinutes": 12, "status": "published" },
+      { "id": "03-semantic-tags", "title": "Semantic HTML Tags",     "subtitle": "Give meaning to your structure",         "difficulty": "beginner", "estimatedMinutes": 20, "status": "published" }
+    ]
+  },
+  {
+    "id": "html-text-elements",
+    "title": "Text Elements",
+    "description": "Headings, paragraphs, emphasis, lists, and inline elements.",
+    "order": 2,
+    "lessons": [
+      { "id": "04-headings",      "title": "Headings",               "subtitle": "h1 through h6 and document hierarchy",   "difficulty": "beginner", "estimatedMinutes": 10, "status": "published" },
+      { "id": "05-paragraphs",    "title": "Paragraphs & Text",      "subtitle": "p, strong, em, code, and friends",        "difficulty": "beginner", "estimatedMinutes": 12, "status": "published" },
+      { "id": "06-lists",         "title": "Lists",                  "subtitle": "ul, ol, li, dl — organize your content",  "difficulty": "beginner", "estimatedMinutes": 12, "status": "published" }
+    ]
+  },
+  {
+    "id": "html-links-images",
+    "title": "Links & Images",
+    "description": "Connect pages and add visual content responsibly.",
+    "order": 3,
+    "lessons": [
+      { "id": "07-links",         "title": "Hyperlinks",             "subtitle": "The a element and URL anatomy",           "difficulty": "beginner", "estimatedMinutes": 15, "status": "published" },
+      { "id": "08-images",        "title": "Images & Media",         "subtitle": "img, picture, srcset, alt text",          "difficulty": "beginner", "estimatedMinutes": 18, "status": "published" }
+    ]
+  },
+  {
+    "id": "html-forms",
+    "title": "Forms & Input",
+    "description": "Collect user data with accessible, validated forms.",
+    "order": 4,
+    "lessons": [
+      { "id": "09-form-basics",   "title": "Form Basics",            "subtitle": "form, input, label, submit",              "difficulty": "beginner", "estimatedMinutes": 20, "status": "published" },
+      { "id": "10-form-controls", "title": "Form Controls",          "subtitle": "select, textarea, checkbox, radio",       "difficulty": "beginner", "estimatedMinutes": 18, "status": "published" },
+      { "id": "11-form-validation","title": "Form Validation",       "subtitle": "required, pattern, type attributes",      "difficulty": "intermediate", "estimatedMinutes": 20, "status": "published" }
+    ]
+  },
+  {
+    "id": "html-semantic",
+    "title": "Semantic Layout",
+    "description": "Use semantic structural elements to build meaningful page layouts.",
+    "order": 5,
+    "lessons": [
+      { "id": "12-layout-elements","title": "Layout Elements",        "subtitle": "header, nav, main, footer, aside",       "difficulty": "beginner", "estimatedMinutes": 15, "status": "published" },
+      { "id": "13-article-section","title": "Article & Section",      "subtitle": "Structuring content semantically",       "difficulty": "beginner", "estimatedMinutes": 12, "status": "published" }
+    ]
+  },
+  {
+    "id": "html-accessibility",
+    "title": "Accessibility",
+    "description": "Build HTML that works for everyone, including screen reader users.",
+    "order": 6,
+    "lessons": [
+      { "id": "14-aria-basics",   "title": "ARIA Basics",            "subtitle": "Roles, labels, and landmark regions",     "difficulty": "intermediate", "estimatedMinutes": 20, "status": "published" },
+      { "id": "15-keyboard-nav",  "title": "Keyboard Navigation",    "subtitle": "tabindex, focus management, skip links",  "difficulty": "intermediate", "estimatedMinutes": 18, "status": "published" }
+    ]
+  }
+]

@@ -1,0 +1,226 @@
+{
+  "id": "01-introduction",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "html",
+  "technologyVersion": "HTML5",
+  "module": "html-foundations",
+  "title": "Introduction to HTML",
+  "subtitle": "The backbone of every web page",
+  "difficulty": "beginner",
+  "estimatedMinutes": 15,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-01-15",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": [],
+  "skillsTaught": ["html.basics", "html.structure"],
+  "skillsUsed": [],
+  "relatedConcepts": ["html.semantic-tags", "css.basics", "js.dom"],
+  "whyItExists": {
+    "problem": "Before HTML, there was no standard way to share formatted documents over the internet. Text files had no structure, no links, no way to reference images.",
+    "solution": "HTML gives every piece of content a meaning — a heading is a heading, a paragraph is a paragraph, a link is a link. Browsers read this structure and display it consistently.",
+    "whenToUse": "Whenever you are creating anything that will be displayed in a browser. Every web page starts with HTML.",
+    "whenNotToUse": "HTML alone is not a programming language — it cannot perform calculations or respond to user actions. For that, you need JavaScript."
+  },
+  "explainModes": {
+    "beginner": "HTML is like the skeleton of a web page. Just like bones give your body shape, HTML gives a web page its structure — what's a title, what's a paragraph, what's a button.",
+    "simple": "HTML stands for HyperText Markup Language. You wrap text in tags to tell the browser what each piece of content is.",
+    "standard": "HTML is a markup language that uses elements — defined by opening and closing tags — to describe the structure and meaning of web content. Browsers parse the HTML and create a Document Object Model (DOM) that represents the page.",
+    "technical": "HTML5 is the fifth revision of the HTML standard maintained by the WHATWG living standard. It introduces semantic elements, native form validation, audio/video support, canvas, and Web Storage — removing the need for many Flash and plugin-based features.",
+    "deepDive": "The browser's HTML parser is fault-tolerant by design; it follows an error-recovery algorithm to handle invalid markup. Understanding how browsers construct the DOM from malformed HTML explains why certain unexpected layouts appear. The WHATWG parsing spec is distinct from the DOM spec and from the CSS specification, each running in separate threads in modern engines like Blink and Gecko."
+  },
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "HTML stands for <strong>HyperText Markup Language</strong>. It is the standard language for creating web pages. Every web page you have ever visited — Google, YouTube, Wikipedia — is built on HTML."
+    },
+    {
+      "type": "paragraph",
+      "text": "HTML does not look like traditional code. Instead of writing instructions, you <em>annotate</em> content with <strong>tags</strong>. A tag tells the browser what kind of content something is."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Your first HTML"
+    },
+    {
+      "type": "paragraph",
+      "text": "Here is the simplest possible HTML document. Every element you see here has a specific purpose:"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "filename": "hello.html",
+      "code": "<!DOCTYPE html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <title>My First Page</title>\n  </head>\n  <body>\n    <h1>Hello, world!</h1>\n    <p>This is my first web page.</p>\n  </body>\n</html>"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "<code>&lt;!DOCTYPE html&gt;</code> — tells the browser this is HTML5",
+        "<code>&lt;html&gt;</code> — the root element that wraps everything",
+        "<code>&lt;head&gt;</code> — invisible metadata (title, character set, styles)",
+        "<code>&lt;body&gt;</code> — everything visible on the page",
+        "<code>&lt;h1&gt;</code> — the main heading",
+        "<code>&lt;p&gt;</code> — a paragraph of text"
+      ]
+    },
+    {
+      "type": "tip",
+      "text": "Try it yourself — open Notepad (Windows) or TextEdit (Mac), paste the code above, save it as <code>hello.html</code>, and open it in your browser. No install required."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "How tags work"
+    },
+    {
+      "type": "paragraph",
+      "text": "Most HTML elements have an <strong>opening tag</strong> and a <strong>closing tag</strong>. Content goes between them. The closing tag has a forward slash <code>/</code> before the element name."
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "filename": "anatomy.html",
+      "code": "<!-- Opening tag   Content   Closing tag -->\n<p>            Hello!     </p>\n\n<!-- Self-closing tag (no content, no closing tag needed) -->\n<img src=\"photo.jpg\" alt=\"A photo\" />\n<br />\n<input type=\"text\" />"
+    },
+    {
+      "type": "definition",
+      "term": "Element",
+      "meaning": "The complete unit of an HTML tag plus its content. <p>Hello</p> is one element."
+    },
+    {
+      "type": "definition",
+      "term": "Attribute",
+      "meaning": "Extra information added to a tag. In <img src=\"photo.jpg\" alt=\"A photo\">, src and alt are attributes."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Nesting: elements inside elements"
+    },
+    {
+      "type": "paragraph",
+      "text": "HTML elements can be nested inside each other. The element you open last must be the one you close first — like matching parentheses."
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "filename": "nesting.html",
+      "code": "<!-- Correct nesting -->\n<p>This is <strong>bold</strong> and this is <em>italic</em>.</p>\n\n<!-- Wrong nesting (don't do this) -->\n<p>This is <strong>wrong</em></strong></p>"
+    },
+    {
+      "type": "warning",
+      "text": "Incorrect nesting causes unpredictable rendering. Browsers try to fix it automatically, but the result may not be what you intended."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "HTML is not programming"
+    },
+    {
+      "type": "paragraph",
+      "text": "HTML is a <strong>markup language</strong>, not a programming language. It cannot add numbers, make decisions, or respond to user actions. It only describes <em>structure and meaning</em>. You will add logic with JavaScript later."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <title>My Page</title>\n</head>\n<body>\n  <h1>Hello, KERNAL!</h1>\n  <p>Edit this HTML and click <strong>Run</strong> to see it live.</p>\n  <ul>\n    <li>Item one</li>\n    <li>Item two</li>\n  </ul>\n</body>\n</html>",
+      "title": "Try it: Live HTML Playground"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "html-intro-q1",
+          "question": "What does HTML stand for?",
+          "type": "multiple-choice",
+          "options": [
+            "HyperText Markup Language",
+            "High-Tech Modern Language",
+            "HyperText Modeling Language",
+            "Home Tool Markup Language"
+          ],
+          "correctAnswer": 0,
+          "explanation": "HTML stands for HyperText Markup Language. 'Hyper' refers to hyperlinks that connect pages; 'Markup' means annotating content with tags."
+        },
+        {
+          "id": "html-intro-q2",
+          "question": "Which tag wraps all visible content on a web page?",
+          "type": "multiple-choice",
+          "options": [
+            "<head>",
+            "<html>",
+            "<body>",
+            "<main>"
+          ],
+          "correctAnswer": 2,
+          "explanation": "The <body> element contains everything visible to the user. The <head> element contains metadata (title, links to stylesheets) that is not displayed directly."
+        },
+        {
+          "id": "html-intro-q3",
+          "question": "HTML is a programming language.",
+          "type": "true-false",
+          "correctAnswer": "false",
+          "explanation": "HTML is a markup language, not a programming language. It describes structure and meaning — it cannot make decisions, loop, or perform calculations. JavaScript is the programming language of the web."
+        }
+      ]
+    },
+    {
+      "type": "debugChallenge",
+      "id": "html-intro-debug-1",
+      "title": "Fix the broken page",
+      "description": "This HTML page has three problems. Find and fix all of them.",
+      "brokenCode": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>My Page\n  </head>\n  <body>\n    <h1>Welcome</p>\n    <p>This is my <strong>page.</p></strong>\n  </body>\n</html>",
+      "language": "html",
+      "hints": [
+        "Look at the <title> tag — is it properly closed?",
+        "A heading should use matching tags — <h1> must close with </h1>, not </p>",
+        "Nesting must be correct — the last opened tag must be the first closed"
+      ],
+      "solution": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>My Page</title>\n  </head>\n  <body>\n    <h1>Welcome</h1>\n    <p>This is my <strong>page.</strong></p>\n  </body>\n</html>",
+      "explanation": "The three bugs were: (1) missing </title> closing tag, (2) </p> used to close an <h1>, and (3) </strong> used outside the </p> closing tag — incorrect nesting."
+    }
+  ],
+  "faq": [
+    {
+      "q": "Do I need to install anything to write HTML?",
+      "a": "No. HTML works in any text editor (Notepad, VS Code, TextEdit) and any browser. You do not need a server or any install to get started — just save a file with .html extension and open it."
+    },
+    {
+      "q": "Is HTML case-sensitive?",
+      "a": "No, HTML tag names are case-insensitive. <P> and <p> are the same. However, the convention is lowercase — all modern guides and specifications use lowercase tag names."
+    },
+    {
+      "q": "What is the difference between HTML and HTML5?",
+      "a": "HTML5 is the current version of HTML, released in 2014. It introduced semantic elements (article, section, nav), native audio/video, canvas, and better form controls. Modern browsers support HTML5 natively."
+    },
+    {
+      "q": "Can I learn HTML without CSS or JavaScript?",
+      "a": "Yes. HTML is completely independent. You can build a fully structured, readable web page with only HTML. CSS adds styling and JavaScript adds behavior — but HTML stands on its own."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN Web Docs — HTML basics",
+      "url": "https://developer.mozilla.org/en-US/docs/Learn/Getting_started_with_the_web/HTML_basics",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "WHATWG HTML Living Standard",
+      "url": "https://html.spec.whatwg.org/",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every web page", "email templates", "web apps", "documentation sites"],
+    "examples": [
+      "Wikipedia uses HTML to structure millions of articles, with each section as an <h2> or <h3>",
+      "GitHub renders README files to HTML automatically",
+      "Google's search results are HTML sent from their servers to your browser"
+    ]
+  }
+}

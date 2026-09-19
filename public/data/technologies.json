@@ -1,0 +1,122 @@
+[
+  {
+    "id": "fundamentals",
+    "name": "Web Fundamentals",
+    "icon": "globe",
+    "color": "#64748b",
+    "order": 0,
+    "stage": 0,
+    "playground": "html",
+    "enabled": true,
+    "description": "How the web works, browsers, URLs, HTTP",
+    "estimatedHours": 3
+  },
+  {
+    "id": "html",
+    "name": "HTML",
+    "icon": "html5",
+    "color": "#e34c26",
+    "order": 1,
+    "stage": 1,
+    "playground": "html",
+    "enabled": true,
+    "description": "Structure and semantics for web pages",
+    "estimatedHours": 20
+  },
+  {
+    "id": "css",
+    "name": "CSS",
+    "icon": "css3",
+    "color": "#264de4",
+    "order": 2,
+    "stage": 2,
+    "playground": "html",
+    "enabled": false,
+    "description": "Styling, layout, animations",
+    "estimatedHours": 25
+  },
+  {
+    "id": "javascript",
+    "name": "JavaScript",
+    "icon": "javascript",
+    "color": "#f7df1e",
+    "order": 3,
+    "stage": 3,
+    "playground": "javascript",
+    "enabled": false,
+    "description": "Programming logic, DOM, async, APIs",
+    "estimatedHours": 40
+  },
+  {
+    "id": "git",
+    "name": "Git & GitHub",
+    "icon": "git",
+    "color": "#f05032",
+    "order": 4,
+    "stage": 4,
+    "playground": "terminal",
+    "enabled": false,
+    "description": "Version control and collaboration",
+    "estimatedHours": 10
+  },
+  {
+    "id": "python",
+    "name": "Python",
+    "icon": "python",
+    "color": "#3776ab",
+    "order": 5,
+    "stage": 5,
+    "playground": "python",
+    "enabled": false,
+    "description": "General programming, automation, data",
+    "estimatedHours": 35
+  },
+  {
+    "id": "sql",
+    "name": "SQL",
+    "icon": "database",
+    "color": "#4479a1",
+    "order": 6,
+    "stage": 6,
+    "playground": "sql",
+    "enabled": false,
+    "description": "Queries, joins, data modeling",
+    "estimatedHours": 20
+  },
+  {
+    "id": "typescript",
+    "name": "TypeScript",
+    "icon": "typescript",
+    "color": "#3178c6",
+    "order": 7,
+    "stage": 7,
+    "playground": "javascript",
+    "enabled": false,
+    "description": "Type-safe JavaScript at scale",
+    "estimatedHours": 15
+  },
+  {
+    "id": "react",
+    "name": "React",
+    "icon": "react",
+    "color": "#61dafb",
+    "order": 8,
+    "stage": 8,
+    "playground": "react",
+    "enabled": false,
+    "description": "Component-based UI library",
+    "estimatedHours": 30
+  },
+  {
+    "id": "nodejs",
+    "name": "Node.js",
+    "icon": "nodejs",
+    "color": "#339933",
+    "order": 9,
+    "stage": 9,
+    "playground": "javascript",
+    "enabled": false,
+    "description": "JavaScript on the server",
+    "estimatedHours": 25
+  }
+]

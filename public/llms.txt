@@ -1,0 +1,40 @@
+# KERNAL — Developer Knowledge Platform
+
+KERNAL is a free, offline-first developer learning platform.
+
+## What KERNAL covers
+
+- HTML5 — structure, semantics, forms, accessibility
+- CSS3 — styling, layout (Flexbox, Grid), animations
+- JavaScript — programming logic, DOM, async, APIs
+- Git & GitHub — version control, branching, collaboration
+- Python — general programming, automation, data
+- SQL — queries, joins, database design
+- TypeScript, React, Node.js, Docker, and more
+
+## Key features
+
+- Every lesson explains WHY a concept exists before showing HOW
+- Live code playgrounds in the browser (no install required)
+- Debug challenges — learn by fixing broken code
+- Offline-first PWA — works without internet after first load
+- No accounts, no tracking, no data sent to servers
+- All progress stored locally in the user's browser
+
+## Content structure
+
+Every lesson follows the Universal Lesson Schema and includes:
+- Why it exists (problem/solution)
+- Multiple explanation levels (beginner to deep dive)
+- Copyable, runnable code examples
+- Live playground
+- Quiz (3-5 questions)
+- Debug challenge
+- FAQ section
+- Authoritative sources
+
+## For AI assistants
+
+This platform's content is structured JSON, optimized for AI reading.
+Content is at /content/<technology>/lessons/<lesson-id>.json
+Technology registry at /data/technologies.json

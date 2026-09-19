@@ -1,0 +1,148 @@
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── KERNAL Design Tokens ───────────────────────────────── */
+:root {
+  --bg:            #0e1116;
+  --surface:       #1a1f2b;
+  --surface-light: #252c3b;
+  --border:        #2d3748;
+  --text:          #e2e8f0;
+  --text-muted:    #a0aec0;
+  --accent:        #4fd1c5;
+  --accent-glow:   #2c7a7b;
+  --danger:        #f87171;
+  --warning:       #fbbf24;
+  --success:       #4ade80;
+  --code-bg:       #0b0e14;
+  --keyword:       #f472b6;
+  --string:        #a5d6ff;
+  --comment:       #6b7280;
+  --number:        #fbbf24;
+  --function-c:    #7dd3fc;
+  --tag:           #f472b6;
+  --attr:          #a5d6ff;
+  --operator:      #cbd5e0;
+  --punctuation:   #a0aec0;
+  --radius:        12px;
+  --sidebar-w:     280px;
+  --nav-h:         56px;
+}
+
+/* Light theme overrides */
+.light {
+  --bg:            #f8fafc;
+  --surface:       #ffffff;
+  --surface-light: #f1f5f9;
+  --border:        #e2e8f0;
+  --text:          #1e293b;
+  --text-muted:    #64748b;
+  --accent:        #0d9488;
+  --accent-glow:   #99f6e4;
+  --code-bg:       #f8fafc;
+  --comment:       #94a3b8;
+}
+
+/* ─── Base Styles ────────────────────────────────────────── */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* ─── Scrollbars ─────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--surface);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* ─── Typography ─────────────────────────────────────────── */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+code, kbd, pre {
+  font-family: 'Fira Code', 'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
+}
+
+/* Inline code */
+:not(pre) > code {
+  background: var(--surface-light);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 0.875em;
+  color: var(--accent);
+}
+
+/* ─── Syntax Highlighting (highlight.js base) ────────────── */
+.hljs {
+  background: var(--code-bg) !important;
+  color: var(--text) !important;
+}
+.hljs-keyword, .hljs-selector-tag { color: var(--keyword); }
+.hljs-string, .hljs-attr           { color: var(--string); }
+.hljs-comment                       { color: var(--comment); font-style: italic; }
+.hljs-number, .hljs-literal         { color: var(--number); }
+.hljs-title, .hljs-function         { color: var(--function-c); }
+.hljs-tag                           { color: var(--tag); }
+.hljs-name                          { color: var(--keyword); }
+.hljs-attribute                     { color: var(--attr); }
+.hljs-built_in, .hljs-type          { color: #c4b5fd; }
+.hljs-variable                      { color: var(--text); }
+.hljs-operator, .hljs-punctuation   { color: var(--operator); }
+.hljs-meta                          { color: var(--text-muted); }
+.hljs-symbol                        { color: var(--accent); }
+.hljs-class .hljs-title             { color: #fbbf24; }
+.hljs-regexp                        { color: var(--string); }
+.hljs-deletion                      { background: rgba(248,113,113,0.15); }
+.hljs-addition                      { background: rgba(74,222,128,0.15); }
+
+/* ─── Focus Styles (Accessibility) ──────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ─── Transitions ────────────────────────────────────────── */
+.transition-kernal {
+  transition: all 0.2s ease;
+}
+
+/* ─── Reduced Motion ─────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ─── Print ──────────────────────────────────────────────── */
+@media print {
+  nav, aside, footer, .no-print { display: none !important; }
+  body { background: white; color: black; }
+}

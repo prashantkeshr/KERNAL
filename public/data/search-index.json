@@ -1,0 +1,92 @@
+[
+  {
+    "id": "tech-html",
+    "type": "technology",
+    "tech": "html",
+    "title": "HTML",
+    "subtitle": "Structure and semantics for web pages",
+    "tags": ["html", "markup", "web", "structure", "semantic"],
+    "url": "#/learn/html"
+  },
+  {
+    "id": "html-01-introduction",
+    "type": "lesson",
+    "tech": "html",
+    "title": "Introduction to HTML",
+    "subtitle": "The backbone of every web page",
+    "tags": ["html", "intro", "tags", "elements", "basics", "beginner"],
+    "url": "#/learn/html/01-introduction"
+  },
+  {
+    "id": "html-02-structure",
+    "type": "lesson",
+    "tech": "html",
+    "title": "HTML Page Structure",
+    "subtitle": "DOCTYPE, html, head, body",
+    "tags": ["html", "structure", "doctype", "head", "body", "meta", "viewport"],
+    "url": "#/learn/html/02-structure"
+  },
+  {
+    "id": "html-03-semantic-tags",
+    "type": "lesson",
+    "tech": "html",
+    "title": "Semantic HTML Tags",
+    "subtitle": "Give meaning to your structure",
+    "tags": ["html", "semantic", "article", "section", "nav", "header", "footer", "aside", "main", "accessibility"],
+    "url": "#/learn/html/03-semantic-tags"
+  },
+  {
+    "id": "html-04-headings",
+    "type": "lesson",
+    "tech": "html",
+    "title": "Headings",
+    "subtitle": "h1 through h6 and document hierarchy",
+    "tags": ["html", "headings", "h1", "h2", "hierarchy", "seo"],
+    "url": "#/learn/html/04-headings"
+  },
+  {
+    "id": "html-05-paragraphs",
+    "type": "lesson",
+    "tech": "html",
+    "title": "Paragraphs & Text",
+    "subtitle": "p, strong, em, code, and friends",
+    "tags": ["html", "paragraph", "text", "inline", "strong", "em", "code"],
+    "url": "#/learn/html/05-paragraphs"
+  },
+  {
+    "id": "html-06-lists",
+    "type": "lesson",
+    "tech": "html",
+    "title": "Lists",
+    "subtitle": "ul, ol, li, dl",
+    "tags": ["html", "lists", "ul", "ol", "li", "definition", "dl"],
+    "url": "#/learn/html/06-lists"
+  },
+  {
+    "id": "html-07-links",
+    "type": "lesson",
+    "tech": "html",
+    "title": "Hyperlinks",
+    "subtitle": "The a element and URL anatomy",
+    "tags": ["html", "links", "anchor", "href", "url", "hyperlink"],
+    "url": "#/learn/html/07-links"
+  },
+  {
+    "id": "html-08-images",
+    "type": "lesson",
+    "tech": "html",
+    "title": "Images & Media",
+    "subtitle": "img, picture, srcset, alt text",
+    "tags": ["html", "images", "img", "picture", "alt", "srcset", "media", "accessibility"],
+    "url": "#/learn/html/08-images"
+  },
+  {
+    "id": "html-09-form-basics",
+    "type": "lesson",
+    "tech": "html",
+    "title": "Form Basics",
+    "subtitle": "form, input, label, submit",
+    "tags": ["html", "forms", "input", "label", "submit", "accessibility"],
+    "url": "#/learn/html/09-form-basics"
+  }
+]
