@@ -1,0 +1,86 @@
+{
+  "id": "04-headings",
+  "tech": "html",
+  "module": "html-text-elements",
+  "order": 4,
+  "title": "Headings",
+  "subtitle": "h1 through h6 and document hierarchy",
+  "difficulty": "beginner",
+  "estimatedMinutes": 10,
+  "skillsTaught": ["html.headings", "html.hierarchy", "html.seo-basics"],
+  "prerequisites": ["01-introduction", "02-structure"],
+  "whyItExists": {
+    "short": "Headings give a document its outline — they tell browsers, search engines, and screen readers what each section is about.",
+    "problem": "Without headings, a page is a wall of text with no structure. Search engines cannot understand the topic, and screen reader users cannot jump between sections.",
+    "solution": "HTML provides six heading levels (h1–h6). h1 is the main title; h2–h6 are sub-sections, each nested inside the previous level.",
+    "impact": "Correct heading structure is the single biggest on-page SEO factor and directly determines whether a screen reader user can navigate your page efficiently."
+  },
+  "explainModes": {
+    "beginner": "Headings are like the titles and sub-titles in a book. h1 is the book title. h2 is a chapter. h3 is a section inside a chapter.",
+    "simple": "HTML headings create a document outline. h1 is the biggest and most important. Each level down (h2, h3…) is a sub-section of the one above.",
+    "standard": "Heading elements (h1–h6) define a hierarchical outline. Browsers style them with decreasing font sizes by default, but more importantly they create semantic structure used by accessibility tools and search engines.",
+    "technical": "Heading elements contribute to the document outline algorithm. The ARIA implicit role for all heading elements is `heading` with an aria-level of 1–6. Screen readers expose a landmark list of headings; crawlers weight h1 keywords heavily for relevance scoring.",
+    "deepDive": "The HTML5 outline algorithm (now deprecated in favour of explicit heading levels) aimed to allow multiple h1 per sectioning element. Major screen readers never implemented it, so the safe rule remains: one h1 per page, strict nesting for h2–h6. Google's ranking systems use heading text as a strong signal for topic relevance and featured-snippet eligibility."
+  },
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "HTML gives you six heading levels: **h1** is the page's main title, and **h2** through **h6** mark sub-sections in descending importance."
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Heading levels",
+      "code": "<h1>Web Development</h1>\n  <h2>Front-end</h2>\n    <h3>HTML</h3>\n    <h3>CSS</h3>\n  <h2>Back-end</h2>\n    <h3>Node.js</h3>\n      <h4>Express</h4>"
+    },
+    {
+      "type": "tip",
+      "title": "One h1 per page",
+      "body": "Use exactly one h1 — it is your page's main topic. Search engines and screen readers treat it as the document title."
+    },
+    {
+      "type": "paragraph",
+      "text": "Never skip heading levels. Don't jump from h2 to h4 just to get a smaller visual size — use CSS for that. The hierarchy must be logical."
+    },
+    {
+      "type": "warning",
+      "title": "Don't pick headings for their size",
+      "body": "Using h3 because it 'looks right' breaks the document outline. Style headings with CSS; choose them for their structural meaning."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try headings",
+      "starterCode": "<h1>My Recipe Blog</h1>\n<h2>Pasta Recipes</h2>\n<h3>Carbonara</h3>\n<p>A classic Roman pasta dish.</p>\n<h3>Bolognese</h3>\n<p>A rich meat sauce from Bologna.</p>\n<h2>Desserts</h2>\n<h3>Tiramisu</h3>"
+    },
+    {
+      "type": "quiz",
+      "question": "How many h1 elements should a typical page have?",
+      "kind": "multiple-choice",
+      "options": ["As many as needed", "Exactly one", "One per section", "None — use h2 instead"],
+      "answer": 1,
+      "explanation": "One h1 per page clearly defines the page topic for search engines and screen readers. Multiple h1s dilute SEO value and confuse assistive tech."
+    },
+    {
+      "type": "quiz",
+      "question": "Which heading should you use after an h2 to create a sub-section?",
+      "kind": "multiple-choice",
+      "options": ["h1", "h4", "h3", "Another h2"],
+      "answer": 2,
+      "explanation": "Always go one level deeper — h3 inside h2, h4 inside h3. Skipping levels (h2 → h4) breaks the outline structure."
+    }
+  ],
+  "faq": [
+    { "q": "Does the visual size of headings matter?", "a": "No. The semantic level matters. Use CSS to change the visual appearance. An h1 can be styled to look small; that doesn't change its semantic weight." },
+    { "q": "Can I use h2 before h1?", "a": "Technically the browser won't crash, but it's invalid structure. Always place h1 first as the page's top-level heading." },
+    { "q": "Do headings help SEO?", "a": "Yes. Search engines use heading text as strong relevance signals, especially h1. Descriptive headings that match user search intent improve rankings." }
+  ],
+  "sources": [
+    { "name": "MDN — Heading elements", "url": "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Heading_Elements", "verified": "2024" },
+    { "name": "W3C — Document outline", "url": "https://www.w3.org/WAI/tutorials/page-structure/headings/", "verified": "2024" }
+  ],
+  "realWorld": {
+    "usedIn": ["Every website", "Blog posts", "News articles", "Documentation"],
+    "examples": ["Wikipedia uses h1 for article title, h2 for major sections, h3 for sub-sections", "Google uses heading text to generate featured snippets and page titles in search results"]
+  }
+}

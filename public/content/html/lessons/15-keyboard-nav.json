@@ -1,0 +1,126 @@
+{
+  "id": "15-keyboard-nav",
+  "tech": "html",
+  "module": "html-accessibility",
+  "order": 15,
+  "title": "Keyboard Navigation",
+  "subtitle": "tabindex, focus management, skip links",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 18,
+  "skillsTaught": ["html.keyboard", "html.tabindex", "html.focus", "html.skip-links"],
+  "prerequisites": ["14-aria-basics"],
+  "whyItExists": {
+    "short": "Many users navigate entirely by keyboard — people with motor disabilities, power users, and screen reader users. Every interactive element must be keyboard-reachable and operable.",
+    "problem": "Custom interactive components (divs styled as buttons) are invisible to keyboard navigation. Users who cannot use a mouse are locked out.",
+    "solution": "Native HTML interactive elements (button, a, input, select) are keyboard-focusable by default. tabindex, focus management, and skip links handle edge cases and improve efficiency.",
+    "impact": "Keyboard accessibility is required by WCAG 2.1 Level AA (legally required in many countries). It also benefits power users, laptop trackpad users, and anyone with a temporary injury."
+  },
+  "explainModes": {
+    "beginner": "Users press Tab to move between interactive elements on a page. Buttons, links, and inputs are reachable with Tab by default. tabindex='0' makes other elements focusable. tabindex='-1' makes them focusable only by JavaScript.",
+    "simple": "Tab moves focus forward through interactive elements. Shift+Tab moves backward. Enter/Space activate the focused element. tabindex controls whether and in what order elements receive focus. Skip links let keyboard users jump over repeated navigation.",
+    "standard": "Native interactive elements (a[href], button, input, select, textarea) are in the tab order by default. tabindex=0 adds any element to the natural tab order. tabindex=-1 removes from the tab order but allows programmatic focus via element.focus(). Positive tabindex values set explicit order but should be avoided. The :focus and :focus-visible CSS pseudo-classes style focused elements.",
+    "technical": "The tab order follows DOM order by default. Modals (role=dialog) must trap focus — Tab cycles only within the modal; Escape closes it. Focus management is critical after dynamic DOM changes: if content is removed, focus must move to a logical element. The focus() method with {preventScroll: true} option prevents unwanted scrolling. :focus-visible applies only when focus is keyboard-initiated, not on mouse click.",
+    "deepDive": "WCAG 2.1 Success Criterion 2.1.1 requires all functionality to be operable with a keyboard. SC 2.4.3 requires a meaningful focus order. SC 2.4.7 requires visible focus indicators. The inert attribute (modern browsers) makes an entire subtree non-interactive and invisible to AT — ideal for off-screen panels and hidden modals. The focus trap pattern uses keydown with Tab detection and querySelectorAll to find the first and last focusable elements in a dialog."
+  },
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "Keyboard users navigate pages with **Tab** (forward), **Shift+Tab** (backward), **Enter** (activate links/buttons), and **Space** (activate buttons/checkboxes)."
+    },
+    {
+      "type": "paragraph",
+      "text": "**Native HTML elements are keyboard-accessible by default.** Always prefer them:"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Good: native elements — keyboard works automatically",
+      "code": "<button>Save</button>       <!-- Tab focuses, Enter/Space activates -->\n<a href=\"/about\">About</a>  <!-- Tab focuses, Enter activates -->\n<input type=\"text\">         <!-- Tab focuses, user types -->\n<select>...</select>         <!-- Tab focuses, arrow keys select -->"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Bad: div 'button' — keyboard users cannot reach it",
+      "code": "<!-- ❌ This receives no keyboard focus -->\n<div class=\"btn\" onclick=\"save()\">Save</div>\n\n<!-- ✅ Fix: use a real button -->\n<button onclick=\"save()\">Save</button>"
+    },
+    {
+      "type": "paragraph",
+      "text": "**tabindex** controls focusability:"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "**tabindex=\"0\"** — adds element to the natural tab order (in DOM order)",
+        "**tabindex=\"-1\"** — focusable by JavaScript only (element.focus()), not by Tab",
+        "**tabindex=\"1+\"** — explicit order (avoid — disrupts natural flow and confuses users)"
+      ]
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "tabindex usage",
+      "code": "<!-- Custom component that needs keyboard focus -->\n<div role=\"button\" tabindex=\"0\"\n     onclick=\"doAction()\"\n     onkeydown=\"if(event.key==='Enter'||event.key===' ')doAction()\">\n  Custom action\n</div>\n\n<!-- Modal that JS focuses programmatically -->\n<div role=\"dialog\" tabindex=\"-1\" id=\"modal\">\n  ...\n</div>"
+    },
+    {
+      "type": "paragraph",
+      "text": "**Skip links** let keyboard users jump past repeated navigation directly to main content:"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Skip link — visually hidden until focused",
+      "code": "<style>\n  .skip-link {\n    position: absolute;\n    top: -40px;\n    left: 0;\n    background: #4fd1c5;\n    color: #0e1116;\n    padding: 8px 16px;\n    text-decoration: none;\n    font-weight: bold;\n    z-index: 100;\n  }\n  .skip-link:focus {\n    top: 0; /* becomes visible on Tab focus */\n  }\n</style>\n\n<body>\n  <a class=\"skip-link\" href=\"#main-content\">Skip to main content</a>\n\n  <header>...long navigation...</header>\n\n  <main id=\"main-content\">\n    <h1>Keyboard Navigation</h1>\n  </main>\n</body>"
+    },
+    {
+      "type": "tip",
+      "title": "Always show a visible focus indicator",
+      "body": "Never write outline: none without providing an alternative focus style. Keyboard users rely on the focus ring to know where they are on the page. Use :focus-visible to show focus rings only for keyboard navigation, not mouse clicks."
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Good focus styles",
+      "code": "<style>\n  /* Remove default outline but add a custom one */\n  :focus-visible {\n    outline: 3px solid #4fd1c5;\n    outline-offset: 2px;\n    border-radius: 3px;\n  }\n</style>"
+    },
+    {
+      "type": "quiz",
+      "question": "What does tabindex=\"-1\" do?",
+      "kind": "multiple-choice",
+      "options": [
+        "Removes the element from the page",
+        "Makes the element the first in tab order",
+        "Makes the element focusable via JavaScript but not Tab key",
+        "Disables the element"
+      ],
+      "answer": 2,
+      "explanation": "tabindex=-1 removes an element from the natural Tab order but allows JavaScript to call element.focus() on it. Used for modals and dynamic panels that should receive focus programmatically."
+    },
+    {
+      "type": "quiz",
+      "question": "What is a skip link?",
+      "kind": "multiple-choice",
+      "options": [
+        "A link that opens in a new tab",
+        "A hidden link that lets keyboard users jump past navigation to main content",
+        "A link with no href",
+        "A link that skips validation"
+      ],
+      "answer": 1,
+      "explanation": "A skip link is the first focusable element on the page. It is visually hidden but appears on Tab focus, allowing keyboard users to bypass repeated navigation and jump directly to the main content."
+    }
+  ],
+  "faq": [
+    { "q": "How do I test keyboard accessibility?", "a": "Unplug your mouse and navigate your entire site with Tab, Shift+Tab, Enter, Space, and arrow keys. Every feature must be reachable and operable. Also test with NVDA (Windows) or VoiceOver (Mac) to hear the screen reader experience." },
+    { "q": "Should I ever use a positive tabindex value?", "a": "Almost never. Positive tabindex (1, 2, 3…) overrides the natural DOM order and creates a confusing Tab sequence that is hard to maintain. Only the natural order (tabindex=0) is safe." },
+    { "q": "What is focus trapping in a modal?", "a": "When a modal opens, Tab should cycle only within the modal — not back to the page behind it. This requires JavaScript to detect when focus reaches the last focusable element in the modal and redirect it to the first. The inert attribute makes the background non-interactive in modern browsers." }
+  ],
+  "sources": [
+    { "name": "MDN — Keyboard navigability", "url": "https://developer.mozilla.org/en-US/docs/Web/Accessibility/Keyboard-navigable_JavaScript_widgets", "verified": "2024" },
+    { "name": "WebAIM — Keyboard accessibility", "url": "https://webaim.org/techniques/keyboard/", "verified": "2024" }
+  ],
+  "realWorld": {
+    "usedIn": ["All web applications", "Modals", "Dropdown menus", "Forms", "Navigation menus"],
+    "examples": ["GitHub has a skip link as its first focusable element on every page", "All major SaaS tools (Figma, Linear, Notion) implement focus trapping in modal dialogs"]
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "id": "08-images",
+  "tech": "html",
+  "module": "html-links-images",
+  "order": 8,
+  "title": "Images & Media",
+  "subtitle": "img, picture, srcset, alt text",
+  "difficulty": "beginner",
+  "estimatedMinutes": 18,
+  "skillsTaught": ["html.images", "html.alt-text", "html.responsive-images", "html.figure"],
+  "prerequisites": ["07-links"],
+  "whyItExists": {
+    "short": "Images make the web visual, but they must be loaded efficiently and described for users who cannot see them.",
+    "problem": "A raw img tag with no alt text, no size hints, and no format optimization can break layouts, slow pages, and be completely inaccessible.",
+    "solution": "The img element with alt, width, height, and loading attributes covers the basics. The picture element with srcset enables responsive images that serve the right size/format per device.",
+    "impact": "Images account for ~50% of page weight on average. Optimising them is the single biggest performance win for most websites."
+  },
+  "explainModes": {
+    "beginner": "img shows a picture. src is the image file path. alt is a text description for people who can't see the image (and for screen readers).",
+    "simple": "img requires src (where the image is) and alt (a text description). Always set width and height to prevent layout shifts. Use loading=\"lazy\" for images below the fold.",
+    "standard": "img is a void element (no closing tag). The alt attribute is required for accessibility — empty alt=\"\" is valid for decorative images. width/height prevent Cumulative Layout Shift (CLS). The picture element with source allows serving WebP/AVIF with fallbacks and different crops at different breakpoints.",
+    "technical": "The browser uses the sizes attribute alongside srcset to pick the optimal image source based on the viewport. The loading=lazy attribute defers offscreen image requests. Explicit width/height lets the browser reserve the correct aspect-ratio space before the image loads, preventing CLS — a Core Web Vitals metric. fetchpriority=high signals LCP images to the browser's preload scanner.",
+    "deepDive": "The picture element is a structural container — it never renders itself. The browser evaluates source elements top-to-bottom and selects the first matching media/type condition. AVIF offers ~50% smaller files than WebP but has narrower browser support. The decoding=async attribute offloads JPEG/PNG decoding to a background thread. The figure and figcaption elements semantically associate an image with its caption — the implicit ARIA role is `figure`."
+  },
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "The **img** element embeds an image. It is a **void element** — it has no closing tag."
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Basic image",
+      "code": "<img src=\"/images/hero.jpg\" alt=\"A developer typing code on a laptop\" width=\"800\" height=\"450\">"
+    },
+    {
+      "type": "warning",
+      "title": "alt text is not optional",
+      "body": "Every img must have an alt attribute. For meaningful images, write a description. For purely decorative images, use alt=\"\" (empty) so screen readers skip it."
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "**src** — path to the image file",
+        "**alt** — text description (required for accessibility)",
+        "**width / height** — explicit dimensions to prevent layout shift",
+        "**loading=\"lazy\"** — defer loading until the image nears the viewport",
+        "**decoding=\"async\"** — decode image off the main thread"
+      ]
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Production-ready image",
+      "code": "<img\n  src=\"/images/hero.jpg\"\n  alt=\"A developer typing code on a laptop\"\n  width=\"800\"\n  height=\"450\"\n  loading=\"lazy\"\n  decoding=\"async\"\n>"
+    },
+    {
+      "type": "paragraph",
+      "text": "Use **figure** and **figcaption** to associate a caption with an image:"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "figure + figcaption",
+      "code": "<figure>\n  <img src=\"/images/html-structure.png\"\n       alt=\"Diagram showing the HTML document tree\"\n       width=\"600\" height=\"400\">\n  <figcaption>Fig 1. The HTML document tree — html contains head and body.</figcaption>\n</figure>"
+    },
+    {
+      "type": "paragraph",
+      "text": "The **picture** element serves different images for different screen sizes or formats:"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Responsive picture element",
+      "code": "<picture>\n  <!-- Serve AVIF to browsers that support it -->\n  <source srcset=\"/images/hero.avif\" type=\"image/avif\">\n  <!-- Fall back to WebP -->\n  <source srcset=\"/images/hero.webp\" type=\"image/webp\">\n  <!-- Final fallback: plain JPEG -->\n  <img src=\"/images/hero.jpg\" alt=\"Hero image\" width=\"800\" height=\"450\">\n</picture>"
+    },
+    {
+      "type": "tip",
+      "title": "Always include the img fallback inside picture",
+      "body": "The img element inside picture is the universal fallback. It also carries the alt, width, and height for all sources."
+    },
+    {
+      "type": "quiz",
+      "question": "What should the alt attribute contain for a purely decorative image?",
+      "kind": "multiple-choice",
+      "options": ["The filename", "A description of the image", "An empty string: alt=\"\"", "The word 'image'"],
+      "answer": 2,
+      "explanation": "alt=\"\" (empty) tells screen readers to skip the image completely. This is correct for decorative images that add no informational content. Never omit the attribute entirely."
+    },
+    {
+      "type": "quiz",
+      "question": "Why should you always set explicit width and height on img?",
+      "kind": "multiple-choice",
+      "options": ["To make the image larger", "To prevent layout shift while the image loads", "Required by the HTML spec", "To improve image quality"],
+      "answer": 1,
+      "explanation": "Without width/height, the browser doesn't know the image dimensions until it downloads the file, causing layout to jump — this is called Cumulative Layout Shift (CLS), a Core Web Vitals metric."
+    }
+  ],
+  "faq": [
+    { "q": "What image format should I use?", "a": "Use AVIF first (best compression), WebP as fallback, then JPEG for photos or PNG for transparency. Use the picture element to serve AVIF/WebP with a JPEG/PNG fallback." },
+    { "q": "What's the difference between loading=lazy and loading=eager?", "a": "lazy defers the image request until the user scrolls near it — great for images below the fold. eager (the default) loads the image immediately. Never lazy-load the largest above-the-fold image (your LCP image)." },
+    { "q": "Can I use SVG as an img source?", "a": "Yes. <img src=\"logo.svg\"> works in all modern browsers. SVG is ideal for logos and icons as it scales without quality loss." }
+  ],
+  "sources": [
+    { "name": "MDN — The img element", "url": "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img", "verified": "2024" },
+    { "name": "web.dev — Responsive images", "url": "https://web.dev/learn/images", "verified": "2024" }
+  ],
+  "realWorld": {
+    "usedIn": ["Product galleries", "Blog posts", "Hero banners", "Avatars", "Logos"],
+    "examples": ["Google Images uses srcset to serve optimised sizes per device", "Twitter uses WebP with JPEG fallback for all uploaded images"]
+  }
+}

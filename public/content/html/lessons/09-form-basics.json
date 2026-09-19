@@ -1,0 +1,115 @@
+{
+  "id": "09-form-basics",
+  "tech": "html",
+  "module": "html-forms",
+  "order": 9,
+  "title": "Form Basics",
+  "subtitle": "form, input, label, submit",
+  "difficulty": "beginner",
+  "estimatedMinutes": 20,
+  "skillsTaught": ["html.forms", "html.input", "html.label", "html.submit"],
+  "prerequisites": ["07-links"],
+  "whyItExists": {
+    "short": "Forms are how users send data to servers — login, search, checkout, contact. Without forms, the web is read-only.",
+    "problem": "Collecting user input with plain text is impossible. You need interactive controls that the browser knows how to submit.",
+    "solution": "The form element wraps input controls. Each input has a type (text, email, password…), a name (for the server), and a label (for the user).",
+    "impact": "Every login screen, search box, checkout flow, and contact page on the web is an HTML form."
+  },
+  "explainModes": {
+    "beginner": "A form is a box that collects information. Input fields let users type. Labels tell users what to type. A submit button sends it all.",
+    "simple": "form wraps your controls. input creates a field (type sets what kind). label links text to an input. button type=submit sends the form data to the server.",
+    "standard": "form has action (where to send data) and method (GET or POST). Each input needs name (for the data key), id (to link a label with for=). The label for attribute must match the input id for proper accessibility.",
+    "technical": "form submission serialises controls with a name attribute into a query string (GET) or request body (POST). The enctype attribute controls encoding — multipart/form-data is required for file uploads. Implicit submission (pressing Enter in a single text field) triggers the first submit button. Controls without a name are excluded from submission.",
+    "deepDive": "HTML forms communicate via HTTP. GET appends data to the URL (bookmarkable, cacheable, not for sensitive data). POST sends data in the body (sensitive data, side effects). The fetch API can intercept form submissions (FormData constructor) to send via XHR/fetch instead of a page reload. The formmethod and formaction attributes on individual buttons can override the parent form's settings per-button."
+  },
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "Every form starts with the **form** element, which wraps all inputs and defines where and how to send data."
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Basic form structure",
+      "code": "<form action=\"/submit\" method=\"POST\">\n  <!-- controls go here -->\n</form>"
+    },
+    {
+      "type": "paragraph",
+      "text": "The **input** element creates a field. The **type** attribute controls what kind of input it is:"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "**type=\"text\"** — single-line text",
+        "**type=\"email\"** — email address (validated by browser)",
+        "**type=\"password\"** — masked text",
+        "**type=\"number\"** — numeric input with arrows",
+        "**type=\"tel\"** — telephone number",
+        "**type=\"url\"** — web address",
+        "**type=\"search\"** — search field"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Every input needs a **label**. Link them with matching **for** and **id** attributes — this makes the label clickable and tells screen readers what the field is for."
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Input with linked label",
+      "code": "<label for=\"username\">Username</label>\n<input type=\"text\" id=\"username\" name=\"username\" placeholder=\"e.g. prashantkeshr\">"
+    },
+    {
+      "type": "warning",
+      "title": "Never use placeholder as a label substitute",
+      "body": "Placeholder text disappears when the user starts typing. Always use a real label element. Placeholder is for hints, not labels."
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Complete login form",
+      "code": "<form action=\"/login\" method=\"POST\">\n  <div>\n    <label for=\"email\">Email address</label>\n    <input type=\"email\" id=\"email\" name=\"email\" autocomplete=\"email\" required>\n  </div>\n\n  <div>\n    <label for=\"password\">Password</label>\n    <input type=\"password\" id=\"password\" name=\"password\" autocomplete=\"current-password\" required>\n  </div>\n\n  <button type=\"submit\">Log in</button>\n</form>"
+    },
+    {
+      "type": "tip",
+      "title": "Use autocomplete attributes",
+      "body": "autocomplete=\"email\", \"current-password\", \"name\" etc. let password managers and browsers auto-fill correctly. This is a huge usability win."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Build a contact form",
+      "starterCode": "<form>\n  <div>\n    <label for=\"name\">Your name</label><br>\n    <input type=\"text\" id=\"name\" name=\"name\" placeholder=\"Prashant\">\n  </div>\n\n  <div>\n    <label for=\"email\">Email</label><br>\n    <input type=\"email\" id=\"email\" name=\"email\" placeholder=\"you@example.com\">\n  </div>\n\n  <div>\n    <label for=\"msg\">Message</label><br>\n    <textarea id=\"msg\" name=\"message\" rows=\"4\"></textarea>\n  </div>\n\n  <button type=\"submit\">Send</button>\n</form>"
+    },
+    {
+      "type": "quiz",
+      "question": "How do you link a label to an input?",
+      "kind": "multiple-choice",
+      "options": ["Give them the same name attribute", "Match the label's for attribute to the input's id", "Wrap the input inside the label only", "Use aria-label on the input"],
+      "answer": 1,
+      "explanation": "The label for attribute must match the input id exactly. This links them so clicking the label focuses the input, and screen readers announce the label when the input is focused."
+    },
+    {
+      "type": "quiz",
+      "question": "Which HTTP method should you use for a login form (sending a password)?",
+      "kind": "multiple-choice",
+      "options": ["GET", "POST", "PUT", "DELETE"],
+      "answer": 1,
+      "explanation": "POST sends data in the request body (not visible in the URL). GET would put the password in the URL — visible in browser history, server logs, and referrer headers."
+    }
+  ],
+  "faq": [
+    { "q": "What is the difference between GET and POST?", "a": "GET appends data to the URL — good for search forms (shareable results). POST sends data in the body — required for passwords, file uploads, or any data that modifies server state." },
+    { "q": "Do I need action and method on every form?", "a": "action defaults to the current URL. method defaults to GET. For most forms you should set both explicitly to be clear about intent." },
+    { "q": "Can I style form elements with CSS?", "a": "Yes, but form elements are notoriously tricky to style consistently across browsers. CSS resets like appearance: none give you a blank slate to restyle inputs and selects." }
+  ],
+  "sources": [
+    { "name": "MDN — Web forms guide", "url": "https://developer.mozilla.org/en-US/docs/Learn/Forms", "verified": "2024" },
+    { "name": "web.dev — Forms best practices", "url": "https://web.dev/learn/forms", "verified": "2024" }
+  ],
+  "realWorld": {
+    "usedIn": ["Login pages", "Sign-up flows", "Search bars", "Contact pages", "Checkout forms"],
+    "examples": ["Google Search is a form with a single text input and a submit button", "GitHub's login uses autocomplete attributes for password manager compatibility"]
+  }
+}

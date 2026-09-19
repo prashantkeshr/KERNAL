@@ -1,0 +1,108 @@
+{
+  "id": "06-lists",
+  "tech": "html",
+  "module": "html-text-elements",
+  "order": 6,
+  "title": "Lists",
+  "subtitle": "ul, ol, li, dl — organise your content",
+  "difficulty": "beginner",
+  "estimatedMinutes": 12,
+  "skillsTaught": ["html.lists", "html.ul", "html.ol", "html.dl"],
+  "prerequisites": ["05-paragraphs"],
+  "whyItExists": {
+    "short": "Lists are one of the most common content patterns on the web. HTML has dedicated elements for unordered lists, ordered lists, and description lists.",
+    "problem": "Manually writing '1. 2. 3.' in text means browsers, screen readers, and search engines have no idea that content is a list.",
+    "solution": "ul/ol/li create real list semantics — screen readers announce 'list of 5 items', search engines understand list structure, and CSS can style bullets freely.",
+    "impact": "Navigation menus, step-by-step guides, feature lists, and FAQs are all built with HTML lists."
+  },
+  "explainModes": {
+    "beginner": "ul is a bullet list (unordered). ol is a numbered list (ordered). li is each item inside either. dl is for term-definition pairs, like a glossary.",
+    "simple": "HTML has three list types: ul (bullets), ol (numbers), and dl (description/glossary). Items go inside li for ul/ol, or inside dt/dd pairs for dl.",
+    "standard": "ul and ol both contain li elements. The difference is semantic — ul is for items with no meaningful order; ol is for sequences where order matters. dl pairs a term (dt) with one or more definitions (dd). All three types can be nested.",
+    "technical": "ul/ol have implicit ARIA role `list`; li has role `listitem`. dl maps to role `definition`, dt to `term`, dd to `definition`. Nesting lists beyond 2–3 levels hurts readability and screen-reader announcements. CSS list-style-type can replace or remove bullets/numbers entirely.",
+    "deepDive": "Navigation menus are almost always ul > li > a structures — the semantic list conveys that the links form a related group. Screen readers announce 'navigation, list of 5 items' and allow users to skip the list. ol's start, reversed, and type attributes allow custom counters. The value attribute on individual li elements sets an explicit counter value."
+  },
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "HTML has three list elements, each for a different purpose:"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "**ul** (unordered list) — bullets, for items with no required order",
+        "**ol** (ordered list) — numbers, for steps or ranked items",
+        "**dl** (description list) — term/definition pairs, for glossaries or metadata"
+      ]
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Unordered list",
+      "code": "<ul>\n  <li>HTML</li>\n  <li>CSS</li>\n  <li>JavaScript</li>\n</ul>"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Ordered list — steps",
+      "code": "<ol>\n  <li>Open your code editor</li>\n  <li>Create an index.html file</li>\n  <li>Add your HTML boilerplate</li>\n  <li>Open in a browser</li>\n</ol>"
+    },
+    {
+      "type": "tip",
+      "title": "ol start attribute",
+      "body": "Use start=\"5\" on ol to begin numbering at 5, useful for continuing a list broken by other content."
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Description list — glossary",
+      "code": "<dl>\n  <dt>HTML</dt>\n  <dd>HyperText Markup Language — the structure of web pages</dd>\n\n  <dt>CSS</dt>\n  <dd>Cascading Style Sheets — the visual presentation of web pages</dd>\n\n  <dt>JavaScript</dt>\n  <dd>A programming language that makes web pages interactive</dd>\n</dl>"
+    },
+    {
+      "type": "paragraph",
+      "text": "Lists can be **nested** — place a new ul or ol inside an li to create sub-lists."
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Nested list",
+      "code": "<ul>\n  <li>Front-end\n    <ul>\n      <li>HTML</li>\n      <li>CSS</li>\n      <li>JavaScript</li>\n    </ul>\n  </li>\n  <li>Back-end\n    <ul>\n      <li>Node.js</li>\n      <li>Python</li>\n    </ul>\n  </li>\n</ul>"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Build a list",
+      "starterCode": "<!-- Change this to an ordered list (ol) for a recipe -->\n<h2>Ingredients</h2>\n<ul>\n  <li>2 cups flour</li>\n  <li>1 cup sugar</li>\n  <li>3 eggs</li>\n</ul>\n\n<h2>Steps</h2>\n<ol>\n  <li>Mix dry ingredients</li>\n  <li>Add eggs and butter</li>\n  <li>Bake at 180°C for 30 minutes</li>\n</ol>"
+    },
+    {
+      "type": "quiz",
+      "question": "Which list type should you use for a step-by-step installation guide?",
+      "kind": "multiple-choice",
+      "options": ["ul", "ol", "dl", "li"],
+      "answer": 1,
+      "explanation": "ol (ordered list) is correct because the order of the steps matters. ul is for unordered items; dl is for term-definition pairs."
+    },
+    {
+      "type": "quiz",
+      "question": "Which element goes directly inside ul or ol?",
+      "kind": "multiple-choice",
+      "options": ["p", "div", "li", "dt"],
+      "answer": 2,
+      "explanation": "Only li elements are valid direct children of ul and ol. dt and dd are used inside dl only."
+    }
+  ],
+  "faq": [
+    { "q": "Can I put a p inside an li?", "a": "Yes. li can contain block-level content including p, blockquote, and even nested lists. This is common for complex list items." },
+    { "q": "How do I remove the default bullets with CSS?", "a": "Use list-style: none on the ul or ol. Also add padding: 0 and margin: 0 since browsers add default spacing." },
+    { "q": "When should I use dl vs a table?", "a": "Use dl for pairs of terms and their descriptions (glossaries, metadata). Use a table when you have multiple properties per item across rows and columns." }
+  ],
+  "sources": [
+    { "name": "MDN — ul element", "url": "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/ul", "verified": "2024" },
+    { "name": "MDN — ol element", "url": "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/ol", "verified": "2024" }
+  ],
+  "realWorld": {
+    "usedIn": ["Navigation menus", "Recipe steps", "Feature lists", "Glossaries", "Shopping carts"],
+    "examples": ["Every navigation bar on the web is a ul > li > a pattern", "MDN's sidebar is a nested ul with hundreds of li items"]
+  }
+}

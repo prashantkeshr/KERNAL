@@ -1,0 +1,96 @@
+{
+  "id": "13-article-section",
+  "tech": "html",
+  "module": "html-semantic",
+  "order": 13,
+  "title": "Article & Section",
+  "subtitle": "Structuring content semantically",
+  "difficulty": "beginner",
+  "estimatedMinutes": 12,
+  "skillsTaught": ["html.article", "html.section", "html.div-vs-semantic"],
+  "prerequisites": ["12-layout-elements"],
+  "whyItExists": {
+    "short": "article and section give semantic meaning to content blocks — distinguishing self-contained pieces from grouped sub-sections.",
+    "problem": "div has no meaning. When a page has many content blocks wrapped in divs, nothing tells search engines or screen readers what each block represents.",
+    "solution": "article marks self-contained, redistributable content (a blog post, a product card, a tweet). section marks a thematic grouping within a larger piece of content.",
+    "impact": "Search engines use article to identify the main content body for indexing. RSS readers and scrapers use it to extract article text automatically."
+  },
+  "explainModes": {
+    "beginner": "article is for content that makes sense on its own — like a blog post. section is for grouping related parts within a page. div is just a box with no meaning.",
+    "simple": "Use article when content could be published or shared independently (a news story, a product). Use section to divide a page into themed groups. Use div only when you need a container for layout/styling with no semantic meaning.",
+    "standard": "article implies the content is self-contained and could be syndicated. section implies a thematic grouping that belongs to the larger document — it should always have a heading. div has no semantic meaning and should be used last. They can nest: an article can contain sections; a section can contain articles.",
+    "technical": "Both article and section are sectioning content elements — they create new scopes for heading outlines. article has an implicit ARIA role of `article`. section has role `region` only when it has an accessible name (aria-label or aria-labelledby). Without a name, section is treated as a generic element. div always has role `generic`.",
+    "deepDive": "The HTML5 document outline algorithm (now abandoned) tried to allow multiple h1 elements inside sectioning elements. Modern browsers and screen readers never implemented it. The practical rule: treat each sectioning element as if it resets the heading hierarchy for screen readers — always start with a heading directly inside article and section. Google's indexing treats article content as high-quality candidate text for rich results and Featured Snippets."
+  },
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "Three elements handle content grouping in HTML — each with different intent:"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "**article** — self-contained, independently shareable content",
+        "**section** — thematic grouping within a document (always add a heading)",
+        "**div** — a generic box with no semantic meaning (use as last resort)"
+      ]
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Blog page using article + section",
+      "code": "<main>\n  <section aria-labelledby=\"latest-heading\">\n    <h2 id=\"latest-heading\">Latest Articles</h2>\n\n    <article>\n      <h3>Introduction to HTML</h3>\n      <p>Published by Prashant · 5 min read</p>\n      <p>HTML is the backbone of every web page...</p>\n      <a href=\"/html-intro\">Read more</a>\n    </article>\n\n    <article>\n      <h3>CSS Flexbox Guide</h3>\n      <p>Published by Prashant · 8 min read</p>\n      <p>Flexbox makes layout simple...</p>\n      <a href=\"/flexbox\">Read more</a>\n    </article>\n  </section>\n</main>"
+    },
+    {
+      "type": "tip",
+      "title": "The 'syndication test' for article",
+      "body": "Ask: could this content be copy-pasted into an RSS feed, another website, or a notification and still make complete sense? If yes, use article."
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Nesting — sections inside an article",
+      "code": "<article>\n  <h2>A Complete Guide to HTML Forms</h2>\n  <p>Forms are the backbone of interactive web apps.</p>\n\n  <section>\n    <h3>Form Basics</h3>\n    <p>The form element wraps all controls...</p>\n  </section>\n\n  <section>\n    <h3>Validation</h3>\n    <p>HTML5 adds built-in validation attributes...</p>\n  </section>\n</article>"
+    },
+    {
+      "type": "warning",
+      "title": "section always needs a heading",
+      "body": "A section without a heading is an anti-pattern. If you cannot name the section, it probably should not exist — use a div instead."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Article + section structure",
+      "starterCode": "<main>\n  <section>\n    <h2>Web Technologies</h2>\n\n    <article>\n      <h3>HTML</h3>\n      <p>The structure of the web. Every page starts with HTML.</p>\n    </article>\n\n    <article>\n      <h3>CSS</h3>\n      <p>The style of the web. CSS makes pages look beautiful.</p>\n    </article>\n\n    <article>\n      <h3>JavaScript</h3>\n      <p>The behaviour of the web. JS makes pages interactive.</p>\n    </article>\n  </section>\n</main>"
+    },
+    {
+      "type": "quiz",
+      "question": "Which element should wrap a blog post that could be shared as a standalone piece of content?",
+      "kind": "multiple-choice",
+      "options": ["div", "section", "article", "main"],
+      "answer": 2,
+      "explanation": "article is for self-contained, independently redistributable content like blog posts, news articles, product cards, or forum posts."
+    },
+    {
+      "type": "quiz",
+      "question": "True or false: A section element should always contain a heading.",
+      "kind": "true-false",
+      "answer": true,
+      "explanation": "section represents a thematic grouping. Without a heading, neither humans nor machines can identify what the group is about. If there's no natural heading, use div instead."
+    }
+  ],
+  "faq": [
+    { "q": "Can I put article inside article?", "a": "Yes. A comments section inside a blog post is a common example — the post is an article, and each comment is a nested article." },
+    { "q": "What is the difference between section and div?", "a": "section has semantic meaning — it groups related content thematically and should have a heading. div is a generic container with no semantic meaning, used purely for layout and styling." },
+    { "q": "Does Google understand article and section?", "a": "Yes. Google's crawlers parse semantic HTML. article helps identify primary content for Featured Snippets. section helps understand page structure for breadcrumb rich results." }
+  ],
+  "sources": [
+    { "name": "MDN — article element", "url": "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/article", "verified": "2024" },
+    { "name": "MDN — section element", "url": "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/section", "verified": "2024" }
+  ],
+  "realWorld": {
+    "usedIn": ["Blog posts", "News articles", "Product listings", "Comment threads", "Social media feeds"],
+    "examples": ["Medium wraps each blog post body in an article element", "Twitter/X marks each tweet as an article in the timeline"]
+  }
+}

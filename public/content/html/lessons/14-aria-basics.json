@@ -1,0 +1,119 @@
+{
+  "id": "14-aria-basics",
+  "tech": "html",
+  "module": "html-accessibility",
+  "order": 14,
+  "title": "ARIA Basics",
+  "subtitle": "Roles, labels, and landmark regions",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 20,
+  "skillsTaught": ["html.aria", "html.accessibility", "html.roles", "html.aria-label"],
+  "prerequisites": ["12-layout-elements", "03-semantic-tags"],
+  "whyItExists": {
+    "short": "ARIA (Accessible Rich Internet Applications) fills the gaps when HTML semantics alone cannot describe complex UI patterns to assistive technologies.",
+    "problem": "A custom dropdown, a live search result list, or a tab panel has no native HTML equivalent. Screen readers see a div — they have no idea it's a menu.",
+    "solution": "ARIA attributes (role, aria-label, aria-expanded, aria-hidden, aria-live…) overlay semantic meaning onto any element so screen readers can announce it correctly.",
+    "impact": "Over 1 billion people worldwide have a disability. ARIA makes complex web apps accessible to users of screen readers, switch devices, and braille displays."
+  },
+  "explainModes": {
+    "beginner": "ARIA is extra information you add to HTML so screen readers understand what elements do. aria-label gives something a spoken name. aria-hidden hides things from screen readers. role tells a screen reader what type of thing an element is.",
+    "simple": "ARIA attributes extend HTML's accessibility. role overrides or adds a semantic role. aria-label provides a spoken label. aria-expanded tells screen readers if something is open or closed. aria-hidden removes elements from the accessibility tree.",
+    "standard": "The first rule of ARIA is: don't use ARIA if native HTML semantics work. Use button not div role=button. Add ARIA only when building custom components with no semantic HTML equivalent. aria-label/aria-labelledby name elements; aria-describedby adds descriptions; aria-expanded/aria-selected/aria-checked communicate state.",
+    "technical": "ARIA attributes modify the accessibility tree — a parallel structure browsers expose to assistive tech. role sets the semantic type. aria-label overrides the accessible name computation. aria-live regions (polite/assertive) announce dynamic content changes without focus movement. aria-controls, aria-owns, and aria-haspopup communicate relationships between elements.",
+    "deepDive": "The accessible name computation algorithm (AccName) follows a priority order: aria-labelledby > aria-label > native label > title. aria-labelledby can reference multiple element IDs, concatenating their text. aria-live=polite queues announcements; assertive interrupts immediately (use sparingly). The aria-atomic attribute controls whether live regions announce partial or full updates. ARIA 1.2 adds new roles like log, timer, and status for common dynamic patterns."
+  },
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "**The first rule of ARIA: use native HTML first.** A `<button>` is always better than `<div role=\"button\">` — it gets keyboard focus and click handling for free."
+    },
+    {
+      "type": "paragraph",
+      "text": "Use ARIA when you build custom components that have no HTML equivalent."
+    },
+    {
+      "type": "paragraph",
+      "text": "**aria-label** gives an element an accessible name — what the screen reader announces:"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "aria-label examples",
+      "code": "<!-- Icon button with no visible text -->\n<button aria-label=\"Close dialog\">\n  <svg>...</svg>\n</button>\n\n<!-- Two navs on the same page -->\n<nav aria-label=\"Main navigation\">...</nav>\n<nav aria-label=\"Footer navigation\">...</nav>\n\n<!-- Search input -->\n<input type=\"search\" aria-label=\"Search lessons\">"
+    },
+    {
+      "type": "paragraph",
+      "text": "**aria-labelledby** points to another element's text as the label — better than aria-label because the label is visible:"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "aria-labelledby",
+      "code": "<h2 id=\"modal-title\">Confirm Delete</h2>\n<div role=\"dialog\" aria-labelledby=\"modal-title\" aria-modal=\"true\">\n  <p>Are you sure you want to delete this lesson?</p>\n  <button>Delete</button>\n  <button>Cancel</button>\n</div>"
+    },
+    {
+      "type": "paragraph",
+      "text": "**aria-hidden** removes an element from the accessibility tree — screen readers skip it entirely:"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "aria-hidden for decorative elements",
+      "code": "<!-- Decorative icon beside labelled text -->\n<button>\n  <svg aria-hidden=\"true\" focusable=\"false\">...</svg>\n  Save changes\n</button>\n\n<!-- Visual sparkle effect -- screen readers don't need this -->\n<div aria-hidden=\"true\" class=\"confetti\"></div>"
+    },
+    {
+      "type": "paragraph",
+      "text": "**aria-expanded** announces whether a collapsible element is open or closed:"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "aria-expanded for toggles",
+      "code": "<button aria-expanded=\"false\" aria-controls=\"menu\">\n  Menu\n</button>\n<ul id=\"menu\" hidden>\n  <li><a href=\"/\">Home</a></li>\n  <li><a href=\"/learn\">Learn</a></li>\n</ul>\n\n<!-- JavaScript toggles aria-expanded and hidden together -->"
+    },
+    {
+      "type": "paragraph",
+      "text": "**aria-live** announces dynamic content changes — like search results or notifications:"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Live regions",
+      "code": "<!-- polite: waits until user is idle to announce -->\n<div aria-live=\"polite\" aria-atomic=\"true\" id=\"search-status\">\n  <!-- JS updates this: \"5 results found\" -->\n</div>\n\n<!-- assertive: interrupts immediately (use sparingly) -->\n<div role=\"alert\" aria-live=\"assertive\">\n  <!-- For critical errors only -->\n</div>"
+    },
+    {
+      "type": "tip",
+      "title": "Test with a real screen reader",
+      "body": "Windows: NVDA (free) + Chrome. Mac: VoiceOver (built-in, Cmd+F5) + Safari. Mobile: TalkBack (Android) or VoiceOver (iOS). Reading ARIA docs is not a substitute for testing."
+    },
+    {
+      "type": "quiz",
+      "question": "What is the first rule of ARIA?",
+      "kind": "multiple-choice",
+      "options": ["Always add ARIA to every element", "Use native HTML semantics before ARIA", "Never use ARIA", "Add role to every div"],
+      "answer": 1,
+      "explanation": "The W3C's first rule of ARIA is: if you can use a native HTML element with the semantics already built in, use it. ARIA fills gaps — it doesn't replace native HTML."
+    },
+    {
+      "type": "quiz",
+      "question": "What does aria-hidden=\"true\" do?",
+      "kind": "multiple-choice",
+      "options": ["Hides the element visually", "Removes the element from the DOM", "Hides the element from screen readers only", "Disables the element"],
+      "answer": 2,
+      "explanation": "aria-hidden removes an element from the accessibility tree — screen readers skip it. The element remains fully visible and interactive for sighted users. Use it for decorative icons and visual noise."
+    }
+  ],
+  "faq": [
+    { "q": "When should I use aria-label vs aria-labelledby?", "a": "Prefer aria-labelledby when there is already visible text on the page that serves as the label — it references that text so there is no duplication. Use aria-label when there is no visible label text (icon-only buttons, for example)." },
+    { "q": "Can I add ARIA to any element?", "a": "Technically yes, but some role+element combinations are invalid (like role=button on an input). Follow the ARIA in HTML spec which lists allowed role+element combinations." },
+    { "q": "Is ARIA required for every website?", "a": "No. A website built with correct semantic HTML (headings, landmarks, labels, buttons, links) is largely accessible without any ARIA. ARIA is needed for complex interactive components: carousels, modals, custom dropdowns, tabs, and live regions." }
+  ],
+  "sources": [
+    { "name": "MDN — ARIA basics", "url": "https://developer.mozilla.org/en-US/docs/Learn/Accessibility/WAI-ARIA_basics", "verified": "2024" },
+    { "name": "W3C — ARIA Authoring Practices", "url": "https://www.w3.org/WAI/ARIA/apg/", "verified": "2024" }
+  ],
+  "realWorld": {
+    "usedIn": ["Modal dialogs", "Dropdown menus", "Tab panels", "Carousels", "Live notifications", "Search autocomplete"],
+    "examples": ["GitHub's command palette uses role=dialog, aria-label, and aria-live for search results", "Twitter uses aria-expanded on the 'Show more' tweet thread toggle"]
+  }
+}

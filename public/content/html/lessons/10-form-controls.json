@@ -1,0 +1,116 @@
+{
+  "id": "10-form-controls",
+  "tech": "html",
+  "module": "html-forms",
+  "order": 10,
+  "title": "Form Controls",
+  "subtitle": "select, textarea, checkbox, radio",
+  "difficulty": "beginner",
+  "estimatedMinutes": 18,
+  "skillsTaught": ["html.select", "html.textarea", "html.checkbox", "html.radio", "html.fieldset"],
+  "prerequisites": ["09-form-basics"],
+  "whyItExists": {
+    "short": "Not all user input is free text. HTML provides specialised controls for choices, multi-line text, toggles, and grouped selections.",
+    "problem": "A single text input cannot handle 'pick one country from 200', 'select all that apply', or 'write a multi-line message'.",
+    "solution": "HTML has select/option for dropdowns, textarea for multi-line text, input type=checkbox for multi-select toggles, and input type=radio for single-choice groups.",
+    "impact": "Shipping preference dropdowns, survey multi-select, bio text areas, and preference settings panels all rely on these controls."
+  },
+  "explainModes": {
+    "beginner": "select makes a dropdown menu. textarea is a big text box. checkbox is a tick box you can check or uncheck. radio buttons let you pick exactly one option from a group.",
+    "simple": "select contains option elements for a dropdown. textarea is multi-line text. checkboxes are independent toggles (multiple can be checked). Radio buttons are grouped by the same name — only one can be selected at a time.",
+    "standard": "Radio buttons are grouped by matching name attributes. checkboxes with the same name and value submit multiple values. fieldset groups related controls and legend labels the group — both are important for accessibility. select supports optgroup for categorised options.",
+    "technical": "Radio inputs with the same name form an implicit group — the browser enforces single-selection. Checkboxes with the same name submit multiple name=value pairs. textarea has rows and cols for visual sizing but CSS width/height overrides these. The multiple attribute on select allows multi-select. datalist pairs with input to provide autocomplete suggestions without a full dropdown.",
+    "deepDive": "The constraint validation API applies to all form controls. Custom form controls built with ARIA (role=combobox, role=listbox) must manually implement keyboard patterns from WAI-ARIA Authoring Practices. The :checked CSS pseudo-class allows powerful CSS-only toggle patterns. FormData captures all named controls including files — it handles multipart encoding automatically."
+  },
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "**select** creates a dropdown menu. Each choice is an **option** element:"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Dropdown select",
+      "code": "<label for=\"country\">Country</label>\n<select id=\"country\" name=\"country\">\n  <option value=\"\">-- Select country --</option>\n  <option value=\"in\">India</option>\n  <option value=\"us\">United States</option>\n  <option value=\"gb\">United Kingdom</option>\n</select>"
+    },
+    {
+      "type": "paragraph",
+      "text": "Use **optgroup** to group related options in a dropdown:"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "optgroup in select",
+      "code": "<select name=\"language\">\n  <optgroup label=\"Web\">\n    <option value=\"html\">HTML</option>\n    <option value=\"css\">CSS</option>\n    <option value=\"js\">JavaScript</option>\n  </optgroup>\n  <optgroup label=\"Backend\">\n    <option value=\"python\">Python</option>\n    <option value=\"node\">Node.js</option>\n  </optgroup>\n</select>"
+    },
+    {
+      "type": "paragraph",
+      "text": "**textarea** creates a resizable multi-line text field:"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "textarea",
+      "code": "<label for=\"bio\">Bio</label>\n<textarea id=\"bio\" name=\"bio\" rows=\"5\" cols=\"40\"\n          placeholder=\"Tell us about yourself...\"></textarea>"
+    },
+    {
+      "type": "paragraph",
+      "text": "**Checkboxes** are independent toggles — multiple can be selected:"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Checkboxes",
+      "code": "<fieldset>\n  <legend>Languages you know</legend>\n\n  <input type=\"checkbox\" id=\"html\" name=\"skills\" value=\"html\">\n  <label for=\"html\">HTML</label>\n\n  <input type=\"checkbox\" id=\"css\" name=\"skills\" value=\"css\">\n  <label for=\"css\">CSS</label>\n\n  <input type=\"checkbox\" id=\"js\" name=\"skills\" value=\"js\" checked>\n  <label for=\"js\">JavaScript</label>\n</fieldset>"
+    },
+    {
+      "type": "paragraph",
+      "text": "**Radio buttons** force a single choice from a group. They are grouped by sharing the same **name**:"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Radio buttons",
+      "code": "<fieldset>\n  <legend>Experience level</legend>\n\n  <input type=\"radio\" id=\"beginner\" name=\"level\" value=\"beginner\">\n  <label for=\"beginner\">Beginner</label>\n\n  <input type=\"radio\" id=\"intermediate\" name=\"level\" value=\"intermediate\" checked>\n  <label for=\"intermediate\">Intermediate</label>\n\n  <input type=\"radio\" id=\"advanced\" name=\"level\" value=\"advanced\">\n  <label for=\"advanced\">Advanced</label>\n</fieldset>"
+    },
+    {
+      "type": "tip",
+      "title": "Always use fieldset + legend for grouped controls",
+      "body": "fieldset groups related controls visually and semantically. legend provides the group's label. Screen readers announce the legend before each control in the group — 'Experience level, Beginner radio button'."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Form controls playground",
+      "starterCode": "<form>\n  <fieldset>\n    <legend>Your profile</legend>\n\n    <label for=\"bio\">Bio</label><br>\n    <textarea id=\"bio\" name=\"bio\" rows=\"3\"></textarea><br><br>\n\n    <label for=\"role\">Role</label>\n    <select id=\"role\" name=\"role\">\n      <option value=\"student\">Student</option>\n      <option value=\"dev\">Developer</option>\n      <option value=\"designer\">Designer</option>\n    </select><br><br>\n\n    <input type=\"checkbox\" id=\"newsletter\" name=\"newsletter\" value=\"yes\">\n    <label for=\"newsletter\">Subscribe to newsletter</label>\n  </fieldset>\n\n  <button type=\"submit\">Save</button>\n</form>"
+    },
+    {
+      "type": "quiz",
+      "question": "What makes radio buttons only allow one selection at a time?",
+      "kind": "multiple-choice",
+      "options": ["The type=radio attribute alone", "Sharing the same name attribute", "Being inside a fieldset", "The checked attribute"],
+      "answer": 1,
+      "explanation": "Radio buttons are grouped by their name attribute. All radios with the same name form one group, and only one can be selected. Without matching names, they behave as independent toggles."
+    },
+    {
+      "type": "quiz",
+      "question": "True or false: You can select multiple checkboxes with the same name.",
+      "kind": "true-false",
+      "answer": true,
+      "explanation": "Yes. Checkboxes are independent — multiple can be checked. They all submit as separate name=value pairs (e.g., skills=html&skills=css). This is different from radio buttons."
+    }
+  ],
+  "faq": [
+    { "q": "What is fieldset and when should I use it?", "a": "fieldset groups related form controls under a legend label. Always use it for radio button groups and checkbox groups — it's required for accessible form design." },
+    { "q": "How do I make a dropdown that allows multiple selections?", "a": "Add the multiple attribute to select: <select multiple>. Users Ctrl+click or Shift+click to select multiple options. Style it with size attribute to show more options." },
+    { "q": "What's the difference between rows/cols and CSS width/height on textarea?", "a": "rows and cols set a fallback size in characters/rows. CSS width and height override them. Use CSS for layout control; keep rows/cols as a reasonable fallback for unstyled rendering." }
+  ],
+  "sources": [
+    { "name": "MDN — select element", "url": "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/select", "verified": "2024" },
+    { "name": "MDN — fieldset element", "url": "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/fieldset", "verified": "2024" }
+  ],
+  "realWorld": {
+    "usedIn": ["Survey forms", "Profile settings", "Shipping forms", "Filter panels", "Sign-up wizards"],
+    "examples": ["Google Forms uses radio buttons for single-choice and checkboxes for multi-choice questions", "Amazon's checkout uses select for country and fieldset+radio for payment method"]
+  }
+}

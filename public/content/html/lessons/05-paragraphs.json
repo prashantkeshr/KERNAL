@@ -1,0 +1,109 @@
+{
+  "id": "05-paragraphs",
+  "tech": "html",
+  "module": "html-text-elements",
+  "order": 5,
+  "title": "Paragraphs & Text",
+  "subtitle": "p, strong, em, code, and inline elements",
+  "difficulty": "beginner",
+  "estimatedMinutes": 12,
+  "skillsTaught": ["html.paragraphs", "html.inline-text", "html.emphasis"],
+  "prerequisites": ["04-headings"],
+  "whyItExists": {
+    "short": "Text is the core content of the web. HTML provides specific elements for paragraphs, emphasis, importance, code, and other inline text semantics.",
+    "problem": "Plain text has no meaning or structure. You need a way to say 'this word is important', 'this is code', 'this is a quoted phrase'.",
+    "solution": "HTML block elements like p wrap paragraphs, while inline elements like strong, em, code, abbr, and mark add meaning to words within a paragraph.",
+    "impact": "Semantic text elements improve accessibility, SEO, and readability — screen readers announce 'emphasis' and 'strong' to users."
+  },
+  "explainModes": {
+    "beginner": "The p tag makes a paragraph. strong makes text bold and important. em makes text italic and emphasised. Use them for their meaning, not just their looks.",
+    "simple": "Block elements like p create paragraph boxes. Inline elements like strong, em, and code live inside paragraphs and add meaning to individual words or phrases.",
+    "standard": "HTML separates block-level text containers (p, blockquote, pre) from inline semantic elements (strong, em, code, abbr, mark, small, del, ins). Choosing the right element conveys meaning to browsers, search engines, and assistive technologies.",
+    "technical": "The p element has an implicit ARIA role of `paragraph`. strong carries semantic importance (not just bold); em carries stress emphasis. Both affect how screen readers modulate speech. The b and i elements are presentational without inherent importance.",
+    "deepDive": "The distinction between b/i (presentational) and strong/em (semantic) matters for assistive technology and SEO. strong signals keyword importance to crawlers. The mark element highlights text relevant to a current search or user action — semantically different from styling with CSS background-color. del and ins model document edits with optional cite and datetime attributes."
+  },
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "The **p** element wraps a block of text into a paragraph. Each p starts on a new line with a top and bottom margin by default."
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Basic paragraph",
+      "code": "<p>HTML stands for HyperText Markup Language.\nIt is the standard language for creating web pages.</p>\n<p>Every website you have ever visited is built on HTML.</p>"
+    },
+    {
+      "type": "paragraph",
+      "text": "Inside paragraphs, **inline elements** add meaning to specific words:"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "**strong** — important text (renders bold, announces 'important' to screen readers)",
+        "**em** — emphasised text (renders italic, announces emphasis)",
+        "**code** — inline code or technical terms",
+        "**mark** — highlighted / relevant text",
+        "**abbr** — abbreviation with a title tooltip",
+        "**small** — fine print or side comments",
+        "**del** / **ins** — deleted / inserted text in edits"
+      ]
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Inline elements in action",
+      "code": "<p>\n  <strong>Never</strong> skip heading levels in HTML.\n  Use <em>semantic</em> elements for their meaning,\n  not just their looks. The <code>strong</code> tag\n  signals <mark>importance</mark> to search engines.\n</p>\n<p>\n  The <abbr title=\"World Wide Web\">WWW</abbr>\n  was invented by Tim Berners-Lee.\n</p>"
+    },
+    {
+      "type": "tip",
+      "title": "strong vs b, em vs i",
+      "body": "Use strong (not b) for important text, and em (not i) for emphasis. b and i are purely visual and carry no semantic meaning."
+    },
+    {
+      "type": "paragraph",
+      "text": "For longer quoted text, use **blockquote**. For preformatted text (like code blocks), use **pre** wrapped around a **code** element."
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "blockquote and pre",
+      "code": "<blockquote cite=\"https://developer.mozilla.org\">\n  <p>HTML is the backbone of the web.</p>\n</blockquote>\n\n<pre><code>function greet(name) {\n  return `Hello, ${name}!`;\n}</code></pre>"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Text elements playground",
+      "starterCode": "<h2>About KERNAL</h2>\n<p>\n  <strong>KERNAL</strong> is a <em>free</em> developer\n  learning platform. It teaches <code>HTML</code>,\n  <code>CSS</code>, and more.\n</p>\n<p>\n  Built by <mark>Dhurta.Org</mark> for learners\n  who want to understand the <abbr title=\"World Wide Web\">web</abbr>.\n</p>"
+    },
+    {
+      "type": "quiz",
+      "question": "Which element should you use for text that is critically important (not just visually bold)?",
+      "kind": "multiple-choice",
+      "options": ["b", "i", "strong", "em"],
+      "answer": 2,
+      "explanation": "strong conveys semantic importance. The b element is purely presentational — it makes text bold but tells assistive tech nothing special about that text."
+    },
+    {
+      "type": "quiz",
+      "question": "True or false: the p element is an inline element.",
+      "kind": "true-false",
+      "answer": false,
+      "explanation": "p is a block-level element — it creates its own block on the page. Inline elements like strong and em live inside block elements."
+    }
+  ],
+  "faq": [
+    { "q": "Can I put a div inside a p?", "a": "No. p can only contain inline content (text, strong, em, code, etc.). Placing a block element like div inside p is invalid HTML and browsers will auto-correct it in unpredictable ways." },
+    { "q": "What is the difference between em and i?", "a": "em conveys stress emphasis (semantic). i is purely presentational italic with no additional meaning — use it for technical terms, foreign words, or titles by convention, not for emphasis." },
+    { "q": "How do I add a line break inside a paragraph?", "a": "Use the br element sparingly — only for content where line breaks are meaningful (like poetry or addresses). For layout spacing, use CSS margin/padding instead." }
+  ],
+  "sources": [
+    { "name": "MDN — The p element", "url": "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/p", "verified": "2024" },
+    { "name": "MDN — Inline text semantics", "url": "https://developer.mozilla.org/en-US/docs/Web/HTML/Element#inline_text_semantics", "verified": "2024" }
+  ],
+  "realWorld": {
+    "usedIn": ["Blog posts", "News articles", "Product descriptions", "Documentation"],
+    "examples": ["Wikipedia wraps every article paragraph in p and uses em for foreign words", "MDN uses code inline for HTML element names within paragraphs"]
+  }
+}

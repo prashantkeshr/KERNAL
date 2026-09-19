@@ -1,0 +1,122 @@
+{
+  "id": "11-form-validation",
+  "tech": "html",
+  "module": "html-forms",
+  "order": 11,
+  "title": "Form Validation",
+  "subtitle": "required, pattern, type attributes",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 20,
+  "skillsTaught": ["html.validation", "html.required", "html.pattern", "html.constraint-validation"],
+  "prerequisites": ["09-form-basics", "10-form-controls"],
+  "whyItExists": {
+    "short": "Browsers can validate form input before it ever reaches a server — no JavaScript needed for basic rules like 'this field is required' or 'this must be an email'.",
+    "problem": "Without validation, users submit empty fields, invalid emails, or passwords that are too short — causing server errors or bad data.",
+    "solution": "HTML5 constraint validation attributes (required, min, max, minlength, maxlength, pattern, type) let the browser validate inputs and show native error messages automatically.",
+    "impact": "Native HTML validation is accessible, mobile-friendly, and works without JavaScript. It is the first line of defence — always validate on the server too."
+  },
+  "explainModes": {
+    "beginner": "Add required to a field to make it mandatory. The browser won't let the form submit if it's empty. Add type=email to automatically check that the user typed a valid email.",
+    "simple": "HTML5 validation attributes let the browser check inputs before submission. required, minlength, maxlength, min, max, and pattern cover most use cases. The browser shows error bubbles automatically.",
+    "standard": "The constraint validation API fires a submit event only if all controls pass validation. type attributes (email, url, number, date) add format validation automatically. pattern accepts a JavaScript RegExp string (no delimiters). The :valid and :invalid CSS pseudo-classes allow styling valid/invalid states.",
+    "technical": "The checkValidity() method returns a boolean; reportValidity() also shows the native error UI. setCustomValidity(message) injects custom error messages into the constraint API. novalidate on the form disables native UI while keeping the API accessible to JS. Each invalid control fires an invalid event.",
+    "deepDive": "Native validation messages are localised to the user's browser language — an advantage over custom JS messages. However, native error bubbles are not fully stylable with CSS. The pattern attribute is anchored implicitly (whole value must match), unlike JavaScript regex which matches substrings. For complex multi-field validation (passwords matching, conditional required), JavaScript's setCustomValidity is the bridge between native and custom logic."
+  },
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "HTML5 validation attributes prevent form submission when inputs don't meet requirements — no JavaScript needed."
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "required — field cannot be empty",
+      "code": "<label for=\"name\">Full name</label>\n<input type=\"text\" id=\"name\" name=\"name\" required>"
+    },
+    {
+      "type": "paragraph",
+      "text": "**type** attributes add format validation automatically:"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Type-based validation",
+      "code": "<!-- Must be a valid email format -->\n<input type=\"email\" name=\"email\" required>\n\n<!-- Must be a valid URL -->\n<input type=\"url\" name=\"website\" placeholder=\"https://\">\n\n<!-- Must be a number between 1 and 100 -->\n<input type=\"number\" name=\"age\" min=\"1\" max=\"100\">\n\n<!-- Date picker -->\n<input type=\"date\" name=\"birthday\" min=\"1900-01-01\">"
+    },
+    {
+      "type": "paragraph",
+      "text": "**minlength** and **maxlength** set character limits:"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Length constraints",
+      "code": "<label for=\"username\">Username (3–20 characters)</label>\n<input type=\"text\" id=\"username\" name=\"username\"\n       minlength=\"3\" maxlength=\"20\" required>"
+    },
+    {
+      "type": "paragraph",
+      "text": "**pattern** accepts a JavaScript regular expression to validate custom formats:"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Pattern validation",
+      "code": "<!-- Only letters and numbers, 3-16 chars -->\n<input type=\"text\" name=\"username\"\n       pattern=\"[a-zA-Z0-9]{3,16}\"\n       title=\"3 to 16 letters and numbers only\"\n       required>\n\n<!-- Indian phone number -->\n<input type=\"tel\" name=\"phone\"\n       pattern=\"[6-9][0-9]{9}\"\n       title=\"Enter a valid 10-digit Indian mobile number\">"
+    },
+    {
+      "type": "tip",
+      "title": "Always add title with pattern",
+      "body": "The title attribute text appears in the browser's validation tooltip — tell users what format you expect. Without it they just see 'Please match the requested format'."
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Full validated sign-up form",
+      "code": "<form>\n  <label for=\"email\">Email</label>\n  <input type=\"email\" id=\"email\" name=\"email\" required autocomplete=\"email\">\n\n  <label for=\"pw\">Password (min 8 characters)</label>\n  <input type=\"password\" id=\"pw\" name=\"password\"\n         minlength=\"8\" required autocomplete=\"new-password\">\n\n  <label for=\"age\">Age</label>\n  <input type=\"number\" id=\"age\" name=\"age\" min=\"13\" max=\"120\" required>\n\n  <button type=\"submit\">Sign up</button>\n</form>"
+    },
+    {
+      "type": "paragraph",
+      "text": "Use **:valid** and **:invalid** CSS pseudo-classes to style inputs based on their validation state:"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Styling validation states",
+      "code": "<style>\n  input:valid   { border-color: green; }\n  input:invalid { border-color: red; }\n</style>\n<input type=\"email\" placeholder=\"you@example.com\">"
+    },
+    {
+      "type": "warning",
+      "title": "HTML validation is not enough",
+      "body": "Always validate on the server too. HTML validation can be bypassed by disabling JavaScript, using browser dev tools, or sending raw HTTP requests."
+    },
+    {
+      "type": "quiz",
+      "question": "Which attribute makes a form field mandatory?",
+      "kind": "multiple-choice",
+      "options": ["mandatory", "validate", "required", "not-empty"],
+      "answer": 2,
+      "explanation": "The required attribute prevents form submission if the field is empty. The browser shows a native error message and highlights the field automatically."
+    },
+    {
+      "type": "quiz",
+      "question": "What does the pattern attribute accept?",
+      "kind": "multiple-choice",
+      "options": ["A CSS selector", "A JavaScript regex (without / delimiters)", "A list of allowed values", "A function name"],
+      "answer": 1,
+      "explanation": "pattern accepts a JavaScript regular expression string without delimiters. The browser implicitly anchors it (^...$), so the whole input value must match — not just a substring."
+    }
+  ],
+  "faq": [
+    { "q": "How do I show custom error messages?", "a": "Use setCustomValidity('Your message') in JavaScript on the invalid event. Call setCustomValidity('') to clear the error when the field is valid." },
+    { "q": "Can I disable native browser validation?", "a": "Yes. Add novalidate to the form element. This disables the native UI but keeps the constraint validation API available so JavaScript can still call checkValidity()." },
+    { "q": "Why does :invalid trigger immediately on page load?", "a": "A required empty field is technically invalid as soon as the page loads. Use :invalid with a :not(:placeholder-shown) or :user-invalid (modern browsers) selector to only show errors after the user has interacted with the field." }
+  ],
+  "sources": [
+    { "name": "MDN — Constraint validation", "url": "https://developer.mozilla.org/en-US/docs/Web/HTML/Constraint_validation", "verified": "2024" },
+    { "name": "web.dev — Form validation", "url": "https://web.dev/learn/forms/validation", "verified": "2024" }
+  ],
+  "realWorld": {
+    "usedIn": ["Sign-up forms", "Login screens", "Payment forms", "Profile editors", "Contact forms"],
+    "examples": ["GitHub uses minlength=15 for passwords on sign-up", "Google uses type=email and required for all account creation forms"]
+  }
+}

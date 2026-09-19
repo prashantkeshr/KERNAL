@@ -1,0 +1,93 @@
+{
+  "id": "12-layout-elements",
+  "tech": "html",
+  "module": "html-semantic",
+  "order": 12,
+  "title": "Layout Elements",
+  "subtitle": "header, nav, main, footer, aside",
+  "difficulty": "beginner",
+  "estimatedMinutes": 15,
+  "skillsTaught": ["html.layout", "html.header", "html.nav", "html.main", "html.footer", "html.aside"],
+  "prerequisites": ["03-semantic-tags"],
+  "whyItExists": {
+    "short": "HTML5 landmark elements replace generic divs with meaningful regions — each section of a page has a semantic name that browsers, search engines, and screen readers understand.",
+    "problem": "A page built entirely from divs is a black box. Screen readers cannot tell users 'you are in the navigation' or 'this is the main content'.",
+    "solution": "header, nav, main, footer, aside, and section give each page region a semantic role — they become landmarks that assistive tech users can jump between instantly.",
+    "impact": "Screen reader users rely on landmarks to navigate pages efficiently. Search engines use them to understand page structure and identify the main content."
+  },
+  "explainModes": {
+    "beginner": "Instead of using divs for everything, HTML5 gives you named boxes: header (top of page), nav (navigation links), main (the main content), footer (bottom of page), and aside (side content).",
+    "simple": "HTML5 landmark elements are semantic divs. header wraps the site logo/title. nav wraps navigation links. main holds the unique content of the page. footer holds copyright/links. aside holds sidebar content.",
+    "standard": "Each landmark element maps to an ARIA landmark role: header → banner, nav → navigation, main → main, footer → contentinfo, aside → complementary. Screen readers expose these as a landmark list — users can jump directly to main content, skipping repeated navigation.",
+    "technical": "main must be unique per page (only one). header and footer may appear multiple times — inside article or section they become scoped to that context (not page-level banner/contentinfo). nav should wrap primary and secondary navigation; use aria-label to distinguish multiple nav elements. aside content should be related but not essential to the main content.",
+    "deepDive": "The landmark roles exposed by semantic elements are ARIA landmarks. Screen readers like NVDA, JAWS, and VoiceOver all support a 'list landmarks' shortcut that lets users jump directly to any section. This is the primary keyboard navigation mechanism for blind users. Without landmarks, they must Tab through every interactive element from the top. The header element inside an article creates a sectioning header — its role is generic, not banner — preventing duplicate banner announcements."
+  },
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "A typical web page has recognisable regions. HTML5 gives each region a semantic element:"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Full page landmark structure",
+      "code": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <title>My Website</title>\n</head>\n<body>\n\n  <header>\n    <a href=\"/\"><img src=\"/logo.svg\" alt=\"KERNAL\"></a>\n    <nav aria-label=\"Main\">\n      <ul>\n        <li><a href=\"/\">Home</a></li>\n        <li><a href=\"/learn\">Learn</a></li>\n        <li><a href=\"/about\">About</a></li>\n      </ul>\n    </nav>\n  </header>\n\n  <main>\n    <h1>Welcome to KERNAL</h1>\n    <p>The core of every coder.</p>\n  </main>\n\n  <aside aria-label=\"Related courses\">\n    <h2>Continue learning</h2>\n    <ul>\n      <li><a href=\"/learn/css\">CSS</a></li>\n    </ul>\n  </aside>\n\n  <footer>\n    <p>&copy; 2025 Dhurta.Org</p>\n    <nav aria-label=\"Footer\">\n      <a href=\"/privacy\">Privacy</a>\n      <a href=\"/terms\">Terms</a>\n    </nav>\n  </footer>\n\n</body>\n</html>"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "**header** — site logo, site title, top navigation. ARIA role: `banner`",
+        "**nav** — navigation links. ARIA role: `navigation`. Label multiple navs with aria-label",
+        "**main** — the unique content of the page (one per page). ARIA role: `main`",
+        "**aside** — related but non-essential content (sidebar, related links). ARIA role: `complementary`",
+        "**footer** — copyright, secondary links, contact info. ARIA role: `contentinfo`"
+      ]
+    },
+    {
+      "type": "warning",
+      "title": "Only one main per page",
+      "body": "The main element must be unique — only one per page. It marks the content that is the primary purpose of the page, distinct from repeated elements like header and footer."
+    },
+    {
+      "type": "tip",
+      "title": "Label multiple nav elements",
+      "body": "If you have more than one nav (main menu + footer menu), add aria-label=\"Main\" and aria-label=\"Footer\" so screen readers can distinguish them."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Page layout structure",
+      "starterCode": "<style>\n  header { background:#1a1f2b; color:#e2e8f0; padding:16px; }\n  nav a  { color:#4fd1c5; margin-right:12px; }\n  main   { padding:24px; min-height:200px; }\n  aside  { background:#f0f4f8; padding:16px; }\n  footer { background:#0e1116; color:#64748b; padding:16px; text-align:center; }\n</style>\n\n<header>\n  <strong>KERNAL</strong>\n  <nav aria-label=\"Main\">\n    <a href=\"#\">Home</a>\n    <a href=\"#\">Learn</a>\n  </nav>\n</header>\n\n<main>\n  <h1>Introduction to HTML</h1>\n  <p>The backbone of every web page.</p>\n</main>\n\n<aside>\n  <h2>Related</h2>\n  <a href=\"#\">HTML Structure →</a>\n</aside>\n\n<footer>\n  <p>&copy; 2025 Dhurta.Org</p>\n</footer>"
+    },
+    {
+      "type": "quiz",
+      "question": "How many main elements should a page have?",
+      "kind": "multiple-choice",
+      "options": ["As many as needed", "One per section", "Exactly one", "Two — one for desktop, one for mobile"],
+      "answer": 2,
+      "explanation": "main must be unique — exactly one per page. It identifies the primary content of the page. Multiple main elements are a markup error."
+    },
+    {
+      "type": "quiz",
+      "question": "What ARIA landmark role does the header element expose at page level?",
+      "kind": "multiple-choice",
+      "options": ["heading", "banner", "navigation", "region"],
+      "answer": 1,
+      "explanation": "A top-level header element maps to the ARIA landmark role 'banner'. Screen readers announce 'banner' when users navigate to this region. Inside article/section, header has no landmark role."
+    }
+  ],
+  "faq": [
+    { "q": "What is the difference between header and h1?", "a": "header is a structural container (a section of the page). h1 is a heading element (text that introduces content). A header typically contains an h1 plus navigation, logo, or other introductory content." },
+    { "q": "Can I use aside for a sidebar?", "a": "Yes — aside is perfect for sidebars that contain supplementary content (related articles, ads, author bios). The content should make sense even if removed from the main flow." },
+    { "q": "Should I replace all my divs with semantic elements?", "a": "Replace divs where a semantic element exists for that region (header, nav, main, footer, aside). Keep divs for purely layout or styling purposes where no semantic element fits — like a flex container or a CSS grid wrapper." }
+  ],
+  "sources": [
+    { "name": "MDN — HTML sectioning elements", "url": "https://developer.mozilla.org/en-US/docs/Web/HTML/Element#content_sectioning", "verified": "2024" },
+    { "name": "W3C — ARIA Landmarks", "url": "https://www.w3.org/WAI/ARIA/apg/patterns/landmarks/", "verified": "2024" }
+  ],
+  "realWorld": {
+    "usedIn": ["Every website", "News portals", "Blogs", "E-commerce", "Dashboards"],
+    "examples": ["GitHub uses header for the top bar, nav for the repository tabs, main for file listings, and aside for repository metadata", "BBC News uses landmark elements so screen reader users can jump directly to the article content"]
+  }
+}

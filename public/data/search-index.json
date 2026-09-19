@@ -1,92 +1,18 @@
 [
-  {
-    "id": "tech-html",
-    "type": "technology",
-    "tech": "html",
-    "title": "HTML",
-    "subtitle": "Structure and semantics for web pages",
-    "tags": ["html", "markup", "web", "structure", "semantic"],
-    "url": "#/learn/html"
-  },
-  {
-    "id": "html-01-introduction",
-    "type": "lesson",
-    "tech": "html",
-    "title": "Introduction to HTML",
-    "subtitle": "The backbone of every web page",
-    "tags": ["html", "intro", "tags", "elements", "basics", "beginner"],
-    "url": "#/learn/html/01-introduction"
-  },
-  {
-    "id": "html-02-structure",
-    "type": "lesson",
-    "tech": "html",
-    "title": "HTML Page Structure",
-    "subtitle": "DOCTYPE, html, head, body",
-    "tags": ["html", "structure", "doctype", "head", "body", "meta", "viewport"],
-    "url": "#/learn/html/02-structure"
-  },
-  {
-    "id": "html-03-semantic-tags",
-    "type": "lesson",
-    "tech": "html",
-    "title": "Semantic HTML Tags",
-    "subtitle": "Give meaning to your structure",
-    "tags": ["html", "semantic", "article", "section", "nav", "header", "footer", "aside", "main", "accessibility"],
-    "url": "#/learn/html/03-semantic-tags"
-  },
-  {
-    "id": "html-04-headings",
-    "type": "lesson",
-    "tech": "html",
-    "title": "Headings",
-    "subtitle": "h1 through h6 and document hierarchy",
-    "tags": ["html", "headings", "h1", "h2", "hierarchy", "seo"],
-    "url": "#/learn/html/04-headings"
-  },
-  {
-    "id": "html-05-paragraphs",
-    "type": "lesson",
-    "tech": "html",
-    "title": "Paragraphs & Text",
-    "subtitle": "p, strong, em, code, and friends",
-    "tags": ["html", "paragraph", "text", "inline", "strong", "em", "code"],
-    "url": "#/learn/html/05-paragraphs"
-  },
-  {
-    "id": "html-06-lists",
-    "type": "lesson",
-    "tech": "html",
-    "title": "Lists",
-    "subtitle": "ul, ol, li, dl",
-    "tags": ["html", "lists", "ul", "ol", "li", "definition", "dl"],
-    "url": "#/learn/html/06-lists"
-  },
-  {
-    "id": "html-07-links",
-    "type": "lesson",
-    "tech": "html",
-    "title": "Hyperlinks",
-    "subtitle": "The a element and URL anatomy",
-    "tags": ["html", "links", "anchor", "href", "url", "hyperlink"],
-    "url": "#/learn/html/07-links"
-  },
-  {
-    "id": "html-08-images",
-    "type": "lesson",
-    "tech": "html",
-    "title": "Images & Media",
-    "subtitle": "img, picture, srcset, alt text",
-    "tags": ["html", "images", "img", "picture", "alt", "srcset", "media", "accessibility"],
-    "url": "#/learn/html/08-images"
-  },
-  {
-    "id": "html-09-form-basics",
-    "type": "lesson",
-    "tech": "html",
-    "title": "Form Basics",
-    "subtitle": "form, input, label, submit",
-    "tags": ["html", "forms", "input", "label", "submit", "accessibility"],
-    "url": "#/learn/html/09-form-basics"
-  }
+  {"id":"html/01-introduction","type":"lesson","tech":"html","title":"Introduction to HTML","subtitle":"The backbone of every web page","tags":["html","basics","markup","tags","web"],"url":"#/learn/html/01-introduction"},
+  {"id":"html/02-structure","type":"lesson","tech":"html","title":"HTML Page Structure","subtitle":"DOCTYPE, html, head, body","tags":["html","doctype","structure","head","body","boilerplate"],"url":"#/learn/html/02-structure"},
+  {"id":"html/03-semantic-tags","type":"lesson","tech":"html","title":"Semantic HTML Tags","subtitle":"Give meaning to your structure","tags":["semantic","html5","header","footer","main","nav","article","section"],"url":"#/learn/html/03-semantic-tags"},
+  {"id":"html/04-headings","type":"lesson","tech":"html","title":"Headings","subtitle":"h1 through h6 and document hierarchy","tags":["headings","h1","h2","h3","hierarchy","seo","outline"],"url":"#/learn/html/04-headings"},
+  {"id":"html/05-paragraphs","type":"lesson","tech":"html","title":"Paragraphs & Text","subtitle":"p, strong, em, code, and inline elements","tags":["paragraph","text","strong","em","code","mark","abbr","inline"],"url":"#/learn/html/05-paragraphs"},
+  {"id":"html/06-lists","type":"lesson","tech":"html","title":"Lists","subtitle":"ul, ol, li, dl — organise your content","tags":["lists","ul","ol","li","dl","dt","dd","nested"],"url":"#/learn/html/06-lists"},
+  {"id":"html/07-links","type":"lesson","tech":"html","title":"Hyperlinks","subtitle":"The a element and URL anatomy","tags":["links","anchor","href","url","mailto","tel","fragment","target"],"url":"#/learn/html/07-links"},
+  {"id":"html/08-images","type":"lesson","tech":"html","title":"Images & Media","subtitle":"img, picture, srcset, alt text","tags":["images","img","alt","srcset","picture","webp","avif","lazy","figure"],"url":"#/learn/html/08-images"},
+  {"id":"html/09-form-basics","type":"lesson","tech":"html","title":"Form Basics","subtitle":"form, input, label, submit","tags":["forms","input","label","submit","button","post","get","action"],"url":"#/learn/html/09-form-basics"},
+  {"id":"html/10-form-controls","type":"lesson","tech":"html","title":"Form Controls","subtitle":"select, textarea, checkbox, radio","tags":["select","textarea","checkbox","radio","fieldset","legend","option"],"url":"#/learn/html/10-form-controls"},
+  {"id":"html/11-form-validation","type":"lesson","tech":"html","title":"Form Validation","subtitle":"required, pattern, type attributes","tags":["validation","required","pattern","minlength","maxlength","constraint","invalid"],"url":"#/learn/html/11-form-validation"},
+  {"id":"html/12-layout-elements","type":"lesson","tech":"html","title":"Layout Elements","subtitle":"header, nav, main, footer, aside","tags":["layout","header","nav","main","footer","aside","landmarks","semantic"],"url":"#/learn/html/12-layout-elements"},
+  {"id":"html/13-article-section","type":"lesson","tech":"html","title":"Article & Section","subtitle":"Structuring content semantically","tags":["article","section","div","semantic","content","blog","syndication"],"url":"#/learn/html/13-article-section"},
+  {"id":"html/14-aria-basics","type":"lesson","tech":"html","title":"ARIA Basics","subtitle":"Roles, labels, and landmark regions","tags":["aria","accessibility","role","aria-label","aria-hidden","aria-expanded","screen-reader"],"url":"#/learn/html/14-aria-basics"},
+  {"id":"html/15-keyboard-nav","type":"lesson","tech":"html","title":"Keyboard Navigation","subtitle":"tabindex, focus management, skip links","tags":["keyboard","tabindex","focus","skip-link","accessibility","tab-order","wcag"],"url":"#/learn/html/15-keyboard-nav"},
+  {"id":"html/course","type":"course","tech":"html","title":"HTML5 — Structure and Semantics","subtitle":"Learn HTML from scratch to accessibility","tags":["html","course","web","beginner"],"url":"#/learn/html"}
 ]

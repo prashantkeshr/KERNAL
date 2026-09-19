@@ -1,0 +1,114 @@
+{
+  "id": "07-links",
+  "tech": "html",
+  "module": "html-links-images",
+  "order": 7,
+  "title": "Hyperlinks",
+  "subtitle": "The a element and URL anatomy",
+  "difficulty": "beginner",
+  "estimatedMinutes": 15,
+  "skillsTaught": ["html.links", "html.urls", "html.anchor"],
+  "prerequisites": ["05-paragraphs"],
+  "whyItExists": {
+    "short": "Links are the defining feature of the web — they connect pages, resources, and people. The anchor element makes any text or image clickable.",
+    "problem": "Without links, every page is an island. Users cannot navigate between pages, download files, send emails, or jump to sections within a page.",
+    "solution": "The a (anchor) element with an href attribute creates a hyperlink to any URL — another page, a section on the same page, an email address, or a phone number.",
+    "impact": "Every navigation menu, call-to-action button, breadcrumb trail, and pagination control is built with anchor elements."
+  },
+  "explainModes": {
+    "beginner": "The a tag creates a clickable link. The href attribute tells it where to go. Think of href as the 'destination address' of the link.",
+    "simple": "a href creates hyperlinks. The text between the tags is what the user clicks. href can point to another page, an anchor (#section), an email (mailto:), or a phone (tel:).",
+    "standard": "The anchor element accepts href (destination), rel (relationship), target (browsing context), and download attributes. URLs can be absolute (full address), relative (relative to current page), or fragment (#id).",
+    "technical": "Anchor elements with href have an implicit ARIA role of `link`. Without href they are generic inline containers. Link text is announced by screen readers verbatim — 'click here' is meaningless out of context. rel=noopener prevents the opened page from accessing window.opener.",
+    "deepDive": "The rel attribute controls link semantics: nofollow (SEO signal to not pass PageRank), noopener/noreferrer (security for target=_blank), canonical (preferred URL for SEO). The referrerpolicy attribute controls what Referer header is sent. download triggers a file download instead of navigation; it can suggest a filename. Fragment URLs (#id) scroll to an element matching that id — browsers also update history with pushState."
+  },
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "The **a** element (anchor) creates a hyperlink. The **href** attribute sets the destination URL."
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Basic link",
+      "code": "<a href=\"https://kernal.dhurta.org\">Visit KERNAL</a>"
+    },
+    {
+      "type": "paragraph",
+      "text": "URLs in href can be **absolute** (full address) or **relative** (relative to the current page):"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Absolute vs relative URLs",
+      "code": "<!-- Absolute: full URL including protocol -->\n<a href=\"https://example.com/about\">About page</a>\n\n<!-- Relative: from current page location -->\n<a href=\"/about\">About page</a>        <!-- from root -->\n<a href=\"../about\">About page</a>      <!-- one folder up -->\n<a href=\"contact.html\">Contact</a>     <!-- same folder -->"
+    },
+    {
+      "type": "paragraph",
+      "text": "Use **fragment links** (starting with #) to jump to a section on the same page by its id:"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Fragment links — in-page navigation",
+      "code": "<!-- Link to a section -->\n<a href=\"#about\">Jump to About</a>\n<a href=\"#contact\">Jump to Contact</a>\n\n<!-- The target sections -->\n<h2 id=\"about\">About Us</h2>\n<p>...</p>\n\n<h2 id=\"contact\">Contact</h2>\n<p>...</p>"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Email, phone, and download links",
+      "code": "<!-- Open email client -->\n<a href=\"mailto:hello@dhurta.org\">Email us</a>\n\n<!-- Dial phone number -->\n<a href=\"tel:+911234567890\">Call us</a>\n\n<!-- Download a file -->\n<a href=\"/files/guide.pdf\" download=\"KERNAL-guide.pdf\">Download Guide</a>"
+    },
+    {
+      "type": "tip",
+      "title": "Opening links in a new tab",
+      "body": "Use target=\"_blank\" rel=\"noopener noreferrer\" together. noopener prevents the new page from accessing your page via window.opener (a security risk)."
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "label": "Safe external link",
+      "code": "<a href=\"https://github.com\" target=\"_blank\" rel=\"noopener noreferrer\">\n  View on GitHub\n</a>"
+    },
+    {
+      "type": "warning",
+      "title": "Meaningful link text",
+      "body": "Never write 'click here' or 'read more'. Screen readers list links out of context — write text that makes sense alone, like 'Download the HTML guide'."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Link playground",
+      "starterCode": "<h1>My Links Page</h1>\n\n<h2>Sections</h2>\n<ul>\n  <li><a href=\"#html\">HTML</a></li>\n  <li><a href=\"#css\">CSS</a></li>\n</ul>\n\n<h2 id=\"html\">HTML Resources</h2>\n<p>\n  <a href=\"https://developer.mozilla.org\" target=\"_blank\" rel=\"noopener noreferrer\">\n    MDN Web Docs\n  </a>\n</p>\n\n<h2 id=\"css\">CSS Resources</h2>\n<p><a href=\"mailto:learn@kernal.org\">Email us for CSS resources</a></p>"
+    },
+    {
+      "type": "quiz",
+      "question": "Which attribute should you always add alongside target=\"_blank\" for security?",
+      "kind": "multiple-choice",
+      "options": ["download", "rel=\"noopener noreferrer\"", "type=\"external\"", "href=\"#\""],
+      "answer": 1,
+      "explanation": "rel=\"noopener noreferrer\" prevents the newly opened tab from accessing the opener page via window.opener, closing a cross-origin security vulnerability."
+    },
+    {
+      "type": "quiz",
+      "question": "What does href=\"#contact\" do?",
+      "kind": "multiple-choice",
+      "options": ["Opens an email", "Links to another page called contact", "Jumps to an element with id=\"contact\" on the same page", "Does nothing"],
+      "answer": 2,
+      "explanation": "Fragment URLs (#id) scroll the browser to the element with that id on the current page. They're used for in-page navigation and table-of-contents links."
+    }
+  ],
+  "faq": [
+    { "q": "What happens if href is empty or just #?", "a": "href=\"\" reloads the page. href=\"#\" scrolls to the top. Use href=\"#\" as a placeholder during development, but replace it before shipping." },
+    { "q": "Can links wrap block elements like divs?", "a": "In HTML5, yes — a is a transparent element and can wrap block-level content. This is commonly used for card components where the entire card is clickable." },
+    { "q": "What is the difference between relative and absolute URLs?", "a": "Absolute URLs include the full protocol and domain (https://example.com/page). Relative URLs are resolved from the current page location (/page resolves from the root; page.html resolves from the current directory)." }
+  ],
+  "sources": [
+    { "name": "MDN — The a element", "url": "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a", "verified": "2024" },
+    { "name": "Web.dev — Links best practices", "url": "https://web.dev/articles/links", "verified": "2024" }
+  ],
+  "realWorld": {
+    "usedIn": ["Navigation menus", "Call-to-action buttons", "Pagination", "Breadcrumbs", "Table of contents"],
+    "examples": ["Wikipedia uses thousands of internal anchor links per article", "GitHub uses fragment links to link directly to specific lines of code"]
+  }
+}
