@@ -1,0 +1,129 @@
+{
+  "id": "13-error-handling",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "python",
+  "technologyVersion": "Python 3.12",
+  "module": "python-practical",
+  "title": "Error Handling",
+  "subtitle": "try/except/else/finally, raise, and custom exceptions",
+  "difficulty": "beginner",
+  "estimatedMinutes": 18,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["python/12-modules"],
+  "skillsTaught": ["python.try-except", "python.raise", "python.custom-exceptions", "python.exception-hierarchy"],
+  "skillsUsed": ["python.functions", "python.classes"],
+  "relatedConcepts": ["python.context-managers", "python.logging"],
+  "whyItExists": {
+    "problem": "Programs crash when unexpected things happen — a file that doesn't exist, a network timeout, invalid user input. Letting errors propagate as unhandled exceptions gives users a bad experience.",
+    "solution": "try/except lets you catch and handle errors gracefully. You can give users a helpful message, retry the operation, or log the error and continue.",
+    "whenToUse": "At program boundaries — user input, file I/O, network calls. Where failure is expected and handleable. When you want to clean up resources regardless of success/failure.",
+    "whenNotToUse": "Don't catch exceptions you can't handle. Don't use bare except: — it catches everything including KeyboardInterrupt. Prefer LBYL (Look Before You Leap) when the check is cheap: if key in dict rather than try: dict[key]."
+  },
+  "explainModes": {
+    "beginner": "When Python encounters an error (like dividing by zero), it raises an exception. If you don't catch it, the program crashes. try/except lets you say: 'Try this code, and if this specific error happens, do this instead.'",
+    "simple": "try: ... except ErrorType: ... else: ... finally: ... except runs only if the error occurred. else runs only if NO error occurred. finally ALWAYS runs — good for cleanup. raise ErrorType('message') to create your own error. raise alone inside except re-raises the same error.",
+    "standard": "Exception hierarchy: BaseException → Exception → (ValueError, TypeError, KeyError, ...). Catch specific exceptions — catching Exception is already broad. Multiple excepts: except (TypeError, ValueError) as e: — catch either. as e gives you the exception object. e.args for the message. traceback module for detailed stack traces. Context managers (__exit__) integrate with exception handling.",
+    "technical": "Python exceptions are classes — raise RuntimeError('msg') creates a RuntimeError instance. except clause does isinstance check. Exception chaining: raise NewError('msg') from original preserves the original traceback. Suppressing: from contextlib import suppress; with suppress(FileNotFoundError): — clean alternative to try/except/pass. sys.exc_info() inside except gives (type, value, traceback). warnings.warn() for non-fatal issues.",
+    "deepDive": "Exception groups (Python 3.11+): ExceptionGroup for handling multiple exceptions from concurrent tasks. try*: block (Python 3.11+) to match exceptions from a group. The traceback module: traceback.format_exc() for string representation. logging.exception() logs at ERROR level AND includes the traceback. sys.excepthook for global unhandled exception handler. ThreadingError vs asyncio exception handling patterns."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "try / except / else / finally"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "error_handling.py",
+      "code": "# Basic try/except\ntry:\n    result = 10 / 0\nexcept ZeroDivisionError:\n    print('Cannot divide by zero!')\n\n# Catching the error object\ntry:\n    x = int('not a number')\nexcept ValueError as e:\n    print(f'Error: {e}')   # invalid literal for int()...\n\n# Multiple except clauses\ntry:\n    data = {'name': 'Prashant'}\n    print(data['age'])          # KeyError\nexcept KeyError as e:\n    print(f'Key not found: {e}')\nexcept TypeError as e:\n    print(f'Type error: {e}')\n\n# else — runs if NO exception occurred\ntry:\n    value = int('42')\nexcept ValueError:\n    print('Not a number')\nelse:\n    print(f'Parsed successfully: {value}')  # runs here!\n\n# finally — ALWAYS runs\ntry:\n    f = open('data.txt')\n    content = f.read()\nexcept FileNotFoundError:\n    print('File not found')\nfinally:\n    print('Cleaning up...')   # always executes\n    # f.close() would go here (but 'with' is better)"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Raising and creating exceptions"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "raise_exceptions.py",
+      "code": "# Raise built-in exceptions\ndef divide(a, b):\n    if b == 0:\n        raise ValueError('Divisor cannot be zero')\n    return a / b\n\ntry:\n    divide(10, 0)\nexcept ValueError as e:\n    print(e)   # Divisor cannot be zero\n\n# Re-raise with context\ntry:\n    result = divide(10, 0)\nexcept ValueError as e:\n    raise RuntimeError('Division failed') from e\n\n\n# Custom exception classes\nclass InsufficientFundsError(Exception):\n    def __init__(self, requested, available):\n        self.requested = requested\n        self.available = available\n        super().__init__(\n            f'Requested {requested}, but only {available} available'\n        )\n\n\nclass BankAccount:\n    def __init__(self, balance):\n        self.balance = balance\n\n    def withdraw(self, amount):\n        if amount > self.balance:\n            raise InsufficientFundsError(amount, self.balance)\n        self.balance -= amount\n\n\nacc = BankAccount(100)\ntry:\n    acc.withdraw(200)\nexcept InsufficientFundsError as e:\n    print(e.requested, e.available)   # 200 100\n    print(e)                          # full message"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Common exceptions to know"
+    },
+    {
+      "type": "list",
+      "style": "unordered",
+      "items": [
+        "ValueError — right type, wrong value: int('abc'), math.sqrt(-1)",
+        "TypeError — wrong type: 'hello' + 42, len(42)",
+        "KeyError — dict key doesn't exist: d['missing']",
+        "IndexError — list index out of range: lst[99]",
+        "AttributeError — object doesn't have that attribute: None.strip()",
+        "FileNotFoundError — file doesn't exist",
+        "ZeroDivisionError — dividing by zero",
+        "ImportError / ModuleNotFoundError — module not found",
+        "StopIteration — iterator exhausted (rarely caught manually)",
+        "RuntimeError — generic 'something went wrong'"
+      ]
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Exception flow simulator",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    .flow { display:flex; flex-direction:column; gap:8px; max-width:480px; }\n    .block { border-radius:6px; padding:10px 14px; font-family:monospace; font-size:0.82rem; cursor:pointer; transition:all .3s; border:2px solid transparent; }\n    .try-block { background:#1a2b1a; border-color:#22c55e; }\n    .except-block { background:#2b1a1a; border-color:#ef4444; }\n    .else-block { background:#1a1a2b; border-color:#60a5fa; }\n    .finally-block { background:#2b2a1a; border-color:#f59e0b; }\n    .block.active { transform:translateX(6px); box-shadow:0 0 12px currentColor; }\n    .block.skip { opacity:0.25; }\n    .label { font-weight:700; margin-bottom:4px; }\n    .controls { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }\n    button { padding:7px 14px; border:none; border-radius:5px; font-weight:700; cursor:pointer; font-size:0.8rem; }\n    #log { font-family:monospace; font-size:0.8rem; color:#94a3b8; background:#0b0e14; padding:10px; border-radius:6px; min-height:60px; margin-top:12px; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">Exception Flow</h2>\n  <div class=\"controls\">\n    <button style=\"background:#22c55e;color:#fff\" onclick=\"run(false)\">Run (no error)</button>\n    <button style=\"background:#ef4444;color:#fff\" onclick=\"run(true)\">Run (with error)</button>\n    <button style=\"background:#2d3748;color:#94a3b8\" onclick=\"reset()\">Reset</button>\n  </div>\n  <div class=\"flow\">\n    <div class=\"block try-block\" id=\"b-try\"><span class=\"label\" style=\"color:#22c55e\">try:</span><br>result = risky_operation()</div>\n    <div class=\"block except-block\" id=\"b-except\"><span class=\"label\" style=\"color:#ef4444\">except ValueError as e:</span><br>print(f'Caught: {e}')</div>\n    <div class=\"block else-block\" id=\"b-else\"><span class=\"label\" style=\"color:#60a5fa\">else:</span><br>print(f'Success: {result}')</div>\n    <div class=\"block finally-block\" id=\"b-finally\"><span class=\"label\" style=\"color:#f59e0b\">finally:</span><br>print('Always runs')</div>\n  </div>\n  <div id=\"log\">Choose a scenario above.</div>\n\n  <script>\n    let active = null;\n\n    function reset() {\n      ['try','except','else','finally'].forEach(b => {\n        const el = document.getElementById('b-'+b);\n        el.classList.remove('active','skip');\n      });\n      document.getElementById('log').textContent = 'Choose a scenario above.';\n    }\n\n    async function run(withError) {\n      reset();\n      const log = document.getElementById('log');\n      const lines = [];\n\n      async function highlight(id, skip=false) {\n        const el = document.getElementById('b-'+id);\n        if (skip) { el.classList.add('skip'); return; }\n        el.classList.add('active');\n        await new Promise(r=>setTimeout(r,700));\n        el.classList.remove('active');\n      }\n\n      log.textContent = 'Running...';\n\n      await highlight('try');\n      if (withError) {\n        lines.push('ValueError raised inside try block');\n        await highlight('except');\n        lines.push(\"except: Caught: invalid literal for int() with base 10: 'abc'\");\n        await highlight('else', true);\n        lines.push('(else skipped — exception occurred)');\n      } else {\n        lines.push('try block executed successfully');\n        await highlight('except', true);\n        lines.push('(except skipped — no exception)');\n        await highlight('else');\n        lines.push('else: Success: 42');\n      }\n      await highlight('finally');\n      lines.push('finally: Always runs');\n\n      log.textContent = lines.join('\\n');\n    }\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "py-err-q1",
+          "question": "When does the 'else' block in a try/except/else run?",
+          "type": "multiple-choice",
+          "options": [
+            "Always, as a fallback when there is no except",
+            "Only when an exception WAS caught",
+            "Only when NO exception occurred in the try block",
+            "It is the same as finally"
+          ],
+          "correctAnswer": 2,
+          "explanation": "The else block runs only when the try block completed without raising any exception. It's the 'happy path' code — separate from the try block to make the intent clear: 'I expect this to succeed, and if it does, do this.' The finally block runs regardless of whether an exception occurred."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Should I catch Exception or be more specific?",
+      "a": "Be specific. Catching Exception is too broad — it hides programming errors (bugs). Catching the most specific exception you can handle makes your error handling intentional. If you do catch Exception, always log it: logging.exception('Unexpected error') — this preserves the stack trace."
+    },
+    {
+      "q": "What is 'raise from'?",
+      "a": "raise NewError('message') from original_error creates exception chaining — the new error's __cause__ points to the original. Python displays both when showing the traceback. Use it when translating low-level errors to higher-level ones: raise HTTPError('Request failed') from connection_error."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Python Docs — Errors and Exceptions",
+      "url": "https://docs.python.org/3/tutorial/errors.html",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["API clients (handle network errors)", "file parsers", "user input validation", "database operations"],
+    "examples": [
+      "try: resp = requests.get(url, timeout=5) except requests.Timeout: retry()",
+      "class ValidationError(Exception): — custom exception for form validation",
+      "with suppress(FileNotFoundError): os.remove(temp_file) — ignore if already deleted"
+    ]
+  }
+}

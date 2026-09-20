@@ -1,0 +1,119 @@
+{
+  "id": "11-classes",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "python",
+  "technologyVersion": "Python 3.12",
+  "module": "python-files-oop",
+  "title": "Classes & OOP",
+  "subtitle": "class, __init__, self, inheritance, and dunder methods",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 28,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["python/10-files"],
+  "skillsTaught": ["python.classes", "python.inheritance", "python.dunder-methods"],
+  "skillsUsed": ["python.functions", "python.dicts", "python.strings"],
+  "relatedConcepts": ["python.modules", "python.dataclasses", "python.abc"],
+  "whyItExists": {
+    "problem": "As programs grow, related data and functions become hard to organise and reuse. A 'user' might have a name, email, and password — along with functions to validate them. Keeping all of this together needs structure.",
+    "solution": "A class bundles data (attributes) and behaviour (methods) into a named type. You create objects (instances) from the class, each with their own data.",
+    "whenToUse": "When you have data that belongs together with operations on that data. When you need multiple independent instances. When you want inheritance and polymorphism.",
+    "whenNotToUse": "Don't use classes for simple utility functions or one-off scripts. A module with functions is often cleaner. For pure data containers, consider @dataclass."
+  },
+  "explainModes": {
+    "beginner": "A class is a blueprint. A Car class describes what a car has (color, speed) and what it can do (accelerate, brake). Each real car you make from the blueprint (my_car = Car('red')) is an object with its own color and speed.",
+    "simple": "class Name: __init__(self, args) sets up each object. self refers to the current object. Methods are functions inside the class, always with self as first param. Inheritance: class Dog(Animal): inherits Animal's methods. super().__init__() calls parent's init. Special methods: __str__ for print(), __len__ for len().",
+    "standard": "Attributes set on self in __init__ are instance attributes (each object has its own). Class attributes (defined at class level) are shared across all instances — careful with mutable class attributes! @property creates computed read-only attributes. @classmethod receives the class (not instance) as first arg. @staticmethod is just a regular function inside the class namespace.",
+    "technical": "Python objects are dicts under the hood — instance.__dict__ stores instance attributes. Method Resolution Order (MRO) with C3 linearisation for multiple inheritance: ClassName.__mro__. Abstract base classes: from abc import ABC, abstractmethod. Dataclasses (@dataclass decorator) auto-generate __init__, __repr__, __eq__. __slots__ replaces instance dict with fixed slots (memory efficient). __getattr__/__setattr__/__delattr__ for attribute access control.",
+    "deepDive": "Python's object model: everything is an object, including classes themselves (metaclasses). type() is the default metaclass — type(MyClass) is type. Custom metaclasses with class Foo(metaclass=Meta) control class creation. Descriptors (__get__, __set__, __delete__) are what @property uses under the hood. __init_subclass__ runs when a class is subclassed. Protocols (typing.Protocol) for structural subtyping (duck typing + type hints)."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Defining and using classes"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "basic_class.py",
+      "code": "class BankAccount:\n    # Class attribute — shared by all instances\n    interest_rate = 0.05\n\n    def __init__(self, owner, balance=0):\n        # Instance attributes — unique to each object\n        self.owner = owner\n        self.balance = balance\n\n    def deposit(self, amount):\n        self.balance += amount\n        return self.balance\n\n    def withdraw(self, amount):\n        if amount > self.balance:\n            raise ValueError('Insufficient funds')\n        self.balance -= amount\n        return self.balance\n\n    def __str__(self):\n        return f'BankAccount({self.owner}: ₹{self.balance:,.2f})'\n\n    def __repr__(self):\n        return f'BankAccount(owner={self.owner!r}, balance={self.balance})'\n\n\n# Create objects (instances)\nacc1 = BankAccount('Prashant', 1000)\nacc2 = BankAccount('Alice')         # balance defaults to 0\n\nacc1.deposit(500)\nacc1.withdraw(200)\n\nprint(acc1)            # BankAccount(Prashant: ₹1,300.00)\nprint(acc2.balance)    # 0\nprint(BankAccount.interest_rate)   # 0.05 (class attribute)"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Inheritance"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "inheritance.py",
+      "code": "class Animal:\n    def __init__(self, name, sound):\n        self.name = name\n        self.sound = sound\n\n    def speak(self):\n        return f'{self.name} says {self.sound}!'\n\n    def __str__(self):\n        return f'{type(self).__name__}({self.name})'\n\n\n# Inherit from Animal\nclass Dog(Animal):\n    def __init__(self, name):\n        super().__init__(name, 'Woof')   # call parent __init__\n\n    def fetch(self, item):\n        return f'{self.name} fetched the {item}!'\n\n\nclass Cat(Animal):\n    def __init__(self, name):\n        super().__init__(name, 'Meow')\n\n    def speak(self):   # override parent method\n        return f'{self.name} says {self.sound}... maybe.'\n\n\ndog = Dog('Rex')\ncat = Cat('Whiskers')\n\nprint(dog.speak())    # Rex says Woof!\nprint(cat.speak())    # Whiskers says Meow... maybe.\nprint(dog.fetch('ball'))   # Rex fetched the ball!\nprint(isinstance(dog, Animal))  # True — Dog IS an Animal"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "@property and @dataclass"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "property_dataclass.py",
+      "code": "# @property — computed attribute\nclass Temperature:\n    def __init__(self, celsius):\n        self._celsius = celsius\n\n    @property\n    def celsius(self):\n        return self._celsius\n\n    @celsius.setter\n    def celsius(self, value):\n        if value < -273.15:\n            raise ValueError('Below absolute zero!')\n        self._celsius = value\n\n    @property\n    def fahrenheit(self):          # read-only computed property\n        return self._celsius * 9/5 + 32\n\n\nt = Temperature(100)\nprint(t.fahrenheit)  # 212.0\nt.celsius = 0        # uses setter\nprint(t.fahrenheit)  # 32.0\n\n\n# @dataclass — auto-generates __init__, __repr__, __eq__\nfrom dataclasses import dataclass, field\n\n@dataclass\nclass Point:\n    x: float\n    y: float\n    label: str = ''                     # optional with default\n\n    def distance_to_origin(self) -> float:\n        return (self.x**2 + self.y**2) ** 0.5\n\n\np = Point(3, 4)\nprint(p)                        # Point(x=3, y=4, label='')\nprint(p.distance_to_origin())   # 5.0\nprint(p == Point(3, 4))         # True — auto __eq__"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: OOP visualiser",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    .layout { display:grid; grid-template-columns:220px 1fr; gap:14px; }\n    .class-box { background:#0b0e14; border:2px solid #a78bfa; border-radius:8px; padding:14px; }\n    .class-title { color:#a78bfa; font-weight:700; font-size:0.95rem; margin-bottom:8px; text-align:center; }\n    .section { font-size:0.75rem; color:#64748b; margin-top:8px; margin-bottom:4px; text-transform:uppercase; }\n    .attr { font-family:monospace; font-size:0.8rem; padding:3px 6px; background:#1a1f2b; border-radius:3px; margin-bottom:3px; color:#f7df1e; }\n    .method { font-family:monospace; font-size:0.8rem; padding:3px 6px; background:#1a1f2b; border-radius:3px; margin-bottom:3px; color:#4fd1c5; cursor:pointer; }\n    .method:hover { border-left:2px solid #4fd1c5; }\n    .instances { display:flex; flex-direction:column; gap:10px; }\n    .instance { background:#1a1f2b; border:1px solid #2d3748; border-radius:8px; padding:12px; }\n    .iname { color:#4ade80; font-weight:700; font-size:0.85rem; margin-bottom:6px; }\n    .iattr { font-family:monospace; font-size:0.78rem; color:#e2e8f0; margin-bottom:2px; }\n    .controls { display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; }\n    input { background:#0b0e14; border:1px solid #2d3748; border-radius:4px; color:#e2e8f0; padding:5px 8px; font-family:monospace; font-size:0.8rem; width:100px; }\n    button { padding:5px 12px; border:none; border-radius:4px; font-size:0.78rem; font-weight:700; cursor:pointer; }\n    #log { font-family:monospace; font-size:0.8rem; color:#94a3b8; background:#0b0e14; padding:10px; border-radius:6px; margin-top:10px; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">OOP Visualiser — BankAccount</h2>\n  <div class=\"layout\">\n    <div class=\"class-box\">\n      <div class=\"class-title\">class BankAccount</div>\n      <div class=\"section\">Attributes</div>\n      <div class=\"attr\">owner: str</div>\n      <div class=\"attr\">balance: float</div>\n      <div class=\"section\">Methods</div>\n      <div class=\"method\" onclick=\"hint('deposit(amount)')\">+ deposit(amount)</div>\n      <div class=\"method\" onclick=\"hint('withdraw(amount)')\">+ withdraw(amount)</div>\n      <div class=\"method\" onclick=\"hint('__str__()')\">+ __str__()</div>\n    </div>\n    <div>\n      <div class=\"controls\">\n        <input id=\"owner\" placeholder=\"owner\" value=\"Prashant\" />\n        <input id=\"init-bal\" placeholder=\"balance\" value=\"1000\" />\n        <button style=\"background:#a78bfa;color:#fff\" onclick=\"createInstance()\">new BankAccount()</button>\n      </div>\n      <div class=\"instances\" id=\"instances\"><span style=\"color:#64748b\">No instances yet — create one above.</span></div>\n    </div>\n  </div>\n  <div id=\"log\">Click a method in the class box for a hint, or create an instance.</div>\n\n  <script>\n    let accounts = {};\n    let counter = 0;\n    const log = m => document.getElementById('log').textContent = m;\n\n    function hint(m) { log(`acc.${m} — call this on an instance to use it`); }\n\n    function createInstance() {\n      const owner = document.getElementById('owner').value.trim() || 'User';\n      const bal = parseFloat(document.getElementById('init-bal').value) || 0;\n      const id = 'acc'+(++counter);\n      accounts[id] = {owner, balance: bal, id};\n      renderInstances();\n      log(`${id} = BankAccount('${owner}', ${bal}) created`);\n    }\n\n    function doDeposit(id) {\n      const amt = parseFloat(prompt('Deposit amount?', '500'));\n      if (isNaN(amt)||amt<=0) return;\n      accounts[id].balance += amt;\n      renderInstances();\n      log(`${id}.deposit(${amt}) → balance: ${accounts[id].balance.toFixed(2)}`);\n    }\n\n    function doWithdraw(id) {\n      const amt = parseFloat(prompt('Withdraw amount?', '200'));\n      if (isNaN(amt)||amt<=0) return;\n      if (amt > accounts[id].balance) { log(`ValueError: Insufficient funds (balance: ${accounts[id].balance.toFixed(2)})`); return; }\n      accounts[id].balance -= amt;\n      renderInstances();\n      log(`${id}.withdraw(${amt}) → balance: ${accounts[id].balance.toFixed(2)}`);\n    }\n\n    function renderInstances() {\n      const el = document.getElementById('instances');\n      const ids = Object.keys(accounts);\n      if (!ids.length) { el.innerHTML = '<span style=\"color:#64748b\">No instances yet.</span>'; return; }\n      el.innerHTML = ids.map(id => {\n        const a = accounts[id];\n        return `<div class=\"instance\">\n          <div class=\"iname\">${id} = BankAccount</div>\n          <div class=\"iattr\">owner = '${a.owner}'</div>\n          <div class=\"iattr\">balance = <span style=\"color:#4fd1c5\">${a.balance.toFixed(2)}</span></div>\n          <div style=\"margin-top:8px;display:flex;gap:6px\">\n            <button style=\"background:#22c55e;color:#fff;font-size:0.72rem\" onclick=\"doDeposit('${id}')\">deposit()</button>\n            <button style=\"background:#f97316;color:#fff;font-size:0.72rem\" onclick=\"doWithdraw('${id}')\">withdraw()</button>\n          </div>\n        </div>`;\n      }).join('');\n    }\n    renderInstances();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "py-class-q1",
+          "question": "What is self in a Python method?",
+          "type": "multiple-choice",
+          "options": [
+            "A keyword like this in JavaScript",
+            "A reference to the class itself",
+            "A reference to the specific object the method was called on",
+            "An optional parameter you can rename to anything"
+          ],
+          "correctAnswer": 2,
+          "explanation": "self is a reference to the instance (object) the method was called on. When you call acc.deposit(100), Python passes acc as the first argument (self). You CAN rename it — it's just a convention — but don't."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between __str__ and __repr__?",
+      "a": "__str__ is for human-readable output — what print() shows. __repr__ is for developer-readable output — what you see in the REPL or repr(). If only one is defined, __repr__ is used as fallback for both. Good __repr__ should ideally show how to recreate the object."
+    },
+    {
+      "q": "When should I use @dataclass instead of a regular class?",
+      "a": "@dataclass is great when your class is primarily a data container. It auto-generates __init__, __repr__, and __eq__ based on field annotations. Use a regular class when you need custom __init__ logic, complex methods, or inheritance from non-dataclass bases."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Python Docs — Classes",
+      "url": "https://docs.python.org/3/tutorial/classes.html",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["Django models", "FastAPI request/response schemas", "game entities", "data processing pipelines"],
+    "examples": [
+      "class User(Base): — SQLAlchemy ORM model inherits from Base",
+      "@dataclass class Config: — type-safe config with auto-generated init",
+      "class APIClient: — wraps requests session with auth, base URL, retry logic"
+    ]
+  }
+}

@@ -1,0 +1,52 @@
+[
+  {
+    "id": "python-foundations",
+    "title": "Python Foundations",
+    "description": "How Python works, types, variables, and operators",
+    "lessons": [
+      {"id": "01-introduction", "title": "Introduction to Python", "estimatedMinutes": 15},
+      {"id": "02-variables-types", "title": "Variables & Types", "estimatedMinutes": 18},
+      {"id": "03-operators", "title": "Operators & Expressions", "estimatedMinutes": 15}
+    ]
+  },
+  {
+    "id": "python-control-flow",
+    "title": "Control Flow",
+    "description": "Conditionals, loops, and functions",
+    "lessons": [
+      {"id": "04-conditionals", "title": "Conditionals", "estimatedMinutes": 16},
+      {"id": "05-loops", "title": "Loops", "estimatedMinutes": 18},
+      {"id": "06-functions", "title": "Functions", "estimatedMinutes": 22}
+    ]
+  },
+  {
+    "id": "python-data-structures",
+    "title": "Data Structures",
+    "description": "Lists, dictionaries, sets, and strings",
+    "lessons": [
+      {"id": "07-lists", "title": "Lists", "estimatedMinutes": 22},
+      {"id": "08-dicts-sets", "title": "Dictionaries & Sets", "estimatedMinutes": 20},
+      {"id": "09-strings", "title": "Strings", "estimatedMinutes": 18}
+    ]
+  },
+  {
+    "id": "python-files-oop",
+    "title": "Files & OOP",
+    "description": "Reading files, classes, and importing modules",
+    "lessons": [
+      {"id": "10-files", "title": "Files & I/O", "estimatedMinutes": 18},
+      {"id": "11-classes", "title": "Classes & OOP", "estimatedMinutes": 25},
+      {"id": "12-modules", "title": "Modules & Packages", "estimatedMinutes": 18}
+    ]
+  },
+  {
+    "id": "python-practical",
+    "title": "Practical Python",
+    "description": "Error handling, comprehensions, and the standard library",
+    "lessons": [
+      {"id": "13-error-handling", "title": "Error Handling", "estimatedMinutes": 18},
+      {"id": "14-comprehensions", "title": "Comprehensions", "estimatedMinutes": 20},
+      {"id": "15-stdlib-pip", "title": "Standard Library & pip", "estimatedMinutes": 22}
+    ]
+  }
+]

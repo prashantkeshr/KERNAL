@@ -1,0 +1,119 @@
+{
+  "id": "08-dicts-sets",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "python",
+  "technologyVersion": "Python 3.12",
+  "module": "python-data-structures",
+  "title": "Dictionaries & Sets",
+  "subtitle": "Key-value storage and unique collections",
+  "difficulty": "beginner",
+  "estimatedMinutes": 20,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["python/07-lists"],
+  "skillsTaught": ["python.dict", "python.set", "python.dict-comprehension"],
+  "skillsUsed": ["python.lists", "python.loops"],
+  "relatedConcepts": ["python.json", "python.comprehensions"],
+  "whyItExists": {
+    "problem": "A list forces you to remember positions. Looking up 'Alice's score' in a list of names and a separate list of scores is error-prone. You need name → score mapping.",
+    "solution": "A dictionary maps keys to values: scores = {'Alice': 95, 'Bob': 82}. Look up by name in O(1). A set stores unique values — great for membership testing and deduplication.",
+    "whenToUse": "Dict: any key → value mapping (config, JSON, caches, counting). Set: unique items, fast membership check, set operations (union, intersection).",
+    "whenNotToUse": "Don't use a dict when order and duplicate-friendly integer indexing matter (use a list). Don't use a set when you need key-value pairs or ordering."
+  },
+  "explainModes": {
+    "beginner": "A dictionary is like an address book — you look up a person's name (key) to get their phone number (value). scores['Alice'] gives Alice's score instantly. A set is like a bag that rejects duplicates — add the same thing twice and it only stores once.",
+    "simple": "Dict: {key: value}. Access: d[key] or d.get(key, default). Add/update: d[key] = value. Delete: del d[key] or d.pop(key). Loop: for k, v in d.items(): Set: {1,2,3} or set(). Add: s.add(x). Operations: union |, intersection &, difference -.",
+    "standard": "Dicts preserve insertion order (Python 3.7+). Keys must be hashable (immutable: str, int, tuple — not list or dict). get() avoids KeyError — returns None (or default) if key missing. setdefault() inserts a default if key absent. update() merges another dict. Counter from collections is a dict subclass for counting. dict comprehension: {k: v for k, v in pairs}.",
+    "technical": "Python dicts use open addressing hash tables — O(1) average get/set/delete, O(n) worst case (rare). Dicts since Python 3.6 use a compact representation preserving insertion order. set uses a hash set — same O(1) operations. frozenset is an immutable set (hashable, usable as dict key). The | operator merges dicts (Python 3.9+): merged = d1 | d2.",
+    "deepDive": "CPython's dict implementation uses a combination of a hash table and a compact array to save memory while preserving order. collections.OrderedDict predates ordered dicts but still useful for move_to_end(). collections.defaultdict(list) creates list values automatically on access. collections.Counter has most_common(), arithmetic operations. JSON maps directly to Python: object→dict, array→list, string→str, number→int/float, null→None."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Dictionaries"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "dicts.py",
+      "code": "# Create a dictionary\nperson = {\n    'name': 'Prashant',\n    'age': 28,\n    'city': 'Delhi'\n}\n\n# Access values\nprint(person['name'])          # Prashant\nprint(person.get('age'))       # 28\nprint(person.get('email', 'N/A'))  # N/A (default)\n\n# Add and update\nperson['email'] = 'p@example.com'\nperson['age'] = 29\n\n# Delete\ndel person['city']\nremoved = person.pop('email')   # removes and returns\n\n# Check existence\nprint('name' in person)        # True\nprint('phone' in person)       # False\n\n# Iterate\nfor key in person:\n    print(key)\n\nfor key, value in person.items():\n    print(f'{key}: {value}')\n\nprint(list(person.keys()))     # ['name', 'age']\nprint(list(person.values()))   # ['Prashant', 29]"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Nested dicts and dict comprehensions"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "dict_advanced.py",
+      "code": "# Nested dict (like JSON)\nuser = {\n    'name': 'Prashant',\n    'address': {'city': 'Delhi', 'pin': '110001'},\n    'scores': [95, 82, 78]\n}\nprint(user['address']['city'])  # Delhi\n\n# Dict comprehension\nnames = ['Alice', 'Bob', 'Charlie']\nscores = [95, 82, 78]\nscore_map = {name: score for name, score in zip(names, scores)}\nprint(score_map)   # {'Alice': 95, 'Bob': 82, 'Charlie': 78}\n\n# Count occurrences\nwords = ['apple', 'banana', 'apple', 'cherry', 'banana', 'apple']\ncounts = {}\nfor word in words:\n    counts[word] = counts.get(word, 0) + 1\nprint(counts)   # {'apple': 3, 'banana': 2, 'cherry': 1}\n\n# Easier with Counter\nfrom collections import Counter\nprint(Counter(words))  # same result"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Sets"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "sets.py",
+      "code": "# Create a set\ncolors = {'red', 'blue', 'green'}\nnums = set([1, 2, 3, 2, 1])  # duplicates removed\nprint(nums)    # {1, 2, 3}\n\n# Add and remove\ncolors.add('yellow')\ncolors.discard('purple')   # no error if not found\ncolors.remove('red')       # raises KeyError if not found\n\n# Membership test — O(1), much faster than list!\nprint('blue' in colors)    # True\n\n# Set operations\na = {1, 2, 3, 4}\nb = {3, 4, 5, 6}\n\nprint(a | b)     # union: {1,2,3,4,5,6}\nprint(a & b)     # intersection: {3,4}\nprint(a - b)     # difference: {1,2} (in a but not b)\nprint(a ^ b)     # symmetric diff: {1,2,5,6}\n\n# Remove duplicates from a list\nwith_dups = [1, 2, 3, 2, 1, 4]\nunique = list(set(with_dups))\nprint(unique)    # [1, 2, 3, 4] (order may vary)"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Dict explorer",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    .layout { display:grid; grid-template-columns:1fr 1fr; gap:14px; }\n    .panel { background:#0b0e14; border:1px solid #2d3748; border-radius:8px; padding:14px; }\n    h3 { margin:0 0 10px; font-size:0.85rem; }\n    .entry { display:flex; justify-content:space-between; align-items:center; padding:5px 8px; background:#1a1f2b; border-radius:4px; margin-bottom:4px; font-family:monospace; font-size:0.82rem; }\n    .key { color:#4fd1c5; } .val { color:#f7df1e; }\n    .row { display:flex; gap:6px; margin-bottom:8px; }\n    input { flex:1; background:#1a1f2b; border:1px solid #2d3748; border-radius:4px; color:#e2e8f0; padding:5px 8px; font-family:monospace; font-size:0.8rem; }\n    button { padding:5px 12px; border:none; border-radius:4px; font-size:0.78rem; font-weight:700; cursor:pointer; white-space:nowrap; }\n    #log { font-family:monospace; font-size:0.8rem; color:#94a3b8; background:#0b0e14; padding:10px; border-radius:6px; margin-top:12px; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">Dict Explorer</h2>\n  <div class=\"layout\">\n    <div class=\"panel\">\n      <h3 style=\"color:#4fd1c5\">Dictionary</h3>\n      <div class=\"row\">\n        <input id=\"dk\" placeholder=\"key\" value=\"city\" />\n        <input id=\"dv\" placeholder=\"value\" value=\"Delhi\" />\n        <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"addKey()\">Add</button>\n      </div>\n      <div class=\"row\">\n        <input id=\"delk\" placeholder=\"key to delete\" />\n        <button style=\"background:#ef4444;color:#fff\" onclick=\"delKey()\">Delete</button>\n      </div>\n      <div id=\"dict-view\"></div>\n    </div>\n    <div class=\"panel\">\n      <h3 style=\"color:#a78bfa\">Set</h3>\n      <div class=\"row\">\n        <input id=\"sv\" placeholder=\"value\" value=\"python\" />\n        <button style=\"background:#a78bfa;color:#fff\" onclick=\"addSet()\">add()</button>\n        <button style=\"background:#2d3748;color:#94a3b8\" onclick=\"discardSet()\">discard()</button>\n      </div>\n      <div id=\"set-view\" style=\"display:flex;flex-wrap:wrap;gap:4px;margin-top:8px\"></div>\n    </div>\n  </div>\n  <div id=\"log\">Try adding and removing items.</div>\n\n  <script>\n    let d = {name:'Prashant',age:28,language:'Python'};\n    let s = new Set(['Python','JavaScript','Go']);\n    const log = m => document.getElementById('log').textContent = m;\n\n    function renderDict() {\n      const el = document.getElementById('dict-view');\n      el.innerHTML = Object.entries(d).map(([k,v]) =>\n        `<div class=\"entry\"><span class=\"key\">'${k}'</span><span style=\"color:#64748b\">:</span><span class=\"val\">${typeof v==='string'?\"'\":\"\"}${v}${typeof v==='string'?\"'\":\"\"}</span></div>`\n      ).join('') + `<div style=\"font-size:0.75rem;color:#64748b;margin-top:6px\">${Object.keys(d).length} key(s)</div>`;\n    }\n    function renderSet() {\n      document.getElementById('set-view').innerHTML = [...s].map(v =>\n        `<span style=\"background:#a78bfa22;border:1px solid #a78bfa44;border-radius:4px;padding:3px 8px;font-family:monospace;font-size:0.8rem;color:#a78bfa\">${v}</span>`\n      ).join('') + `<span style=\"font-size:0.75rem;color:#64748b;padding:3px 4px\">${s.size} item(s)</span>`;\n    }\n\n    function addKey(){const k=document.getElementById('dk').value.trim();const v=document.getElementById('dv').value.trim();if(!k)return;d[k]=isNaN(v)?v:+v;renderDict();log(`d['${k}'] = ${typeof d[k]==='string'?\"'\":\"\"}${d[k]}${typeof d[k]==='string'?\"'\":\"\"}  → added`);}\n    function delKey(){const k=document.getElementById('delk').value.trim();if(!(k in d)){log(`KeyError: '${k}' not in dict`);return;}delete d[k];renderDict();log(`del d['${k}']  → removed`);}\n    function addSet(){const v=document.getElementById('sv').value.trim();if(!v)return;const had=s.has(v);s.add(v);renderSet();log(had?`'${v}' already in set — no change (sets are unique)`:`add('${v}') → set now has ${s.size} items`);}\n    function discardSet(){const v=document.getElementById('sv').value.trim();s.delete(v);renderSet();log(`discard('${v}') → removed (no error if not found)`);}\n\n    renderDict(); renderSet();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "py-dict-q1",
+          "question": "What does d.get('key', 'default') do when 'key' doesn't exist?",
+          "type": "multiple-choice",
+          "options": [
+            "Raises a KeyError",
+            "Returns None",
+            "Returns 'default'",
+            "Creates the key with value 'default'"
+          ],
+          "correctAnswer": 2,
+          "explanation": "dict.get(key, default) safely retrieves a value. If the key doesn't exist, it returns the default value (second argument) instead of raising KeyError. Without a default argument, it returns None."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between dict.pop() and del dict[key]?",
+      "a": "del dict[key] removes the key (raises KeyError if not present). dict.pop(key) removes and RETURNS the value (also raises KeyError if not present). dict.pop(key, default) safely removes and returns a default if key is absent."
+    },
+    {
+      "q": "Can I use a list as a dictionary key?",
+      "a": "No. Dict keys must be hashable (immutable). Lists are mutable, so they can't be hashed. Use a tuple instead: d[(1, 2)] = 'point'. Strings, ints, floats, tuples, and frozensets are all valid keys."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Python Docs — Dictionaries",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html#dictionaries",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["JSON data handling", "caches/lookup tables", "word counting", "configuration", "deduplication"],
+    "examples": [
+      "json.loads() returns a dict — every API response is a dict",
+      "Counter({'word': 5}) for word frequency analysis in NLP",
+      "set intersection to find common users between two groups"
+    ]
+  }
+}

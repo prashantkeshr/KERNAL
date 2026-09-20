@@ -1,0 +1,119 @@
+{
+  "id": "14-comprehensions",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "python",
+  "technologyVersion": "Python 3.12",
+  "module": "python-practical",
+  "title": "Comprehensions & Generators",
+  "subtitle": "List, dict, set comprehensions, generator expressions, map/filter",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 20,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["python/13-error-handling"],
+  "skillsTaught": ["python.list-comprehension", "python.dict-comprehension", "python.generator", "python.map-filter"],
+  "skillsUsed": ["python.lists", "python.dicts", "python.functions", "python.loops"],
+  "relatedConcepts": ["python.itertools", "python.functional-programming"],
+  "whyItExists": {
+    "problem": "Transforming and filtering collections with for loops is verbose — 5 lines to do what should be 1.",
+    "solution": "Comprehensions are compact, readable, and fast. Generator expressions are lazy — they compute values one at a time without building the full list in memory.",
+    "whenToUse": "Any time you transform or filter a collection. list comp for a list result; dict comp for a dict result; generator expression when you just need to iterate.",
+    "whenNotToUse": "Don't nest more than 2 levels — a for loop is clearer. Don't use comprehensions with side effects (like print inside) — use a loop."
+  },
+  "explainModes": {
+    "beginner": "A list comprehension is a compact way to build a list. Instead of a 3-line for loop, you write [result for item in collection if condition] on one line.",
+    "simple": "List: [expr for x in iterable if cond]. Dict: {k: v for k, v in items}. Set: {expr for x in iterable}. Generator: (expr for x in iterable) — lazy, no parens needed when passed to a function. map(func, iterable) applies func to each item. filter(func, iterable) keeps items where func returns True.",
+    "standard": "Comprehensions create the full collection in memory. Generator expressions are lazy — they yield values one at a time. sum(x**2 for x in range(1000)) uses a generator — no list created. Nested comprehension: [x for row in matrix for x in row]. Conditional expression: [x if x > 0 else 0 for x in nums] — ternary in the expression slot.",
+    "technical": "List comprehension compiles to a bytecode loop with LIST_APPEND — faster than append in a for loop. Generator expression compiles to a generator function with yield from. map() returns a lazy iterator in Python 3 (not a list). filter() same. zip() lazy. itertools.compress(), itertools.filterfalse(), itertools.starmap() for advanced functional patterns. any()/all() short-circuit over generators — efficient.",
+    "deepDive": "PEP 289 introduced generator expressions. PEP 274 dict comprehensions. Under the hood, list comprehensions in Python 3 have their own implicit scope (unlike Python 2). walrus operator := (Python 3.8+) allows assignment in comprehensions: [y := f(x), y**2, y**3] — but use sparingly. itertools.chain(*lists) is faster than sum([[...], [...]], []) for flattening. yield from delegates to a sub-generator."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "List and set comprehensions"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "comprehensions.py",
+      "code": "numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]\n\n# Basic list comprehension\nsquares = [n**2 for n in numbers]\nprint(squares)   # [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]\n\n# With filter condition\nevens = [n for n in numbers if n % 2 == 0]\nprint(evens)     # [2, 4, 6, 8, 10]\n\n# Transform + filter\neven_squares = [n**2 for n in numbers if n % 2 == 0]\nprint(even_squares)  # [4, 16, 36, 64, 100]\n\n# Ternary in expression (transform, not filter)\nsigns = ['pos' if n > 0 else 'neg' for n in [-1, 2, -3, 4]]\nprint(signs)     # ['neg', 'pos', 'neg', 'pos']\n\n# Flatten 2D list\nmatrix = [[1,2,3],[4,5,6],[7,8,9]]\nflat = [n for row in matrix for n in row]\nprint(flat)      # [1, 2, 3, 4, 5, 6, 7, 8, 9]\n\n# Set comprehension — unique values only\nwords = ['hello','world','hello','python','world']\nunique_upper = {w.upper() for w in words}\nprint(unique_upper)  # {'HELLO', 'WORLD', 'PYTHON'}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Dict comprehensions and generators"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "dict_generators.py",
+      "code": "# Dict comprehension\nnames = ['Alice', 'Bob', 'Charlie']\nscores = [95, 82, 78]\n\n# zip + dict comprehension\nscore_map = {name: score for name, score in zip(names, scores)}\nprint(score_map)   # {'Alice': 95, 'Bob': 82, 'Charlie': 78}\n\n# Invert a dict\noriginal = {'a': 1, 'b': 2, 'c': 3}\ninverted = {v: k for k, v in original.items()}\nprint(inverted)    # {1: 'a', 2: 'b', 3: 'c'}\n\n# Filter a dict (keep high scorers)\nhigh = {name: score for name, score in score_map.items() if score > 80}\nprint(high)        # {'Alice': 95, 'Bob': 82}\n\n\n# Generator expression — lazy, memory-efficient\ntotal = sum(n**2 for n in range(1, 1001))   # no list created!\nprint(total)       # 333833500\n\nbig_nums = (n for n in range(10_000_000) if n % 1_000_000 == 0)\nfor n in big_nums:\n    print(n)       # 0, 1000000, 2000000, ... (lazy — no 10M list)\n\n# any() / all() with generators — short-circuit\nnums = [2, 4, 6, 8, 9]\nprint(any(n % 2 != 0 for n in nums))   # True (9 is odd)\nprint(all(n > 0 for n in nums))        # True"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "map, filter, and zip"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "map_filter_zip.py",
+      "code": "nums = [1, 2, 3, 4, 5]\n\n# map() — apply function to each item\nsquared = list(map(lambda x: x**2, nums))\nprint(squared)   # [1, 4, 9, 16, 25]\n# (comprehension equivalent: [x**2 for x in nums])\n\n# filter() — keep items where function returns True\nevens = list(filter(lambda x: x % 2 == 0, nums))\nprint(evens)     # [2, 4]\n\n# zip() — pair up iterables\nnames = ['Alice', 'Bob', 'Charlie']\nscores = [95, 82, 78]\npairs = list(zip(names, scores))\nprint(pairs)     # [('Alice', 95), ('Bob', 82), ('Charlie', 78)]\n\n# zip to build dict\nd = dict(zip(names, scores))\n\n# zip with unequal lengths — stops at shortest\nzip_short = list(zip([1,2,3], ['a','b']))\nprint(zip_short)  # [(1,'a'), (2,'b')] — 3 dropped!\n\n# sorted with key\npeople = [{'name':'Bob','age':30},{'name':'Alice','age':25}]\nby_age = sorted(people, key=lambda p: p['age'])\nby_name = sorted(people, key=lambda p: p['name'])"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Comprehension builder",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    .form { background:#1a1f2b; border-radius:8px; padding:16px; max-width:560px; }\n    label { font-size:0.83rem; color:#94a3b8; display:block; margin-bottom:4px; margin-top:10px; }\n    input, select { width:100%; background:#0b0e14; border:1px solid #2d3748; border-radius:5px; color:#e2e8f0; padding:7px 10px; font-family:monospace; font-size:0.85rem; box-sizing:border-box; }\n    button { background:#4fd1c5; color:#0e1116; border:none; padding:8px 20px; border-radius:5px; font-weight:700; cursor:pointer; margin-top:12px; }\n    .out { background:#0b0e14; border-radius:6px; padding:14px; font-family:monospace; font-size:0.85rem; margin-top:12px; }\n    .kw { color:#a78bfa; } .ex { color:#4fd1c5; } .cond { color:#f7df1e; } .src { color:#4ade80; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">Comprehension Builder</h2>\n  <div class=\"form\">\n    <label>Type:</label>\n    <select id=\"ctype\">\n      <option value=\"list\">List comprehension [ ]</option>\n      <option value=\"dict\">Dict comprehension { : }</option>\n      <option value=\"set\">Set comprehension { }</option>\n      <option value=\"gen\">Generator expression ( )</option>\n    </select>\n    <label>Variable name:</label>\n    <input id=\"var\" value=\"n\" />\n    <label>Expression (what to produce):</label>\n    <input id=\"expr\" value=\"n ** 2\" />\n    <label>Source iterable:</label>\n    <input id=\"src\" value=\"range(1, 11)\" />\n    <label>Filter condition (optional, e.g. n % 2 == 0):</label>\n    <input id=\"cond\" value=\"n % 2 == 0\" placeholder=\"leave blank for no filter\" />\n    <button onclick=\"generate()\">Build</button>\n    <div class=\"out\" id=\"out\"></div>\n  </div>\n\n  <script>\n    function generate() {\n      const ct = document.getElementById('ctype').value;\n      const v = document.getElementById('var').value.trim() || 'x';\n      const e = document.getElementById('expr').value.trim() || v;\n      const s = document.getElementById('src').value.trim() || 'range(10)';\n      const c = document.getElementById('cond').value.trim();\n\n      const condPart = c ? ` <span class=\"cond\">if ${c}</span>` : '';\n\n      let code;\n      if (ct === 'list') {\n        code = `[<span class=\"ex\">${e}</span> <span class=\"kw\">for</span> ${v} <span class=\"kw\">in</span> <span class=\"src\">${s}</span>${condPart}]`;\n      } else if (ct === 'dict') {\n        const parts = e.split(':').map(x=>x.trim());\n        const k = parts[0] || v, val = parts[1] || v+\"*2\";\n        code = `{<span class=\"ex\">${k}: ${val}</span> <span class=\"kw\">for</span> ${v} <span class=\"kw\">in</span> <span class=\"src\">${s}</span>${condPart}}`;\n      } else if (ct === 'set') {\n        code = `{<span class=\"ex\">${e}</span> <span class=\"kw\">for</span> ${v} <span class=\"kw\">in</span> <span class=\"src\">${s}</span>${condPart}}`;\n      } else {\n        code = `(<span class=\"ex\">${e}</span> <span class=\"kw\">for</span> ${v} <span class=\"kw\">in</span> <span class=\"src\">${s}</span>${condPart})`;\n      }\n\n      const equivalent = ct==='list' ? `<br><br><span style=\"color:#64748b\"># Equivalent for loop:</span>\\nresult = []\\n<span class=\"kw\">for</span> ${v} <span class=\"kw\">in</span> <span class=\"src\">${s}</span>:${c?`\\n    <span class=\"kw\">if</span> <span class=\"cond\">${c}</span>`:\"\"}<br>    result.append(<span class=\"ex\">${e}</span>)` : '';\n\n      document.getElementById('out').innerHTML = `result = ${code}${equivalent}`;\n    }\n    generate();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "py-comp-q1",
+          "question": "What is the main difference between a list comprehension and a generator expression?",
+          "type": "multiple-choice",
+          "options": [
+            "Generator expressions use { } instead of [ ]",
+            "List comprehensions are lazy; generator expressions are eager",
+            "Generator expressions are lazy — they produce values one at a time; list comprehensions build the full list immediately",
+            "They are identical in behaviour"
+          ],
+          "correctAnswer": 2,
+          "explanation": "List comprehensions build the full list in memory immediately. Generator expressions (using () instead of []) are lazy — they yield one value at a time. For large datasets, sum(x**2 for x in big_range) uses far less memory than sum([x**2 for x in big_range])."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Should I use map/filter or comprehensions?",
+      "a": "Comprehensions are generally preferred in Python — they're more readable. Use map() when you already have a named function: map(str, numbers) is cleaner than [str(n) for n in numbers]. Use filter() similarly. For anonymous transformations, comprehensions win: [x**2 for x in nums] vs map(lambda x: x**2, nums)."
+    },
+    {
+      "q": "How do I write a generator function?",
+      "a": "Use yield instead of return: def count_up(n): for i in range(n): yield i. Calling count_up(5) returns a generator object. Each call to next() runs until the next yield. Use in for loops, or list() to consume all values."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Python Docs — List Comprehensions",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html#list-comprehensions",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["data processing", "ETL pipelines", "filtering API responses", "building lookups from CSV rows"],
+    "examples": [
+      "[row.strip().split(',') for row in file if row.strip()] — parse CSV without csv module",
+      "{user['id']: user for user in users} — index users by ID for O(1) lookup",
+      "sum(p['price'] * p['qty'] for p in cart) — total cart value with generator"
+    ]
+  }
+}

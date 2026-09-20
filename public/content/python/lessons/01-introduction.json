@@ -1,0 +1,119 @@
+{
+  "id": "01-introduction",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "python",
+  "technologyVersion": "Python 3.12",
+  "module": "python-foundations",
+  "title": "Introduction to Python",
+  "subtitle": "Scripts, the REPL, and your first program",
+  "difficulty": "beginner",
+  "estimatedMinutes": 15,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": [],
+  "skillsTaught": ["python.print", "python.comments", "python.repl", "python.script"],
+  "skillsUsed": [],
+  "relatedConcepts": ["python.variables", "python.types"],
+  "whyItExists": {
+    "problem": "You want to write code that does useful things — automate tasks, analyse data, build web apps — but you need a starting point.",
+    "solution": "Python is a readable, beginner-friendly language used everywhere: web backends (Instagram, YouTube), data science (pandas, numpy), AI/ML (PyTorch, scikit-learn), automation, and scripting.",
+    "whenToUse": "Python is the default choice for data science, ML, scripting, and rapid prototyping. Also excellent for backend APIs with Django or FastAPI.",
+    "whenNotToUse": "Not ideal for mobile apps (use Swift/Kotlin), browser frontends (use JavaScript), or systems programming where performance is critical (use Rust/Go/C++)."
+  },
+  "explainModes": {
+    "beginner": "Python is a programming language that reads almost like English. You type instructions, Python follows them. print('hello') shows 'hello' on the screen. That's your first program.",
+    "simple": "Python files end in .py. Run them with: python script.py. The REPL (Read-Eval-Print Loop) lets you type Python interactively — run python in your terminal and try things instantly. Comments start with #. print() shows output.",
+    "standard": "Python is interpreted — each line runs immediately (unlike C which compiles first). Indentation is syntax — Python uses whitespace (4 spaces) instead of curly braces to define code blocks. Python 3.x is current (3.12 as of 2024). The REPL is great for exploration; scripts (.py files) for reusable programs.",
+    "technical": "CPython is the reference implementation (written in C). Other implementations: PyPy (JIT-compiled, faster), Jython (Java), MicroPython (microcontrollers). Python's execution model: source → bytecode (.pyc) → CPython VM. The GIL (Global Interpreter Lock) prevents true multi-threading for CPU-bound work — use multiprocessing or async for concurrency.",
+    "deepDive": "Python's design philosophy is captured in PEP 20 (The Zen of Python — import this). PEPs (Python Enhancement Proposals) govern language evolution. CPython's bytecode can be inspected with the dis module. Python's dynamic typing means types are associated with values, not variables — this enables duck typing. Python's object model is uniform: everything is an object, including integers, functions, and classes."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Running Python"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "terminal",
+      "code": "# Check your Python version\npython --version\n# Python 3.12.0\n\n# Start the interactive REPL\npython\n# >>> (prompt — type Python here)\n# >>> 2 + 2\n# 4\n# >>> exit()\n\n# Run a script file\npython hello.py"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Your first Python program"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "hello.py",
+      "code": "# This is a comment — Python ignores it\nprint('Hello, World!')\nprint('Python is fun')\nprint(2 + 2)          # prints 4\nprint('2 + 2 =', 2 + 2)  # prints: 2 + 2 = 4"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "print() — your main output tool"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "print_examples.py",
+      "code": "# Print a string\nprint('Hello')\n\n# Print a number\nprint(42)\nprint(3.14)\n\n# Print multiple values (separated by space by default)\nprint('Name:', 'Prashant', 'Age:', 28)\n# → Name: Prashant Age: 28\n\n# Custom separator\nprint('a', 'b', 'c', sep='-')\n# → a-b-c\n\n# No newline at the end\nprint('Loading', end='...')\nprint('done')\n# → Loading...done"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Python REPL simulator",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    .repl { background:#0b0e14; border:1px solid #2d3748; border-radius:8px; padding:16px; font-family:'Fira Code',monospace; font-size:0.85rem; }\n    .line { display:flex; gap:8px; align-items:center; margin-top:8px; }\n    .prompt { color:#4fd1c5; flex-shrink:0; }\n    input { background:transparent; border:none; outline:none; color:#e2e8f0; font-family:inherit; font-size:inherit; flex:1; }\n    .output { color:#94a3b8; margin-top:2px; padding-left:32px; }\n    .error { color:#ef4444; }\n    .history { margin-bottom:8px; }\n    button { background:#4fd1c5; color:#0e1116; border:none; padding:6px 14px; border-radius:5px; font-weight:700; cursor:pointer; font-size:0.8rem; margin-top:10px; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">Python REPL Simulator</h2>\n  <div class=\"repl\">\n    <div style=\"color:#94a3b8\">Python 3.12.0 — Type Python expressions below</div>\n    <div class=\"history\" id=\"hist\"></div>\n    <div class=\"line\">\n      <span class=\"prompt\">&gt;&gt;&gt;</span>\n      <input id=\"inp\" placeholder=\"print('Hello, World!')\" autofocus />\n    </div>\n  </div>\n  <button onclick=\"clearREPL()\">Clear</button>\n\n  <script>\n    const inp = document.getElementById('inp');\n    const hist = document.getElementById('hist');\n\n    function evalPython(code) {\n      code = code.trim();\n      if (!code) return null;\n\n      // Simulate common Python expressions\n      try {\n        // print()\n        const printMatch = code.match(/^print\\((.*)\\)$/);\n        if (printMatch) {\n          const args = printMatch[1];\n          // Handle sep=\n          const sepMatch = args.match(/,\\s*sep=['\"](.*?)['\"]/);\n          const sep = sepMatch ? sepMatch[1] : ' ';\n          const cleanArgs = args.replace(/,?\\s*sep=['\"](.*?)['\"]/, '').replace(/,?\\s*end=['\"](.*?)['\"]/, '');\n          // Evaluate each argument\n          const parts = cleanArgs.split(',').map(a => {\n            a = a.trim();\n            if (/^['\"].*['\"]$/.test(a)) return a.slice(1,-1);\n            if (!isNaN(a)) return a;\n            try { return String(eval(a.replace(/\\*\\*/g,'**'))); } catch { return a; }\n          });\n          return parts.join(sep);\n        }\n        // Arithmetic\n        if (/^[\\d\\s+\\-*/().%**]+$/.test(code)) {\n          const result = Function('return ' + code.replace(/\\*\\*/g, '**'))();\n          return String(result);\n        }\n        // String\n        if (/^['\"].*['\"]$/.test(code)) return code.slice(1,-1);\n        // type()\n        if (/^type\\(/.test(code)) {\n          const inner = code.slice(5,-1).trim();\n          if (!isNaN(inner)) return inner.includes('.') ? \"<class 'float'>\" : \"<class 'int'>\";\n          if (/^['\"]/.test(inner)) return \"<class 'str'>\";\n          return \"<class 'unknown'>\";\n        }\n        // len()\n        if (/^len\\(['\"].*['\"]\\)$/.test(code)) {\n          const s = code.slice(5,-2);\n          return String(s.length);\n        }\n        return null;\n      } catch(e) {\n        return { error: e.message };\n      }\n    }\n\n    function run() {\n      const code = inp.value;\n      if (!code.trim()) return;\n      const result = evalPython(code);\n      const entry = document.createElement('div');\n      entry.innerHTML = `<div><span class=\"prompt\">&gt;&gt;&gt;</span> <span style=\"color:#e2e8f0\">${code.replace(/</g,'&lt;')}</span></div>`;\n      if (result !== null) {\n        const cls = result && result.error ? 'error' : 'output';\n        const text = result && result.error ? `Error: ${result.error}` : result;\n        entry.innerHTML += `<div class=\"${cls}\">${text}</div>`;\n      }\n      hist.appendChild(entry);\n      inp.value = '';\n      inp.scrollIntoView();\n    }\n\n    inp.addEventListener('keydown', e => { if (e.key === 'Enter') run(); });\n\n    function clearREPL() { hist.innerHTML = ''; inp.value = ''; }\n\n    // Starter examples as clickable chips\n    const examples = [\"print('Hello, World!')\", \"2 + 2\", \"print(2 ** 10)\", \"len('Python')\", \"type(42)\", \"print('a','b','c', sep='-')\"];\n    const chips = document.createElement('div');\n    chips.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px';\n    chips.innerHTML = examples.map(e => `<span onclick=\"inp.value='${e.replace(/'/g,\"'\")}';inp.focus()\" style=\"background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:3px 8px;font-family:monospace;font-size:0.75rem;cursor:pointer;color:#4fd1c5\">${e.replace(/</g,'&lt;')}</span>`).join('');\n    document.querySelector('.repl').before(chips);\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "py-intro-q1",
+          "question": "What does print('Hello') do?",
+          "type": "multiple-choice",
+          "options": [
+            "Stores the word Hello in memory",
+            "Displays Hello on the screen",
+            "Creates a variable named Hello",
+            "Sends Hello to a printer"
+          ],
+          "correctAnswer": 1,
+          "explanation": "print() is Python's built-in function for displaying output. print('Hello') writes Hello to the standard output (your terminal or console)."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Python 2 or Python 3?",
+      "a": "Python 3 — always. Python 2 reached end-of-life in 2020. All libraries, tutorials, and tools now target Python 3. Current stable: Python 3.12."
+    },
+    {
+      "q": "How do I install Python?",
+      "a": "Download from python.org/downloads (Windows/macOS). Linux: sudo apt install python3. macOS with Homebrew: brew install python. Verify: python --version or python3 --version."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Python Docs — Getting Started",
+      "url": "https://docs.python.org/3/tutorial/appetite.html",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["automation scripts", "data analysis", "ML models", "web backends", "CLI tools"],
+    "examples": [
+      "Instagram's backend runs on Python (Django)",
+      "YouTube was originally built in Python",
+      "NASA uses Python for scientific computing and mission simulations"
+    ]
+  }
+}

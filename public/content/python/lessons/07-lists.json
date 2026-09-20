@@ -1,0 +1,119 @@
+{
+  "id": "07-lists",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "python",
+  "technologyVersion": "Python 3.12",
+  "module": "python-data-structures",
+  "title": "Lists",
+  "subtitle": "Create, access, modify, sort, and comprehend",
+  "difficulty": "beginner",
+  "estimatedMinutes": 22,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["python/06-functions"],
+  "skillsTaught": ["python.list", "python.indexing", "python.slicing", "python.list-methods", "python.list-comprehension"],
+  "skillsUsed": ["python.loops", "python.functions"],
+  "relatedConcepts": ["python.dicts", "python.tuples", "python.comprehensions"],
+  "whyItExists": {
+    "problem": "Real programs work with collections of things — a list of users, a list of prices, a list of filenames. Storing each in a separate variable doesn't scale.",
+    "solution": "A list stores an ordered, mutable sequence of items. Access by index, slice ranges, add, remove, sort — lists are Python's most versatile data structure.",
+    "whenToUse": "Ordered collections that change over time. Iteration. Stacks (append/pop). Queues (append/pop(0) — or deque for efficiency).",
+    "whenNotToUse": "For key-value pairs, use dict. For unique items, use set. For large numeric data, use numpy arrays. For fixed data that shouldn't change, use tuple."
+  },
+  "explainModes": {
+    "beginner": "A list is like a numbered shelf. You can put anything on it, take things off, add new things, or look at one item by its position number (starting from 0).",
+    "simple": "Create: items = [1, 2, 3]. Access: items[0] (first), items[-1] (last). Slice: items[1:3] (index 1 and 2). Modify: items[0] = 99. Add: append(), insert(), extend(). Remove: remove(), pop(), del. Sort: sort() (in-place), sorted() (new list). Comprehension: [x*2 for x in items].",
+    "standard": "Lists are dynamic arrays — size grows automatically. Indexing is O(1). Insertion/deletion at end is O(1) amortized. Insertion at middle is O(n). in operator is O(n) — use set for fast membership testing. sort() uses Timsort — stable, O(n log n). copy() is a shallow copy — nested objects are still shared.",
+    "technical": "Python list is a C array of pointers to PyObject. Each append may trigger a realloc (amortized O(1)). Negative indexing: items[-1] == items[len(items)-1]. Extended slicing: items[::2] (every other), items[::-1] (reversed). list.sort() is in-place (None return). sorted() returns a new list. key= parameter avoids comparisons on the objects directly.",
+    "deepDive": "list comprehensions compile to a single LIST_APPEND bytecode loop — faster than equivalent for-loops with append. Generator expressions (x*2 for x in items) are lazy — no list created until iterated. itertools.chain() avoids concatenating large lists. bisect module for maintaining sorted lists with O(log n) insertion. collections.deque for O(1) append/pop on both ends."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Creating and accessing lists"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "lists.py",
+      "code": "# Create a list\nfruits = ['apple', 'banana', 'cherry']\nnumbers = [1, 2, 3, 4, 5]\nmixed = [42, 'hello', True, None]   # can mix types\nempty = []\n\n# Access by index (starts at 0)\nprint(fruits[0])    # apple\nprint(fruits[1])    # banana\nprint(fruits[-1])   # cherry (last item)\nprint(fruits[-2])   # banana (second to last)\n\n# Slicing [start:stop:step]\nprint(numbers[1:4])   # [2, 3, 4]\nprint(numbers[:3])    # [1, 2, 3] (first 3)\nprint(numbers[2:])    # [3, 4, 5] (from index 2)\nprint(numbers[::2])   # [1, 3, 5] (every other)\nprint(numbers[::-1])  # [5, 4, 3, 2, 1] (reversed)"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Modifying lists"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "modify_lists.py",
+      "code": "fruits = ['apple', 'banana', 'cherry']\n\n# Add items\nfruits.append('date')           # add to end\nfruits.insert(1, 'apricot')     # insert at index 1\nfruits.extend(['elderberry', 'fig'])  # add multiple\n\n# Remove items\nfruits.remove('banana')         # remove by value\npop_item = fruits.pop()         # remove and return last\npop_item2 = fruits.pop(0)       # remove and return at index\ndel fruits[0]                   # delete at index\n\n# Useful methods\nfruits.sort()                   # sort in place (A-Z)\nfruits.sort(reverse=True)       # sort Z-A\nnew_list = sorted(fruits)       # returns new sorted list\nfruits.reverse()                # reverse in place\n\nprint(len(fruits))              # number of items\nprint('apple' in fruits)        # True/False membership\nprint(fruits.count('apple'))    # how many times 'apple' appears\nprint(fruits.index('cherry'))   # index of first 'cherry'"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "List comprehensions"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "comprehensions.py",
+      "code": "numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]\n\n# [expression for item in iterable]\nsquares = [n ** 2 for n in numbers]\nprint(squares)    # [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]\n\n# [expression for item in iterable if condition]\nevens = [n for n in numbers if n % 2 == 0]\nprint(evens)      # [2, 4, 6, 8, 10]\n\n# Transform strings\nwords = ['  hello  ', 'WORLD', 'python']\nclean = [w.strip().lower() for w in words]\nprint(clean)      # ['hello', 'world', 'python']\n\n# Nested — flatten a 2D list\nmatrix = [[1,2,3],[4,5,6],[7,8,9]]\nflat = [n for row in matrix for n in row]\nprint(flat)       # [1, 2, 3, 4, 5, 6, 7, 8, 9]"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: List operations",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    .list-display { display:flex; flex-wrap:wrap; gap:6px; min-height:52px; margin:12px 0; align-items:center; }\n    .item { background:#1a1f2b; border:2px solid #4fd1c5; border-radius:6px; padding:6px 12px; font-family:monospace; position:relative; display:flex; flex-direction:column; align-items:center; }\n    .idx { font-size:0.65rem; color:#64748b; }\n    .val { font-size:0.9rem; color:#4fd1c5; }\n    .controls { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }\n    button { padding:6px 12px; border:none; border-radius:5px; font-size:0.78rem; font-weight:700; cursor:pointer; }\n    input { background:#1a1f2b; border:1px solid #2d3748; border-radius:4px; color:#e2e8f0; padding:5px 8px; font-family:monospace; font-size:0.82rem; width:80px; }\n    #log { font-family:monospace; font-size:0.8rem; color:#94a3b8; background:#0b0e14; padding:10px; border-radius:6px; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">List Operations</h2>\n  <div class=\"list-display\" id=\"list\"></div>\n  <div class=\"controls\">\n    <input id=\"val\" placeholder=\"value\" value=\"cherry\" />\n    <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"doAppend()\">append()</button>\n    <button style=\"background:#a78bfa;color:#fff\" onclick=\"doPop()\">pop()</button>\n    <button style=\"background:#f7df1e;color:#0e1116\" onclick=\"doRemove()\">remove(val)</button>\n    <button style=\"background:#22c55e;color:#fff\" onclick=\"doSort()\">sort()</button>\n    <button style=\"background:#f97316;color:#fff\" onclick=\"doReverse()\">reverse()</button>\n    <button style=\"background:#2d3748;color:#94a3b8\" onclick=\"doReset()\">Reset</button>\n  </div>\n  <div id=\"log\">Operations appear here.</div>\n\n  <script>\n    let lst = ['apple','banana','cherry'];\n    function render() {\n      document.getElementById('list').innerHTML = lst.length\n        ? lst.map((v,i) => `<div class=\"item\"><div class=\"idx\">[${i}]</div><div class=\"val\">${v}</div></div>`).join('')\n        : '<span style=\"color:#64748b\">empty list []</span>';\n    }\n    const log = m => document.getElementById('log').textContent = m;\n    const val = () => document.getElementById('val').value.trim() || 'item';\n    function doAppend(){lst.push(val());render();log(`append('${val()}') → list now has ${lst.length} items`);}\n    function doPop(){if(!lst.length){log('pop() on empty list → IndexError');return;}const v=lst.pop();render();log(`pop() → removed '${v}', list now has ${lst.length} items`);}\n    function doRemove(){const v=val();const i=lst.indexOf(v);if(i===-1){log(`remove('${v}') → ValueError: '${v}' not in list`);return;}lst.splice(i,1);render();log(`remove('${v}') → removed from index ${i}`);}\n    function doSort(){lst.sort();render();log('sort() → sorted alphabetically in place');}\n    function doReverse(){lst.reverse();render();log('reverse() → reversed in place');}\n    function doReset(){lst=['apple','banana','cherry'];render();log('Reset to original list');}\n    render();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "py-list-q1",
+          "question": "What does items[-1] return?",
+          "type": "multiple-choice",
+          "options": [
+            "An error — negative indices aren't allowed",
+            "The item at index 1 from the end (second-to-last)",
+            "The last item in the list",
+            "The first item in the list"
+          ],
+          "correctAnswer": 2,
+          "explanation": "In Python, negative indices count from the end. items[-1] is the last item, items[-2] is second-to-last, etc. It's equivalent to items[len(items)-1] but cleaner."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between sort() and sorted()?",
+      "a": "list.sort() sorts the list in place and returns None — it modifies the original. sorted(list) returns a NEW sorted list without modifying the original. Use sorted() when you need to keep the original, sort() when you don't."
+    },
+    {
+      "q": "How do I copy a list?",
+      "a": "new = old.copy() or new = old[:] or new = list(old) — all create a shallow copy. For nested lists, use import copy; new = copy.deepcopy(old)."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Python Docs — Lists",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html#more-on-lists",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["any ordered collection", "database query results", "file lines", "API response items"],
+    "examples": [
+      "lines = open('file.txt').readlines() — list of strings from a file",
+      "[user['name'] for user in users if user['active']] — filter/transform a list of dicts",
+      "sorted(products, key=lambda p: p['price']) — sort by a specific field"
+    ]
+  }
+}

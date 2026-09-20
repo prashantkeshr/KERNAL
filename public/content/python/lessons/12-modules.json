@@ -1,0 +1,119 @@
+{
+  "id": "12-modules",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "python",
+  "technologyVersion": "Python 3.12",
+  "module": "python-files-oop",
+  "title": "Modules & Packages",
+  "subtitle": "import, stdlib highlights, __name__, and packaging basics",
+  "difficulty": "beginner",
+  "estimatedMinutes": 18,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["python/11-classes"],
+  "skillsTaught": ["python.modules", "python.import", "python.stdlib"],
+  "skillsUsed": ["python.functions", "python.classes"],
+  "relatedConcepts": ["python.packages", "python.pip", "python.virtual-environments"],
+  "whyItExists": {
+    "problem": "All code in one file becomes unmanageable. Reusing functions across scripts requires copying. Python needs a way to share and organise code.",
+    "solution": "A module is any .py file. import it to use its contents. Python's standard library provides 200+ modules for common tasks. Packages are directories of modules.",
+    "whenToUse": "Always — even small projects benefit from splitting code into logical modules. Use stdlib before reaching for third-party libraries.",
+    "whenNotToUse": "Don't create circular imports (A imports B which imports A). Don't use star imports (from module import *) in production code — it pollutes the namespace."
+  },
+  "explainModes": {
+    "beginner": "A module is just a .py file. If you write helpers.py with a function greet(), you can do import helpers and call helpers.greet() in another file. Python's standard library is a huge collection of ready-made modules for almost everything.",
+    "simple": "import module — use module.thing. from module import thing — use thing directly. from module import thing as alias. import json, os, sys, datetime, random, math, re. __name__ == '__main__' — code that only runs when the file is executed directly, not imported. __all__ controls what 'from module import *' exports.",
+    "standard": "Module search order: sys.modules cache → built-in modules → sys.path directories. sys.path includes the script's directory, PYTHONPATH, and site-packages. Packages are directories with __init__.py. Relative imports: from . import sibling, from .. import parent. importlib for dynamic imports. __init__.py can be empty or set up the package's public API.",
+    "technical": "Python caches imported modules in sys.modules — reimporting is a cache lookup. importlib.reload() forces a re-import (rarely needed). importlib.import_module('module.name') for dynamic imports. __all__ = ['func1', 'func2'] defines the public API. Namespace packages (PEP 420) don't need __init__.py. Conditional imports with try/except ImportError for optional dependencies.",
+    "deepDive": "The import system is extensible — you can write custom finders and loaders implementing importlib.abc.MetaPathFinder and importlib.abc.Loader. Frozen modules are compiled into the CPython interpreter. zipimport allows importing from zip files. PEP 562 allows __getattr__ at module level for lazy attribute access. importlib.resources provides access to package data files (replacing pkg_resources)."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Importing modules"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "imports.py",
+      "code": "# Import the whole module\nimport math\nprint(math.sqrt(16))    # 4.0\nprint(math.pi)          # 3.141592653589793\n\n# Import specific names\nfrom math import sqrt, ceil, floor\nprint(sqrt(25))         # 5.0\n\n# Import with alias\nimport datetime as dt\nprint(dt.datetime.now())\n\nfrom datetime import datetime, timedelta\ntomorrow = datetime.now() + timedelta(days=1)\nprint(tomorrow)\n\n# Import your own module\n# --- utils.py ---\n# def greet(name):\n#     return f'Hello, {name}!'\n\n# --- main.py ---\n# import utils\n# print(utils.greet('Prashant'))\n# --- or ---\n# from utils import greet\n# print(greet('Prashant'))"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Key stdlib modules"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "stdlib.py",
+      "code": "import os, sys, json, random, re\nfrom pathlib import Path\nfrom datetime import datetime\nfrom collections import Counter, defaultdict\n\n# os — operating system interface\nprint(os.getcwd())          # current directory\nprint(os.listdir('.'))      # files in current dir\nprint(os.environ.get('PATH', 'not set'))\n\n# sys — Python interpreter\nprint(sys.version)          # Python 3.12.x\nprint(sys.argv)             # command-line arguments\nprint(sys.platform)         # 'win32', 'linux', 'darwin'\n\n# json — JSON encoding/decoding\ndata = {'name': 'Prashant', 'score': 95}\njson_str = json.dumps(data, indent=2)  # dict → string\nback = json.loads(json_str)            # string → dict\n\n# random — random numbers\nprint(random.randint(1, 10))          # random int 1-10\nprint(random.choice(['a','b','c']))   # random element\nitems = [1, 2, 3, 4, 5]\nrandom.shuffle(items)                 # shuffle in place\nprint(random.sample(items, k=3))      # 3 random items\n\n# re — regular expressions\nimport re\npattern = r'\\b\\d{4}\\b'               # 4-digit numbers\ntext = 'Year 2024 and 2025 were big'\nmatches = re.findall(pattern, text)   # ['2024', '2025']\n\n# collections — powerful container types\nwords = ['apple','banana','apple','cherry','banana','apple']\nprint(Counter(words))   # Counter({'apple': 3, ...})\n\ndd = defaultdict(list)\ndd['fruits'].append('apple')   # no KeyError!"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The __name__ guard"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "name_guard.py",
+      "code": "# utils.py\ndef add(a, b):\n    return a + b\n\ndef multiply(a, b):\n    return a * b\n\n# This block ONLY runs when this file is executed directly\n# It does NOT run when the file is imported by another module\nif __name__ == '__main__':\n    print('Testing utils.py...')\n    print(add(2, 3))      # 5\n    print(multiply(3, 4)) # 12\n    print('All tests passed!')\n\n# When you run: python utils.py → __name__ == '__main__'\n# When you do:  import utils    → __name__ == 'utils'\n# The if block is skipped on import — test code doesn't leak!"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: stdlib explorer",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    .modules { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px; margin-bottom:16px; }\n    .mod { background:#1a1f2b; border:2px solid #2d3748; border-radius:8px; padding:12px; cursor:pointer; transition:border-color .2s; }\n    .mod:hover, .mod.active { border-color:#4fd1c5; }\n    .mod-name { color:#4fd1c5; font-family:monospace; font-weight:700; font-size:0.85rem; }\n    .mod-desc { font-size:0.72rem; color:#94a3b8; margin-top:4px; }\n    .detail { background:#0b0e14; border-radius:8px; padding:16px; font-family:monospace; font-size:0.82rem; }\n    .fn { color:#4fd1c5; } .comment { color:#64748b; } .ret { color:#f7df1e; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">stdlib Module Explorer</h2>\n  <div class=\"modules\" id=\"modules\"></div>\n  <div class=\"detail\" id=\"detail\"><span style=\"color:#64748b\">Click a module to see examples.</span></div>\n\n  <script>\n    const mods = [\n      {name:'os',desc:'OS interface',code:`os.getcwd()         <span class=\"comment\"># '/home/user'</span>\\nos.listdir('.')      <span class=\"comment\"># ['file.py', ...]</span>\\nos.environ['HOME']   <span class=\"comment\"># '/home/user'</span>\\nos.path.join('a','b') <span class=\"comment\"># 'a/b' or 'a\\\\\\\\b'</span>`},\n      {name:'sys',desc:'Interpreter info',code:`sys.version         <span class=\"comment\"># '3.12.x'</span>\\nsys.argv            <span class=\"comment\"># ['script.py', 'arg1']</span>\\nsys.platform        <span class=\"comment\"># 'linux'/'win32'</span>\\nsys.exit(0)         <span class=\"comment\"># exit program</span>`},\n      {name:'json',desc:'JSON encode/decode',code:`json.dumps({'x':1}) <span class=\"ret\"># '{\"x\": 1}'</span>\\njson.loads('{\"x\":1}') <span class=\"ret\"># {'x': 1}</span>\\njson.dump(data, f)   <span class=\"comment\"># write to file</span>\\njson.load(f)         <span class=\"comment\"># read from file</span>`},\n      {name:'math',desc:'Math functions',code:`math.sqrt(16)  <span class=\"ret\"># 4.0</span>\\nmath.ceil(4.1) <span class=\"ret\"># 5</span>\\nmath.floor(4.9) <span class=\"ret\"># 4</span>\\nmath.pi        <span class=\"ret\"># 3.14159...</span>\\nmath.log(100,10) <span class=\"ret\"># 2.0</span>`},\n      {name:'random',desc:'Random numbers',code:`random.randint(1,10) <span class=\"ret\"># 1-10</span>\\nrandom.random()      <span class=\"ret\"># 0.0-1.0</span>\\nrandom.choice([1,2]) <span class=\"ret\"># 1 or 2</span>\\nrandom.shuffle(lst)  <span class=\"comment\"># in-place</span>\\nrandom.sample(lst,3) <span class=\"ret\"># 3 unique items</span>`},\n      {name:'datetime',desc:'Date and time',code:`datetime.now()         <span class=\"ret\"># now</span>\\ndatetime(2024,1,1)     <span class=\"ret\"># specific date</span>\\ntimedelta(days=7)      <span class=\"ret\"># 1 week</span>\\nd.strftime('%Y-%m-%d') <span class=\"ret\"># '2024-01-01'</span>`},\n      {name:'re',desc:'Regular expressions',code:`re.findall(r'\\\\\\\\d+', 'abc123') <span class=\"ret\"># ['123']</span>\\nre.match(r'hello', text) <span class=\"comment\"># match at start</span>\\nre.search(r'\\\\\\\\d+', text)  <span class=\"comment\"># search anywhere</span>\\nre.sub(r'\\\\\\\\s+', '_', text)  <span class=\"comment\"># replace</span>`},\n      {name:'collections',desc:'Specialised containers',code:`Counter([1,1,2])   <span class=\"ret\"># {1:2, 2:1}</span>\\ndefaultdict(list) <span class=\"comment\"># auto-create lists</span>\\ndeque([1,2,3])    <span class=\"comment\"># fast append/pop</span>\\nOrderedDict()     <span class=\"comment\"># ordered dict</span>`},\n      {name:'pathlib',desc:'File paths',code:`Path.home()         <span class=\"ret\"># home dir</span>\\nPath('a') / 'b'     <span class=\"ret\"># join paths</span>\\np.exists()          <span class=\"comment\"># True/False</span>\\np.read_text()       <span class=\"comment\"># read file</span>\\np.glob('**/*.py')   <span class=\"comment\"># find files</span>`},\n    ];\n\n    const container = document.getElementById('modules');\n    mods.forEach(m => {\n      const el = document.createElement('div');\n      el.className='mod';\n      el.innerHTML=`<div class=\"mod-name\">${m.name}</div><div class=\"mod-desc\">${m.desc}</div>`;\n      el.onclick=()=>{document.querySelectorAll('.mod').forEach(x=>x.classList.remove('active'));el.classList.add('active');document.getElementById('detail').innerHTML=`<span style=\"color:#a78bfa\">import ${m.name}</span>\\n\\n${m.code}`;}\n      container.appendChild(el);\n    });\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "py-mod-q1",
+          "question": "When does the code inside 'if __name__ == \"__main__\":' run?",
+          "type": "multiple-choice",
+          "options": [
+            "Always, when the file is imported or run directly",
+            "Only when the file is imported by another module",
+            "Only when the file is run directly (python file.py)",
+            "Never — it's just a comment convention"
+          ],
+          "correctAnswer": 2,
+          "explanation": "When Python runs a file directly, __name__ is set to '__main__'. When a file is imported, __name__ is set to the module's name. This guard lets you include test/demo code that only runs when executing the file directly, not when it's imported."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between a module and a package?",
+      "a": "A module is a single .py file. A package is a directory containing multiple modules and an __init__.py file (which can be empty). Packages let you organise large projects: import mypackage.utils.helpers accesses helpers.py inside mypackage/utils/."
+    },
+    {
+      "q": "How do I find what's inside a module?",
+      "a": "In the REPL: import math; dir(math) lists all names. help(math.sqrt) shows the docstring. help(math) shows the full module docs. In code: hasattr(module, 'attr') and getattr(module, 'attr') for programmatic access."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Python Docs — Modules",
+      "url": "https://docs.python.org/3/tutorial/modules.html",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every Python project", "organising large codebases", "sharing utility functions across scripts"],
+    "examples": [
+      "import json; data = json.load(open('config.json')) — read config",
+      "from datetime import datetime; print(datetime.now().year) — current year",
+      "if __name__ == '__main__': main() — standard script entry point"
+    ]
+  }
+}

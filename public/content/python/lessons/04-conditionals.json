@@ -1,0 +1,119 @@
+{
+  "id": "04-conditionals",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "python",
+  "technologyVersion": "Python 3.12",
+  "module": "python-control-flow",
+  "title": "Conditionals",
+  "subtitle": "if, elif, else — make decisions in code",
+  "difficulty": "beginner",
+  "estimatedMinutes": 16,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["python/03-operators"],
+  "skillsTaught": ["python.if", "python.elif", "python.else", "python.ternary"],
+  "skillsUsed": ["python.operators", "python.types"],
+  "relatedConcepts": ["python.loops", "python.functions"],
+  "whyItExists": {
+    "problem": "Programs need to make decisions — show a different message if the user is logged in, charge a different price for members, warn if a number is negative.",
+    "solution": "if/elif/else lets Python take different paths based on conditions. Indentation (4 spaces) defines the code block that runs when a condition is true.",
+    "whenToUse": "Any time behavior depends on a condition. Input validation, access control, game logic, data classification.",
+    "whenNotToUse": "If you have more than 5-6 elif branches, consider a dictionary dispatch or match statement (Python 3.10+)."
+  },
+  "explainModes": {
+    "beginner": "if asks a question. If the answer is True, it runs the indented code below. elif is 'else if' — another question if the first was False. else is the fallback — runs if nothing else matched.",
+    "simple": "Python uses indentation (4 spaces) instead of curly braces. if condition: / elif condition: / else: — only one branch runs. Ternary: value_if_true if condition else value_if_false. match (Python 3.10+) for pattern matching.",
+    "standard": "Conditions can be any expression that evaluates to truthy or falsy. Truthy: non-zero numbers, non-empty strings/lists/dicts. Falsy: 0, 0.0, '', [], {}, None, False. Short-circuit: conditions in and/or chains stop evaluating as soon as the result is determined. Nested ifs should be kept shallow — prefer early returns.",
+    "technical": "Python's if is a compound statement — header (if expr:) followed by a suite (indented body). The condition is evaluated left-to-right with short-circuit. Python 3.10's structural pattern matching (match/case) is more powerful than switch: it matches on value, type, structure, and guards. isinstance(x, int) is the idiomatic type check for branching on type.",
+    "deepDive": "Python has no switch statement before 3.10. match/case uses structural pattern matching (PEP 634) — not just equality: it can destructure tuples, lists, dicts, and class instances. Guards: case x if x > 0: — adds a condition. Python's if is an expression statement, not an expression — you can't use it inline. The ternary (conditional expression) is the inline alternative: x = a if cond else b."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "if, elif, else"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "conditionals.py",
+      "code": "age = 20\n\nif age >= 18:\n    print('Adult')\nelse:\n    print('Minor')\n# → Adult\n\n# Multiple conditions with elif\nscore = 75\n\nif score >= 90:\n    grade = 'A'\nelif score >= 80:\n    grade = 'B'\nelif score >= 70:\n    grade = 'C'\nelif score >= 60:\n    grade = 'D'\nelse:\n    grade = 'F'\n\nprint(f'Grade: {grade}')  # Grade: C"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Truthy and falsy values"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "truthy.py",
+      "code": "# These are ALL falsy\nif not 0:      print('0 is falsy')\nif not '':     print('empty string is falsy')\nif not []:     print('empty list is falsy')\nif not {}:     print('empty dict is falsy')\nif not None:   print('None is falsy')\n\n# Practical use: check if a value exists\nname = ''\nif name:\n    print(f'Hello, {name}')\nelse:\n    print('No name provided')\n# → No name provided\n\n# Check multiple conditions\npassword = 'abc123'\nif len(password) >= 8 and any(c.isdigit() for c in password):\n    print('Password is strong')\nelse:\n    print('Password too weak')\n# → Password too weak (length < 8)"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Ternary expression"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "ternary.py",
+      "code": "# ternary: value_if_true if condition else value_if_false\nage = 20\nstatus = 'adult' if age >= 18 else 'minor'\nprint(status)   # adult\n\n# Use in f-string\nstock = 0\nprint(f'Item is {\"in stock\" if stock > 0 else \"out of stock\"}')\n# → Item is out of stock\n\n# Python 3.10+ — match/case (structural pattern matching)\ncommand = 'quit'\n\nmatch command:\n    case 'quit':\n        print('Quitting...')\n    case 'help':\n        print('Showing help...')\n    case _:          # default (like else)\n        print(f'Unknown command: {command}')"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Grade classifier",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    .card { background:#1a1f2b; border:1px solid #2d3748; border-radius:8px; padding:20px; max-width:420px; }\n    label { font-size:0.85rem; color:#94a3b8; display:block; margin-bottom:6px; }\n    input[type=range] { width:100%; accent-color:#4fd1c5; margin-bottom:6px; }\n    .score-val { font-size:2rem; font-weight:700; color:#4fd1c5; text-align:center; margin-bottom:12px; }\n    .grade { text-align:center; font-size:1.4rem; font-weight:700; padding:12px; border-radius:8px; }\n    .code-block { background:#0b0e14; border-radius:6px; padding:12px; font-family:monospace; font-size:0.8rem; margin-top:14px; }\n    .kw { color:#a78bfa; } .str { color:#4ade80; } .num { color:#f7df1e; } .act { color:#4fd1c5; font-weight:700; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">Grade Classifier</h2>\n  <div class=\"card\">\n    <label>Move the slider to set a score:</label>\n    <input type=\"range\" id=\"score\" min=\"0\" max=\"100\" value=\"75\" oninput=\"update()\" />\n    <div class=\"score-val\" id=\"score-val\">75</div>\n    <div class=\"grade\" id=\"grade\"></div>\n    <div class=\"code-block\" id=\"code\"></div>\n  </div>\n\n  <script>\n    function update() {\n      const s = +document.getElementById('score').value;\n      document.getElementById('score-val').textContent = s;\n\n      let grade, color, msg;\n      if (s >= 90) { grade='A'; color='#22c55e'; msg='Excellent!'; }\n      else if (s >= 80) { grade='B'; color='#4fd1c5'; msg='Good'; }\n      else if (s >= 70) { grade='C'; color='#f7df1e'; msg='Average'; }\n      else if (s >= 60) { grade='D'; color='#f97316'; msg='Below average'; }\n      else { grade='F'; color='#ef4444'; msg='Fail'; }\n\n      document.getElementById('grade').textContent = `${grade} — ${msg}`;\n      document.getElementById('grade').style.background = color + '22';\n      document.getElementById('grade').style.color = color;\n      document.getElementById('grade').style.border = `1px solid ${color}44`;\n\n      // Show the Python code with active branch highlighted\n      const branches = [\n        { cond: s >= 90, line: `    <span class=\"${s>=90?'act':'kw'}\">if</span> score >= <span class=\"num\">90</span>: grade = <span class=\"str\">'A'</span>` },\n        { cond: s>=80&&s<90, line: `    <span class=\"${s>=80&&s<90?'act':'kw'}\">elif</span> score >= <span class=\"num\">80</span>: grade = <span class=\"str\">'B'</span>` },\n        { cond: s>=70&&s<80, line: `    <span class=\"${s>=70&&s<80?'act':'kw'}\">elif</span> score >= <span class=\"num\">70</span>: grade = <span class=\"str\">'C'</span>` },\n        { cond: s>=60&&s<70, line: `    <span class=\"${s>=60&&s<70?'act':'kw'}\">elif</span> score >= <span class=\"num\">60</span>: grade = <span class=\"str\">'D'</span>` },\n        { cond: s<60, line: `    <span class=\"${s<60?'act':'kw'}\">else</span>: grade = <span class=\"str\">'F'</span>` },\n      ];\n      document.getElementById('code').innerHTML = [\n        `<div>score = <span class=\"num\">${s}</span></div>`,\n        ...branches.map(b => `<div style=\"${b.cond?'background:#0e2020;border-radius:3px;padding:0 4px':''}\">${b.line}</div>`),\n        `<div style=\"margin-top:8px;color:#4fd1c5\">grade = <span class=\"str\">'${grade}'</span></div>`,\n      ].join('');\n    }\n    update();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "py-if-q1",
+          "question": "In Python, how do you define a code block?",
+          "type": "multiple-choice",
+          "options": [
+            "With curly braces { }",
+            "With BEGIN...END keywords",
+            "With indentation (4 spaces)",
+            "With parentheses ( )"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Python uses indentation (typically 4 spaces) to define code blocks — not curly braces like JavaScript/Java. All lines in a block must be indented consistently. IndentationError means you got it wrong."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Can I use tabs for indentation?",
+      "a": "Technically yes, but don't mix tabs and spaces — it causes IndentationError in Python 3. The standard (PEP 8) is 4 spaces. Configure your editor to insert 4 spaces when you press Tab."
+    },
+    {
+      "q": "Is there a switch statement in Python?",
+      "a": "From Python 3.10+: yes, match/case (structural pattern matching). Before 3.10, use if/elif chains or a dictionary dispatch: {key: function} patterns."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Python Docs — if Statements",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html#if-statements",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["input validation", "access control", "data classification", "API response handling"],
+    "examples": [
+      "if response.status_code == 200: — check API success in every HTTP call",
+      "if user.is_admin: — permission checking in web frameworks",
+      "Ternary: label = 'you' if user == current_user else user.name"
+    ]
+  }
+}

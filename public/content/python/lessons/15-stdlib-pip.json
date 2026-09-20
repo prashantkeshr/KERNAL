@@ -1,0 +1,135 @@
+{
+  "id": "15-stdlib-pip",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "python",
+  "technologyVersion": "Python 3.12",
+  "module": "python-practical",
+  "title": "stdlib Deep Dive & pip",
+  "subtitle": "json, datetime, pathlib, requests, venv, and pip",
+  "difficulty": "beginner",
+  "estimatedMinutes": 22,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["python/14-comprehensions"],
+  "skillsTaught": ["python.json", "python.datetime", "python.pathlib", "python.pip", "python.venv", "python.requests"],
+  "skillsUsed": ["python.modules", "python.files", "python.dicts"],
+  "relatedConcepts": ["python.packaging", "python.virtual-environments", "python.pypi"],
+  "whyItExists": {
+    "problem": "Real-world Python programs need to work with dates, parse JSON APIs, find files, make HTTP requests, and install third-party packages. The tools for all of this exist — you just need to know where.",
+    "solution": "The Python standard library covers most daily needs. For the rest (like HTTP requests), PyPI has 500,000+ packages installable with pip. Virtual environments isolate project dependencies.",
+    "whenToUse": "Whenever you need to interact with the outside world: APIs, files, time, the network.",
+    "whenNotToUse": "Don't pip install a 50MB framework for a task the stdlib handles. Don't skip virtual environments — dependency conflicts are painful to debug."
+  },
+  "explainModes": {
+    "beginner": "Python comes with batteries included — a huge library of ready-made modules. When you need something it doesn't have (like making web requests), you install it with pip. Virtual environments keep each project's packages separate so they don't conflict.",
+    "simple": "json.dumps/loads: dict ↔ JSON string. json.dump/load: dict ↔ JSON file. datetime.now(), timedelta for date math. pathlib.Path for file system operations. requests.get/post for HTTP (install: pip install requests). python -m venv venv to create a virtual env. pip install package, pip freeze > requirements.txt, pip install -r requirements.txt.",
+    "standard": "json handles None→null, True→true, False→false. datetime is naive (no timezone) by default — use datetime.timezone.utc or the third-party 'zoneinfo' module. pathlib.Path works across Windows/Linux/Mac. requests returns a Response: .status_code, .json(), .text, .raise_for_status(). Virtual envs live in a folder (venv/ by default) — never commit to git.",
+    "technical": "json.dumps has indent, separators, default (for custom serialization), sort_keys. datetime.fromisoformat() parses ISO 8601 (Python 3.7+). datetime.strptime/strftime for custom formats. pathlib.Path.open() returns a file object — preferred over open() with a string path. requests.Session() for connection pooling and shared headers. pip install -e . for editable installs (src layout). pyproject.toml is the modern packaging config.",
+    "deepDive": "json.JSONEncoder subclass with default() method for custom types. dateutil.parser for fuzzy date parsing (third-party). httpx as a modern async-capable alternative to requests. uv as a fast modern pip alternative. PEP 517/518 — pyproject.toml-based builds. importlib.metadata for reading installed package metadata. pip-tools / poetry / pdm for advanced dependency management."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "json — working with APIs and config"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "json_usage.py",
+      "code": "import json\n\n# Python dict → JSON string\ndata = {\n    'name': 'Prashant',\n    'scores': [95, 82, 78],\n    'active': True,\n    'email': None\n}\n\njson_str = json.dumps(data)           # compact\njson_pretty = json.dumps(data, indent=2)  # readable\nprint(json_pretty)\n# {\n#   \"name\": \"Prashant\",\n#   \"scores\": [95, 82, 78],\n#   \"active\": true,\n#   \"email\": null\n# }\n\n# JSON string → Python dict\nparsed = json.loads(json_str)\nprint(parsed['name'])   # Prashant\nprint(type(parsed['active']))   # <class 'bool'>\n\n# Read/write JSON files\nwith open('data.json', 'w') as f:\n    json.dump(data, f, indent=2)     # write\n\nwith open('data.json') as f:\n    loaded = json.load(f)            # read\n\n# Type mappings\n# Python  →  JSON\n# dict    →  object {}\n# list    →  array  []\n# str     →  string \"\"\n# int     →  number\n# float   →  number\n# True    →  true\n# False   →  false\n# None    →  null"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "datetime — working with dates and times"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "datetime_usage.py",
+      "code": "from datetime import datetime, timedelta, date\n\n# Current date and time\nnow = datetime.now()\nprint(now)                      # 2026-09-20 14:30:00.123456\nprint(now.year, now.month, now.day)\nprint(now.hour, now.minute, now.second)\n\n# Date arithmetic\ntomorrow = now + timedelta(days=1)\nlast_week = now - timedelta(weeks=1)\nprint(tomorrow.date())          # 2026-09-21\nprint(last_week.date())         # 2026-09-13\n\n# Format: datetime → string\nformatted = now.strftime('%Y-%m-%d %H:%M')\nprint(formatted)    # '2026-09-20 14:30'\n\n# Parse: string → datetime\ndt = datetime.strptime('20-09-2026', '%d-%m-%Y')\nprint(dt.year)      # 2026\n\n# ISO format (for APIs)\niso = now.isoformat()           # '2026-09-20T14:30:00.123456'\nback = datetime.fromisoformat(iso)   # parse back\n\n# Just a date (no time)\ntoday = date.today()\nbirthday = date(1998, 6, 15)\nage_days = (today - birthday).days\nprint(f'{age_days} days old')"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "pip and virtual environments"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "terminal",
+      "code": "# Create a virtual environment\npython -m venv venv\n\n# Activate it\n# Windows:\nvenv\\Scripts\\activate\n# Mac/Linux:\nsource venv/bin/activate\n\n# Your prompt now shows (venv)\n# Install packages\npip install requests\npip install requests==2.31.0     # specific version\npip install \"requests>=2.28\"     # minimum version\n\n# See what's installed\npip list\npip show requests\n\n# Save dependencies for sharing\npip freeze > requirements.txt    # saves exact versions\n\n# Install from requirements file\npip install -r requirements.txt\n\n# Deactivate when done\ndeactivate"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "requests — HTTP made easy"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "requests_usage.py",
+      "code": "import requests\n\n# GET request\nresponse = requests.get('https://api.github.com/users/torvalds')\n\nprint(response.status_code)     # 200\nprint(response.headers['content-type'])   # application/json\n\ndata = response.json()           # parse JSON response\nprint(data['name'])              # Linus Torvalds\nprint(data['public_repos'])      # number of repos\n\n# Error handling\ntry:\n    resp = requests.get('https://api.example.com/data', timeout=5)\n    resp.raise_for_status()      # raises HTTPError if 4xx/5xx\n    data = resp.json()\nexcept requests.Timeout:\n    print('Request timed out')\nexcept requests.HTTPError as e:\n    print(f'HTTP Error: {e}')\n\n# POST request with JSON body\npayload = {'username': 'prashant', 'email': 'p@example.com'}\nresp = requests.post(\n    'https://httpbin.org/post',\n    json=payload,                # auto-sets Content-Type: application/json\n    headers={'Authorization': 'Bearer my-token'}\n)\nprint(resp.status_code)"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: json & datetime sandbox",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    .tabs { display:flex; gap:6px; margin-bottom:14px; }\n    .tab { padding:6px 16px; border:2px solid #2d3748; background:transparent; color:#94a3b8; border-radius:5px; cursor:pointer; font-size:0.82rem; font-weight:700; }\n    .tab.active { border-color:#4fd1c5; color:#4fd1c5; }\n    .panel { display:none; }\n    .panel.active { display:block; }\n    textarea { width:100%; background:#1a1f2b; border:1px solid #2d3748; border-radius:5px; color:#e2e8f0; padding:8px; font-family:monospace; font-size:0.82rem; box-sizing:border-box; height:120px; resize:vertical; }\n    button { padding:7px 16px; border:none; border-radius:5px; font-weight:700; cursor:pointer; margin-top:8px; }\n    .out { background:#0b0e14; border-radius:6px; padding:12px; font-family:monospace; font-size:0.8rem; margin-top:10px; white-space:pre-wrap; }\n    input { background:#1a1f2b; border:1px solid #2d3748; border-radius:4px; color:#e2e8f0; padding:6px 10px; font-family:monospace; font-size:0.85rem; }\n    label { font-size:0.82rem; color:#94a3b8; display:block; margin-top:10px; margin-bottom:4px; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">stdlib Sandbox</h2>\n  <div class=\"tabs\">\n    <button class=\"tab active\" onclick=\"showTab('json')\">json</button>\n    <button class=\"tab\" onclick=\"showTab('datetime')\">datetime</button>\n  </div>\n\n  <div class=\"panel active\" id=\"panel-json\">\n    <p style=\"color:#94a3b8;font-size:0.82rem\">Edit the Python dict below and see the JSON output:</p>\n    <textarea id=\"json-input\">{\\n  \"name\": \"Prashant\",\\n  \"scores\": [95, 82, 78],\\n  \"active\": true,\\n  \"email\": null\\n}</textarea>\n    <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"doJson()\">json.loads() then json.dumps(indent=2)</button>\n    <div class=\"out\" id=\"json-out\"></div>\n  </div>\n\n  <div class=\"panel\" id=\"panel-datetime\">\n    <label>strftime format string:</label>\n    <input id=\"fmt\" value=\"%Y-%m-%d %H:%M:%S\" style=\"width:260px\" />\n    <button style=\"background:#a78bfa;color:#fff\" onclick=\"doDatetime()\" style=\"margin-left:8px\">Format now</button>\n    <div class=\"out\" id=\"dt-out\"></div>\n  </div>\n\n  <script>\n    function showTab(t) {\n      document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));\n      document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));\n      document.querySelector(`.tab:nth-child(${t==='json'?1:2})`).classList.add('active');\n      document.getElementById('panel-'+t).classList.add('active');\n    }\n\n    function doJson() {\n      const out = document.getElementById('json-out');\n      try {\n        const parsed = JSON.parse(document.getElementById('json-input').value);\n        const pyTypes = [];\n        Object.entries(parsed).forEach(([k,v])=>{\n          const pyT = v===null?'None':typeof v==='boolean'?(v?'True':'False'):Array.isArray(v)?`list (${v.length} items)`:typeof v==='number'?'int/float':'str';\n          pyTypes.push(`${k}: ${pyT}`);\n        });\n        out.innerHTML = `<span style=\"color:#4fd1c5\">json.loads() → dict with ${Object.keys(parsed).length} keys:</span>\\n${pyTypes.join('\\n')}\\n\\n<span style=\"color:#a78bfa\">json.dumps(indent=2):</span>\\n${JSON.stringify(parsed,null,2)}`;\n      } catch(e) {\n        out.innerHTML = `<span style=\"color:#ef4444\">json.JSONDecodeError: ${e.message}</span>`;\n      }\n    }\n\n    function doDatetime() {\n      const fmt = document.getElementById('fmt').value;\n      const now = new Date();\n      const map = {\n        '%Y': now.getFullYear(),\n        '%m': String(now.getMonth()+1).padStart(2,'0'),\n        '%d': String(now.getDate()).padStart(2,'0'),\n        '%H': String(now.getHours()).padStart(2,'0'),\n        '%M': String(now.getMinutes()).padStart(2,'0'),\n        '%S': String(now.getSeconds()).padStart(2,'0'),\n        '%f': String(now.getMilliseconds()*1000).padStart(6,'0'),\n        '%A': ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][now.getDay()],\n        '%a': ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][now.getDay()],\n        '%B': ['January','February','March','April','May','June','July','August','September','October','November','December'][now.getMonth()],\n        '%b': ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][now.getMonth()],\n      };\n      let result = fmt;\n      Object.entries(map).forEach(([k,v])=>result=result.replaceAll(k,v));\n      const out = document.getElementById('dt-out');\n      out.innerHTML = `<span style=\"color:#4fd1c5\">datetime.now().strftime('${fmt}')</span>\\n<span style=\"color:#f7df1e\">'${result}'</span>\\n\\nCommon codes:\\n%Y = year    %m = month  %d = day\\n%H = hour   %M = minute %S = second\\n%A = weekday name  %B = month name`;\n    }\n\n    doJson();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "py-pip-q1",
+          "question": "Why should you use a virtual environment for each project?",
+          "type": "multiple-choice",
+          "options": [
+            "Python won't run without one",
+            "It makes the program faster",
+            "It isolates project dependencies so different projects can use different package versions without conflict",
+            "It is required to use pip"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Without virtual environments, all pip packages are installed globally. If Project A needs requests==2.28 and Project B needs requests==2.31, you'll have a conflict. Virtual environments give each project its own isolated package directory."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between json.dump() and json.dumps()?",
+      "a": "json.dumps() converts Python → JSON string (in memory). json.dump() writes Python → JSON directly to a file object. The 's' stands for 'string'. Same pattern: json.loads() parses a JSON string, json.load() reads from a file."
+    },
+    {
+      "q": "Do I need to install requests? It's not in the standard library?",
+      "a": "Correct — requests is a third-party package. Install with: pip install requests. Python 3.11+ includes urllib.request in stdlib, but requests is far more ergonomic. Python 3.12's httpx is another modern option."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Python Docs — json module",
+      "url": "https://docs.python.org/3/library/json.html",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "requests library docs",
+      "url": "https://docs.python-requests.org/",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["API clients", "data science scripts", "web scrapers", "automation tools"],
+    "examples": [
+      "resp = requests.get(api_url, headers={'Authorization': f'Bearer {token}'}) — authenticated API call",
+      "json.dump(results, open('output.json','w'), indent=2) — save analysis results",
+      "pip install -r requirements.txt — reproduce environment on a new machine"
+    ]
+  }
+}

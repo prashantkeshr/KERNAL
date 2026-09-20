@@ -1,0 +1,10 @@
+{
+  "id": "python",
+  "name": "Python",
+  "version": "Python 3.12",
+  "difficulty": "beginner",
+  "estimatedHours": 35,
+  "modules": ["python-foundations", "python-control-flow", "python-data-structures", "python-files-oop", "python-practical"],
+  "prerequisites": ["javascript"],
+  "certificationAvailable": true
+}

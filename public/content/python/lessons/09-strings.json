@@ -1,0 +1,108 @@
+{
+  "id": "09-strings",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "python",
+  "technologyVersion": "Python 3.12",
+  "module": "python-data-structures",
+  "title": "Strings",
+  "subtitle": "f-strings, methods, slicing, and text processing",
+  "difficulty": "beginner",
+  "estimatedMinutes": 18,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["python/08-dicts-sets"],
+  "skillsTaught": ["python.strings", "python.f-strings", "python.string-methods"],
+  "skillsUsed": ["python.variables", "python.loops"],
+  "relatedConcepts": ["python.regex", "python.files"],
+  "whyItExists": {
+    "problem": "Almost every program deals with text — user input, file content, API responses, log messages. Raw string handling is tedious without the right tools.",
+    "solution": "Python strings are rich objects with 40+ built-in methods. f-strings make formatting clean. split/join/strip handle common text processing tasks elegantly.",
+    "whenToUse": "Any time you process text. Parsing input, building messages, cleaning data, working with file content.",
+    "whenNotToUse": "For complex pattern matching, use the re module. For large text processing, consider generators to avoid loading everything in memory."
+  },
+  "explainModes": {
+    "beginner": "Python strings have a toolbox of methods — upper() makes text UPPERCASE, lower() makes it lowercase, strip() removes spaces from the ends, split() cuts a string into a list of parts.",
+    "simple": "Strings are immutable — methods return new strings, not modified originals. Key methods: upper/lower, strip/lstrip/rstrip, split/join, replace, find/index, startswith/endswith, in (membership), count, format/f-strings. Multiline with triple quotes. Raw strings: r'C:\\Users\\...'.",
+    "standard": "String indexing and slicing work the same as lists — strings are sequences. str.encode() converts to bytes; bytes.decode() back. Template strings (string.Template) for safe substitution. str.format_map() with dicts. str.translate() with str.maketrans() for character replacement tables. String interning: Python automatically interns short strings.",
+    "technical": "Python 3 strings are Unicode (UTF-8 compatible). str is immutable — every 'modification' creates a new object. For building strings in a loop, use a list + ''.join() — it's O(n) vs string concatenation's O(n²). str.format() is older but still common. bytes vs str: files opened in binary mode give bytes, text mode gives str. codecs for encoding handling.",
+    "deepDive": "Python's string interning interns strings that look like identifiers. sys.intern() forces interning for large sets of repeated strings. textwrap module for wrapping/indenting text. difflib for computing differences between strings. Levenshtein distance for fuzzy matching. unicodedata for Unicode property lookups. str.casefold() for case-insensitive comparison (handles ß→ss etc.)."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "String basics and f-strings"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "strings.py",
+      "code": "# Single, double, or triple quotes\nname = 'Prashant'\nquote = \"It's easy\"\nessay = '''This is a\nmultiline string'''\n\n# f-strings (Python 3.6+) — most modern way\nage = 28\nprint(f'Name: {name}, Age: {age}')    # Name: Prashant, Age: 28\nprint(f'{name!r}')                     # 'Prashant' (repr)\nprint(f'{3.14159:.2f}')               # 3.14 (2 decimal places)\nprint(f'{1000000:,}')                  # 1,000,000 (thousands separator)\nprint(f'{\"hello\":^20}')               # centered in 20 chars\nprint(f'{42:08d}')                     # 00000042 (zero-padded)\n\n# Raw strings — no escape processing\npath = r'C:\\Users\\Prashant\\Documents'\nprint(path)   # C:\\Users\\Prashant\\Documents"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Essential string methods"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "string_methods.py",
+      "code": "text = '  Hello, World!  '\n\n# Case\nprint(text.upper())          # '  HELLO, WORLD!  '\nprint(text.lower())          # '  hello, world!  '\nprint(text.title())          # '  Hello, World!  '\n\n# Whitespace\nprint(text.strip())          # 'Hello, World!' (both ends)\nprint(text.lstrip())         # 'Hello, World!  ' (left only)\nprint(text.rstrip())         # '  Hello, World!' (right only)\n\n# Search\nprint('World' in text)       # True\nprint(text.find('World'))    # 9 (index), -1 if not found\nprint(text.startswith(' '))  # True\nprint(text.endswith('!  '))  # True\nprint(text.count('l'))       # 3\n\n# Modify (returns NEW string)\nprint(text.replace('World', 'Python'))\nprint(text.strip().split(', '))   # ['Hello', 'World!']\n\n# Join — opposite of split\nwords = ['Hello', 'World']\nprint(', '.join(words))      # Hello, World\nprint('-'.join(['a','b','c']))  # a-b-c\n\n# Check content\nprint('123'.isdigit())       # True\nprint('abc'.isalpha())       # True\nprint('abc123'.isalnum())    # True"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: String method explorer",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    .input-row { display:flex; gap:8px; margin-bottom:14px; align-items:center; }\n    input { flex:1; background:#1a1f2b; border:1px solid #2d3748; border-radius:5px; color:#e2e8f0; padding:8px 12px; font-family:monospace; font-size:0.9rem; }\n    .methods { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; margin-bottom:14px; }\n    button { padding:7px 10px; border:1px solid #2d3748; background:#1a1f2b; color:#e2e8f0; border-radius:5px; cursor:pointer; font-size:0.78rem; font-family:monospace; text-align:left; transition:border-color .2s; }\n    button:hover { border-color:#4fd1c5; color:#4fd1c5; }\n    .result { background:#0b0e14; border-radius:8px; padding:14px; font-family:monospace; font-size:0.85rem; }\n    .call { color:#4fd1c5; } .ret { color:#f7df1e; } .type { color:#94a3b8; font-size:0.75rem; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">String Method Explorer</h2>\n  <div class=\"input-row\">\n    <input id=\"str\" value=\"  Hello, World!  \" placeholder=\"Enter a string...\" />\n  </div>\n  <div class=\"methods\" id=\"methods\"></div>\n  <div class=\"result\" id=\"result\"><span style=\"color:#64748b\">Click a method to see the result.</span></div>\n\n  <script>\n    const methods = [\n      {name:'upper()',fn:s=>s.toUpperCase()},\n      {name:'lower()',fn:s=>s.toLowerCase()},\n      {name:'strip()',fn:s=>s.trim()},\n      {name:'lstrip()',fn:s=>s.trimStart()},\n      {name:'rstrip()',fn:s=>s.trimEnd()},\n      {name:'title()',fn:s=>s.replace(/\\b\\w/g,c=>c.toUpperCase()).replace(/\\B\\w/g,c=>c.toLowerCase())},\n      {name:'split(\\', \\')',fn:s=>JSON.stringify(s.trim().split(', '))},\n      {name:'split()',fn:s=>JSON.stringify(s.trim().split(/\\s+/))},\n      {name:'replace(\\', \\', \\'_\\')',fn:s=>s.replace(/,\\s*/g,'_')},\n      {name:'count(\\'l\\')',fn:s=>String(s.split('l').length-1)},\n      {name:'find(\\'World\\')',fn:s=>String(s.indexOf('World'))},\n      {name:'startswith(\\'  \\')',fn:s=>String(s.startsWith('  '))},\n      {name:'endswith(\\'!\\')',fn:s=>String(s.trimEnd().endsWith('!'))},\n      {name:'len()',fn:s=>String(s.length)},\n      {name:\"'!' in s\",fn:s=>String(s.includes('!'))},\n      {name:'isdigit()',fn:s=>String(/^\\d+$/.test(s.trim()))},\n    ];\n\n    const container = document.getElementById('methods');\n    methods.forEach(m => {\n      const btn = document.createElement('button');\n      btn.textContent = m.name;\n      btn.onclick = () => applyMethod(m);\n      container.appendChild(btn);\n    });\n\n    function applyMethod(m) {\n      const s = document.getElementById('str').value;\n      const result = m.fn(s);\n      const res = document.getElementById('result');\n      res.innerHTML = [\n        `<div><span class=\"type\">Input: </span><span class=\"ret\">${JSON.stringify(s)}</span></div>`,\n        `<div style=\"margin:6px 0\"><span class=\"type\">Method: </span><span class=\"call\">s.${m.name}</span></div>`,\n        `<div><span class=\"type\">Result: </span><span class=\"ret\">${result}</span></div>`,\n      ].join('');\n    }\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "py-str-q1",
+          "question": "What does 'hello'.upper() return?",
+          "type": "multiple-choice",
+          "options": [
+            "It modifies the original string to 'HELLO'",
+            "It returns a new string 'HELLO'",
+            "It returns True",
+            "It raises an error — strings are immutable"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Python strings are immutable — methods never modify the original. upper() returns a NEW string with all characters uppercased. You must assign the result: name = name.upper()."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do I efficiently build a string in a loop?",
+      "a": "Don't use += in a loop (O(n²) — creates a new string each time). Instead: collect parts in a list, then join: parts = []; for x in items: parts.append(str(x)); result = ', '.join(parts). This is O(n)."
+    },
+    {
+      "q": "What is the difference between find() and index()?",
+      "a": "Both search for a substring. find() returns -1 if not found. index() raises ValueError if not found. Use find() when absence is expected; use index() when absence is an error."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Python Docs — String Methods",
+      "url": "https://docs.python.org/3/library/stdtypes.html#string-methods",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["parsing CSV/log files", "building SQL queries", "API response processing", "user input validation"],
+    "examples": [
+      "line.strip().split(',') — parse a CSV line",
+      "f'SELECT * FROM {table} WHERE id = {id}' — (use parameterised queries for real SQL!)",
+      "email.lower().strip() — normalise user input before storing"
+    ]
+  }
+}

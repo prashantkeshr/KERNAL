@@ -1,0 +1,119 @@
+{
+  "id": "10-files",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "python",
+  "technologyVersion": "Python 3.12",
+  "module": "python-files-oop",
+  "title": "Files & Paths",
+  "subtitle": "open(), read/write modes, with statement, and pathlib",
+  "difficulty": "beginner",
+  "estimatedMinutes": 20,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["python/09-strings"],
+  "skillsTaught": ["python.files", "python.open", "python.pathlib", "python.with-statement"],
+  "skillsUsed": ["python.strings", "python.loops", "python.error-handling"],
+  "relatedConcepts": ["python.error-handling", "python.json", "python.stdlib"],
+  "whyItExists": {
+    "problem": "Programs need persistent storage — configuration, data, logs. Reading and writing files is a fundamental I/O operation.",
+    "solution": "Python's built-in open() function and the pathlib module provide a clean API for file I/O. The with statement ensures files are always properly closed.",
+    "whenToUse": "Reading config files, writing logs, processing CSV/JSON data files, working with any file on disk.",
+    "whenNotToUse": "For large datasets, use pandas. For databases, use sqlite3 or SQLAlchemy. For network data, use requests."
+  },
+  "explainModes": {
+    "beginner": "open() is like opening a physical file cabinet drawer. You specify which drawer (filename), whether you're just reading or also writing, and when you're done you must close it. The with statement closes it automatically.",
+    "simple": "Modes: 'r' (read, default), 'w' (write/overwrite), 'a' (append), 'x' (create-new, fails if exists), 'b' (binary — add to any: 'rb'/'wb'). with open(path, mode) as f: — auto-closes. Read: f.read() (all), f.readline(), f.readlines(), or iterate with for line in f. Write: f.write(text). pathlib.Path for OS-independent path handling.",
+    "standard": "Text mode uses the system encoding (usually UTF-8). Always pass encoding='utf-8' explicitly to be safe. f.read() loads the entire file into memory — fine for small files, use iteration for large files. writelines() writes a list without adding newlines — you must include \\n yourself. Mode 'w' truncates the file first. Mode 'a' always writes at the end.",
+    "technical": "open() returns a file object with a file descriptor (OS handle). Python's io module underlies all file I/O — text files are BufferedReader/BufferedWriter wrapped in TextIOWrapper. Buffering is on by default — flush() or close() pushes buffered data to disk. Memory-mapped files (mmap module) for large file access without reading the whole file. The with statement calls __enter__/__exit__ on the file object — context manager protocol.",
+    "deepDive": "pathlib.Path returns Path objects with / operator for joining: base / 'subdir' / 'file.txt'. Path.glob() and Path.rglob() for pattern matching. Path.stat().st_size, .st_mtime for metadata. shutil for copying, moving, deleting directories. tempfile for secure temp files. fileinput module to edit files in-place. csv and json modules handle structured text formats."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Reading files"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "read_files.py",
+      "code": "# Read the entire file\nwith open('notes.txt', 'r', encoding='utf-8') as f:\n    content = f.read()\nprint(content)\n\n# Read line by line (memory-efficient)\nwith open('notes.txt', 'r', encoding='utf-8') as f:\n    for line in f:\n        print(line.strip())   # strip() removes the \\n\n\n# Read all lines into a list\nwith open('notes.txt', 'r', encoding='utf-8') as f:\n    lines = f.readlines()   # ['line1\\n', 'line2\\n', ...]\n\n# Read one line at a time\nwith open('notes.txt', 'r', encoding='utf-8') as f:\n    first = f.readline()    # first line (including \\n)\n    second = f.readline()   # second line"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Writing files"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "write_files.py",
+      "code": "# Write (creates or OVERWRITES the file)\nwith open('output.txt', 'w', encoding='utf-8') as f:\n    f.write('Hello, World!\\n')\n    f.write('Second line\\n')\n\n# Append (adds to the end, doesn't erase)\nwith open('output.txt', 'a', encoding='utf-8') as f:\n    f.write('Third line\\n')\n\n# Write multiple lines at once\nlines = ['apple\\n', 'banana\\n', 'cherry\\n']\nwith open('fruits.txt', 'w', encoding='utf-8') as f:\n    f.writelines(lines)     # no \\n added automatically!\n\n# Or use join + write (cleaner)\nfruits = ['apple', 'banana', 'cherry']\nwith open('fruits.txt', 'w', encoding='utf-8') as f:\n    f.write('\\n'.join(fruits))"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "pathlib — modern path handling"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "pathlib_usage.py",
+      "code": "from pathlib import Path\n\n# Create path objects\nhome = Path.home()                  # C:\\Users\\Prashant or /home/prashant\ndocs = home / 'Documents'          # join with /\nfile = docs / 'notes' / 'todo.txt'\n\nprint(file)              # full path\nprint(file.name)         # todo.txt\nprint(file.stem)         # todo\nprint(file.suffix)       # .txt\nprint(file.parent)       # .../notes\n\n# Check existence\nprint(file.exists())\nprint(file.is_file())\nprint(file.is_dir())\n\n# Read/write with pathlib\nPath('output.txt').write_text('Hello!', encoding='utf-8')\ncontent = Path('output.txt').read_text(encoding='utf-8')\n\n# Find files\nfor py_file in Path('.').glob('**/*.py'):  # all .py files recursively\n    print(py_file)\n\n# Create directories\nPath('data/logs').mkdir(parents=True, exist_ok=True)"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: File mode simulator",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    .layout { display:grid; grid-template-columns:1fr 1fr; gap:14px; }\n    .panel { background:#0b0e14; border:1px solid #2d3748; border-radius:8px; padding:14px; }\n    h3 { margin:0 0 10px; font-size:0.85rem; }\n    .modes { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }\n    .mode-btn { padding:6px 14px; border:2px solid #2d3748; background:transparent; color:#e2e8f0; border-radius:5px; cursor:pointer; font-family:monospace; font-size:0.82rem; font-weight:700; }\n    .mode-btn.active { border-color:#4fd1c5; color:#4fd1c5; }\n    textarea { width:100%; background:#1a1f2b; border:1px solid #2d3748; border-radius:5px; color:#e2e8f0; padding:8px; font-family:monospace; font-size:0.8rem; box-sizing:border-box; resize:vertical; height:80px; }\n    button { padding:7px 16px; border:none; border-radius:5px; font-weight:700; cursor:pointer; margin-top:6px; }\n    .file-content { min-height:80px; background:#1a1f2b; border-radius:5px; padding:8px; font-family:monospace; font-size:0.8rem; white-space:pre-wrap; }\n    .info { font-size:0.75rem; color:#94a3b8; margin-top:8px; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">File Mode Simulator</h2>\n  <div class=\"layout\">\n    <div class=\"panel\">\n      <h3 style=\"color:#4fd1c5\">Write to file</h3>\n      <div class=\"modes\">\n        <button class=\"mode-btn active\" id=\"m-w\" onclick=\"setMode('w')\">w</button>\n        <button class=\"mode-btn\" id=\"m-a\" onclick=\"setMode('a')\">a</button>\n        <button class=\"mode-btn\" id=\"m-x\" onclick=\"setMode('x')\">x</button>\n      </div>\n      <textarea id=\"content\" placeholder=\"Content to write...\">Hello, World!</textarea>\n      <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"doWrite()\">open('file.txt', mode) + write()</button>\n      <div class=\"info\" id=\"write-info\">Select a mode, then write.</div>\n    </div>\n    <div class=\"panel\">\n      <h3 style=\"color:#a78bfa\">File contents</h3>\n      <div class=\"file-content\" id=\"file-view\"><span style=\"color:#64748b\">file does not exist yet</span></div>\n      <div class=\"info\" id=\"file-info\"></div>\n    </div>\n  </div>\n\n  <script>\n    let fileExists = false;\n    let fileContent = '';\n    let mode = 'w';\n    const modeDesc = {\n      w: \"'w' — write: creates file or OVERWRITES existing\",\n      a: \"'a' — append: adds to end, creates if not exists\",\n      x: \"'x' — exclusive create: fails if file already exists\"\n    };\n\n    function setMode(m) {\n      mode = m;\n      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));\n      document.getElementById('m-'+m).classList.add('active');\n      document.getElementById('write-info').textContent = modeDesc[m];\n    }\n\n    function doWrite() {\n      const text = document.getElementById('content').value;\n      if (mode === 'x' && fileExists) {\n        document.getElementById('write-info').textContent = \"FileExistsError: [Errno 17] File already exists: 'file.txt'\";\n        document.getElementById('write-info').style.color = '#ef4444';\n        return;\n      }\n      if (mode === 'w') { fileContent = text; fileExists = true; }\n      else if (mode === 'a') { fileContent += (fileExists ? '' : '') + text; fileExists = true; }\n      else if (mode === 'x') { fileContent = text; fileExists = true; }\n\n      renderFile();\n      const msg = mode==='w'?'Written (overwrote)':mode==='a'?'Appended to end':'Created new file';\n      document.getElementById('write-info').textContent = `✓ ${msg}. File is ${fileContent.length} char(s).`;\n      document.getElementById('write-info').style.color = '#4fd1c5';\n    }\n\n    function renderFile() {\n      const el = document.getElementById('file-view');\n      if (!fileExists) { el.innerHTML = '<span style=\"color:#64748b\">file does not exist yet</span>'; return; }\n      el.textContent = fileContent;\n      document.getElementById('file-info').textContent = `${fileContent.length} characters, ${fileContent.split('\\n').length} line(s)`;\n    }\n\n    setMode('w');\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "py-files-q1",
+          "question": "What is the difference between open modes 'w' and 'a'?",
+          "type": "multiple-choice",
+          "options": [
+            "'w' appends; 'a' overwrites",
+            "'w' overwrites/creates; 'a' appends to end/creates",
+            "'w' is for binary; 'a' is for text",
+            "They are the same"
+          ],
+          "correctAnswer": 1,
+          "explanation": "'w' (write) opens a file for writing — if it exists, it TRUNCATES (erases) the content first. 'a' (append) also creates the file if needed, but always writes at the END, preserving existing content."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What happens if I forget to close a file?",
+      "a": "The file stays open consuming a file descriptor until the garbage collector reclaims it (or the program exits). On Windows this can prevent other programs from opening the file. Always use 'with open(...) as f:' — it closes the file automatically even if an exception occurs."
+    },
+    {
+      "q": "How do I read a JSON file?",
+      "a": "import json; with open('data.json', 'r', encoding='utf-8') as f: data = json.load(f). This gives you a Python dict/list. To write: json.dump(data, f, indent=2). json.loads()/json.dumps() work with strings instead of files."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Python Docs — Reading and Writing Files",
+      "url": "https://docs.python.org/3/tutorial/inputoutput.html#reading-and-writing-files",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["config files", "log files", "CSV/JSON data", "scripts that process text files"],
+    "examples": [
+      "with open('config.json') as f: config = json.load(f) — read config at startup",
+      "Path('~/.bashrc').expanduser().read_text() — read shell config",
+      "for path in Path('data/').glob('*.csv'): process(path) — batch process files"
+    ]
+  }
+}

@@ -1,0 +1,132 @@
+{
+  "id": "02-variables-types",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "python",
+  "technologyVersion": "Python 3.12",
+  "module": "python-foundations",
+  "title": "Variables & Types",
+  "subtitle": "int, float, str, bool, None, and dynamic typing",
+  "difficulty": "beginner",
+  "estimatedMinutes": 18,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["python/01-introduction"],
+  "skillsTaught": ["python.variables", "python.types", "python.type-conversion"],
+  "skillsUsed": ["python.print"],
+  "relatedConcepts": ["python.operators", "python.strings"],
+  "whyItExists": {
+    "problem": "Programs need to store and work with data — names, numbers, prices, flags. Without variables, every value would be hardcoded.",
+    "solution": "Variables are named containers for values. Python has built-in types: integers, floats, strings, booleans, and None. Python figures out the type automatically — you don't declare it.",
+    "whenToUse": "Every program uses variables. Understanding types prevents bugs like '2' + 2 (TypeError) vs 2 + 2 (4).",
+    "whenNotToUse": "Python is dynamically typed — types are determined at runtime. For large projects, add type hints (Python 3.5+) for clarity and tooling support."
+  },
+  "explainModes": {
+    "beginner": "A variable is like a labelled box. name = 'Prashant' puts the text 'Prashant' in a box called name. age = 28 puts the number 28 in a box called age. You can look at or change what's in the box at any time.",
+    "simple": "Python has 5 core types: int (42), float (3.14), str ('hello'), bool (True/False), None. Assign with =. Check type with type(). Convert with int(), float(), str(). Variables are dynamically typed — the same variable can hold different types at different times.",
+    "standard": "Python is dynamically and strongly typed. Dynamically typed: no type declaration needed, types are checked at runtime. Strongly typed: Python won't silently coerce — '2' + 2 is a TypeError. Variables are references to objects — assignment binds a name to an object in memory. Multiple assignment: a = b = c = 0. Tuple unpacking: x, y = 10, 20.",
+    "technical": "Every Python object has a type, an identity (id()), and a value. int is arbitrary-precision (no overflow). float uses IEEE 754 double precision. str is immutable Unicode. bool is a subclass of int (True == 1, False == 0). None is a singleton — the only instance of NoneType. is tests identity (same object), == tests equality (same value).",
+    "deepDive": "CPython interns small integers (-5 to 256) and short strings for performance — this is why id(a) == id(b) sometimes holds for small ints even without assignment. Python's type system uses protocols (duck typing) and abstract base classes. Type hints (PEP 484) are annotations only — Python doesn't enforce them at runtime (use mypy for static checking). Walrus operator (PEP 572): n := len(data) assigns and returns in an expression."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Variables and assignment"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "variables.py",
+      "code": "# Assign a value to a variable\nname = 'Prashant'\nage = 28\nheight = 5.9\nis_student = True\nnotes = None   # no value yet\n\n# Print variables\nprint(name)    # Prashant\nprint(age)     # 28\n\n# Multiple assignment\nx = y = z = 0\n\n# Tuple unpacking — assign multiple at once\nlat, lon = 28.6, 77.2\nprint(lat, lon)  # 28.6 77.2\n\n# Swap without a temp variable\na, b = 10, 20\na, b = b, a\nprint(a, b)  # 20 10"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Python's core types"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "types.py",
+      "code": "# int — whole numbers (no size limit)\ncount = 42\nbig = 1_000_000   # underscores for readability\nnegative = -7\n\n# float — decimal numbers (IEEE 754)\nprice = 9.99\npi = 3.14159\n\n# str — text (single or double quotes, immutable)\ngreeting = 'Hello'\npath = \"C:/Users/prashant\"\nmultiline = '''Line one\nLine two'''\n\n# bool — True or False (capital T and F!)\nis_active = True\nhas_errors = False\n\n# None — absence of value\nresult = None\n\n# Check type\nprint(type(42))         # <class 'int'>\nprint(type(3.14))       # <class 'float'>\nprint(type('hello'))    # <class 'str'>\nprint(type(True))       # <class 'bool'>\nprint(type(None))       # <class 'NoneType'>"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Type conversion"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "conversion.py",
+      "code": "# Convert between types\nnum_str = '42'\nnum_int = int(num_str)    # '42' → 42\nnum_float = float('3.14') # '3.14' → 3.14\ntext = str(100)           # 100 → '100'\nbool_val = bool(0)        # 0 → False\nbool_val2 = bool('hello') # non-empty string → True\n\n# input() always returns a string — convert it!\nage_str = '25'         # pretend this came from input()\nage_int = int(age_str)\nprint(age_int + 1)     # 26  (would fail without int())\n\n# Falsy values (all evaluate to False in boolean context)\n# 0, 0.0, '', [], {}, set(), None"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Type explorer",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-bottom:16px; }\n    .type-card { background:#1a1f2b; border:1px solid #2d3748; border-radius:8px; padding:14px; cursor:pointer; transition:border-color .2s; }\n    .type-card:hover, .type-card.active { border-color:#4fd1c5; }\n    .type-card h3 { margin:0 0 4px; color:#4fd1c5; font-size:0.9rem; }\n    .type-card .value { font-family:monospace; font-size:0.85rem; color:#f7df1e; }\n    .type-card .cls { font-size:0.75rem; color:#94a3b8; margin-top:4px; }\n    .detail { background:#0b0e14; border:1px solid #2d3748; border-radius:8px; padding:16px; font-size:0.85rem; display:none; }\n    .detail.show { display:block; }\n    code { background:#1a1f2b; border-radius:3px; padding:1px 5px; font-family:monospace; color:#4fd1c5; }\n    .ex { font-family:monospace; font-size:0.8rem; color:#94a3b8; margin:4px 0; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">Python Type Explorer</h2>\n  <p style=\"color:#94a3b8\">Click a type to learn more:</p>\n  <div class=\"grid\" id=\"grid\"></div>\n  <div class=\"detail\" id=\"detail\"></div>\n\n  <script>\n    const types = [\n      {\n        name:'int', example:'42', cls:\"<class 'int'>\",\n        desc:'Whole numbers with no size limit. Supports: +, -, *, **, //, %',\n        examples: ['count = 42', 'big = 1_000_000', 'negative = -7', 'hex_val = 0xFF  # 255'],\n        falsy:'0 is falsy. All other ints are truthy.',\n        convert:'int(\"42\") → 42 | int(3.9) → 3 (truncates)'\n      },\n      {\n        name:'float', example:'3.14', cls:\"<class 'float'>\",\n        desc:'Decimal numbers (IEEE 754 double). Beware: 0.1 + 0.2 ≠ 0.3 exactly.',\n        examples: ['pi = 3.14159', 'price = 9.99', 'sci = 1.5e-3  # 0.0015'],\n        falsy:'0.0 is falsy.',\n        convert:'float(\"3.14\") → 3.14 | float(42) → 42.0'\n      },\n      {\n        name:'str', example:\"'hello'\", cls:\"<class 'str'>\",\n        desc:'Immutable Unicode text. Supports indexing, slicing, and many methods.',\n        examples: [\"name = 'Prashant'\", '\"double quotes work too\"', \"triple = '''multi\\nline'''\" ],\n        falsy:\"Empty string '' is falsy.\",\n        convert:'str(42) → \"42\" | str(True) → \"True\"'\n      },\n      {\n        name:'bool', example:'True', cls:\"<class 'bool'>\",\n        desc:'True or False (capital letters). bool is a subclass of int: True==1, False==0.',\n        examples: ['is_active = True', 'has_error = False', 'print(True + True)  # 2'],\n        falsy:'False is falsy. True is truthy.',\n        convert:'bool(0) → False | bool(\"\") → False | bool(\"x\") → True'\n      },\n      {\n        name:'None', example:'None', cls:\"<class 'NoneType'>\",\n        desc:'The absence of a value. Singleton — there is only one None object. Use: result = None.',\n        examples: ['result = None', 'def f(): pass  # implicitly returns None', 'if x is None: ...'],\n        falsy:'None is always falsy.',\n        convert:'Cannot convert None to other types directly.'\n      },\n    ];\n\n    const grid = document.getElementById('grid');\n    const detail = document.getElementById('detail');\n    let active = -1;\n\n    types.forEach((t,i) => {\n      const card = document.createElement('div');\n      card.className = 'type-card';\n      card.innerHTML = `<h3>${t.name}</h3><div class=\"value\">${t.example}</div><div class=\"cls\">${t.cls}</div>`;\n      card.onclick = () => {\n        if (active === i) { detail.classList.remove('show'); active=-1; grid.querySelectorAll('.type-card').forEach(c=>c.classList.remove('active')); return; }\n        active = i;\n        grid.querySelectorAll('.type-card').forEach(c=>c.classList.remove('active'));\n        card.classList.add('active');\n        detail.classList.add('show');\n        detail.innerHTML = [\n          `<h3 style=\"color:#4fd1c5;margin:0 0 8px\">${t.name}</h3>`,\n          `<p style=\"color:#94a3b8;margin:0 0 10px\">${t.desc}</p>`,\n          `<strong style=\"font-size:0.78rem;color:#64748b\">EXAMPLES</strong>`,\n          t.examples.map(e=>`<div class=\"ex\">&gt;&gt;&gt; ${e}</div>`).join(''),\n          `<div style=\"margin-top:10px\"><strong style=\"font-size:0.78rem;color:#64748b\">TRUTHINESS</strong><div class=\"ex\">${t.falsy}</div></div>`,\n          `<div style=\"margin-top:8px\"><strong style=\"font-size:0.78rem;color:#64748b\">CONVERT</strong><div class=\"ex\">${t.convert}</div></div>`,\n        ].join('');\n      };\n      grid.appendChild(card);\n    });\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "py-types-q1",
+          "question": "What is the result of type('42')?",
+          "type": "multiple-choice",
+          "options": [
+            "<class 'int'>",
+            "<class 'float'>",
+            "<class 'str'>",
+            "<class 'number'>"
+          ],
+          "correctAnswer": 2,
+          "explanation": "'42' (with quotes) is a string, not an integer. type('42') returns <class 'str'>. To get an integer, use int('42') which returns the integer 42."
+        },
+        {
+          "id": "py-types-q2",
+          "question": "What will print(bool(0)) output?",
+          "type": "multiple-choice",
+          "options": [
+            "0",
+            "True",
+            "False",
+            "None"
+          ],
+          "correctAnswer": 2,
+          "explanation": "0 is falsy in Python. bool(0) converts it to False. Other falsy values: 0.0, '', [], {}, None. Everything else is truthy."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Do I need to declare the type of a variable in Python?",
+      "a": "No. Python is dynamically typed — you just write x = 42 and Python knows it's an int. You can optionally add type hints (x: int = 42) for documentation and tooling, but Python doesn't enforce them at runtime."
+    },
+    {
+      "q": "What is the difference between = and ==?",
+      "a": "= is assignment (x = 5 stores 5 in x). == is comparison (x == 5 asks 'is x equal to 5?' and returns True or False). This is the same in most languages."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Python Docs — Built-in Types",
+      "url": "https://docs.python.org/3/library/stdtypes.html",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every Python program", "data science (DataFrame columns have types)", "API responses (JSON types map to Python types)"],
+    "examples": [
+      "json.loads() converts JSON strings to Python dicts/lists/strings/ints/floats/booleans/None",
+      "Type hints + mypy catch type bugs before runtime in large codebases",
+      "pandas dtype system is built on Python's type system"
+    ]
+  }
+}

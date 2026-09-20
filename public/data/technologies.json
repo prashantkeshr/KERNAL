@@ -67,7 +67,7 @@
     "order": 5,
     "stage": 5,
     "playground": "python",
-    "enabled": false,
+    "enabled": true,
     "description": "General programming, automation, data",
     "estimatedHours": 35
   },

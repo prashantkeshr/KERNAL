@@ -1,0 +1,119 @@
+{
+  "id": "06-functions",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "python",
+  "technologyVersion": "Python 3.12",
+  "module": "python-control-flow",
+  "title": "Functions",
+  "subtitle": "def, return, *args, **kwargs, scope, and lambda",
+  "difficulty": "beginner",
+  "estimatedMinutes": 22,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["python/05-loops"],
+  "skillsTaught": ["python.functions", "python.def", "python.return", "python.args", "python.lambda"],
+  "skillsUsed": ["python.variables", "python.types"],
+  "relatedConcepts": ["python.classes", "python.modules"],
+  "whyItExists": {
+    "problem": "Writing the same code multiple times in different places creates bugs — update one copy and forget the others. Programs become unreadable without organisation.",
+    "solution": "Functions package reusable logic with a name. Call it with arguments, get back a return value. Write once, use anywhere.",
+    "whenToUse": "Any time you write the same code twice. Any logic that has a clear name. Any operation with inputs and outputs.",
+    "whenNotToUse": "Don't create functions just to wrap a single obvious line. Don't use *args/**kwargs when you know the exact parameters — it reduces readability."
+  },
+  "explainModes": {
+    "beginner": "A function is like a recipe. You name it (def greet), list the ingredients (name, age), and write the steps. Later, you call the recipe: greet('Prashant', 28). The recipe runs with your specific ingredients.",
+    "simple": "def name(params): ... return value. Calling: result = name(args). Default params: def greet(name='World'). *args: any number of positional arguments (as a tuple). **kwargs: any number of keyword arguments (as a dict). lambda: single-expression anonymous function.",
+    "standard": "Functions are first-class objects in Python — they can be passed as arguments, returned from other functions, and stored in variables. Scope: variables inside a function are local. global/nonlocal keywords access outer scope. Docstrings (triple-quoted strings right after def) are the standard way to document. Type hints: def add(a: int, b: int) -> int: — improves tooling and readability.",
+    "technical": "Python uses LEGB scope resolution: Local → Enclosing → Global → Built-in. Closures capture variables from enclosing scope. Default parameter values are evaluated ONCE at function definition — mutable defaults (def f(lst=[]) are a classic Python gotcha; use None as default and create the mutable inside. *args is a tuple, **kwargs is a dict. Unpacking: f(*list_), f(**dict_).",
+    "deepDive": "Python functions are instances of the function class with __code__, __defaults__, __annotations__ attributes. Decorators (@ syntax) are higher-order functions that wrap other functions — used extensively in Flask, Django, FastAPI. functools.wraps preserves the wrapped function's metadata. functools.lru_cache(maxsize=128) memoizes pure functions. The inspect module introspects function signatures at runtime."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Defining and calling functions"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "functions.py",
+      "code": "# Define a function\ndef greet(name):\n    print(f'Hello, {name}!')\n\n# Call it\ngreet('Prashant')   # Hello, Prashant!\ngreet('World')      # Hello, World!\n\n# Function with return value\ndef add(a, b):\n    return a + b\n\nresult = add(3, 4)\nprint(result)        # 7\n\n# Multiple return values (actually returns a tuple)\ndef min_max(numbers):\n    return min(numbers), max(numbers)\n\nlo, hi = min_max([3, 1, 9, 2, 7])\nprint(lo, hi)        # 1 9"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Default parameters and keyword arguments"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "defaults.py",
+      "code": "# Default parameter values\ndef greet(name, greeting='Hello'):\n    return f'{greeting}, {name}!'\n\nprint(greet('Prashant'))          # Hello, Prashant!\nprint(greet('Prashant', 'Hi'))    # Hi, Prashant!\nprint(greet(greeting='Hey', name='Bob'))   # keyword args\n\n# *args — variable positional arguments (becomes a tuple)\ndef total(*numbers):\n    return sum(numbers)\n\nprint(total(1, 2, 3))        # 6\nprint(total(10, 20, 30, 40)) # 100\n\n# **kwargs — variable keyword arguments (becomes a dict)\ndef display(**info):\n    for key, val in info.items():\n        print(f'{key}: {val}')\n\ndisplay(name='Prashant', city='Delhi', age=28)\n# name: Prashant | city: Delhi | age: 28"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Lambda and type hints"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "lambda_hints.py",
+      "code": "# lambda — anonymous single-expression function\nsquare = lambda x: x ** 2\nprint(square(5))   # 25\n\n# Useful with sorted()\npeople = [('Bob', 30), ('Alice', 25), ('Charlie', 35)]\nsorted_by_age = sorted(people, key=lambda p: p[1])\nprint(sorted_by_age)\n# [('Alice', 25), ('Bob', 30), ('Charlie', 35)]\n\n# Type hints — document expected types\ndef greet(name: str, times: int = 1) -> str:\n    return (f'Hello, {name}! ' * times).strip()\n\nprint(greet('Prashant', 3))\n# Hello, Prashant! Hello, Prashant! Hello, Prashant!\n\n# Avoid mutable default argument gotcha!\n# ❌ Wrong — list is shared across all calls\ndef bad(items=[]):\n    items.append(1)\n    return items\n\n# ✅ Correct — create fresh list each call\ndef good(items=None):\n    if items is None:\n        items = []\n    items.append(1)\n    return items"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Function builder",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    .card { background:#1a1f2b; border:1px solid #2d3748; border-radius:8px; padding:18px; max-width:520px; }\n    label { font-size:0.83rem; color:#94a3b8; display:block; margin-bottom:4px; }\n    input, select { width:100%; background:#0b0e14; border:1px solid #2d3748; border-radius:5px; color:#e2e8f0; padding:7px 10px; font-family:monospace; font-size:0.85rem; box-sizing:border-box; margin-bottom:12px; }\n    button { background:#4fd1c5; color:#0e1116; border:none; padding:8px 20px; border-radius:5px; font-weight:700; cursor:pointer; }\n    .code-out { background:#0b0e14; border-radius:6px; padding:14px; font-family:monospace; font-size:0.8rem; margin-top:14px; }\n    .kw { color:#a78bfa; } .fn { color:#4fd1c5; } .param { color:#f7df1e; } .ret { color:#4ade80; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">Function Builder</h2>\n  <div class=\"card\">\n    <label>Function name:</label>\n    <input id=\"fname\" value=\"calculate_discount\" />\n    <label>Parameters (comma-separated):</label>\n    <input id=\"params\" value=\"price, discount_pct=10\" />\n    <label>What it returns:</label>\n    <select id=\"rtype\">\n      <option value=\"float\">float (number)</option>\n      <option value=\"str\">str (text)</option>\n      <option value=\"bool\">bool (True/False)</option>\n      <option value=\"list\">list</option>\n      <option value=\"None\">None (no return)</option>\n    </select>\n    <button onclick=\"generate()\">Generate definition</button>\n    <div class=\"code-out\" id=\"out\"></div>\n  </div>\n\n  <script>\n    function generate() {\n      const name = document.getElementById('fname').value.trim() || 'my_function';\n      const params = document.getElementById('params').value.trim() || 'x';\n      const ret = document.getElementById('rtype').value;\n      const paramList = params.split(',').map(p=>p.trim());\n\n      // Build type-hinted signature\n      const typedParams = paramList.map(p => {\n        if (p.includes('=')) {\n          const [nm, dflt] = p.split('=').map(x=>x.trim());\n          const t = isNaN(dflt) ? (dflt.startsWith('\\'')? 'str': 'bool') : (dflt.includes('.')? 'float': 'int');\n          return `${nm}: ${t} = ${dflt}`;\n        }\n        return `${p}: float`;\n      }).join(', ');\n\n      const retHint = ret === 'None' ? 'None' : ret;\n      const retStmt = ret === 'None' ? '' : `\\n    return result  # TODO: compute result`;\n      const docNames = paramList.map(p=>p.split('=')[0].trim());\n\n      document.getElementById('out').innerHTML = [\n        `<span class=\"kw\">def</span> <span class=\"fn\">${name}</span>(<span class=\"param\">${typedParams.replace(/float|str|bool|int|list/g, m=>`<span style=\"color:#94a3b8\">${m}</span>`)}</span>) -> <span class=\"ret\">${retHint}</span>:`,\n        `    <span style=\"color:#4ade80\">\"\"\"`,\n        `    ${name.replace(/_/g,' ')} — add description here.`,\n        ``,\n        `    Args:`,\n        docNames.map(p=>`        ${p}: description of ${p}`).join('<br>'),\n        `    Returns:`,\n        `        ${retHint}: description of return value`,\n        `    \"\"\"</span>`,\n        `    <span class=\"kw\">pass</span>  # TODO: implement${retStmt}`,\n        ``,\n        `<span style=\"color:#94a3b8\"># Example call:</span>`,\n        `result = <span class=\"fn\">${name}</span>(${docNames.map((p,i)=>i===0?'100.0':p).join(', ')})`,\n      ].join('<br>');\n    }\n    generate();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "py-fn-q1",
+          "question": "What does *args in a function definition do?",
+          "type": "multiple-choice",
+          "options": [
+            "Multiplies all arguments together",
+            "Allows the function to accept any number of positional arguments, collected as a tuple",
+            "Makes all arguments optional",
+            "Spreads the arguments into the function"
+          ],
+          "correctAnswer": 1,
+          "explanation": "*args lets a function accept any number of positional arguments. Inside the function, args is a tuple containing all the extra positional arguments. Example: def total(*nums): return sum(nums) — can be called with any count of numbers."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What happens if a function has no return statement?",
+      "a": "It implicitly returns None. All Python functions return something — if you don't specify, it's None. This is why print() returns None if you try to use its result."
+    },
+    {
+      "q": "What is a docstring and why does it matter?",
+      "a": "A docstring is the triple-quoted string right after def — it documents what the function does, its parameters, and its return value. Python exposes it via help(function) and __doc__. IDEs show it on hover. It's the standard way to document Python code — more important than comments."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Python Docs — Defining Functions",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html#defining-functions",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every Python program", "API endpoint handlers", "data processing pipelines", "test cases"],
+    "examples": [
+      "Flask/FastAPI route handlers are functions decorated with @app.route/@app.get",
+      "sorted(items, key=lambda x: x['score']) — lambda as sort key is ubiquitous",
+      "functools.lru_cache on pure functions for memoization without changing the interface"
+    ]
+  }
+}

@@ -1,0 +1,119 @@
+{
+  "id": "03-operators",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "python",
+  "technologyVersion": "Python 3.12",
+  "module": "python-foundations",
+  "title": "Operators & Expressions",
+  "subtitle": "Arithmetic, comparison, logical, and string operators",
+  "difficulty": "beginner",
+  "estimatedMinutes": 15,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["python/02-variables-types"],
+  "skillsTaught": ["python.operators", "python.f-strings", "python.expressions"],
+  "skillsUsed": ["python.variables", "python.types"],
+  "relatedConcepts": ["python.conditionals", "python.strings"],
+  "whyItExists": {
+    "problem": "Data sitting in variables is useless without the ability to calculate, compare, and combine it.",
+    "solution": "Operators let you do arithmetic (+ - * /), compare values (== != < > <= >=), apply logic (and or not), and build formatted strings (f-strings).",
+    "whenToUse": "Constantly — operators are the foundation of every expression and condition in Python.",
+    "whenNotToUse": "Avoid chained comparisons without parentheses for clarity. Use Decimal instead of float for financial calculations."
+  },
+  "explainModes": {
+    "beginner": "Operators are symbols that do things with values. + adds numbers (2 + 3 = 5) or joins strings ('Hello' + ' World'). == checks if two values are equal. and/or combine conditions. f-strings let you put variables inside text: f'Hello {name}'.",
+    "simple": "Arithmetic: + - * / // (floor div) % (modulo) ** (power). Comparison: == != < > <= >=. Logical: and, or, not. Assignment shortcuts: += -= *= /=. String: + (concat), * (repeat), f'{var}' (format). Membership: in, not in. Identity: is, is not.",
+    "standard": "Python operator precedence (high to low): ** → unary +/- → * / // % → + - → comparisons → not → and → or. Short-circuit evaluation: 'a and b' stops at a if a is False; 'a or b' stops at a if a is True. Augmented assignment (+=) modifies in place for mutable objects. Chained comparisons: 0 < x < 10 works naturally in Python.",
+    "technical": "Python operators are implemented as special (dunder) methods: + calls __add__, == calls __eq__, < calls __lt__. This enables operator overloading for custom classes. / always returns float (true division). // is floor division (returns int for int operands). @ operator (PEP 465) is for matrix multiplication (numpy). Bitwise operators: & | ^ ~ << >>.",
+    "deepDive": "Python's operator module provides functional equivalents (operator.add, operator.eq) useful for functional programming and sort keys. The := walrus operator (PEP 572) combines assignment and expression: while chunk := f.read(8192). is vs ==: is compares object identity (same memory address), == compares value — common bug: using is to compare strings (works by accident due to interning, not reliable)."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Arithmetic operators"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "arithmetic.py",
+      "code": "# Basic arithmetic\nprint(10 + 3)    # 13\nprint(10 - 3)    # 7\nprint(10 * 3)    # 30\nprint(10 / 3)    # 3.3333... (always float)\nprint(10 // 3)   # 3  (floor division — integer result)\nprint(10 % 3)    # 1  (modulo — remainder)\nprint(2 ** 10)   # 1024 (power)\n\n# Order of operations\nprint(2 + 3 * 4)      # 14 (multiplication first)\nprint((2 + 3) * 4)    # 20 (brackets first)\n\n# Augmented assignment\nx = 10\nx += 5   # x = x + 5  → 15\nx *= 2   # x = x * 2  → 30\nprint(x) # 30"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Comparison & logical operators"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "comparison.py",
+      "code": "# Comparison — returns True or False\nprint(5 == 5)    # True\nprint(5 != 3)    # True\nprint(5 > 3)     # True\nprint(5 < 3)     # False\nprint(5 >= 5)    # True\nprint(5 <= 4)    # False\n\n# Chained comparisons (unique to Python!)\nage = 25\nprint(18 <= age < 65)  # True — works like math!\n\n# Logical operators\nprint(True and True)   # True\nprint(True and False)  # False\nprint(True or False)   # True\nprint(not True)        # False\n\n# Combining\nx = 7\nprint(x > 0 and x < 10)   # True\nprint(x < 0 or x > 5)     # True\nprint(not (x == 7))        # False"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "f-strings — formatted string literals"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "fstrings.py",
+      "code": "name = 'Prashant'\nage = 28\nprice = 9.99\n\n# f-string: prefix with f, put expressions in {}\nprint(f'Hello, {name}!')\n# → Hello, Prashant!\n\nprint(f'{name} is {age} years old')\n# → Prashant is 28 years old\n\n# Expressions inside {}\nprint(f'Next year: {age + 1}')\n# → Next year: 29\n\n# Format numbers\nprint(f'Price: ₹{price:.2f}')   # 2 decimal places\n# → Price: ₹9.99\n\nprint(f'{1000000:,}')  # thousands separator\n# → 1,000,000\n\n# String operators\ngreeting = 'Hello' + ', ' + 'World!'   # concatenation\nline = '-' * 20                         # repeat\nprint(greeting)   # Hello, World!\nprint(line)       # --------------------"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Expression calculator",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    .calc { background:#0b0e14; border:1px solid #2d3748; border-radius:8px; padding:20px; max-width:500px; }\n    label { font-size:0.85rem; color:#94a3b8; display:block; margin-bottom:4px; }\n    input { width:100%; background:#1a1f2b; border:1px solid #2d3748; border-radius:5px; color:#e2e8f0; padding:8px 12px; font-family:monospace; font-size:0.9rem; box-sizing:border-box; margin-bottom:12px; }\n    button { background:#4fd1c5; color:#0e1116; border:none; padding:8px 20px; border-radius:5px; font-weight:700; cursor:pointer; }\n    .result { background:#1a1f2b; border-radius:6px; padding:12px 14px; margin-top:14px; font-family:monospace; font-size:0.9rem; min-height:36px; }\n    .chips { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px; }\n    .chip { background:#1a1f2b; border:1px solid #2d3748; border-radius:4px; padding:3px 9px; font-family:monospace; font-size:0.78rem; cursor:pointer; color:#4fd1c5; }\n    .chip:hover { border-color:#4fd1c5; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">Python Expression Calculator</h2>\n  <div class=\"calc\">\n    <div class=\"chips\" id=\"chips\"></div>\n    <label>Expression (Python syntax):</label>\n    <input id=\"expr\" value=\"2 ** 10\" placeholder=\"e.g. 10 // 3\" />\n    <button onclick=\"evalExpr()\">Evaluate</button>\n    <div class=\"result\" id=\"result\"></div>\n  </div>\n\n  <script>\n    const examples = [\n      '2 + 3 * 4', '10 / 3', '10 // 3', '10 % 3',\n      '2 ** 10', '5 == 5', '5 != 3', '18 <= 25 < 65',\n      'True and False', 'True or False', 'not True',\n    ];\n    const chips = document.getElementById('chips');\n    examples.forEach(e => {\n      const chip = document.createElement('span');\n      chip.className = 'chip';\n      chip.textContent = e;\n      chip.onclick = () => { document.getElementById('expr').value = e; evalExpr(); };\n      chips.appendChild(chip);\n    });\n\n    function evalExpr() {\n      const raw = document.getElementById('expr').value.trim();\n      const res = document.getElementById('result');\n      if (!raw) { res.textContent = ''; return; }\n      try {\n        // Safe evaluation of Python-like math expressions\n        let expr = raw\n          .replace(/\\*\\*/g, '**')\n          .replace(/\\/\\//g, 'Math.floor(PLACEHOLDER)')\n          .replace(/ and /g, ' && ').replace(/ or /g, ' || ').replace(/\\bnot\\b/g, '!')\n          .replace(/True/g, 'true').replace(/False/g, 'false').replace(/None/g, 'null');\n        // Handle floor division\n        expr = expr.replace(/Math\\.floor\\(PLACEHOLDER\\)/g, '/').replace(/(.*)\\/(.*)/, (m,a,b) => `Math.floor((${a})/(${b}))`);\n        // Chained comparison: convert 18 <= 25 < 65 is complex, skip\n        // Handle ** (power)\n        expr = expr.replace(/(\\d+)\\*\\*(\\d+)/g, (m,a,b) => `Math.pow(${a},${b})`);\n        const result = Function('Math', `\"use strict\"; return (${expr})`)(Math);\n        const pyResult = result === true ? 'True' : result === false ? 'False' : result === null ? 'None' : String(result);\n        res.innerHTML = `<span style=\"color:#94a3b8\">&gt;&gt;&gt; ${raw}</span><br><span style=\"color:#4fd1c5\">${pyResult}</span>`;\n      } catch(e) {\n        res.innerHTML = `<span style=\"color:#ef4444\">SyntaxError: could not evaluate this expression</span>`;\n      }\n    }\n    document.getElementById('expr').addEventListener('keydown', e => { if (e.key==='Enter') evalExpr(); });\n    evalExpr();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "py-ops-q1",
+          "question": "What is the result of 10 // 3 in Python?",
+          "type": "multiple-choice",
+          "options": [
+            "3.333...",
+            "1",
+            "3",
+            "4"
+          ],
+          "correctAnswer": 2,
+          "explanation": "// is floor division — it divides and rounds DOWN to the nearest integer. 10 / 3 = 3.333..., floor of that is 3. Use % to get the remainder: 10 % 3 = 1."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Why does 0.1 + 0.2 not equal 0.3 in Python?",
+      "a": "Floating-point numbers use binary representation (IEEE 754), and 0.1 and 0.2 can't be represented exactly in binary — similar to how 1/3 can't be exactly represented in decimal. Use round(0.1 + 0.2, 1) == 0.3, or the decimal module for financial precision: from decimal import Decimal."
+    },
+    {
+      "q": "What is the difference between == and is?",
+      "a": "== compares values (5 == 5.0 is True). is compares identity — whether two variables point to the exact same object in memory (a is b). Use == for value comparison. Use is only for None: if x is None: ..."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Python Docs — Expressions",
+      "url": "https://docs.python.org/3/reference/expressions.html",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every calculation in Python", "data filtering", "string formatting for reports/APIs"],
+    "examples": [
+      "f-strings replaced .format() and % formatting — used in every modern Python codebase",
+      "// and % are essential for date/time arithmetic, pagination, and grid layouts",
+      "Chained comparisons (0 <= score < 100) are idiomatic Python — avoid JavaScript-style (score >= 0 && score < 100)"
+    ]
+  }
+}
