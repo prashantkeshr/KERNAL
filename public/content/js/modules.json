@@ -1,0 +1,57 @@
+[
+  {
+    "id": "js-foundations",
+    "title": "Foundations",
+    "description": "How JavaScript runs, variables, data types, and operators.",
+    "order": 1,
+    "lessons": [
+      { "id": "01-introduction",    "title": "Introduction to JavaScript", "subtitle": "The language of the web",               "difficulty": "beginner",     "estimatedMinutes": 15, "status": "published" },
+      { "id": "02-variables-types", "title": "Variables & Data Types",     "subtitle": "let, const, string, number, boolean",  "difficulty": "beginner",     "estimatedMinutes": 20, "status": "published" },
+      { "id": "03-operators",       "title": "Operators",                  "subtitle": "arithmetic, comparison, logical",       "difficulty": "beginner",     "estimatedMinutes": 18, "status": "published" }
+    ]
+  },
+  {
+    "id": "js-control-flow",
+    "title": "Control Flow",
+    "description": "Make decisions and repeat actions with conditionals and loops.",
+    "order": 2,
+    "lessons": [
+      { "id": "04-conditionals",    "title": "Conditionals",               "subtitle": "if, else, ternary, switch",             "difficulty": "beginner",     "estimatedMinutes": 18, "status": "published" },
+      { "id": "05-loops",           "title": "Loops",                      "subtitle": "for, while, for...of, break, continue", "difficulty": "beginner",     "estimatedMinutes": 20, "status": "published" },
+      { "id": "06-functions",       "title": "Functions",                  "subtitle": "declarations, expressions, arrow fn",   "difficulty": "beginner",     "estimatedMinutes": 25, "status": "published" }
+    ]
+  },
+  {
+    "id": "js-data-structures",
+    "title": "Data Structures",
+    "description": "Work with arrays, objects, and the most useful built-in string and number methods.",
+    "order": 3,
+    "lessons": [
+      { "id": "07-arrays",          "title": "Arrays",                     "subtitle": "map, filter, reduce, find, spread",     "difficulty": "beginner",     "estimatedMinutes": 25, "status": "published" },
+      { "id": "08-objects",         "title": "Objects",                    "subtitle": "properties, methods, destructuring",    "difficulty": "beginner",     "estimatedMinutes": 22, "status": "published" },
+      { "id": "09-strings-numbers", "title": "Strings & Numbers",          "subtitle": "template literals, string/math methods","difficulty": "beginner",     "estimatedMinutes": 18, "status": "published" }
+    ]
+  },
+  {
+    "id": "js-dom",
+    "title": "DOM & Events",
+    "description": "Read, change, and respond to the HTML document from JavaScript.",
+    "order": 4,
+    "lessons": [
+      { "id": "10-dom-basics",      "title": "DOM Basics",                 "subtitle": "querySelector, textContent, classList",  "difficulty": "intermediate", "estimatedMinutes": 22, "status": "published" },
+      { "id": "11-events",          "title": "Events",                     "subtitle": "addEventListener, event delegation",     "difficulty": "intermediate", "estimatedMinutes": 22, "status": "published" },
+      { "id": "12-dom-manipulation","title": "DOM Manipulation",           "subtitle": "createElement, append, remove, forms",   "difficulty": "intermediate", "estimatedMinutes": 22, "status": "published" }
+    ]
+  },
+  {
+    "id": "js-async",
+    "title": "Async JavaScript",
+    "description": "Handle time-delayed operations and fetch live data from the web.",
+    "order": 5,
+    "lessons": [
+      { "id": "13-promises",        "title": "Promises",                   "subtitle": ".then, .catch, Promise.all",             "difficulty": "intermediate", "estimatedMinutes": 22, "status": "published" },
+      { "id": "14-async-await",     "title": "Async / Await",              "subtitle": "async functions and error handling",     "difficulty": "intermediate", "estimatedMinutes": 22, "status": "published" },
+      { "id": "15-fetch-api",       "title": "Fetch API",                  "subtitle": "HTTP requests, JSON, REST APIs",         "difficulty": "intermediate", "estimatedMinutes": 25, "status": "published" }
+    ]
+  }
+]

@@ -1,0 +1,143 @@
+{
+  "id": "04-conditionals",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "javascript",
+  "technologyVersion": "ES2024",
+  "module": "js-control-flow",
+  "title": "Conditionals",
+  "subtitle": "if, else, ternary, switch",
+  "difficulty": "beginner",
+  "estimatedMinutes": 18,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["js/03-operators"],
+  "skillsTaught": ["js.conditionals", "js.if-else", "js.ternary", "js.switch"],
+  "skillsUsed": ["js.operators", "js.variables"],
+  "relatedConcepts": ["js.loops", "js.functions"],
+  "whyItExists": {
+    "problem": "Programs need to make decisions — show this if logged in, show that otherwise. Without conditionals, every program runs the same code path regardless of input.",
+    "solution": "Conditional statements execute different blocks of code based on whether conditions are true or false. JavaScript provides if/else, switch, and the ternary operator.",
+    "whenToUse": "Any time a program must choose between two or more code paths based on a value or condition.",
+    "whenNotToUse": "For repeated actions, use loops. For complex decision trees, consider a lookup object or map instead of long if/else chains."
+  },
+  "explainModes": {
+    "beginner": "A conditional is a 'yes or no' question your code asks. 'Is the user logged in? Yes → show dashboard. No → show login page.' You write this with if (condition) { ... } else { ... }.",
+    "simple": "if checks a condition and runs a block if true. else if adds more conditions. else is the fallback. The ternary operator is a shorthand for simple if/else. switch compares one value against many cases.",
+    "standard": "JavaScript evaluates conditions as truthy/falsy. Falsy values: false, 0, '', null, undefined, NaN. Everything else is truthy. switch uses strict equality (===) for case matching. break prevents fall-through to the next case.",
+    "technical": "The ternary operator is an expression — it returns a value and can be used inside other expressions. switch fall-through is intentional when multiple cases share a handler. The optional chaining (?.) and nullish coalescing (??) operators often replace simple conditionals for null checks.",
+    "deepDive": "Conditional branches affect JavaScript engine optimisation. V8's Turbofan inline-cache misses occur when a conditional switches between returning different object shapes — the engine assumes the hot path stays consistent. Prefer early returns to deeply nested if/else trees for both readability and predictable type profiles."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "if / else if / else"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "conditionals.js",
+      "code": "const score = 75;\n\nif (score >= 90) {\n  console.log('A — Excellent!');\n} else if (score >= 75) {\n  console.log('B — Good job!');\n} else if (score >= 60) {\n  console.log('C — Keep going!');\n} else {\n  console.log('Below passing — try again.');\n}\n\n// Output: 'B — Good job!'"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Truthy and falsy"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "truthy-falsy.js",
+      "code": "// Falsy values — evaluate to false in an if condition\nif (0)         { /* never runs */ }\nif ('')        { /* never runs */ }\nif (null)      { /* never runs */ }\nif (undefined) { /* never runs */ }\nif (false)     { /* never runs */ }\nif (NaN)       { /* never runs */ }\n\n// Truthy — everything else\nif (1)         { /* runs */ }\nif ('hello')   { /* runs */ }\nif ([])        { /* runs — empty array is truthy! */ }\nif ({})        { /* runs — empty object is truthy! */ }\n\n// Common pattern: check if a value exists\nconst user = getCurrentUser();\nif (user) {\n  showDashboard(user);\n} else {\n  showLoginPage();\n}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Ternary operator"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "ternary.js",
+      "code": "// condition ? valueIfTrue : valueIfFalse\nconst age = 20;\nconst status = age >= 18 ? 'adult' : 'minor';\nconsole.log(status);  // 'adult'\n\n// Useful in JSX/template literals\nconst greeting = `Good ${hour < 12 ? 'morning' : 'afternoon'}!`;\n\n// AVOID nesting ternaries — use if/else instead\n// Bad:\nconst grade = score >= 90 ? 'A' : score >= 75 ? 'B' : 'C';\n// Better:\nlet grade;\nif (score >= 90)      grade = 'A';\nelse if (score >= 75) grade = 'B';\nelse                  grade = 'C';"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "switch statement"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "switch.js",
+      "code": "const day = 'Monday';\n\nswitch (day) {\n  case 'Monday':\n  case 'Tuesday':\n  case 'Wednesday':\n  case 'Thursday':\n  case 'Friday':\n    console.log('Weekday');\n    break;             // stop — don't fall through\n  case 'Saturday':\n  case 'Sunday':\n    console.log('Weekend');\n    break;\n  default:\n    console.log('Unknown day');\n}\n\n// Output: 'Weekday'\n\n// Modern alternative — object lookup (often cleaner)\nconst labels = {\n  Monday: 'Weekday', Tuesday: 'Weekday',\n  Saturday: 'Weekend', Sunday: 'Weekend',\n};\nconsole.log(labels[day] ?? 'Unknown');  // 'Weekday'"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Grade calculator",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" /></head>\n<body style=\"background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:24px\">\n  <h2 style=\"color:#4fd1c5\">Grade Calculator</h2>\n  <label>Score (0-100): <input type=\"number\" id=\"score\" value=\"75\" min=\"0\" max=\"100\" style=\"background:#1a1f2b;color:#e2e8f0;border:1px solid #2d3748;border-radius:4px;padding:4px 8px;margin-left:8px\" /></label>\n  <button onclick=\"calculate()\" style=\"display:block;margin-top:12px;background:#4fd1c5;color:#0e1116;border:none;padding:8px 20px;border-radius:6px;font-weight:700;cursor:pointer\">Calculate Grade</button>\n  <p id=\"result\" style=\"margin-top:16px;font-size:1.2rem\"></p>\n\n  <script>\n    function calculate() {\n      const score = Number(document.getElementById('score').value);\n      let grade, message;\n\n      if (score >= 90)      { grade = 'A'; message = 'Excellent!'; }\n      else if (score >= 75) { grade = 'B'; message = 'Good job!'; }\n      else if (score >= 60) { grade = 'C'; message = 'Keep going!'; }\n      else if (score >= 0)  { grade = 'F'; message = 'Try again.'; }\n      else                  { grade = '?'; message = 'Invalid score'; }\n\n      document.getElementById('result').textContent = `Grade: ${grade} — ${message}`;\n    }\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "js-cond-q1",
+          "question": "Which of these values is TRUTHY in JavaScript?",
+          "type": "multiple-choice",
+          "options": ["0", "''", "[]", "null"],
+          "correctAnswer": 2,
+          "explanation": "An empty array [] is truthy in JavaScript. 0, empty string '', and null are all falsy. This surprises many beginners — always use explicit checks like array.length === 0 to test for empty arrays."
+        },
+        {
+          "id": "js-cond-q2",
+          "question": "What does 'fall-through' mean in a switch statement?",
+          "type": "multiple-choice",
+          "options": [
+            "The switch falls back to if/else",
+            "Without break, execution continues into the next case",
+            "The default case always runs",
+            "The switch throws an error"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Without a break statement, a matched case 'falls through' and continues executing the next case's code. This can be intentional (multiple cases sharing code) or a bug."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "When should I use switch instead of if/else if?",
+      "a": "switch is cleaner when you are comparing one variable against many discrete values (day names, status codes). if/else is better when conditions involve ranges, multiple variables, or complex logic."
+    },
+    {
+      "q": "What is an early return and why is it useful?",
+      "a": "Returning early from a function when a condition is not met avoids deeply nested if/else. Instead of if (valid) { ... lots of code ... }, write if (!valid) return; and continue with the happy path at the same indentation level."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — Making decisions — conditionals",
+      "url": "https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Building_blocks/conditionals",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "javascript.info — Conditional branching",
+      "url": "https://javascript.info/ifelse",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["authentication", "form validation", "feature flags", "routing", "error handling"],
+    "examples": [
+      "GitHub shows a 'Merge' button only if branch checks pass (complex if/else with multiple conditions)",
+      "E-commerce applies different shipping rates based on order weight using if/else if chains",
+      "A dark/light mode toggle uses a ternary: theme = theme === 'dark' ? 'light' : 'dark'"
+    ]
+  }
+}

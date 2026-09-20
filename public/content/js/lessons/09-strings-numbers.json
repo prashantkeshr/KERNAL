@@ -1,0 +1,127 @@
+{
+  "id": "09-strings-numbers",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "javascript",
+  "technologyVersion": "ES2024",
+  "module": "js-data-structures",
+  "title": "Strings & Numbers",
+  "subtitle": "template literals, string/math methods",
+  "difficulty": "beginner",
+  "estimatedMinutes": 18,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["js/02-variables-types"],
+  "skillsTaught": ["js.strings", "js.numbers", "js.template-literals", "js.math"],
+  "skillsUsed": ["js.variables", "js.operators"],
+  "relatedConcepts": ["js.arrays", "js.functions"],
+  "whyItExists": {
+    "problem": "Almost every program manipulates text and numbers — formatting a date, truncating a title, rounding a price, parsing user input. These operations need built-in support to be practical.",
+    "solution": "JavaScript strings and numbers have rich built-in methods. Strings can be searched, split, replaced, padded, and trimmed. Numbers can be rounded, formatted, and parsed from text.",
+    "whenToUse": "Formatting UI text, parsing and validating input, calculating totals, generating slugs, searching content.",
+    "whenNotToUse": "For complex text operations (regex, NLP), use dedicated libraries. For financial calculations, avoid floating-point — use integer cents."
+  },
+  "explainModes": {
+    "beginner": "Strings are text between quotes. Template literals use backticks and let you embed variables with ${value}. Strings have built-in helpers like .toUpperCase(), .includes(), and .split().",
+    "simple": "Key string methods: length, toUpperCase/toLowerCase, trim, includes, startsWith, endsWith, indexOf, slice, split, replace, padStart. Key number methods: toFixed, parseInt, parseFloat, Number.isNaN, Math.round/floor/ceil/max/min/random.",
+    "standard": "Strings are immutable — methods return new strings. Template literals support multi-line text and tagged templates. parseInt and parseFloat parse numeric strings; Number() converts strictly. toFixed rounds to decimal places for display (returns a string).",
+    "technical": "Strings in JavaScript are UTF-16 encoded. str.length counts code units, not characters — emoji and some Unicode symbols are two code units. Use [...str] or Array.from(str) to split by character. Regular expressions (regex) power advanced search and replace: str.match(), str.replace(), str.replaceAll().",
+    "deepDive": "Template literal tags allow preprocessing: String.raw`...` returns the raw string with escape sequences unprocessed. Tagged templates are used in css`` (styled-components), sql`` (safe queries), html`` (XSS-safe HTML), and gql`` (GraphQL). Intl.NumberFormat and Intl.DateTimeFormat provide locale-aware formatting — the right way to format currency, dates, and numbers for international users."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Template literals"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "template-literals.js",
+      "code": "const name = 'Prashant';\nconst score = 95;\n\n// Template literal — backticks, ${} for interpolation\nconst message = `Hello, ${name}! Your score is ${score}.`;\nconst grade = `Grade: ${score >= 90 ? 'A' : 'B'}`;\n\n// Multi-line string\nconst html = `\n  <div class=\"card\">\n    <h2>${name}</h2>\n    <p>Score: ${score}</p>\n  </div>\n`;\n\nconsole.log(message);  // 'Hello, Prashant! Your score is 95.'"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Essential string methods"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "string-methods.js",
+      "code": "const str = '  Hello, World!  ';\n\nstr.length             // 18\nstr.trim()             // 'Hello, World!'  (remove whitespace)\nstr.toUpperCase()      // '  HELLO, WORLD!  '\nstr.toLowerCase()      // '  hello, world!  '\nstr.includes('World') // true\nstr.startsWith('  H') // true\nstr.indexOf('World')  // 9\nstr.slice(2, 7)        // 'Hello'\nstr.replace('World', 'KERNAL')  // '  Hello, KERNAL!  '\nstr.split(', ')        // ['  Hello', 'World!  ']\nstr.trim().split(', ')  // ['Hello', 'World!']\n\n// Padding — useful for formatting tables\n'7'.padStart(3, '0')   // '007'\n'Hi'.padEnd(10, '-')   // 'Hi--------'"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Number methods and Math"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "numbers.js",
+      "code": "// Parsing strings to numbers\nparseInt('42px')      // 42   — stops at non-digit\nparseFloat('3.14abc') // 3.14\nNumber('42')          // 42   — strict, returns NaN for invalid\nNumber('42px')        // NaN\n+'42'                  // 42   — unary + operator (shorthand)\n\n// Formatting output\n(3.14159).toFixed(2)  // '3.14' — returns a STRING\n(1234567).toLocaleString()  // '1,234,567' (locale-aware)\n\n// Math object\nMath.round(4.6)   // 5\nMath.floor(4.9)   // 4  — always rounds down\nMath.ceil(4.1)    // 5  — always rounds up\nMath.abs(-5)      // 5  — absolute value\nMath.max(1,5,3)   // 5\nMath.min(1,5,3)   // 1\nMath.random()     // 0 to 0.9999... (never 1)\nMath.PI           // 3.14159...\nMath.sqrt(16)     // 4\n\n// Random integer between min and max (inclusive)\nconst rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;\nrand(1, 6);  // simulates a dice roll"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: String and Number utilities",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" /></head>\n<body style=\"background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:24px\">\n  <h2 style=\"color:#4fd1c5\">String & Number Playground</h2>\n  <label>Input: <input id=\"inp\" value=\"  Hello, KERNAL World!  \" style=\"width:300px;background:#1a1f2b;color:#e2e8f0;border:1px solid #2d3748;border-radius:4px;padding:6px 10px;margin-left:8px\" /></label>\n  <button onclick=\"process()\" style=\"display:block;margin-top:12px;background:#4fd1c5;color:#0e1116;border:none;padding:8px 20px;border-radius:6px;font-weight:700;cursor:pointer\">Process</button>\n  <div id=\"out\" style=\"margin-top:20px;background:#1a1f2b;padding:16px;border-radius:8px;font-family:monospace;font-size:0.875rem;color:#94a3b8\"></div>\n\n  <script>\n    function process() {\n      const raw = document.getElementById('inp').value;\n      const trimmed = raw.trim();\n      const words = trimmed.split(' ').filter(w => w.length > 0);\n      const slug = trimmed.toLowerCase().replace(/\\s+/g, '-').replace(/[^a-z0-9-]/g, '');\n\n      document.getElementById('out').innerHTML = `\n        <p>Original: \"${raw}\"</p>\n        <p>Trimmed: \"${trimmed}\"</p>\n        <p>Length: ${trimmed.length}</p>\n        <p>Upper: \"${trimmed.toUpperCase()}\"</p>\n        <p>Word count: ${words.length}</p>\n        <p>Slug: \"${slug}\"</p>\n        <p>Random 1-100: ${Math.floor(Math.random() * 100) + 1}</p>\n      `;\n    }\n    process();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "js-str-q1",
+          "question": "What does (3.14159).toFixed(2) return?",
+          "type": "multiple-choice",
+          "options": ["3.14 (number)", "'3.14' (string)", "3 (integer)", "3.15 (number)"],
+          "correctAnswer": 1,
+          "explanation": "toFixed() returns a STRING formatted to the specified number of decimal places. You may need to use Number() or + to convert it back to a number for arithmetic."
+        },
+        {
+          "id": "js-str-q2",
+          "question": "Which method checks if a string contains a substring?",
+          "type": "multiple-choice",
+          "options": ["str.has()", "str.contains()", "str.includes()", "str.find()"],
+          "correctAnswer": 2,
+          "explanation": "str.includes(substring) returns true if the string contains the substring. It is case-sensitive. For case-insensitive search: str.toLowerCase().includes(query.toLowerCase())."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between slice() and substring()?",
+      "a": "Both extract a part of a string. slice() accepts negative indices (str.slice(-3) gets the last 3 characters). substring() treats negative indices as 0. slice() is generally preferred."
+    },
+    {
+      "q": "How do I convert a number to a string?",
+      "a": "String(42) or (42).toString() or template literal `${42}`. The unary + operator converts string to number: +'42' === 42."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — String",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "MDN — Math",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["URL slug generation", "price formatting", "search highlighting", "input sanitisation"],
+    "examples": [
+      "Blog platforms generate URL slugs: title.toLowerCase().replace(/\\s+/g, '-')",
+      "Stripe formats amounts: (amount / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })",
+      "Search bars highlight matches: str.replace(new RegExp(query, 'gi'), '<mark>$&</mark>')"
+    ]
+  }
+}

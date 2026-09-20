@@ -1,0 +1,152 @@
+{
+  "id": "06-functions",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "javascript",
+  "technologyVersion": "ES2024",
+  "module": "js-control-flow",
+  "title": "Functions",
+  "subtitle": "declarations, expressions, arrow functions",
+  "difficulty": "beginner",
+  "estimatedMinutes": 25,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["js/05-loops"],
+  "skillsTaught": ["js.functions", "js.arrow-functions", "js.scope", "js.closures"],
+  "skillsUsed": ["js.variables", "js.operators"],
+  "relatedConcepts": ["js.arrays", "js.async"],
+  "whyItExists": {
+    "problem": "Without functions, you would copy-paste the same code every time you need it. If the logic needs to change, you change it in 20 places. A bug in one place survives in the other 19.",
+    "solution": "Functions are named, reusable blocks of code. You define a function once and call it many times with different inputs. They are the primary tool for organising code and avoiding repetition.",
+    "whenToUse": "For any code you use more than once, any logic that can be named, and any behaviour that can change based on input.",
+    "whenNotToUse": "Don't wrap single-use one-liners in a function unless naming it dramatically improves readability."
+  },
+  "explainModes": {
+    "beginner": "A function is a recipe. You write the recipe once (definition) and cook it whenever you want (call). You can pass in different ingredients (parameters) and the recipe produces a result (return value).",
+    "simple": "function add(a, b) { return a + b; } defines a function. add(3, 4) calls it and gets 7 back. Arrow functions are shorter: const add = (a, b) => a + b.",
+    "standard": "Function declarations are hoisted — they can be called before they appear in the source. Function expressions and arrow functions are not hoisted. Arrow functions inherit this from the surrounding context (no own this). Default parameters, rest parameters (...args), and destructured parameters are ES6+ features.",
+    "technical": "Functions in JavaScript are first-class — they can be stored in variables, passed as arguments, and returned from other functions. Closures capture variables from the enclosing scope. The arguments object (non-arrow functions only) holds all passed arguments. IIFE (Immediately Invoked Function Expression) creates a private scope.",
+    "deepDive": "Closures are formed when a function references variables from its outer scope after the outer function has returned. The V8 engine optimises closures by analysing captured variables. Tail call optimisation (TCO) allows recursive functions to run without growing the call stack — defined in ES6 but only implemented in Safari. Pure functions (same input always produces same output, no side effects) are the foundation of functional programming patterns."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Function declaration"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "functions.js",
+      "code": "// Function declaration — hoisted (can be called before it's defined)\nfunction greet(name) {\n  return 'Hello, ' + name + '!';\n}\n\nconsole.log(greet('Prashant'));  // 'Hello, Prashant!'\nconsole.log(greet('World'));    // 'Hello, World!'\n\n// Multiple parameters\nfunction add(a, b) {\n  return a + b;\n}\nconsole.log(add(3, 7));  // 10\n\n// Default parameters\nfunction greetUser(name = 'stranger') {\n  return `Hello, ${name}!`;\n}\nconsole.log(greetUser());          // 'Hello, stranger!'\nconsole.log(greetUser('Prashant')); // 'Hello, Prashant!'"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Arrow functions"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "arrow-functions.js",
+      "code": "// Full syntax\nconst add = (a, b) => {\n  return a + b;\n};\n\n// Implicit return (omit braces and return for single expression)\nconst add = (a, b) => a + b;\nconst double = n => n * 2;   // one parameter — no parentheses needed\nconst greet = () => 'Hello'; // no parameters — empty parens required\n\nconsole.log(add(3, 7));   // 10\nconsole.log(double(5));   // 10\nconsole.log(greet());     // 'Hello'\n\n// Arrow functions are perfect as callbacks\nconst numbers = [1, 2, 3, 4, 5];\nconst doubled = numbers.map(n => n * 2);  // [2, 4, 6, 8, 10]"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Rest parameters and spread"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "rest-params.js",
+      "code": "// Rest parameter — collects all remaining arguments into an array\nfunction sum(...numbers) {\n  return numbers.reduce((total, n) => total + n, 0);\n}\nconsole.log(sum(1, 2, 3, 4, 5));  // 15\nconsole.log(sum(10, 20));          // 30\n\n// Spread — expand array/object into individual values\nconst nums = [3, 1, 4, 1, 5, 9];\nconsole.log(Math.max(...nums));  // 9\nconst copy = [...nums];          // shallow copy"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Functions as values — callbacks"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "callbacks.js",
+      "code": "// Functions can be passed as arguments (callbacks)\nfunction runTwice(fn) {\n  fn();\n  fn();\n}\n\nrunTwice(() => console.log('Hello!'));  // prints 'Hello!' twice\n\n// DOM event listeners take a callback\ndocument.getElementById('btn').addEventListener('click', (event) => {\n  console.log('Clicked!', event.target);\n});\n\n// setTimeout — run after a delay (ms)\nsetTimeout(() => console.log('1 second later'), 1000);"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Functions",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" /></head>\n<body style=\"background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:24px\">\n  <h2 style=\"color:#4fd1c5\">Temperature Converter</h2>\n  <label>Celsius: <input type=\"number\" id=\"celsius\" value=\"100\" style=\"background:#1a1f2b;color:#e2e8f0;border:1px solid #2d3748;border-radius:4px;padding:4px 8px\" /></label>\n  <button onclick=\"convert()\" style=\"margin-left:8px;background:#4fd1c5;color:#0e1116;border:none;padding:6px 16px;border-radius:6px;font-weight:700;cursor:pointer\">Convert</button>\n  <p id=\"result\" style=\"margin-top:16px;font-size:1.1rem;color:#4fd1c5\"></p>\n\n  <script>\n    // Define reusable functions\n    const celsiusToFahrenheit = c => (c * 9/5) + 32;\n    const celsiusToKelvin = c => c + 273.15;\n\n    function formatTemp(value, unit) {\n      return `${value.toFixed(1)} °${unit}`;\n    }\n\n    function convert() {\n      const c = Number(document.getElementById('celsius').value);\n      const f = celsiusToFahrenheit(c);\n      const k = celsiusToKelvin(c);\n      document.getElementById('result').textContent =\n        `${formatTemp(c,'C')} = ${formatTemp(f,'F')} = ${formatTemp(k,'K')}`;\n    }\n\n    convert();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "js-fn-q1",
+          "question": "What is an arrow function's shorthand for returning a value?",
+          "type": "multiple-choice",
+          "options": [
+            "return must always be written explicitly",
+            "Omit the curly braces — the expression is automatically returned",
+            "Use => return value",
+            "Put the value after =>"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Arrow functions with no curly braces have an implicit return: const double = n => n * 2 is equivalent to const double = n => { return n * 2; }."
+        },
+        {
+          "id": "js-fn-q2",
+          "question": "What is a callback function?",
+          "type": "multiple-choice",
+          "options": [
+            "A function that calls itself recursively",
+            "A function passed as an argument to another function",
+            "A function that returns another function",
+            "A function defined inside a class"
+          ],
+          "correctAnswer": 1,
+          "explanation": "A callback is a function passed as an argument to another function, to be called at a later point. Event listeners and array methods like map/filter take callbacks."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between a function declaration and function expression?",
+      "a": "A function declaration (function name() {}) is hoisted — it can be called before its definition in the code. A function expression (const name = function() {}) or arrow function is not hoisted — you must define it before calling it."
+    },
+    {
+      "q": "When should I use arrow functions vs regular functions?",
+      "a": "Use arrow functions for callbacks, array methods, and any function that doesn't need its own 'this'. Use regular functions for methods on objects and constructors — they have their own 'this' binding."
+    },
+    {
+      "q": "What is a closure?",
+      "a": "A closure is a function that 'remembers' variables from the scope where it was created, even after that scope has finished executing. Example: a counter function that keeps its own private count variable."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — Functions",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Functions",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "javascript.info — Functions",
+      "url": "https://javascript.info/function-basics",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every JavaScript program", "event handlers", "API callbacks", "data transformation", "utilities"],
+    "examples": [
+      "Array.prototype.map takes a callback function: [1,2,3].map(x => x * 2)",
+      "React components are functions: function Button({ label }) { return <button>{label}</button> }",
+      "setTimeout and setInterval take callback functions for delayed execution"
+    ]
+  }
+}

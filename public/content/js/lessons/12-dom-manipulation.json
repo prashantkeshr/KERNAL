@@ -1,0 +1,148 @@
+{
+  "id": "12-dom-manipulation",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "javascript",
+  "technologyVersion": "ES2024",
+  "module": "js-dom",
+  "title": "DOM Manipulation",
+  "subtitle": "createElement, append, remove, forms",
+  "difficulty": "beginner",
+  "estimatedMinutes": 25,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["js/11-events"],
+  "skillsTaught": ["js.createElement", "js.append", "js.forms", "js.dom-manipulation"],
+  "skillsUsed": ["js.dom", "js.events", "js.strings"],
+  "relatedConcepts": ["js.async", "js.fetch"],
+  "whyItExists": {
+    "problem": "Selecting and reading elements is only half the story. Real apps need to create new elements on the fly (a new message in a chat, a new card in a list) and remove old ones without reloading the page.",
+    "solution": "createElement creates a new element in memory. append and remove attach and detach it from the page. Forms collect user input — reading their values and preventing default submission is the foundation of every web form.",
+    "whenToUse": "Building dynamic UIs: adding/removing list items, rendering fetched data, building forms programmatically, creating modal dialogs.",
+    "whenNotToUse": "Avoid heavy DOM manipulation for large lists — use a framework. Avoid innerHTML with user data (XSS risk)."
+  },
+  "explainModes": {
+    "beginner": "createElement makes a new HTML element in JavaScript. Once you set its text and classes, append() puts it on the page. remove() takes it off the page.",
+    "simple": "const el = document.createElement('div') creates a div element. Set el.textContent, el.className, el.id. Then parent.append(el) to add it. el.remove() to delete it. innerHTML sets an element's entire HTML content.",
+    "standard": "createElement + append is safer than innerHTML for dynamic content. insertBefore, prepend, before, after give fine control over position. Forms: read input values with input.value. Handle submit with addEventListener('submit', e => { e.preventDefault(); }) and FormData.",
+    "technical": "appendChild and insertBefore are the classic DOM methods. Modern code prefers append (accepts multiple nodes and strings), prepend, before, after, and replaceWith — these are more ergonomic. Use DocumentFragment to batch multiple DOM insertions into one reflow. cloneNode(true) deep-copies an element. MutationObserver watches for DOM changes.",
+    "deepDive": "The Template element (<template>) holds inert HTML that doesn't render until cloned: template.content.cloneNode(true). Used for repeating structures. Shadow DOM encapsulates styles and DOM for web components — the boundary between a component's internal DOM and the page's DOM. Custom Elements (customElements.define) let you create your own HTML elements with lifecycle callbacks."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Creating and appending elements"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "create-element.js",
+      "code": "// Create an element\nconst card = document.createElement('div');\ncard.className = 'card';             // set class\ncard.id = 'user-card';              // set id\ncard.textContent = 'Hello World';   // set text\n\n// Set attributes\ncard.setAttribute('data-id', '42');\ncard.setAttribute('aria-label', 'User card');\n\n// Inline styles\ncard.style.backgroundColor = '#1a1f2b';\ncard.style.padding = '16px';\n\n// Append to the page\ndocument.querySelector('#container').append(card);\n\n// Modern: append accepts strings and elements, multiple at once\nconst list = document.querySelector('ul');\nconst item1 = document.createElement('li');\nitem1.textContent = 'Item 1';\nconst item2 = document.createElement('li');\nitem2.textContent = 'Item 2';\nlist.append(item1, item2);  // both added in one call"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Insertion positions"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "insertion.js",
+      "code": "const parent = document.querySelector('#list');\nconst newItem = document.createElement('li');\nnewItem.textContent = 'New';\n\nparent.append(newItem);    // add to END of parent\nparent.prepend(newItem);   // add to START of parent\n\nconst existing = document.querySelector('#existing-item');\nexisting.before(newItem);  // insert BEFORE this element\nexisting.after(newItem);   // insert AFTER this element\nexisting.replaceWith(newItem);  // replace this element\n\n// Remove an element\nexisting.remove();\n// Or: parent.removeChild(existing);"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Building a list dynamically"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "dynamic-list.js",
+      "code": "const users = [\n  { id: 1, name: 'Prashant', role: 'Dev' },\n  { id: 2, name: 'Ana', role: 'Designer' },\n  { id: 3, name: 'Ben', role: 'PM' },\n];\n\nconst ul = document.querySelector('#user-list');\n\n// DocumentFragment — batch appends, one reflow\nconst fragment = document.createDocumentFragment();\n\nusers.forEach(user => {\n  const li = document.createElement('li');\n  li.dataset.id = user.id;\n  li.textContent = `${user.name} — ${user.role}`;\n  fragment.append(li);\n});\n\nul.append(fragment);  // one DOM write instead of three"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Handling forms"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "forms.js",
+      "code": "const form = document.querySelector('#login-form');\n\nform.addEventListener('submit', (event) => {\n  event.preventDefault();  // stop page reload\n\n  // Method 1: read individual inputs by name\n  const email = form.elements['email'].value;\n  const password = form.elements['password'].value;\n\n  // Method 2: FormData — reads all fields automatically\n  const data = new FormData(form);\n  console.log(data.get('email'));    // value of <input name=\"email\">\n  console.log(data.get('password'));\n\n  // Convert to plain object\n  const obj = Object.fromEntries(data);\n  console.log(obj);  // { email: '...', password: '...' }\n\n  // Clear the form\n  form.reset();\n});\n\n// Disable submit button while submitting\nconst submitBtn = document.querySelector('#submit');\nsubmitBtn.disabled = true;  // prevent double-submit\nsubmitBtn.textContent = 'Submitting...';"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Dynamic list with form",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    .item { display:flex; justify-content:space-between; align-items:center; background:#1a1f2b; border:1px solid #2d3748; border-radius:6px; padding:10px 14px; margin-bottom:6px; }\n    .del-btn { background:transparent; border:1px solid #ef4444; color:#ef4444; border-radius:4px; padding:2px 10px; cursor:pointer; font-size:0.8rem; }\n    .del-btn:hover { background:#ef4444; color:#fff; }\n    button.add { background:#4fd1c5; color:#0e1116; border:none; padding:8px 20px; border-radius:6px; font-weight:700; cursor:pointer; }\n    input { background:#1a1f2b; color:#e2e8f0; border:1px solid #2d3748; border-radius:4px; padding:8px 12px; width:240px; }\n    #count { color:#94a3b8; font-size:0.85rem; margin-top:12px; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">Skills List</h2>\n  <form id=\"form\" style=\"display:flex;gap:8px;margin-bottom:16px\">\n    <input name=\"skill\" id=\"skill-inp\" placeholder=\"Add a skill...\" required />\n    <button type=\"submit\" class=\"add\">Add</button>\n  </form>\n  <div id=\"list\"></div>\n  <p id=\"count\"></p>\n\n  <script>\n    const form = document.getElementById('form');\n    const list = document.getElementById('list');\n    const count = document.getElementById('count');\n    let skills = ['JavaScript', 'CSS', 'HTML'];\n\n    function render() {\n      list.innerHTML = '';\n      const fragment = document.createDocumentFragment();\n      skills.forEach((skill, i) => {\n        const div = document.createElement('div');\n        div.className = 'item';\n        div.innerHTML = `<span>${skill}</span>`;\n        const btn = document.createElement('button');\n        btn.textContent = 'Remove';\n        btn.className = 'del-btn';\n        btn.addEventListener('click', () => {\n          skills.splice(i, 1);\n          render();\n        });\n        div.append(btn);\n        fragment.append(div);\n      });\n      list.append(fragment);\n      count.textContent = `${skills.length} skill${skills.length !== 1 ? 's' : ''}`;\n    }\n\n    form.addEventListener('submit', e => {\n      e.preventDefault();\n      const val = document.getElementById('skill-inp').value.trim();\n      if (val && !skills.includes(val)) {\n        skills.push(val);\n        render();\n      }\n      form.reset();\n    });\n\n    render();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "js-dom2-q1",
+          "question": "What does event.preventDefault() do on a form submit event?",
+          "type": "multiple-choice",
+          "options": [
+            "Clears the form inputs",
+            "Stops the page from reloading/navigating after submit",
+            "Validates the form fields",
+            "Disables the submit button"
+          ],
+          "correctAnswer": 1,
+          "explanation": "By default, submitting a form navigates to a new URL (or reloads the page). preventDefault() stops this, letting JavaScript handle the data without a page reload."
+        },
+        {
+          "id": "js-dom2-q2",
+          "question": "Why use DocumentFragment instead of appending each element directly?",
+          "type": "multiple-choice",
+          "options": [
+            "DocumentFragment is the only way to append multiple elements",
+            "It batches all DOM insertions into a single reflow instead of one per element",
+            "Elements in a fragment are visible while being built",
+            "It enables animations automatically"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Each DOM append can trigger a reflow (layout recalculation). A DocumentFragment lives outside the DOM, so appending to it causes no reflow. When you append the fragment, all its children are inserted in one operation."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is innerHTML safe for inserting content?",
+      "a": "Only if the content is static and not from user input. Never set innerHTML to user-provided text (from an input, URL, or API) — malicious HTML can inject scripts (XSS). For user content, use textContent. For dynamic HTML you control, innerHTML is fine."
+    },
+    {
+      "q": "What is the difference between append() and appendChild()?",
+      "a": "appendChild() is the classic method — it takes only one Node. append() is modern — it accepts multiple nodes AND plain strings, and converts strings to text nodes automatically. Prefer append() in new code."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — Node.appendChild()",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/Node/appendChild",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "javascript.info — Modifying the document",
+      "url": "https://javascript.info/modifying-document",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["chat message rendering", "infinite scroll", "form handling", "to-do apps", "search results"],
+    "examples": [
+      "WhatsApp Web appends a new message div to the chat on receive",
+      "Twitter/X renders new tweets via createElement without page reload",
+      "Sign-up forms use FormData to collect and send field values"
+    ]
+  }
+}

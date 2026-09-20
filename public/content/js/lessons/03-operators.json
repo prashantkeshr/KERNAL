@@ -1,0 +1,143 @@
+{
+  "id": "03-operators",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "javascript",
+  "technologyVersion": "ES2024",
+  "module": "js-foundations",
+  "title": "Operators",
+  "subtitle": "arithmetic, comparison, logical",
+  "difficulty": "beginner",
+  "estimatedMinutes": 18,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["js/02-variables-types"],
+  "skillsTaught": ["js.operators", "js.arithmetic", "js.comparison", "js.logical"],
+  "skillsUsed": ["js.variables"],
+  "relatedConcepts": ["js.conditionals"],
+  "whyItExists": {
+    "problem": "A program needs to do maths, compare values, and combine conditions. Without operators, you cannot calculate prices, validate input, or decide which code path to follow.",
+    "solution": "JavaScript operators perform arithmetic, compare values, combine logical conditions, and assign results. They are the fundamental building blocks of all computation.",
+    "whenToUse": "Constantly — in every expression that calculates, compares, or combines values.",
+    "whenNotToUse": "Avoid the loose equality operators == and !=. Use === and !== instead."
+  },
+  "explainModes": {
+    "beginner": "Operators are maths symbols and comparison signs. + adds numbers, - subtracts, * multiplies. === checks if two values are equal. && means 'and', || means 'or'.",
+    "simple": "JavaScript has arithmetic (+, -, *, /, %, **), assignment (=, +=, -=), comparison (===, !==, >, <, >=, <=), logical (&&, ||, !), and a few special ones (?, ??, typeof).",
+    "standard": "Operator precedence determines evaluation order (PEMDAS applies). Short-circuit evaluation means && stops at the first falsy value and || stops at the first truthy one. The nullish coalescing operator (??) returns the right side only when the left is null or undefined — unlike || which triggers on any falsy value.",
+    "technical": "The optional chaining operator (?.) safely accesses nested properties — obj?.a?.b returns undefined instead of throwing if any level is null/undefined. The logical assignment operators (&&=, ||=, ??=) combine logical checks with assignment. Bitwise operators (&, |, ^, ~, <<, >>) operate on 32-bit integers and are rarely needed in application code.",
+    "deepDive": "JavaScript's + operator is overloaded: for numbers it adds, for strings it concatenates, and for mixed types it coerces to string. This is the source of '5' + 3 = '53'. The abstract equality algorithm (==) has complex rules with 20+ type-coercion cases. The strict equality algorithm (===) is simple: same type and same value. Always use strict."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Arithmetic operators"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "arithmetic.js",
+      "code": "10 + 3   // 13  — addition\n10 - 3   // 7   — subtraction\n10 * 3   // 30  — multiplication\n10 / 3   // 3.333...  — division\n10 % 3   // 1   — remainder (modulo)\n10 ** 2  // 100 — exponentiation (10 squared)\n\n// Assignment shorthand\nlet x = 10;\nx += 5;   // x = 15  (same as x = x + 5)\nx -= 3;   // x = 12\nx *= 2;   // x = 24\nx /= 4;   // x = 6\nx++;      // x = 7  (increment by 1)\nx--;      // x = 6  (decrement by 1)"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Comparison operators"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "comparison.js",
+      "code": "// Always use strict equality\n5 === 5      // true  — strict equal (same type AND value)\n5 !== 3      // true  — strict not equal\n5 > 3        // true  — greater than\n5 < 3        // false — less than\n5 >= 5       // true  — greater than or equal\n5 <= 4       // false — less than or equal\n\n// Loose equality — AVOID\n5 == '5'     // true  — converts types\n0 == false   // true  — confusing\nnull == undefined  // true  — very confusing\n\n// String comparison (lexicographic)\n'apple' < 'banana'  // true — alphabetical order\n'Z' < 'a'           // true — uppercase letters sort before lowercase"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Logical operators"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "logical.js",
+      "code": "// AND (&&) — both must be true\ntrue && true    // true\ntrue && false   // false\n\n// OR (||) — at least one must be true\ntrue || false   // true\nfalse || false  // false\n\n// NOT (!) — flips true/false\n!true   // false\n!false  // true\n\n// Short-circuit evaluation\nconst user = null;\nconst name = user && user.name;   // null (stops early — user is falsy)\nconst display = name || 'Guest'; // 'Guest' (fallback when name is falsy)\n\n// Nullish coalescing (??) — only falls back on null/undefined (not 0 or '')\nconst score = 0;\nconst display1 = score || 'No score';  // 'No score' (WRONG — 0 is falsy!)\nconst display2 = score ?? 'No score';  // 0 (CORRECT — 0 is not null/undefined)"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Optional chaining (?.) and nullish coalescing (??)"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "optional-chaining.js",
+      "code": "const user = { profile: { name: 'Prashant' } };\nconst guestUser = null;\n\n// Without optional chaining — throws if user is null\nconst name1 = user.profile.name;       // 'Prashant'\nconst name2 = guestUser.profile.name;  // TypeError: Cannot read properties of null\n\n// With optional chaining — safely returns undefined\nconst name3 = guestUser?.profile?.name;  // undefined (no error)\nconst name4 = guestUser?.profile?.name ?? 'Guest';  // 'Guest'"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Operators",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" /></head>\n<body style=\"background:#0e1116;color:#e2e8f0;font-family:'Fira Code',monospace;padding:24px\">\n<script>\n  // Arithmetic\n  const price = 49.99;\n  const quantity = 3;\n  const total = price * quantity;\n  console.log('Total:', total.toFixed(2));\n\n  // Comparison\n  const age = 18;\n  const canVote = age >= 18;\n  console.log('Can vote:', canVote);\n\n  // Logical\n  const hasAccount = true;\n  const isVerified = false;\n  console.log('Fully ready:', hasAccount && isVerified);\n  console.log('Partially ready:', hasAccount || isVerified);\n\n  // Nullish coalescing\n  const username = null;\n  console.log('Display name:', username ?? 'Anonymous');\n</script>\n<p style=\"color:#94a3b8\">Open DevTools (F12 → Console) to see the output.</p>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "js-op-q1",
+          "question": "What does the % operator do?",
+          "type": "multiple-choice",
+          "options": ["percentage calculation", "remainder after division", "string formatting", "type checking"],
+          "correctAnswer": 1,
+          "explanation": "% is the modulo (remainder) operator. 10 % 3 = 1 because 10 ÷ 3 = 3 remainder 1. It is commonly used to check if a number is even (n % 2 === 0)."
+        },
+        {
+          "id": "js-op-q2",
+          "question": "What is the difference between || and ??",
+          "type": "multiple-choice",
+          "options": [
+            "They are identical",
+            "|| falls back on any falsy value; ?? only falls back on null or undefined",
+            "?? falls back on any falsy value; || only falls back on null or undefined",
+            "|| is for strings, ?? is for numbers"
+          ],
+          "correctAnswer": 1,
+          "explanation": "|| returns the right side for any falsy value (0, '', false, null, undefined). ?? returns the right side ONLY for null or undefined. Use ?? when 0 or empty string are valid values you want to keep."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What does NaN mean?",
+      "a": "NaN stands for 'Not a Number'. It is the result of invalid numeric operations like 0/0 or parseInt('hello'). Confusingly, typeof NaN === 'number'. Use Number.isNaN(value) to check for it."
+    },
+    {
+      "q": "What is the difference between ++ before and after a variable?",
+      "a": "x++ (post-increment) returns the current value THEN increments. ++x (pre-increment) increments first THEN returns the new value. In most cases this distinction doesn't matter — the end result (x is incremented) is the same."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — Expressions and operators",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Expressions_and_operators",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "javascript.info — Operators",
+      "url": "https://javascript.info/operators",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["price calculations", "form validation", "score tracking", "feature flags", "data filtering"],
+    "examples": [
+      "E-commerce sites use % to apply 'every 3rd item free' discounts",
+      "Authentication checks use && to ensure a user is both logged in AND verified",
+      "Config values use ?? to provide defaults without overriding valid falsy values like 0"
+    ]
+  }
+}

@@ -1,0 +1,148 @@
+{
+  "id": "08-objects",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "javascript",
+  "technologyVersion": "ES2024",
+  "module": "js-data-structures",
+  "title": "Objects",
+  "subtitle": "properties, methods, destructuring",
+  "difficulty": "beginner",
+  "estimatedMinutes": 22,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["js/07-arrays"],
+  "skillsTaught": ["js.objects", "js.object-methods", "js.destructuring", "js.spread"],
+  "skillsUsed": ["js.variables", "js.functions"],
+  "relatedConcepts": ["js.arrays", "js.async"],
+  "whyItExists": {
+    "problem": "A user has a name, age, email, and preferences. Storing each as a separate variable is messy and makes passing data between functions error-prone.",
+    "solution": "Objects group related data into a single named entity. Each piece of data is a property with a key and a value. Objects can also contain methods — functions attached to the object.",
+    "whenToUse": "When data has multiple named properties (user, product, config). When you need a key-value lookup. When data comes from a JSON API.",
+    "whenNotToUse": "For simple ordered lists of similar items, use arrays. For ordered key insertion or non-string keys, use Map."
+  },
+  "explainModes": {
+    "beginner": "An object is like a form with labelled fields. A user object has fields for name, age, and email. You access each field with user.name or user['name'].",
+    "simple": "Objects are key-value pairs wrapped in {}. Keys are strings (or symbols). Values can be any type. Access with dot notation (obj.key) or bracket notation (obj['key']). Methods are functions stored as properties.",
+    "standard": "Object literals use {key: value} syntax. Shorthand properties ({name} instead of {name: name}) work when variable name matches key name. Computed property names ([varName]: value) use a variable as the key. Object.keys(), Object.values(), Object.entries() iterate over objects.",
+    "technical": "Objects are reference types — assigning one object to another variable copies the reference. Destructuring extracts properties into variables. Spread (...obj) shallow-copies objects. Object.assign() merges objects. Prototype chain enables inheritance — modern code uses class syntax over raw prototypes.",
+    "deepDive": "JavaScript objects are prototype-based. Every object has a __proto__ (prototype) pointing to another object — forming a chain. Property lookup traverses the chain until null. Object.create(proto) creates an object with a specific prototype. The ES6 class syntax is syntactic sugar over prototype-based inheritance. Proxy and Reflect (ES6) intercept object operations — used in reactive frameworks like Vue 3."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Creating objects"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "objects.js",
+      "code": "// Object literal\nconst user = {\n  name: 'Prashant',\n  age: 27,\n  email: 'prashant@example.com',\n  isActive: true,\n  skills: ['JavaScript', 'CSS', 'HTML'],  // array as property value\n\n  // Method — function as property\n  greet() {\n    return `Hi, I'm ${this.name}!`;\n  },\n};\n\nconsole.log(user.name);       // 'Prashant'\nconsole.log(user['email']);   // 'prashant@example.com'\nconsole.log(user.greet());   // 'Hi, I'm Prashant!'"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Modifying objects"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "modifying-objects.js",
+      "code": "const user = { name: 'Ana', age: 28 };\n\n// Add property\nuser.role = 'admin';\n\n// Update property\nuser.age = 29;\n\n// Delete property\ndelete user.role;\n\n// Check if property exists\nconsole.log('name' in user);       // true\nconsole.log('role' in user);       // false\nconsole.log(user.hasOwnProperty('name')); // true"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Destructuring"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "destructuring.js",
+      "code": "const user = { name: 'Prashant', age: 27, city: 'Mumbai' };\n\n// Destructuring assignment\nconst { name, age } = user;\nconsole.log(name, age);  // 'Prashant' 27\n\n// Rename on extraction\nconst { name: fullName, city: location = 'Unknown' } = user;\nconsole.log(fullName, location);  // 'Prashant' 'Mumbai'\n\n// In function parameters — very common pattern\nfunction displayUser({ name, age, city = 'N/A' }) {\n  console.log(`${name} (${age}) — ${city}`);\n}\ndisplayUser(user);  // 'Prashant (27) — Mumbai'"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Object spread and Object methods"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "object-spread.js",
+      "code": "const base = { theme: 'dark', lang: 'en' };\nconst overrides = { lang: 'hi', fontSize: 16 };\n\n// Spread — merge objects (later keys overwrite earlier)\nconst config = { ...base, ...overrides };\nconsole.log(config);  // { theme: 'dark', lang: 'hi', fontSize: 16 }\n\n// Shallow clone\nconst copy = { ...base };\n\n// Object static methods\nObject.keys(user);    // ['name', 'age', 'city']\nObject.values(user);  // ['Prashant', 27, 'Mumbai']\nObject.entries(user); // [['name','Prashant'],['age',27],['city','Mumbai']]\n\n// Iterate over object\nfor (const [key, value] of Object.entries(user)) {\n  console.log(`${key}: ${value}`);\n}"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Objects",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" /></head>\n<body style=\"background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:24px\">\n  <h2 style=\"color:#4fd1c5\">User Profile Card</h2>\n  <div id=\"card\"></div>\n\n  <script>\n    const user = {\n      name: 'Prashant Kumar',\n      role: 'Full-Stack Developer',\n      skills: ['JavaScript', 'React', 'Node.js'],\n      stats: { commits: 342, prs: 28, stars: 96 },\n      bio() {\n        return `${this.name} — ${this.role}`;\n      }\n    };\n\n    const { name, role, skills, stats } = user;\n\n    document.getElementById('card').innerHTML = `\n      <div style=\"background:#1a1f2b;border:1px solid #2d3748;border-radius:10px;padding:24px;max-width:320px\">\n        <h3 style=\"margin:0 0 4px;color:#e2e8f0\">${name}</h3>\n        <p style=\"margin:0 0 16px;color:#4fd1c5;font-size:0.875rem\">${role}</p>\n        <div style=\"display:flex;gap:8px;margin-bottom:16px\">\n          ${skills.map(s => `<span style=\"background:#264de4;color:#fff;font-size:0.7rem;padding:2px 8px;border-radius:999px\">${s}</span>`).join('')}\n        </div>\n        <div style=\"display:flex;gap:24px;color:#94a3b8;font-size:0.8rem\">\n          ${Object.entries(stats).map(([k,v]) => `<span><strong style=\"color:#e2e8f0\">${v}</strong> ${k}</span>`).join('')}\n        </div>\n      </div>\n    `;\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "js-obj-q1",
+          "question": "How do you extract the 'name' property from an object into a variable?",
+          "type": "multiple-choice",
+          "options": [
+            "const name = user[name]",
+            "const { name } = user",
+            "const name: user.name",
+            "extract(user, 'name')"
+          ],
+          "correctAnswer": 1,
+          "explanation": "const { name } = user is object destructuring — it extracts the 'name' property and assigns it to a variable called name."
+        },
+        {
+          "id": "js-obj-q2",
+          "question": "What does the spread operator do when merging objects: { ...obj1, ...obj2 }?",
+          "type": "multiple-choice",
+          "options": [
+            "Creates a reference to both objects",
+            "Creates a new object combining all properties, with obj2 keys overwriting obj1",
+            "Merges them in place",
+            "Throws if both have the same key"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Spreading creates a new shallow-copy object with all properties from both. If both have the same key, the last one (obj2) wins."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between dot notation and bracket notation?",
+      "a": "obj.name is dot notation — clean and preferred when the key is known. obj['name'] is bracket notation — required when the key is stored in a variable (obj[someVar]) or contains special characters."
+    },
+    {
+      "q": "What is a shallow copy vs deep copy?",
+      "a": "Spread (...obj) creates a shallow copy — top-level properties are copied, but nested objects are still references. Modifying a nested object in the copy also modifies the original. For deep copies, use structuredClone(obj) (modern) or JSON.parse(JSON.stringify(obj)) (no functions/dates)."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — Working with objects",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Working_with_objects",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "javascript.info — Objects",
+      "url": "https://javascript.info/object",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["API responses (JSON)", "component state", "configuration objects", "user models"],
+    "examples": [
+      "REST APIs return JSON objects: { id: 1, name: 'Prashant', email: '...' }",
+      "React state is often an object: const [user, setUser] = useState({ name: '', email: '' })",
+      "CSS-in-JS uses objects for styles: { backgroundColor: '#0e1116', padding: '24px' }"
+    ]
+  }
+}

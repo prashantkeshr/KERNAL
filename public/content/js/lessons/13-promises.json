@@ -1,0 +1,137 @@
+{
+  "id": "13-promises",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "javascript",
+  "technologyVersion": "ES2024",
+  "module": "js-async",
+  "title": "Promises",
+  "subtitle": "then, catch, finally, Promise.all",
+  "difficulty": "beginner",
+  "estimatedMinutes": 25,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["js/12-dom-manipulation"],
+  "skillsTaught": ["js.promises", "js.async", "js.error-handling"],
+  "skillsUsed": ["js.functions", "js.callbacks"],
+  "relatedConcepts": ["js.async-await", "js.fetch"],
+  "whyItExists": {
+    "problem": "Network requests, file reads, and timers take time. JavaScript can't freeze and wait — that would block the UI. Before Promises, async code used nested callbacks ('callback hell'), which was hard to read and error-prone.",
+    "solution": "A Promise represents a value that will be available in the future — either fulfilled (success) or rejected (failure). .then() chains success handlers. .catch() handles errors. The chain is flat, readable, and composable.",
+    "whenToUse": "Any asynchronous operation: fetch API calls, reading files, setTimeout wrappers, database queries, geolocation.",
+    "whenNotToUse": "Synchronous code doesn't need Promises. If you're writing new async code, prefer async/await (the next lesson) — it builds on Promises but reads like synchronous code."
+  },
+  "explainModes": {
+    "beginner": "A Promise is a ticket for something that hasn't happened yet. When it succeeds, .then() runs. When it fails, .catch() runs. Think of ordering a pizza — the receipt is the promise, .then() is when the pizza arrives, .catch() is if they call to say they're out.",
+    "simple": "fetch('/api/user').then(res => res.json()).then(data => console.log(data)).catch(err => console.error(err)). Each .then() receives the return value of the previous one. .catch() handles any rejection in the chain.",
+    "standard": "Promises have three states: pending, fulfilled, rejected. .then(onFulfilled, onRejected) handles both. .catch(fn) is shorthand for .then(null, fn). .finally(fn) runs regardless of outcome. Promise.all([p1, p2]) waits for all; rejects if any rejects. Promise.race([p1, p2]) resolves/rejects with the first to settle. Promise.allSettled waits for all regardless of outcome.",
+    "technical": "Promises use microtask queue, which runs before the callback queue — after the current task but before setTimeout/setInterval callbacks. Chaining works because .then() always returns a new Promise. Throwing inside a .then() callback triggers the next .catch(). Unhandled rejections fire an 'unhandledrejection' event on window.",
+    "deepDive": "Promise implementations follow the Promises/A+ spec. The microtask queue (Promise, queueMicrotask, MutationObserver) has priority over the macrotask queue (setTimeout, setInterval, requestAnimationFrame, I/O). This is why console.log after a resolved Promise fires before a setTimeout(fn, 0). Promise.withResolvers() (ES2024) exposes resolve/reject outside the constructor — useful for deferrable patterns."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Creating a Promise"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "promise.js",
+      "code": "// A Promise wraps async work\nconst fetchUser = new Promise((resolve, reject) => {\n  // Simulate network delay\n  setTimeout(() => {\n    const success = Math.random() > 0.2;  // 80% success\n    if (success) {\n      resolve({ id: 1, name: 'Prashant' });  // fulfill with data\n    } else {\n      reject(new Error('Failed to fetch user'));  // reject with error\n    }\n  }, 1000);\n});\n\n// Use the promise\nfetchUser\n  .then(user => {\n    console.log('Got user:', user.name);\n    return user.name.toUpperCase();  // return passes to next .then()\n  })\n  .then(upperName => {\n    console.log('Uppercased:', upperName);\n  })\n  .catch(error => {\n    console.error('Error:', error.message);\n  })\n  .finally(() => {\n    console.log('Done — runs always');  // cleanup: hide spinner, etc.\n  });"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Promise.resolve and Promise.reject"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "promise-static.js",
+      "code": "// Already-resolved promise — useful for testing or returning consistent types\nconst resolved = Promise.resolve({ id: 1, name: 'Ana' });\nresolved.then(data => console.log(data));  // { id: 1, name: 'Ana' }\n\n// Already-rejected promise\nconst rejected = Promise.reject(new Error('Something went wrong'));\nrejected.catch(err => console.error(err.message));  // 'Something went wrong'"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Promise.all — run in parallel"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "promise-all.js",
+      "code": "// Run multiple promises at the same time — wait for ALL to finish\nconst p1 = fetch('/api/user').then(r => r.json());\nconst p2 = fetch('/api/posts').then(r => r.json());\nconst p3 = fetch('/api/comments').then(r => r.json());\n\nPromise.all([p1, p2, p3])\n  .then(([user, posts, comments]) => {\n    console.log(user, posts, comments);  // all three results\n  })\n  .catch(error => {\n    // Fires if ANY promise rejects\n    console.error('One failed:', error);\n  });\n\n// Promise.allSettled — wait for all, even if some fail\nPromise.allSettled([p1, p2, p3])\n  .then(results => {\n    results.forEach(result => {\n      if (result.status === 'fulfilled') console.log('OK:', result.value);\n      else console.error('Failed:', result.reason);\n    });\n  });"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Promises",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    button { background:#4fd1c5; color:#0e1116; border:none; padding:8px 20px; border-radius:6px; font-weight:700; cursor:pointer; margin:4px; }\n    #output { margin-top:20px; background:#1a1f2b; padding:16px; border-radius:8px; font-family:monospace; font-size:0.875rem; min-height:80px; }\n    .success { color:#4fd1c5; } .error { color:#ef4444; } .info { color:#94a3b8; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">Promise Demo</h2>\n  <button onclick=\"runSuccess()\">Run (Success)</button>\n  <button onclick=\"runFail()\">Run (Failure)</button>\n  <button onclick=\"runAll()\">Promise.all</button>\n  <div id=\"output\"><span class=\"info\">Click a button...</span></div>\n\n  <script>\n    const out = document.getElementById('output');\n    const log = (msg, cls='info') => {\n      out.innerHTML += `<div class=\"${cls}\">${msg}</div>`;\n    };\n    const clear = () => { out.innerHTML = ''; };\n\n    function fakeApi(name, ms, fail = false) {\n      return new Promise((resolve, reject) => {\n        setTimeout(() => {\n          if (fail) reject(new Error(`${name} failed`));\n          else resolve({ source: name, data: Math.floor(Math.random() * 100) });\n        }, ms);\n      });\n    }\n\n    function runSuccess() {\n      clear();\n      log('Fetching...');\n      fakeApi('user', 800)\n        .then(data => { log(`✅ Got: ${JSON.stringify(data)}`, 'success'); return data.data; })\n        .then(val => log(`Doubled: ${val * 2}`, 'success'))\n        .catch(err => log(`❌ ${err.message}`, 'error'))\n        .finally(() => log('Done.'));\n    }\n\n    function runFail() {\n      clear();\n      log('Fetching (will fail)...');\n      fakeApi('user', 600, true)\n        .then(data => log(`Got: ${JSON.stringify(data)}`, 'success'))\n        .catch(err => log(`❌ Error: ${err.message}`, 'error'))\n        .finally(() => log('Done.'));\n    }\n\n    function runAll() {\n      clear();\n      log('Fetching 3 in parallel...');\n      Promise.all([\n        fakeApi('users', 400),\n        fakeApi('posts', 700),\n        fakeApi('tags', 200),\n      ]).then(([u, p, t]) => {\n        log(`✅ users: ${u.data}, posts: ${p.data}, tags: ${t.data}`, 'success');\n      }).catch(err => log(`❌ ${err.message}`, 'error'))\n        .finally(() => log('All done.'));\n    }\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "js-prom-q1",
+          "question": "What does .catch() handle in a Promise chain?",
+          "type": "multiple-choice",
+          "options": [
+            "Only the last .then() rejection",
+            "Any rejection or thrown error in the chain above it",
+            "Only errors thrown in the Promise constructor",
+            "Runtime errors, not Promise rejections"
+          ],
+          "correctAnswer": 1,
+          "explanation": ".catch() catches any rejection or thrown error from any .then() earlier in the chain. It's equivalent to .then(null, errorHandler)."
+        },
+        {
+          "id": "js-prom-q2",
+          "question": "What does Promise.all([p1, p2, p3]) do if p2 rejects?",
+          "type": "multiple-choice",
+          "options": [
+            "Returns the results of p1 and p3",
+            "Waits for all then reports which failed",
+            "Immediately rejects with p2's error",
+            "Returns undefined for p2 and continues"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Promise.all fails fast — if any promise rejects, the whole Promise.all rejects immediately with that error. Use Promise.allSettled if you need all results regardless of failure."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What happens if I forget .catch()?",
+      "a": "An unhandled rejection logs a warning in the console. In Node.js, it can crash the process. Always add .catch() at the end of a chain. async/await makes this easier with try/catch."
+    },
+    {
+      "q": "What is the difference between Promise.all and Promise.allSettled?",
+      "a": "Promise.all rejects immediately if any promise rejects. Promise.allSettled always waits for all promises and returns an array of {status: 'fulfilled'|'rejected', value|reason} — use it when you need all results even if some fail."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — Using Promises",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Using_promises",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "javascript.info — Promises",
+      "url": "https://javascript.info/promise-basics",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["HTTP requests", "database queries", "file reads in Node.js", "geolocation API", "IndexedDB"],
+    "examples": [
+      "Axios returns a Promise: axios.get('/api/users').then(r => r.data).catch(...)",
+      "Loading multiple resources in parallel: Promise.all([fetchUser(), fetchPosts()])",
+      "Geolocation: navigator.geolocation.getCurrentPosition wraps into a Promise for cleaner API"
+    ]
+  }
+}

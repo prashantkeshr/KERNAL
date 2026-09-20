@@ -1,0 +1,152 @@
+{
+  "id": "11-events",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "javascript",
+  "technologyVersion": "ES2024",
+  "module": "js-dom",
+  "title": "Events",
+  "subtitle": "addEventListener, event object, delegation",
+  "difficulty": "beginner",
+  "estimatedMinutes": 22,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["js/10-dom-basics"],
+  "skillsTaught": ["js.events", "js.addEventListener", "js.event-object", "js.event-delegation"],
+  "skillsUsed": ["js.dom", "js.functions", "js.callbacks"],
+  "relatedConcepts": ["js.dom-manipulation", "js.async"],
+  "whyItExists": {
+    "problem": "Web pages need to respond to user actions — clicks, key presses, form submissions, mouse movement. Without a way to listen for and respond to these actions, pages would be entirely static.",
+    "solution": "The browser fires events when things happen. JavaScript uses addEventListener to attach a function (handler) to an event on an element. When the event fires, the handler runs.",
+    "whenToUse": "Responding to any user interaction: clicks, keyboard input, form submission, hover, focus, scroll, resize.",
+    "whenNotToUse": "Avoid inline event attributes (onclick='...') in HTML — they mix concerns and are harder to maintain. Prefer addEventListener in a script file."
+  },
+  "explainModes": {
+    "beginner": "Events are things that happen — a button is clicked, a key is pressed, a form is submitted. addEventListener listens for an event on an element and runs a function when it happens.",
+    "simple": "element.addEventListener('click', handler) attaches a listener. The handler receives an event object with information about what happened — event.target is the element that was clicked, event.key is the key pressed.",
+    "standard": "Events bubble up the DOM — a click on a child also fires on the parent. Event delegation uses this to attach one listener to a parent that handles events from many children. event.preventDefault() stops the browser's default action. event.stopPropagation() stops bubbling.",
+    "technical": "Every element is an EventTarget. addEventListener has a third argument: {capture: true} to run in the capture phase (top-down) instead of bubble phase (bottom-up). {once: true} removes the listener after first fire. {passive: true} tells the browser the handler won't call preventDefault, enabling scroll optimisations. removeEventListener requires the exact same function reference.",
+    "deepDive": "The event loop processes events from the callback queue after the call stack is empty. Long-running synchronous code blocks events — this freezes the UI. Debouncing (delay + cancel) and throttling (max frequency) limit how often expensive handlers fire on scroll/resize/input. Custom events use new CustomEvent('name', {detail: data}) and dispatchEvent."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Adding event listeners"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "event-listeners.js",
+      "code": "const btn = document.querySelector('#my-btn');\n\n// addEventListener(eventType, handler)\nbtn.addEventListener('click', function(event) {\n  console.log('Clicked!', event);\n});\n\n// Arrow function handler (preferred)\nbtn.addEventListener('click', (event) => {\n  console.log('Clicked!', event.target); // the element that was clicked\n});\n\n// Named function — required to later remove the listener\nfunction handleClick(event) {\n  console.log('Clicked:', event.target.textContent);\n}\nbtn.addEventListener('click', handleClick);\nbtn.removeEventListener('click', handleClick); // must be same reference"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Common events"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "common-events.js",
+      "code": "// Mouse events\nbtn.addEventListener('click', e => {});\nbtn.addEventListener('dblclick', e => {});\nbtn.addEventListener('mouseenter', e => {});  // hover in\nbtn.addEventListener('mouseleave', e => {});  // hover out\n\n// Keyboard events\ndocument.addEventListener('keydown', e => {\n  console.log(e.key);    // 'Enter', 'a', 'ArrowUp', etc.\n  console.log(e.code);   // 'KeyA', 'Space', 'Enter'\n  if (e.key === 'Escape') closeModal();\n});\n\n// Form events\nconst form = document.querySelector('form');\nform.addEventListener('submit', e => {\n  e.preventDefault();  // stop page reload\n  const data = new FormData(form);\n  console.log(data.get('email'));\n});\n\nconst input = document.querySelector('input');\ninput.addEventListener('input', e => {\n  console.log('Current value:', e.target.value);  // fires on every keystroke\n});\ninput.addEventListener('change', e => {});  // fires when focus leaves and value changed\ninput.addEventListener('focus', e => {});   // element receives focus\ninput.addEventListener('blur', e => {});    // element loses focus"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The event object"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "event-object.js",
+      "code": "document.querySelector('#list').addEventListener('click', (event) => {\n  // event.target — the element that was actually clicked\n  // event.currentTarget — the element the listener is attached to\n  const clicked = event.target;\n\n  console.log(clicked.tagName);        // 'LI'\n  console.log(clicked.textContent);    // text inside the element\n  console.log(clicked.dataset.id);     // data-id attribute\n  console.log(event.clientX, event.clientY);  // mouse coordinates\n  console.log(event.shiftKey);         // was Shift held?\n\n  // Prevent default browser behavior (link navigation, form submit)\n  event.preventDefault();\n\n  // Stop event from bubbling to parent elements\n  event.stopPropagation();\n});"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Event delegation"
+    },
+    {
+      "type": "paragraph",
+      "text": "Instead of attaching a listener to every list item (expensive and breaks on dynamically added items), attach ONE listener to the parent and check which child was clicked."
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "event-delegation.js",
+      "code": "// Instead of this (one listener per item)\ndocument.querySelectorAll('.item').forEach(item => {\n  item.addEventListener('click', handleItem);\n});\n\n// Use delegation — one listener on the parent\ndocument.querySelector('#items-list').addEventListener('click', (event) => {\n  // Check if a .item was clicked (or a child of one)\n  const item = event.target.closest('.item');\n  if (!item) return;  // click was not on an .item\n\n  console.log('Item clicked:', item.dataset.id);\n  item.classList.toggle('selected');\n});\n\n// This also works for dynamically added items — since the parent exists"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Events",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    .task { display:flex; align-items:center; gap:10px; padding:10px 12px; background:#1a1f2b; border-radius:6px; margin-bottom:6px; cursor:pointer; border:1px solid #2d3748; }\n    .task.done { opacity:0.5; text-decoration:line-through; }\n    button { background:#4fd1c5; color:#0e1116; border:none; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer; }\n    input { background:#1a1f2b; color:#e2e8f0; border:1px solid #2d3748; border-radius:4px; padding:8px 12px; width:260px; }\n    #log { margin-top:16px; font-size:0.8rem; color:#64748b; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">Event Demo: Todo List</h2>\n  <div style=\"display:flex;gap:8px;margin-bottom:16px\">\n    <input id=\"inp\" placeholder=\"Add a task...\" />\n    <button id=\"add-btn\">Add</button>\n  </div>\n  <div id=\"tasks\"></div>\n  <p id=\"log\">Events will appear here.</p>\n\n  <script>\n    const tasks = document.getElementById('tasks');\n    const inp = document.getElementById('inp');\n    const log = document.getElementById('log');\n\n    // Event delegation — one listener for all tasks\n    tasks.addEventListener('click', e => {\n      const task = e.target.closest('.task');\n      if (!task) return;\n      task.classList.toggle('done');\n      log.textContent = `Task \"${task.querySelector('span').textContent}\" toggled.`;\n    });\n\n    // Add task on button click\n    document.getElementById('add-btn').addEventListener('click', addTask);\n\n    // Add task on Enter key\n    inp.addEventListener('keydown', e => {\n      if (e.key === 'Enter') addTask();\n    });\n\n    function addTask() {\n      const text = inp.value.trim();\n      if (!text) return;\n      const div = document.createElement('div');\n      div.className = 'task';\n      div.innerHTML = `<span>☐</span><span>${text}</span>`;\n      tasks.appendChild(div);\n      inp.value = '';\n      log.textContent = `Added: \"${text}\" — click to toggle.`;\n    }\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "js-evt-q1",
+          "question": "What is event.preventDefault() used for?",
+          "type": "multiple-choice",
+          "options": [
+            "Stop the event from firing again",
+            "Stop the event bubbling to parent elements",
+            "Stop the browser's default behavior (e.g. form submit page reload, link navigation)",
+            "Remove all event listeners"
+          ],
+          "correctAnswer": 2,
+          "explanation": "preventDefault() stops the browser's built-in action. For a form submit, it prevents page reload. For a link click, it prevents navigation. stopPropagation() handles bubbling."
+        },
+        {
+          "id": "js-evt-q2",
+          "question": "What is event delegation?",
+          "type": "multiple-choice",
+          "options": [
+            "Passing the event to another function",
+            "Attaching one listener to a parent element to handle events from its children",
+            "Delegating event handling to the server",
+            "Using setTimeout with event handlers"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Event delegation attaches ONE listener to a parent and uses event.target to determine which child was clicked. It works for dynamically added children and is more memory-efficient than one listener per child."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between event.target and event.currentTarget?",
+      "a": "event.target is the element that was actually clicked (possibly a child). event.currentTarget is the element the listener is attached to. When using event delegation, these are different — target is the child, currentTarget is the parent."
+    },
+    {
+      "q": "How do I remove an event listener?",
+      "a": "Use removeEventListener with the exact same function reference: const handler = () => {...}; el.addEventListener('click', handler); el.removeEventListener('click', handler). Arrow functions defined inline cannot be removed. Alternatively, use {once: true} to auto-remove after the first fire."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — addEventListener",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "javascript.info — Events",
+      "url": "https://javascript.info/introduction-browser-events",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["button click handlers", "form submission", "keyboard shortcuts", "infinite scroll", "dropdown menus"],
+    "examples": [
+      "GitHub uses event delegation to handle click on dynamically loaded PR comments",
+      "Search bars listen to 'input' event to debounce API calls on each keystroke",
+      "Modals close on Escape key: document.addEventListener('keydown', e => { if (e.key === 'Escape') modal.close(); })"
+    ]
+  }
+}

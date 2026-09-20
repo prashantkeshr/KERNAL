@@ -1,0 +1,148 @@
+{
+  "id": "10-dom-basics",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "javascript",
+  "technologyVersion": "ES2024",
+  "module": "js-dom",
+  "title": "DOM Basics",
+  "subtitle": "querySelector, textContent, classList",
+  "difficulty": "beginner",
+  "estimatedMinutes": 25,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["js/09-strings-numbers"],
+  "skillsTaught": ["js.dom", "js.querySelector", "js.textContent", "js.classList"],
+  "skillsUsed": ["js.variables", "js.functions"],
+  "relatedConcepts": ["js.events", "js.dom-manipulation"],
+  "whyItExists": {
+    "problem": "HTML defines the structure of a page, but it is static. To update the page dynamically — change text, hide elements, show a popup — JavaScript needs a way to read and modify the HTML document.",
+    "solution": "The DOM (Document Object Model) is the browser's live representation of the HTML page as a tree of objects. JavaScript can traverse and modify this tree to update the page without reloading.",
+    "whenToUse": "Any time you need to read or change the page dynamically — update text, toggle a class, show/hide elements, read form values.",
+    "whenNotToUse": "In frameworks like React or Vue, you rarely touch the DOM directly — the framework handles it. But understanding the DOM is essential to understand what the framework is doing for you."
+  },
+  "explainModes": {
+    "beginner": "The DOM is JavaScript's view of your HTML page. document.querySelector('#title') finds the element with id='title'. element.textContent = 'Hello' changes its text. element.classList.add('active') adds a CSS class.",
+    "simple": "document.querySelector(selector) returns the first matching element (like CSS selectors). document.querySelectorAll returns a NodeList of all matches. Once you have an element, use textContent, innerHTML, style, classList, and getAttribute to read and change it.",
+    "standard": "querySelector and querySelectorAll accept any valid CSS selector. getElementById, getElementsByClassName are older alternatives but still fast. The element object has properties: textContent (text only), innerHTML (HTML markup), style (inline CSS), classList (class manipulation), value (for inputs), dataset (data-* attributes).",
+    "technical": "The DOM is a tree of Node objects. Element extends Node. Accessing the DOM causes layout/reflow — minimize reads and writes, batch DOM changes, or use a DocumentFragment. innerHTML is vulnerable to XSS — always use textContent for user-provided data or sanitize HTML before injecting.",
+    "deepDive": "The DOM is defined by the WHATWG DOM Living Standard. Every element is an EventTarget, Node, and Element (in that prototype order). Layout recalculation (reflow) is triggered by reading layout properties (offsetWidth, getBoundingClientRect) after DOM mutations — this is called layout thrashing. The Intersection Observer API observes visibility without polling. Virtual DOM frameworks (React) batch mutations into a single flush to minimize reflows."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Selecting elements"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "query-selector.js",
+      "code": "// querySelector — returns first match (like CSS selectors)\nconst title = document.querySelector('h1');\nconst btn = document.querySelector('#submit-btn');       // by id\nconst card = document.querySelector('.card');            // by class\nconst input = document.querySelector('input[type=text]'); // by attribute\n\n// querySelectorAll — returns ALL matches as a NodeList\nconst allButtons = document.querySelectorAll('button');\nconst allCards = document.querySelectorAll('.card');\n\n// Convert NodeList to array for array methods\nconst cardsArray = Array.from(allCards);\ncardsArray.forEach(card => console.log(card));\n\n// Older alternatives (still common)\ndocument.getElementById('my-id');          // fast, id only\ndocument.getElementsByClassName('my-cls'); // HTMLCollection (live)"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Reading and changing text"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "text-content.js",
+      "code": "const heading = document.querySelector('h1');\n\n// Reading\nconsole.log(heading.textContent);  // 'Hello World' — text only (safe)\nconsole.log(heading.innerHTML);    // '<strong>Hello</strong> World' — includes HTML\n\n// Writing text — use textContent for user data (prevents XSS)\nheading.textContent = 'New Heading';\n\n// Writing HTML — only when content is trusted/controlled\nconst container = document.querySelector('#output');\ncontainer.innerHTML = '<p>Generated at <strong>' + new Date().toLocaleTimeString() + '</strong></p>';\n\n// Form input values\nconst input = document.querySelector('#username');\nconsole.log(input.value);    // read current value\ninput.value = 'Prashant';   // set value"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "classList — adding and removing CSS classes"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "class-list.js",
+      "code": "const card = document.querySelector('.card');\n\ncard.classList.add('active');          // add a class\ncard.classList.remove('hidden');       // remove a class\ncard.classList.toggle('open');         // add if missing, remove if present\ncard.classList.contains('active');     // returns true/false\ncard.classList.replace('old', 'new');  // swap classes\n\n// Toggle with condition\nconst isDark = true;\ndocument.body.classList.toggle('dark-mode', isDark);  // true = add, false = remove"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Reading and setting attributes"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "attributes.js",
+      "code": "const link = document.querySelector('a');\n\nlink.getAttribute('href');              // read any attribute\nlink.setAttribute('href', '/about');    // set any attribute\nlink.removeAttribute('disabled');       // remove attribute\nlink.hasAttribute('disabled');          // check attribute\n\n// data-* attributes — stored in element.dataset\n// <button data-user-id=\"42\">Click</button>\nconst btn = document.querySelector('button');\nconsole.log(btn.dataset.userId);    // '42' (camelCase from data-user-id)\nbtn.dataset.userId = '99';          // set\n\n// Style property\nconst box = document.querySelector('.box');\nbox.style.backgroundColor = '#4fd1c5';  // camelCase CSS property\nbox.style.width = '200px';"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: DOM Basics",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    .card { background:#1a1f2b; border:1px solid #2d3748; border-radius:10px; padding:20px; max-width:300px; }\n    .card.highlighted { border-color:#4fd1c5; }\n    button { background:#4fd1c5; color:#0e1116; border:none; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer; margin:4px; }\n    #status { margin-top:12px; font-size:0.875rem; color:#94a3b8; }\n  </style>\n</head>\n<body>\n  <div class=\"card\" id=\"card\">\n    <h2 id=\"title\">My Profile</h2>\n    <p id=\"bio\">Click the buttons to update this card.</p>\n  </div>\n  <div style=\"margin-top:16px\">\n    <button onclick=\"changeName()\">Change Name</button>\n    <button onclick=\"toggleHighlight()\">Toggle Highlight</button>\n    <button onclick=\"updateBio()\">Update Bio</button>\n  </div>\n  <p id=\"status\">DOM ready.</p>\n\n  <script>\n    let nameIndex = 0;\n    const names = ['Prashant Kumar', 'Ana Silva', 'Ben Lee', 'Cal Ramos'];\n\n    function changeName() {\n      const title = document.querySelector('#title');\n      nameIndex = (nameIndex + 1) % names.length;\n      title.textContent = names[nameIndex];\n      log(`Name changed to: ${names[nameIndex]}`);\n    }\n\n    function toggleHighlight() {\n      const card = document.querySelector('#card');\n      card.classList.toggle('highlighted');\n      const on = card.classList.contains('highlighted');\n      log(`Highlight: ${on ? 'ON' : 'OFF'}`);\n    }\n\n    function updateBio() {\n      const bio = document.querySelector('#bio');\n      bio.textContent = `Updated at ${new Date().toLocaleTimeString()}`;\n      log('Bio updated');\n    }\n\n    function log(msg) {\n      document.querySelector('#status').textContent = msg;\n    }\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "js-dom-q1",
+          "question": "What does document.querySelector('.card') return?",
+          "type": "multiple-choice",
+          "options": [
+            "All elements with class 'card'",
+            "The first element with class 'card'",
+            "The element with id 'card'",
+            "An array of all matching elements"
+          ],
+          "correctAnswer": 1,
+          "explanation": "querySelector returns the FIRST matching element. To get all matches, use querySelectorAll, which returns a NodeList."
+        },
+        {
+          "id": "js-dom-q2",
+          "question": "Why should you use textContent instead of innerHTML for user data?",
+          "type": "multiple-choice",
+          "options": [
+            "textContent is faster to type",
+            "innerHTML doesn't work for text",
+            "textContent prevents XSS — it treats the value as plain text, not HTML",
+            "They are identical"
+          ],
+          "correctAnswer": 2,
+          "explanation": "innerHTML parses the string as HTML, so malicious input like <script>alert('hack')</script> would execute. textContent treats it as literal text and renders it safely."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between querySelector and getElementById?",
+      "a": "getElementById is slightly faster and only works with IDs. querySelector accepts any CSS selector (#id, .class, element, [attr]). In modern code, querySelector is preferred for consistency."
+    },
+    {
+      "q": "What is the difference between textContent and innerText?",
+      "a": "textContent returns all text, including hidden elements and script content. innerText returns only visible text and is affected by CSS (display:none elements are excluded). textContent is faster and generally preferred."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — Document.querySelector()",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/Document/querySelector",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "javascript.info — The DOM",
+      "url": "https://javascript.info/dom-nodes",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["updating page content", "form handling", "showing/hiding UI", "reading user input"],
+    "examples": [
+      "Shopping cart: document.querySelector('#cart-count').textContent = items.length",
+      "Theme toggle: document.body.classList.toggle('dark')",
+      "Login form: const username = document.querySelector('#username').value"
+    ]
+  }
+}

@@ -1,0 +1,164 @@
+{
+  "id": "01-introduction",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "javascript",
+  "technologyVersion": "ES2024",
+  "module": "js-foundations",
+  "title": "Introduction to JavaScript",
+  "subtitle": "The language of the web",
+  "difficulty": "beginner",
+  "estimatedMinutes": 15,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["html/01-introduction", "css/01-introduction"],
+  "skillsTaught": ["js.basics", "js.script-tag", "js.console"],
+  "skillsUsed": ["html.basics"],
+  "relatedConcepts": ["js.variables", "js.dom"],
+  "whyItExists": {
+    "problem": "HTML defines structure and CSS defines appearance — but neither can respond to user actions, perform calculations, or fetch data from a server. Web pages were static.",
+    "solution": "JavaScript is the programming language of the web. It runs in the browser and can read/change HTML, respond to clicks, validate forms, fetch data, and build full applications.",
+    "whenToUse": "Any time a web page needs to respond to user input, update without reloading, or communicate with a server.",
+    "whenNotToUse": "For static content that never changes, pure HTML and CSS are faster and simpler. Use JavaScript only where interactivity or data is needed."
+  },
+  "explainModes": {
+    "beginner": "HTML is the skeleton, CSS is the clothes, and JavaScript is the brain. It makes web pages interactive — clicking a button, validating a form, loading new content without refreshing.",
+    "simple": "JavaScript is a programming language that runs inside your browser. You write instructions that the browser executes — 'when the button is clicked, show a message'. You add it to HTML with a <script> tag.",
+    "standard": "JavaScript is a dynamically-typed, interpreted (JIT-compiled) language. It runs in the browser's JS engine (V8 in Chrome/Node, SpiderMonkey in Firefox). Scripts are loaded via <script> tags — either inline or from external .js files linked with src.",
+    "technical": "JavaScript follows the ECMAScript specification. Modern JS (ES6+, ES2015+) introduced let/const, arrow functions, classes, modules, promises, and async/await. Browsers implement the spec with some variation; transpilers like Babel compile modern JS to older syntax for compatibility. Node.js runs JS outside the browser using V8.",
+    "deepDive": "The JS engine pipeline: source text → tokeniser → parser → AST → bytecode compiler → interpreter + JIT optimiser. V8's Ignition interpreter generates bytecode; Turbofan JIT compiles hot paths to optimised machine code. The event loop, microtask queue (Promises), and macrotask queue (setTimeout) determine execution order. Understanding the call stack and event loop is essential for debugging async code."
+  },
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "<strong>JavaScript</strong> is the programming language that makes web pages interactive. While HTML describes structure and CSS describes appearance, JavaScript adds <em>behaviour</em>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Adding JavaScript to a page"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "filename": "index.html",
+      "code": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <title>My Page</title>\n</head>\n<body>\n  <h1>Hello!</h1>\n  <button id=\"btn\">Click me</button>\n\n  <!-- External file (recommended) -->\n  <script src=\"app.js\" defer></script>\n\n  <!-- Or inline (for small snippets) -->\n  <script>\n    console.log('JavaScript is running!');\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "tip",
+      "text": "Always place <code>&lt;script&gt;</code> tags at the bottom of <code>&lt;body&gt;</code> or use the <code>defer</code> attribute on external scripts. This ensures the HTML is fully parsed before your JS runs."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Your first JavaScript"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "app.js",
+      "code": "// This is a comment — the browser ignores it\nconsole.log('Hello, world!');  // prints to browser DevTools console\n\n// Alert the user (avoid overusing — it blocks the page)\nalert('Welcome!');\n\n// Respond to a button click\nconst btn = document.getElementById('btn');\nbtn.addEventListener('click', function () {\n  console.log('Button was clicked!');\n});"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The browser console"
+    },
+    {
+      "type": "paragraph",
+      "text": "The browser's developer console (F12 → Console tab) is your best friend. Use <code>console.log()</code> to inspect values while writing code:"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "console-demo.js",
+      "code": "console.log('Text:', 'Hello');         // Text: Hello\nconsole.log('Number:', 42);            // Number: 42\nconsole.log('Array:', [1, 2, 3]);      // Array: [1, 2, 3]\nconsole.log('Object:', { a: 1 });      // Object: {a: 1}\n\nconsole.warn('This is a warning');     // yellow\nconsole.error('This is an error');     // red\nconsole.table([{ name: 'HTML', year: 1993 }, { name: 'JS', year: 1995 }]);"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "JavaScript is not Java"
+    },
+    {
+      "type": "paragraph",
+      "text": "Despite the name, JavaScript and Java are completely different languages. JavaScript was named after Java for marketing reasons in 1995. They share nothing except the name."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Your first JavaScript",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" /></head>\n<body style=\"background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:24px\">\n  <h2 style=\"color:#4fd1c5\">Click the button!</h2>\n  <button id=\"btn\" style=\"background:#4fd1c5;color:#0e1116;border:none;padding:10px 20px;border-radius:6px;font-size:1rem;font-weight:700;cursor:pointer\">Say Hello</button>\n  <p id=\"output\" style=\"margin-top:16px;color:#94a3b8\"></p>\n\n  <script>\n    const btn = document.getElementById('btn');\n    const output = document.getElementById('output');\n    let count = 0;\n\n    btn.addEventListener('click', function () {\n      count++;\n      output.textContent = 'You clicked ' + count + ' time' + (count !== 1 ? 's' : '') + '!';\n    });\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "js-intro-q1",
+          "question": "What is the primary role of JavaScript in web development?",
+          "type": "multiple-choice",
+          "options": [
+            "Define page structure",
+            "Style visual appearance",
+            "Add interactivity and behaviour",
+            "Store data in a database"
+          ],
+          "correctAnswer": 2,
+          "explanation": "JavaScript adds behaviour to web pages — responding to user actions, updating content dynamically, and communicating with servers. HTML handles structure; CSS handles appearance."
+        },
+        {
+          "id": "js-intro-q2",
+          "question": "Which method prints a value to the browser's developer console?",
+          "type": "multiple-choice",
+          "options": ["alert()", "print()", "console.log()", "document.write()"],
+          "correctAnswer": 2,
+          "explanation": "console.log() is the standard way to inspect values during development. It prints to the Console tab in browser DevTools (F12)."
+        },
+        {
+          "id": "js-intro-q3",
+          "question": "JavaScript and Java are the same programming language.",
+          "type": "true-false",
+          "correctAnswer": "false",
+          "explanation": "JavaScript and Java are completely unrelated languages. JavaScript is a dynamic scripting language for the browser; Java is a statically-typed compiled language. They share only a marketing-influenced name from 1995."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Do I need to install anything to run JavaScript?",
+      "a": "No. Every modern browser includes a JavaScript engine. Open DevTools (F12), go to the Console tab, and you can run JavaScript immediately. For Node.js (server-side JS), you install the Node runtime separately."
+    },
+    {
+      "q": "Where should I put the <script> tag?",
+      "a": "At the bottom of <body> or in <head> with the defer attribute. This ensures the HTML is loaded before your script tries to access elements. Scripts in <head> without defer block page rendering."
+    },
+    {
+      "q": "What is the difference between JavaScript and TypeScript?",
+      "a": "TypeScript is a superset of JavaScript that adds static type annotations. TypeScript code is compiled to JavaScript before running in the browser. Learn JavaScript first — TypeScript is learned on top of it."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — JavaScript basics",
+      "url": "https://developer.mozilla.org/en-US/docs/Learn/Getting_started_with_the_web/JavaScript_basics",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "javascript.info — Introduction",
+      "url": "https://javascript.info/intro",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every interactive website", "web apps", "mobile apps (React Native)", "servers (Node.js)", "desktop apps (Electron)"],
+    "examples": [
+      "Google Maps updates the map tile on drag using JavaScript — no page reload",
+      "Twitter's infinite scroll loads new tweets as you approach the bottom via JS",
+      "VS Code is built entirely with JavaScript (TypeScript + Electron)"
+    ]
+  }
+}

@@ -1,0 +1,158 @@
+{
+  "id": "02-variables-types",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "javascript",
+  "technologyVersion": "ES2024",
+  "module": "js-foundations",
+  "title": "Variables & Data Types",
+  "subtitle": "let, const, string, number, boolean",
+  "difficulty": "beginner",
+  "estimatedMinutes": 20,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["js/01-introduction"],
+  "skillsTaught": ["js.variables", "js.data-types", "js.typeof"],
+  "skillsUsed": ["js.basics"],
+  "relatedConcepts": ["js.operators", "js.functions"],
+  "whyItExists": {
+    "problem": "Programs need to store and reuse values — a user's name, a score, whether a checkbox is checked. Without variables, you would have to repeat every value everywhere.",
+    "solution": "Variables are named storage containers. You declare them with let or const, give them a name, and assign a value. JavaScript has 8 data types covering all common values.",
+    "whenToUse": "Any time you need to store, reuse, or change a value in your program.",
+    "whenNotToUse": "Never use var in modern JavaScript — it has function scope and hoisting behaviour that causes bugs. Always use let or const."
+  },
+  "explainModes": {
+    "beginner": "A variable is a labelled box. You write the label (name) and put something in the box (value). Later you can read from the box or change what's in it. const boxes cannot be changed after you fill them.",
+    "simple": "let declares a variable you can reassign. const declares one you cannot reassign. Use const by default; switch to let only when you need to reassign. JavaScript has 7 primitive types: string, number, bigint, boolean, undefined, null, symbol — plus object.",
+    "standard": "JavaScript is dynamically typed — variables have no fixed type. The same variable can hold a string, then a number. typeof returns a string describing the type. Primitives are immutable values; objects are mutable references. undefined means 'declared but not assigned'; null means 'intentionally empty'.",
+    "technical": "Primitives are stored by value (copied on assignment). Objects are stored by reference (two variables can point to the same object). const prevents reassignment of the binding — not mutation of the object. Temporal Dead Zone: let/const bindings exist from the start of their block scope but cannot be accessed before the declaration line.",
+    "deepDive": "JavaScript numbers are IEEE 754 double-precision floats — there is only one number type. This causes 0.1 + 0.2 !== 0.3. For currency, use integer cents or a library like decimal.js. BigInt (suffix n: 9007199254740993n) handles integers beyond Number.MAX_SAFE_INTEGER. The Symbol type creates globally unique primitive values — used as non-string object property keys in library code."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Declaring variables"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "variables.js",
+      "code": "// const — cannot be reassigned (use by default)\nconst name = 'KERNAL';\nconst year = 2026;\nconst isOnline = true;\n\n// let — can be reassigned\nlet score = 0;\nscore = score + 10;  // OK\nscore += 10;         // shorthand\n\n// var — AVOID in modern code\nvar old = 'do not use';  // has confusing function scope and hoisting\n\n// Naming conventions\nconst firstName = 'Prashant';   // camelCase (standard JS)\nconst MAX_SIZE = 100;           // UPPER_SNAKE_CASE for constants\nconst UserProfile = {};         // PascalCase for classes/constructors"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The 7 primitive types"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "types.js",
+      "code": "// String — text in single, double, or backtick quotes\nconst greeting  = 'Hello';\nconst html      = \"<h1>Title</h1>\";\nconst template  = `Hello, ${name}!`;  // template literal\n\n// Number — integers and decimals (one type for both)\nconst age   = 25;\nconst pi    = 3.14159;\nconst big   = 1_000_000;  // underscores for readability\n\n// Boolean — true or false only\nconst isDone  = false;\nconst isReady = true;\n\n// null — intentionally empty (you set this)\nconst user = null;\n\n// undefined — declared but not assigned (JS sets this)\nlet unset;\nconsole.log(unset);  // undefined\n\n// Object — key-value pairs (covered in a later lesson)\nconst person = { name: 'Prashant', age: 27 };\n\n// Array — ordered list (technically an object)\nconst techs = ['HTML', 'CSS', 'JavaScript'];"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Checking types with typeof"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "typeof.js",
+      "code": "typeof 'hello'     // 'string'\ntypeof 42          // 'number'\ntypeof true        // 'boolean'\ntypeof undefined   // 'undefined'\ntypeof null        // 'object'  ← famous JS bug (null is NOT an object)\ntypeof {}          // 'object'\ntypeof []          // 'object'  ← arrays are objects\ntypeof function(){} // 'function'"
+    },
+    {
+      "type": "warning",
+      "text": "<code>typeof null</code> returns <code>'object'</code> — this is a long-standing JavaScript bug that cannot be fixed for backwards compatibility. To check for null: use <code>value === null</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Type coercion — automatic conversion"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "coercion.js",
+      "code": "// JavaScript automatically converts types in some operations\n'5' + 3      // '53'  (number 3 converted to string)\n'5' - 3      // 2     (string '5' converted to number)\n'5' * '2'   // 10    (both converted to numbers)\nBoolean(0)  // false\nBoolean('')  // false\nBoolean(null) // false\nBoolean([]) // true   (empty array is truthy!)\n\n// Use === (strict equality) to avoid coercion surprises\n5 == '5'   // true  (loose — converts types)\n5 === '5'  // false (strict — no conversion) ← always use this"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Always use <code>===</code> and <code>!==</code></strong> for comparisons. The loose equality operators (<code>==</code> and <code>!=</code>) perform type coercion that leads to surprising results."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Variables and types",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" /></head>\n<body style=\"background:#0e1116;color:#e2e8f0;font-family:'Fira Code',monospace;padding:24px\">\n<script>\n  // Edit these and open the console (F12) to see the output\n  const name = 'KERNAL';\n  let score = 0;\n  const isActive = true;\n\n  console.log('Name:', name, '| type:', typeof name);\n  console.log('Score:', score, '| type:', typeof score);\n  console.log('Active:', isActive, '| type:', typeof isActive);\n\n  score += 50;\n  console.log('Updated score:', score);\n\n  // Template literal\n  console.log(`${name} has a score of ${score}`);\n</script>\n<p style=\"color:#94a3b8\">Open DevTools (F12 → Console) to see the output.</p>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "js-var-q1",
+          "question": "Which keyword should you use for a variable that will NOT be reassigned?",
+          "type": "multiple-choice",
+          "options": ["var", "let", "const", "static"],
+          "correctAnswer": 2,
+          "explanation": "const declares a variable that cannot be reassigned. Use const by default and switch to let only when you need to reassign the variable."
+        },
+        {
+          "id": "js-var-q2",
+          "question": "What does 5 === '5' evaluate to?",
+          "type": "multiple-choice",
+          "options": ["true", "false", "TypeError", "undefined"],
+          "correctAnswer": 1,
+          "explanation": "=== is strict equality — it does NOT convert types. 5 is a number and '5' is a string, so they are not equal. Always use === to avoid unexpected type coercion."
+        },
+        {
+          "id": "js-var-q3",
+          "question": "What does typeof null return?",
+          "type": "multiple-choice",
+          "options": ["'null'", "'undefined'", "'object'", "'empty'"],
+          "correctAnswer": 2,
+          "explanation": "typeof null returns 'object' — a known JavaScript bug from 1995 that cannot be fixed without breaking existing code. To check for null specifically, use value === null."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between undefined and null?",
+      "a": "undefined means a variable was declared but never assigned a value — JavaScript sets this automatically. null means intentionally absent — you set this deliberately to indicate 'no value here'. Both are falsy."
+    },
+    {
+      "q": "Can I change the type of a variable?",
+      "a": "Yes. JavaScript is dynamically typed — you can assign a string to a variable and later assign a number to the same variable. This is flexible but can lead to bugs; TypeScript adds static types to prevent this."
+    },
+    {
+      "q": "Why is 0.1 + 0.2 not exactly 0.3 in JavaScript?",
+      "a": "JavaScript uses IEEE 754 floating-point arithmetic, which cannot represent all decimal fractions exactly in binary. 0.1 + 0.2 = 0.30000000000000004. For money, use integer cents (store 150 for £1.50) or a decimal library."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — JavaScript data types and data structures",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "javascript.info — Variables",
+      "url": "https://javascript.info/variables",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every JavaScript program", "form validation", "state management", "API responses"],
+    "examples": [
+      "A shopping cart stores item count in let quantity = 0 and increments it on each add",
+      "User preferences (dark mode, language) are stored as const settings = { theme: 'dark' }",
+      "API responses return JSON that JavaScript parses into objects and arrays"
+    ]
+  }
+}

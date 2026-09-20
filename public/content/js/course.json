@@ -1,0 +1,19 @@
+{
+  "id": "javascript",
+  "name": "JavaScript",
+  "description": "Learn the programming language of the web. Go from variables and functions to DOM manipulation, events, and async data fetching with the Fetch API.",
+  "version": "ES2024",
+  "icon": "javascript",
+  "color": "#f7df1e",
+  "difficulty": "beginner",
+  "estimatedHours": 40,
+  "modules": [
+    "js-foundations",
+    "js-control-flow",
+    "js-data-structures",
+    "js-dom",
+    "js-async"
+  ],
+  "prerequisites": ["html", "css"],
+  "certificationAvailable": true
+}

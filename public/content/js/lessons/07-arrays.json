@@ -1,0 +1,160 @@
+{
+  "id": "07-arrays",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "javascript",
+  "technologyVersion": "ES2024",
+  "module": "js-data-structures",
+  "title": "Arrays",
+  "subtitle": "map, filter, reduce, find, spread",
+  "difficulty": "beginner",
+  "estimatedMinutes": 25,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["js/06-functions"],
+  "skillsTaught": ["js.arrays", "js.array-methods", "js.destructuring"],
+  "skillsUsed": ["js.functions", "js.loops"],
+  "relatedConcepts": ["js.objects", "js.async"],
+  "whyItExists": {
+    "problem": "Most real programs work with collections of data — a list of users, an array of products, a queue of messages. Without a way to store and process lists, JavaScript would be impractical.",
+    "solution": "Arrays store ordered collections of any values. JavaScript's array methods (map, filter, reduce, find, forEach) transform and query arrays with single expressive calls.",
+    "whenToUse": "Any ordered collection of similar items: user lists, API results, todo items, options in a dropdown.",
+    "whenNotToUse": "For key-value lookups (find by name or ID), use an object or Map — arrays require iterating to find a value."
+  },
+  "explainModes": {
+    "beginner": "An array is a numbered list. fruits[0] gets the first item. fruits.push('grape') adds to the end. fruits.length tells you how many items there are.",
+    "simple": "Arrays hold ordered items accessed by index (starting at 0). Key methods: push/pop (end), unshift/shift (start), slice (copy part), splice (modify), indexOf/find (search), map/filter/reduce (transform).",
+    "standard": "map returns a new array with each item transformed. filter returns a new array with only items that pass a test. reduce folds an array into a single value. These methods do not mutate the original array — they return new ones. sort mutates in place.",
+    "technical": "Arrays are objects with numeric keys and a length property. Methods like map and filter are higher-order functions — they take a callback and return a new array. Chaining methods (array.filter().map().reduce()) creates a readable data pipeline. The spread operator (...arr) shallow-copies or concatenates arrays.",
+    "deepDive": "V8 stores arrays in fast mode (contiguous typed storage) when all elements are the same type. Adding mixed types or undefined holes degrades to slow mode (dictionary). Array.from() creates arrays from iterables or array-like objects (NodeList). TypedArrays (Int8Array, Float32Array) provide fixed-type, fixed-length arrays for binary data — used in WebGL, audio processing, and file I/O."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Creating and accessing arrays"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "arrays.js",
+      "code": "const fruits = ['apple', 'banana', 'cherry'];\n\n// Index access (starts at 0)\nconsole.log(fruits[0]);    // 'apple'\nconsole.log(fruits[2]);    // 'cherry'\nconsole.log(fruits.at(-1)); // 'cherry' — last item (modern)\nconsole.log(fruits.length); // 3\n\n// Modify\nfruits[1] = 'blueberry';   // replace\nfruits.push('grape');       // add to end\nfruits.pop();               // remove from end — returns 'grape'\nfruits.unshift('avocado');  // add to start\nfruits.shift();             // remove from start — returns 'avocado'"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "map — transform every item"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "map.js",
+      "code": "const prices = [10, 25, 50];\n\n// Apply 20% discount to every price\nconst discounted = prices.map(price => price * 0.8);\nconsole.log(discounted);  // [8, 20, 40]\n\n// Transform array of objects\nconst users = [{name: 'Ana', age: 28}, {name: 'Ben', age: 34}];\nconst names = users.map(user => user.name);\nconsole.log(names);  // ['Ana', 'Ben']"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "filter — keep matching items"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "filter.js",
+      "code": "const scores = [45, 78, 92, 55, 88, 31];\n\n// Keep only passing scores (>= 60)\nconst passing = scores.filter(score => score >= 60);\nconsole.log(passing);  // [78, 92, 88]\n\n// Filter objects\nconst products = [\n  {name: 'Laptop', inStock: true},\n  {name: 'Phone', inStock: false},\n  {name: 'Tablet', inStock: true},\n];\nconst available = products.filter(p => p.inStock);\nconsole.log(available.map(p => p.name));  // ['Laptop', 'Tablet']"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "reduce — fold into a single value"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "reduce.js",
+      "code": "const numbers = [1, 2, 3, 4, 5];\n\n// Sum all numbers\nconst sum = numbers.reduce((total, n) => total + n, 0);\nconsole.log(sum);  // 15\n\n// Count occurrences\nconst tags = ['css', 'html', 'css', 'js', 'html', 'css'];\nconst counts = tags.reduce((acc, tag) => {\n  acc[tag] = (acc[tag] ?? 0) + 1;\n  return acc;\n}, {});\nconsole.log(counts);  // { css: 3, html: 2, js: 1 }"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "find, findIndex, includes, some, every"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "search-methods.js",
+      "code": "const users = [{id: 1, name: 'Ana'}, {id: 2, name: 'Ben'}, {id: 3, name: 'Cal'}];\n\nusers.find(u => u.id === 2);          // {id: 2, name: 'Ben'}\nusers.findIndex(u => u.id === 2);    // 1\nusers.some(u => u.name === 'Ben');   // true — at least one matches\nusers.every(u => u.id > 0);          // true — all match\n[1,2,3].includes(2);                 // true"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Spread and destructuring"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "spread-destructure.js",
+      "code": "// Spread — expand array into individual values\nconst a = [1, 2, 3];\nconst b = [4, 5, 6];\nconst combined = [...a, ...b];   // [1, 2, 3, 4, 5, 6]\nconst copy = [...a];             // shallow copy\n\n// Destructuring — unpack values into variables\nconst [first, second, ...rest] = [10, 20, 30, 40, 50];\nconsole.log(first);  // 10\nconsole.log(second); // 20\nconsole.log(rest);   // [30, 40, 50]"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Array methods",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" /></head>\n<body style=\"background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:24px\">\n  <h2 style=\"color:#4fd1c5\">Student Grade Filter</h2>\n  <div id=\"output\"></div>\n\n  <script>\n    const students = [\n      {name: 'Prashant', score: 88},\n      {name: 'Ana', score: 72},\n      {name: 'Ben', score: 55},\n      {name: 'Cal', score: 95},\n      {name: 'Dia', score: 43},\n    ];\n\n    // Filter passing students (score >= 60)\n    const passing = students.filter(s => s.score >= 60);\n\n    // Sort by score descending\n    const sorted = [...passing].sort((a, b) => b.score - a.score);\n\n    // Get names\n    const names = sorted.map(s => `${s.name} (${s.score})`);\n\n    // Calculate average\n    const avg = (passing.reduce((t, s) => t + s.score, 0) / passing.length).toFixed(1);\n\n    const out = document.getElementById('output');\n    out.innerHTML = `\n      <p style=\"color:#94a3b8\">Passing students (sorted):</p>\n      <ul>${names.map(n => `<li style='color:#4fd1c5'>${n}</li>`).join('')}</ul>\n      <p>Class average: <strong>${avg}</strong></p>\n    `;\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "js-arr-q1",
+          "question": "Which array method returns a new array with each item transformed?",
+          "type": "multiple-choice",
+          "options": ["filter", "reduce", "map", "forEach"],
+          "correctAnswer": 2,
+          "explanation": "map applies a function to each item and returns a new array of the same length with the results. filter returns a subset. reduce returns a single value. forEach runs a function for side effects and returns nothing."
+        },
+        {
+          "id": "js-arr-q2",
+          "question": "What does [1, 2, 3].filter(n => n > 1) return?",
+          "type": "multiple-choice",
+          "options": ["[1]", "[2, 3]", "[true, true, false]", "2"],
+          "correctAnswer": 1,
+          "explanation": "filter keeps items where the callback returns true. n > 1 is false for 1, true for 2, true for 3 — so [2, 3] is returned."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Does map/filter/reduce change the original array?",
+      "a": "No. map, filter, and reduce return new arrays without modifying the original. sort and splice DO mutate the original. To sort without mutation: [...array].sort(...)."
+    },
+    {
+      "q": "What is the difference between map and forEach?",
+      "a": "map returns a new array with transformed values. forEach returns undefined — it is used for side effects like logging or DOM updates. If you need the results, use map. If you only need the side effect, forEach is fine."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — Array",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "javascript.info — Arrays",
+      "url": "https://javascript.info/array",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["rendering lists in React/Vue", "filtering search results", "transforming API data", "calculating totals"],
+    "examples": [
+      "React renders lists: users.map(u => <UserCard key={u.id} user={u} />)",
+      "Shopping carts: items.reduce((total, item) => total + item.price * item.qty, 0)",
+      "Search: products.filter(p => p.name.toLowerCase().includes(query.toLowerCase()))"
+    ]
+  }
+}

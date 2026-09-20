@@ -1,0 +1,147 @@
+{
+  "id": "05-loops",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "javascript",
+  "technologyVersion": "ES2024",
+  "module": "js-control-flow",
+  "title": "Loops",
+  "subtitle": "for, while, for...of, break, continue",
+  "difficulty": "beginner",
+  "estimatedMinutes": 20,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["js/04-conditionals"],
+  "skillsTaught": ["js.loops", "js.for", "js.while", "js.for-of"],
+  "skillsUsed": ["js.conditionals", "js.arrays"],
+  "relatedConcepts": ["js.arrays", "js.functions"],
+  "whyItExists": {
+    "problem": "Many programming tasks require repeating an operation — process every item in a list, sum 100 numbers, retry a request 3 times. Writing each step manually is impossible for large datasets.",
+    "solution": "Loops repeat a block of code multiple times. JavaScript has for (fixed count), while (condition-based), for...of (iterable items), and for...in (object keys).",
+    "whenToUse": "When processing every item in an array, repeating an action a set number of times, or continuing until a condition is met.",
+    "whenNotToUse": "For arrays, prefer higher-order methods (map, filter, forEach, reduce) — they are more expressive and less error-prone. Use classic loops for index-level control or complex iteration."
+  },
+  "explainModes": {
+    "beginner": "A loop is like pressing 'repeat' on a music player. 'Play this 10 times' is a for loop. 'Keep playing until the battery dies' is a while loop. 'Play each song in this playlist' is a for...of loop.",
+    "simple": "for (let i = 0; i < 5; i++) runs 5 times. while (condition) runs until the condition is false. for (const item of array) goes through each array item. break exits the loop early; continue skips to the next iteration.",
+    "standard": "The for loop has three parts: initialiser, condition, and update. for...of iterates over any iterable (arrays, strings, Maps, Sets) and is preferred over indexed for loops for simple iteration. for...in iterates over object keys — use it carefully as it includes inherited properties.",
+    "technical": "Loops interact with the call stack directly. An infinite loop (while (true) with no break) blocks the JS thread and freezes the browser. Async iteration (for await...of) iterates asynchronous iterables — useful for processing streams. Array methods like forEach, map, and filter are implemented as loops internally but express intent more clearly.",
+    "deepDive": "JavaScript engines optimise hot loops with JIT compilation — tight loops with consistent types are compiled to machine code. Loop unrolling and SIMD vectorisation can happen automatically. Avoid modifying an array while iterating over it (splice inside forEach) — iterate a copy or use filter to create a new array. Generator functions (function*) produce custom iterables consumed by for...of."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "for loop — fixed count"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "for-loop.js",
+      "code": "// for (initialise; condition; update)\nfor (let i = 0; i < 5; i++) {\n  console.log(i);  // 0, 1, 2, 3, 4\n}\n\n// Counting down\nfor (let i = 5; i > 0; i--) {\n  console.log(i);  // 5, 4, 3, 2, 1\n}\n\n// Loop over array by index\nconst fruits = ['apple', 'banana', 'cherry'];\nfor (let i = 0; i < fruits.length; i++) {\n  console.log(i, fruits[i]);  // 0 apple, 1 banana, 2 cherry\n}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "for...of — iterate items"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "for-of.js",
+      "code": "// Cleaner than indexed for — no index needed\nconst fruits = ['apple', 'banana', 'cherry'];\nfor (const fruit of fruits) {\n  console.log(fruit);  // apple, banana, cherry\n}\n\n// Works on strings too\nfor (const char of 'hello') {\n  console.log(char);  // h, e, l, l, o\n}\n\n// Get both index and value with entries()\nfor (const [index, fruit] of fruits.entries()) {\n  console.log(index, fruit);  // 0 apple, 1 banana, 2 cherry\n}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "while loop — condition-based"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "while-loop.js",
+      "code": "// while — checks BEFORE each iteration\nlet count = 0;\nwhile (count < 5) {\n  console.log(count);  // 0, 1, 2, 3, 4\n  count++;\n}\n\n// do...while — checks AFTER (runs at least once)\nlet input;\ndo {\n  input = prompt('Enter a number above 10:');\n} while (Number(input) <= 10);"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "break and continue"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "break-continue.js",
+      "code": "// break — exit the loop immediately\nfor (let i = 0; i < 10; i++) {\n  if (i === 5) break;\n  console.log(i);  // 0, 1, 2, 3, 4\n}\n\n// continue — skip this iteration, move to the next\nfor (let i = 0; i < 10; i++) {\n  if (i % 2 === 0) continue;  // skip even numbers\n  console.log(i);  // 1, 3, 5, 7, 9\n}\n\n// Find first match and stop (efficient)\nconst users = [{id: 1, name: 'Ana'}, {id: 2, name: 'Ben'}, {id: 3, name: 'Cal'}];\nlet found = null;\nfor (const user of users) {\n  if (user.id === 2) { found = user; break; }\n}\nconsole.log(found);  // {id: 2, name: 'Ben'}"
+    },
+    {
+      "type": "tip",
+      "text": "For arrays, prefer <code>array.find()</code> over a for loop with break: <code>const found = users.find(u => u.id === 2)</code> — it's shorter and expresses intent clearly."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Loop through a list",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" /></head>\n<body style=\"background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:24px\">\n  <h2 style=\"color:#4fd1c5\">Multiplication Table</h2>\n  <label>Number: <input type=\"number\" id=\"num\" value=\"7\" min=\"1\" max=\"20\" style=\"background:#1a1f2b;color:#e2e8f0;border:1px solid #2d3748;border-radius:4px;padding:4px 8px\" /></label>\n  <button onclick=\"generate()\" style=\"margin-left:8px;background:#4fd1c5;color:#0e1116;border:none;padding:6px 16px;border-radius:6px;font-weight:700;cursor:pointer\">Generate</button>\n  <ul id=\"table\" style=\"margin-top:16px;padding:0;list-style:none\"></ul>\n\n  <script>\n    function generate() {\n      const n = Number(document.getElementById('num').value);\n      const list = document.getElementById('table');\n      list.innerHTML = '';\n      for (let i = 1; i <= 12; i++) {\n        const li = document.createElement('li');\n        li.textContent = `${n} × ${i} = ${n * i}`;\n        li.style.padding = '4px 0';\n        li.style.color = i % 2 === 0 ? '#4fd1c5' : '#e2e8f0';\n        list.appendChild(li);\n      }\n    }\n    generate();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "js-loop-q1",
+          "question": "Which loop is best for iterating over each item in an array when you don't need the index?",
+          "type": "multiple-choice",
+          "options": ["for (let i = 0; ...)", "for...of", "for...in", "while"],
+          "correctAnswer": 1,
+          "explanation": "for...of iterates cleanly over array items without needing an index variable. It works on any iterable: arrays, strings, Maps, Sets."
+        },
+        {
+          "id": "js-loop-q2",
+          "question": "What does the continue statement do inside a loop?",
+          "type": "multiple-choice",
+          "options": [
+            "Exits the loop completely",
+            "Restarts the loop from the beginning",
+            "Skips the rest of the current iteration and moves to the next",
+            "Pauses execution"
+          ],
+          "correctAnswer": 2,
+          "explanation": "continue skips the remaining code in the current iteration and moves to the next loop cycle. break exits the loop entirely."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between for...of and for...in?",
+      "a": "for...of iterates over iterable values (array items, string characters). for...in iterates over enumerable property KEYS of an object (including inherited ones). Use for...of for arrays; use Object.keys/values/entries for objects."
+    },
+    {
+      "q": "Can I use break inside a forEach loop?",
+      "a": "No. break and continue only work in classic for, while, and for...of loops. forEach does not support breaking early. If you need early exit, use for...of, a classic for loop, or array.find() / array.some()."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — Loops and iteration",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Loops_and_iteration",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "javascript.info — Loops: while and for",
+      "url": "https://javascript.info/while-for",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["rendering lists", "data processing", "input validation", "pagination", "search"],
+    "examples": [
+      "React renders a list by mapping over an array: items.map(item => <li>{item}</li>)",
+      "A search filter loops through results and returns only matches",
+      "A form validator loops through all fields and collects errors"
+    ]
+  }
+}

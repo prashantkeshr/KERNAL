@@ -43,7 +43,7 @@
     "order": 3,
     "stage": 3,
     "playground": "javascript",
-    "enabled": false,
+    "enabled": true,
     "description": "Programming logic, DOM, async, APIs",
     "estimatedHours": 40
   },

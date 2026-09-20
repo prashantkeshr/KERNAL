@@ -1,0 +1,136 @@
+{
+  "id": "14-async-await",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "javascript",
+  "technologyVersion": "ES2024",
+  "module": "js-async",
+  "title": "Async / Await",
+  "subtitle": "async functions, await, try/catch",
+  "difficulty": "beginner",
+  "estimatedMinutes": 22,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["js/13-promises"],
+  "skillsTaught": ["js.async-await", "js.error-handling", "js.async"],
+  "skillsUsed": ["js.promises", "js.functions"],
+  "relatedConcepts": ["js.fetch", "js.promises"],
+  "whyItExists": {
+    "problem": "Promise chains with .then().then().catch() can still become hard to follow, especially with conditional logic or loops. The indentation and callback structure feels foreign to synchronous code.",
+    "solution": "async/await is syntax sugar over Promises. async makes a function return a Promise. await pauses execution inside an async function until a Promise resolves — making async code look and behave like synchronous code.",
+    "whenToUse": "Any async code that uses Promises — HTTP requests, file I/O, database queries, timeouts. Prefer async/await over raw .then() chains for readability.",
+    "whenNotToUse": "Top-level await only works in ES modules or with a wrapper. Avoid async in forEach — use for...of instead. Don't use await in a tight loop for parallel operations — use Promise.all."
+  },
+  "explainModes": {
+    "beginner": "async makes a function 'pauseable'. Inside it, await makes JavaScript wait for a slow operation (like a network request) before moving on. Write it like normal code — no .then() chains.",
+    "simple": "async function fetchData() { const res = await fetch('/api'); const data = await res.json(); return data; } — each await line waits for the promise to resolve before the next line runs.",
+    "standard": "An async function always returns a Promise, even if you return a plain value. await can only be used inside an async function (or top-level in an ES module). Use try/catch to handle errors — it catches rejected Promises just like thrown errors.",
+    "technical": "async/await is transpiled to Promise chains by Babel/TypeScript. The JavaScript engine suspends the async function at each await, freeing the event loop to process other work. Calling an async function returns a Promise immediately — the caller can await it or use .then(). Parallel execution: const [a, b] = await Promise.all([fetchA(), fetchB()]) runs both requests simultaneously.",
+    "deepDive": "Under the hood, async functions are generators that automatically yield at each await. Top-level await in ES modules allows await at module scope. AbortController and AbortSignal let you cancel fetch requests mid-await. The for await...of construct iterates asynchronous iterables (like readable streams from the Fetch API) one chunk at a time."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "async and await basics"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "async-await.js",
+      "code": "// async keyword makes the function return a Promise\nasync function getUser(id) {\n  // await pauses here until the promise resolves\n  const response = await fetch(`/api/users/${id}`);\n  const user = await response.json();\n  return user;  // returned value is wrapped in a resolved Promise\n}\n\n// Call the async function\ngetUser(1).then(user => console.log(user));\n\n// Or await it inside another async function\nasync function displayUser() {\n  const user = await getUser(1);\n  document.querySelector('#name').textContent = user.name;\n}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Error handling with try/catch"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "try-catch.js",
+      "code": "async function loadUserData(userId) {\n  try {\n    const response = await fetch(`/api/users/${userId}`);\n\n    // HTTP errors don't throw — check manually\n    if (!response.ok) {\n      throw new Error(`HTTP error: ${response.status}`);\n    }\n\n    const user = await response.json();\n    return user;\n\n  } catch (error) {\n    // Network errors OR the thrown error above\n    console.error('Failed to load user:', error.message);\n    return null;  // graceful fallback\n\n  } finally {\n    // Runs always — hide loading spinner here\n    hideSpinner();\n  }\n}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Parallel vs sequential"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "parallel-vs-sequential.js",
+      "code": "// SEQUENTIAL — each request waits for the previous (slow: 3×delay)\nasync function sequential() {\n  const user    = await fetchUser();     // 1 second\n  const posts   = await fetchPosts();    // 1 second\n  const comments = await fetchComments(); // 1 second\n  // Total: ~3 seconds\n  return { user, posts, comments };\n}\n\n// PARALLEL — all requests fire at the same time (fast: 1×max_delay)\nasync function parallel() {\n  const [user, posts, comments] = await Promise.all([\n    fetchUser(),\n    fetchPosts(),\n    fetchComments(),\n  ]);\n  // Total: ~1 second (whichever is slowest)\n  return { user, posts, comments };\n}\n\n// async in a for loop — sequential (intentional: each depends on previous)\nasync function processItems(items) {\n  for (const item of items) {\n    await processItem(item);  // waits for each before the next\n  }\n}"
+    },
+    {
+      "type": "warning",
+      "text": "Do NOT use async inside forEach — it doesn't await the callbacks. Use for...of instead: for (const item of items) { await process(item); }"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Async/Await",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    button { background:#4fd1c5; color:#0e1116; border:none; padding:8px 20px; border-radius:6px; font-weight:700; cursor:pointer; margin:4px; }\n    button:disabled { opacity:0.5; cursor:not-allowed; }\n    #output { margin-top:20px; background:#1a1f2b; padding:16px; border-radius:8px; font-family:monospace; font-size:0.875rem; min-height:100px; }\n    .success { color:#4fd1c5; } .error { color:#ef4444; } .info { color:#94a3b8; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">Async/Await Demo</h2>\n  <button id=\"seq-btn\" onclick=\"runSequential()\">Sequential (slow)</button>\n  <button id=\"par-btn\" onclick=\"runParallel()\">Parallel (fast)</button>\n  <div id=\"output\"><span class=\"info\">Click a button...</span></div>\n\n  <script>\n    const out = document.getElementById('output');\n    const log = (msg, cls = 'info') => {\n      out.innerHTML += `<div class=\"${cls}\">${msg}</div>`;\n    };\n    const clear = () => { out.innerHTML = ''; };\n\n    function fakeApi(name, ms) {\n      return new Promise(res => setTimeout(() => res({ source: name, val: Math.floor(Math.random() * 100) }), ms));\n    }\n\n    function setLoading(loading) {\n      document.getElementById('seq-btn').disabled = loading;\n      document.getElementById('par-btn').disabled = loading;\n    }\n\n    async function runSequential() {\n      clear();\n      setLoading(true);\n      log('Running sequentially...');\n      const t = Date.now();\n      try {\n        const a = await fakeApi('users', 600);\n        log(`users: ${a.val}`, 'success');\n        const b = await fakeApi('posts', 500);\n        log(`posts: ${b.val}`, 'success');\n        const c = await fakeApi('tags', 400);\n        log(`tags: ${c.val}`, 'success');\n        log(`Total time: ${Date.now() - t}ms (sequential)`);\n      } catch (e) {\n        log(`Error: ${e.message}`, 'error');\n      } finally {\n        setLoading(false);\n      }\n    }\n\n    async function runParallel() {\n      clear();\n      setLoading(true);\n      log('Running in parallel...');\n      const t = Date.now();\n      try {\n        const [a, b, c] = await Promise.all([\n          fakeApi('users', 600),\n          fakeApi('posts', 500),\n          fakeApi('tags', 400),\n        ]);\n        log(`users: ${a.val}, posts: ${b.val}, tags: ${c.val}`, 'success');\n        log(`Total time: ${Date.now() - t}ms (parallel)`);\n      } catch (e) {\n        log(`Error: ${e.message}`, 'error');\n      } finally {\n        setLoading(false);\n      }\n    }\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "js-async-q1",
+          "question": "What does an async function always return?",
+          "type": "multiple-choice",
+          "options": ["The plain return value", "A Promise", "undefined", "An array"],
+          "correctAnswer": 1,
+          "explanation": "An async function always returns a Promise. If you return a plain value, it is wrapped in Promise.resolve(value). This means callers can use .then() or await on it."
+        },
+        {
+          "id": "js-async-q2",
+          "question": "How do you run two async operations in parallel with async/await?",
+          "type": "multiple-choice",
+          "options": [
+            "await op1(); await op2();",
+            "async op1(); async op2();",
+            "const [r1, r2] = await Promise.all([op1(), op2()]);",
+            "await [op1(), op2()];"
+          ],
+          "correctAnswer": 2,
+          "explanation": "await op1(); await op2(); runs them sequentially. To run in parallel, start both promises first and await them together with Promise.all: const [r1, r2] = await Promise.all([op1(), op2()])."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Can I use await outside an async function?",
+      "a": "In ES modules (type='module'), top-level await is supported. In classic scripts, you need to wrap code in an async IIFE: (async () => { const data = await fetch(...); })()."
+    },
+    {
+      "q": "Does await block the entire browser?",
+      "a": "No. await only suspends the current async function — other code, event listeners, and rendering continue normally. JavaScript is still single-threaded, but await yields control back to the event loop."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — async function",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "javascript.info — Async/await",
+      "url": "https://javascript.info/async-await",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every React hook that fetches data", "Express route handlers", "Node.js file system operations", "background sync"],
+    "examples": [
+      "React: useEffect(() => { (async () => { const data = await fetchPosts(); setPosts(data); })(); }, [])",
+      "Express: app.get('/users', async (req, res) => { const users = await db.find(); res.json(users); })",
+      "Next.js: export async function getServerSideProps() { const data = await fetch(...); return { props: data }; }"
+    ]
+  }
+}
