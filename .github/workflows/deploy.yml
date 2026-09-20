@@ -30,7 +30,7 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          VITE_BASE: /kernal/
+          VITE_BASE: /
 
       - uses: actions/upload-pages-artifact@v3
         with:
