@@ -1,0 +1,104 @@
+{
+  "id": "13-transactions",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "sql",
+  "technologyVersion": "SQL (SQLite 3 / PostgreSQL 16)",
+  "module": "sql-practical",
+  "title": "Transactions",
+  "subtitle": "BEGIN, COMMIT, ROLLBACK, and ACID guarantees",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 18,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["sql/12-indexes"],
+  "skillsTaught": ["sql.transactions", "sql.acid", "sql.begin-commit-rollback", "sql.savepoints"],
+  "skillsUsed": ["sql.insert", "sql.update", "sql.delete"],
+  "relatedConcepts": ["sql.schema-design", "sql.insert-update-delete"],
+  "whyItExists": {
+    "problem": "A bank transfer requires two operations: debit one account, credit another. If the debit succeeds but the app crashes before the credit, money disappears. You need 'all or nothing' semantics.",
+    "solution": "A transaction groups multiple statements into an atomic unit. Either all of them succeed (COMMIT) or all are undone (ROLLBACK). No partial state is ever visible.",
+    "whenToUse": "Any sequence of writes that must succeed or fail together: bank transfers, order placement (create order + update stock), user registration (insert user + create profile).",
+    "whenNotToUse": "Single read-only queries don't need explicit transactions (though databases wrap them implicitly). Don't hold transactions open longer than needed — they hold locks."
+  },
+  "explainModes": {
+    "beginner": "A transaction is an 'all or nothing' group of database operations. Like transferring money: you debit one account and credit another. If anything fails in between, you roll everything back to where you started — no money lost.",
+    "simple": "BEGIN; ... statements ... COMMIT; — wraps statements in a transaction. If error: ROLLBACK; undoes everything since BEGIN. Without BEGIN, each statement is its own auto-transaction. SAVEPOINT name; creates a checkpoint within a transaction. ROLLBACK TO name; rolls back to that point without undoing everything.",
+    "standard": "ACID: Atomicity (all-or-nothing), Consistency (constraints always satisfied), Isolation (concurrent transactions don't interfere), Durability (committed data survives crash). SQLite isolation: serialized by default — only one writer at a time. PostgreSQL: multiple isolation levels. BEGIN DEFERRED/IMMEDIATE/EXCLUSIVE (SQLite) controls when locks are acquired. Nested transactions via savepoints.",
+    "technical": "Isolation levels (PostgreSQL): READ UNCOMMITTED (dirty reads), READ COMMITTED (default, no dirty reads), REPEATABLE READ (no phantom reads after first read), SERIALIZABLE (fully serialized). Phantoms: new rows inserted by concurrent transaction that match your WHERE condition. SQLite is serializable by default. Transaction log (WAL) records uncommitted changes — on crash, incomplete transactions are rolled back during recovery.",
+    "deepDive": "MVCC (Multi-Version Concurrency Control): instead of locking rows for reads, PostgreSQL keeps old row versions for concurrent readers. Writers create new versions; readers see the snapshot from their transaction start. This avoids read-write contention. Deadlock: T1 holds lock A waiting for B; T2 holds B waiting for A. PostgreSQL detects deadlocks and aborts one transaction. SQLite prevents deadlocks by serializing writes. Two-Phase Commit (2PC) for distributed transactions across multiple databases."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "BEGIN, COMMIT, ROLLBACK"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "transactions.sql",
+      "code": "-- Transfer 'money' between accounts\n-- (simulated with product stock and order creation)\nBEGIN;\n\n-- Step 1: Place an order\nINSERT INTO orders (user_id, product_id, quantity, total, ordered_at)\nVALUES (1, 2, 1, 799, '2024-07-01');\n\n-- Step 2: Reduce stock\nUPDATE products SET stock = stock - 1 WHERE id = 2;\n\n-- If both steps succeed:\nCOMMIT;\n\n-- If anything failed, we would run:\n-- ROLLBACK;\n\n-- Verify stock was reduced\nSELECT id, name, stock FROM products WHERE id = 2;"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "ROLLBACK and SAVEPOINTs"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "rollback_savepoint.sql",
+      "code": "-- Demonstrate ROLLBACK\nBEGIN;\nINSERT INTO users (name, email, city, joined_at)\nVALUES ('Temp User', 'temp@example.com', 'Pune', '2024-07-01');\nSELECT COUNT(*) AS user_count FROM users;  -- should be 6\nROLLBACK;  -- undo the insert\nSELECT COUNT(*) AS user_count FROM users;  -- back to 5\n\n-- SAVEPOINTs: partial rollback\nBEGIN;\n\nSAVEPOINT before_user;\nINSERT INTO users (name, email, city, joined_at)\nVALUES ('User A', 'a@example.com', 'Delhi', '2024-07-01');\n\nSAVEPOINT before_product;\nINSERT INTO products (name, category, price, stock)\nVALUES ('New Product', 'Books', 299, 100);\n\n-- Undo only the product insert, keep the user\nROLLBACK TO before_product;\n\n-- Now commit just the user insert\nCOMMIT;"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Transaction sandbox",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:16px; margin:0; }\n    .layout { display:grid; grid-template-rows:auto 1fr; gap:10px; height:calc(100vh - 32px); }\n    .top { display:flex; flex-direction:column; gap:8px; }\n    .editor-row { display:flex; gap:8px; align-items:flex-start; }\n    textarea { flex:1; background:#0b0e14; border:1px solid #2d3748; border-radius:6px; color:#e2e8f0; padding:10px; font-family:monospace; font-size:0.82rem; resize:vertical; min-height:120px; }\n    .btns { display:flex; flex-direction:column; gap:6px; }\n    button { padding:8px 14px; border:none; border-radius:5px; font-weight:700; cursor:pointer; font-size:0.8rem; white-space:nowrap; }\n    .chips { display:flex; flex-wrap:wrap; gap:6px; }\n    .chip { background:#1a1f2b; border:1px solid #2d3748; border-radius:4px; padding:3px 10px; font-family:monospace; font-size:0.72rem; cursor:pointer; color:#94a3b8; }\n    .chip:hover { border-color:#4fd1c5; color:#4fd1c5; }\n    .results { background:#0b0e14; border-radius:6px; overflow:auto; }\n    .status { font-size:0.75rem; padding:6px 10px; }\n    table { border-collapse:collapse; width:100%; font-family:monospace; font-size:0.78rem; }\n    th { color:#4fd1c5; padding:6px 12px; border-bottom:1px solid #2d3748; text-align:left; position:sticky; top:0; background:#111827; }\n    td { padding:5px 12px; border-bottom:1px solid #1a1f2b; }\n    tr:hover td { background:#1a1f2b; }\n    .err { color:#ef4444; padding:10px; font-family:monospace; font-size:0.82rem; }\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"sql\" spellcheck=\"false\">-- Atomic order placement: insert order + reduce stock\nBEGIN;\nINSERT INTO orders (user_id, product_id, quantity, total, ordered_at)\nVALUES (2, 1, 2, 998, '2024-07-10');\nUPDATE products SET stock = stock - 2 WHERE id = 1;\nCOMMIT;\n\nSELECT id, name, stock FROM products WHERE id = 1;</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runSQL()\">▶ Run</button>\n          <button style=\"background:#2d3748;color:#94a3b8\" onclick=\"resetDB()\">Reset DB</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setSQL('BEGIN;\\nINSERT INTO users (name,email,city,joined_at) VALUES (\\'Test\\',\\'t@t.com\\',\\'X\\',\\'2024-07-01\\');\\nSELECT COUNT(*) AS cnt FROM users;\\nROLLBACK;\\nSELECT COUNT(*) AS cnt FROM users;')\">rollback demo</span>\n        <span class=\"chip\" onclick=\"setSQL('SELECT * FROM orders ORDER BY id DESC LIMIT 5;')\">view orders</span>\n        <span class=\"chip\" onclick=\"setSQL('SELECT id,name,stock FROM products;')\">check stock</span>\n      </div>\n    </div>\n    <div class=\"results\" id=\"results\"><div style=\"color:#94a3b8;padding:10px;font-size:0.8rem\">Loading...</div></div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js\"></script>\n  <script>\n    let db=null, SQL=null;\n    const SEED=`CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT,email TEXT,city TEXT,joined_at TEXT);CREATE TABLE products(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT,category TEXT,price REAL,stock INTEGER);CREATE TABLE orders(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER,product_id INTEGER,quantity INTEGER,total REAL,ordered_at TEXT);INSERT INTO users VALUES(1,'Prashant Kumar','prashant@example.com','Delhi','2024-01-15'),(2,'Alice Singh','alice@example.com','Mumbai','2024-02-20'),(3,'Bob Sharma','bob@example.com','Bangalore','2024-03-10'),(4,'Priya Patel','priya@example.com','Delhi','2024-04-05'),(5,'Rahul Verma','rahul@example.com','Chennai','2024-05-22');INSERT INTO products VALUES(1,'Python Handbook','Books',499,150),(2,'Wireless Mouse','Electronics',799,80),(3,'Mechanical Keyboard','Electronics',2499,30),(4,'SQL Masterclass','Books',649,200),(5,'Webcam HD','Electronics',1299,45),(6,'Git Cheatsheet','Books',199,500);INSERT INTO orders VALUES(1,1,1,1,499,'2024-06-01'),(2,1,3,1,2499,'2024-06-02'),(3,2,2,2,1598,'2024-06-03'),(4,3,4,1,649,'2024-06-04'),(5,4,5,1,1299,'2024-06-05'),(6,2,6,3,597,'2024-06-06'),(7,5,1,2,998,'2024-06-07'),(8,1,4,1,649,'2024-06-08');`;\n    async function init(){SQL=await initSqlJs({locateFile:f=>`https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/${f}`});db=new SQL.Database();db.run(SEED);runSQL();}\n    function resetDB(){if(!SQL)return;try{db.close();}catch(e){}db=new SQL.Database();db.run(SEED);document.getElementById('results').innerHTML='<div class=\"status\" style=\"color:#4fd1c5\">✓ Database reset.</div>';}\n    function setSQL(q){document.getElementById('sql').value=q;runSQL();}\n    function runSQL(){if(!db)return;const stmts=document.getElementById('sql').value.trim();const res=document.getElementById('results');const t0=performance.now();try{const results=db.exec(stmts);const ms=(performance.now()-t0).toFixed(1);if(!results.length){res.innerHTML=`<div class=\"status\" style=\"color:#4fd1c5\">✓ OK · ${ms}ms</div>`;return;}const last=results[results.length-1];const{columns,values}=last;const rows=values.map(r=>`<tr>${r.map(v=>`<td>${v??'<span style=\"color:#64748b\">NULL</span>'}</td>`).join('')}</tr>`).join('');res.innerHTML=`<div class=\"status\" style=\"color:#4fd1c5\">✓ ${values.length} row(s) · ${ms}ms</div><table><thead><tr>${columns.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`;}catch(e){res.innerHTML=`<div class=\"err\">✗ ${e.message}</div>`;}}\n    document.getElementById('sql').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runSQL();}});\n    init();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "sql-txn-q1",
+          "question": "What does ACID stand for in database transactions?",
+          "type": "multiple-choice",
+          "options": [
+            "Atomicity, Consistency, Isolation, Durability",
+            "Automated, Concurrent, Independent, Dynamic",
+            "Atomic, Committed, Indexed, Durable",
+            "Active, Consistent, Immutable, Distributed"
+          ],
+          "correctAnswer": 0,
+          "explanation": "ACID is the set of guarantees a transactional database provides: Atomicity (all statements in a transaction succeed or all fail), Consistency (constraints are never violated), Isolation (concurrent transactions don't see each other's uncommitted changes), Durability (committed data survives crashes and restarts)."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Does every SQL statement run in a transaction?",
+      "a": "Yes — in SQLite and most databases, every statement that isn't explicitly wrapped in BEGIN...COMMIT is automatically wrapped in its own implicit transaction. This means a single UPDATE that updates 1000 rows is atomic by default. Explicit transactions let you group multiple statements into one atomic unit."
+    }
+  ],
+  "sources": [
+    {
+      "name": "SQLite transaction isolation",
+      "url": "https://www.sqlite.org/isolation.html",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["payments", "order placement", "user registration", "inventory management"],
+    "examples": [
+      "BEGIN; INSERT INTO orders ...; UPDATE products SET stock=stock-qty WHERE id=?; COMMIT; — order + stock together",
+      "SAVEPOINT before_charge; ... charge card ... ; if fails: ROLLBACK TO before_charge — charge with fallback",
+      "Python: with conn: — automatically commits on success, rollbacks on exception"
+    ]
+  }
+}

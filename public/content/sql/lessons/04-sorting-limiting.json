@@ -1,0 +1,108 @@
+{
+  "id": "04-sorting-limiting",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "sql",
+  "technologyVersion": "SQL (SQLite 3 / PostgreSQL 16)",
+  "module": "sql-queries",
+  "title": "Sorting & Limiting",
+  "subtitle": "ORDER BY, LIMIT, OFFSET, and pagination",
+  "difficulty": "beginner",
+  "estimatedMinutes": 15,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["sql/03-filtering"],
+  "skillsTaught": ["sql.order-by", "sql.limit", "sql.offset", "sql.nulls-ordering"],
+  "skillsUsed": ["sql.select", "sql.where"],
+  "relatedConcepts": ["sql.pagination", "sql.indexes"],
+  "whyItExists": {
+    "problem": "Rows come back in undefined order (the database picks whatever is fastest). You need results in a meaningful order — cheapest first, newest first, alphabetical.",
+    "solution": "ORDER BY sorts results. LIMIT caps the number of rows. OFFSET skips rows for pagination. Together they power every sorted list and paginated result in an app.",
+    "whenToUse": "Any time result order matters to the user. Any time you only need the top-N results. Pagination in APIs and UIs.",
+    "whenNotToUse": "Don't use ORDER BY + LIMIT for finding a 'random' row at scale — it forces a full sort. Use ORDER BY RANDOM() LIMIT 1 (SQLite) or TABLESAMPLE (PostgreSQL) for random sampling."
+  },
+  "explainModes": {
+    "beginner": "ORDER BY sorts the results. ORDER BY price sorts cheapest first (ASC). ORDER BY price DESC sorts most expensive first. LIMIT 5 returns only 5 rows. OFFSET 10 skips the first 10 rows — useful for page 2, 3, etc.",
+    "simple": "ORDER BY col ASC (default, A→Z, 0→9) or DESC. Multiple sort keys: ORDER BY category ASC, price DESC. LIMIT n — return n rows. OFFSET n — skip first n rows. LIMIT 10 OFFSET 20 — rows 21-30 (page 3 of 10). NULLs sort last in ASC, first in DESC in PostgreSQL; use NULLS FIRST / NULLS LAST.",
+    "standard": "ORDER BY is the last operation (after WHERE, GROUP BY, HAVING, SELECT, DISTINCT). Column aliases from SELECT can be used in ORDER BY — unlike WHERE. ORDER BY column_position: ORDER BY 2 sorts by the second column (fragile, avoid in code). Without ORDER BY, row order is non-deterministic even for the same query. For stable pagination, ORDER BY must include a unique column.",
+    "technical": "Sorting is expensive — O(n log n). The engine may use an index to avoid sorting if the ORDER BY matches an index. For LIMIT/OFFSET pagination, the engine still evaluates all earlier rows — OFFSET 10000 is as slow as fetching 10000 rows. Keyset/cursor pagination (WHERE id > last_seen_id ORDER BY id LIMIT 10) is O(log n) with an index. Covering indexes include all SELECT columns — no heap lookup needed.",
+    "deepDive": "OFFSET pagination has O(n) cost for deep pages — row 1,000,001 requires reading 1,000,001 rows then discarding the first million. Keyset pagination solves this: remember the last id/timestamp and use it in WHERE. Row_number() window function enables stable page extraction without OFFSET. FETCH FIRST n ROWS ONLY WITH TIES returns additional rows with the same value as the nth row."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "ORDER BY"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "order_by.sql",
+      "code": "-- Sort ascending (default, A to Z, 0 to 9)\nSELECT * FROM products ORDER BY price;\nSELECT * FROM products ORDER BY price ASC;   -- same\n\n-- Sort descending (Z to A, 9 to 0)\nSELECT * FROM products ORDER BY price DESC;\n\n-- Sort by text column alphabetically\nSELECT * FROM users ORDER BY name ASC;\n\n-- Multiple sort keys\n-- First by category A-Z, then by price highest first\nSELECT * FROM products\nORDER BY category ASC, price DESC;\n\n-- Sort by an alias\nSELECT name, price * stock AS inventory_value\nFROM products\nORDER BY inventory_value DESC;"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "LIMIT and OFFSET"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "limit_offset.sql",
+      "code": "-- Return only the top 3 cheapest products\nSELECT * FROM products ORDER BY price LIMIT 3;\n\n-- The most expensive product\nSELECT * FROM products ORDER BY price DESC LIMIT 1;\n\n-- Pagination: page size = 2\n-- Page 1: first 2 rows\nSELECT * FROM products ORDER BY id LIMIT 2 OFFSET 0;\n\n-- Page 2: skip 2, get next 2\nSELECT * FROM products ORDER BY id LIMIT 2 OFFSET 2;\n\n-- Page 3: skip 4, get next 2\nSELECT * FROM products ORDER BY id LIMIT 2 OFFSET 4;\n\n-- Formula: OFFSET = (page_number - 1) * page_size"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Sort and paginate",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:16px; margin:0; }\n    .layout { display:grid; grid-template-rows:auto 1fr; gap:10px; height:calc(100vh - 32px); }\n    .top { display:flex; flex-direction:column; gap:8px; }\n    .editor-row { display:flex; gap:8px; align-items:flex-start; }\n    textarea { flex:1; background:#0b0e14; border:1px solid #2d3748; border-radius:6px; color:#e2e8f0; padding:10px; font-family:monospace; font-size:0.85rem; resize:vertical; min-height:80px; }\n    .btns { display:flex; flex-direction:column; gap:6px; }\n    button { padding:8px 14px; border:none; border-radius:5px; font-weight:700; cursor:pointer; font-size:0.8rem; white-space:nowrap; }\n    .chips { display:flex; flex-wrap:wrap; gap:6px; }\n    .chip { background:#1a1f2b; border:1px solid #2d3748; border-radius:4px; padding:3px 10px; font-family:monospace; font-size:0.72rem; cursor:pointer; color:#94a3b8; }\n    .chip:hover { border-color:#4fd1c5; color:#4fd1c5; }\n    .results { background:#0b0e14; border-radius:6px; overflow:auto; }\n    .status { font-size:0.75rem; padding:6px 10px; }\n    table { border-collapse:collapse; width:100%; font-family:monospace; font-size:0.78rem; }\n    th { color:#4fd1c5; padding:6px 12px; border-bottom:1px solid #2d3748; text-align:left; position:sticky; top:0; background:#111827; }\n    td { padding:5px 12px; border-bottom:1px solid #1a1f2b; }\n    tr:hover td { background:#1a1f2b; }\n    .err { color:#ef4444; padding:10px; font-family:monospace; font-size:0.82rem; }\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"sql\" spellcheck=\"false\">SELECT * FROM products ORDER BY price ASC;</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runSQL()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setSQL('SELECT * FROM products ORDER BY price DESC;')\">price DESC</span>\n        <span class=\"chip\" onclick=\"setSQL('SELECT * FROM products ORDER BY category ASC, price DESC;')\">multi-sort</span>\n        <span class=\"chip\" onclick=\"setSQL('SELECT * FROM products ORDER BY price LIMIT 3;')\">top 3 cheapest</span>\n        <span class=\"chip\" onclick=\"setSQL('SELECT * FROM products ORDER BY price DESC LIMIT 1;')\">most expensive</span>\n        <span class=\"chip\" onclick=\"setSQL('SELECT * FROM products ORDER BY id LIMIT 2 OFFSET 0;')\">page 1</span>\n        <span class=\"chip\" onclick=\"setSQL('SELECT * FROM products ORDER BY id LIMIT 2 OFFSET 2;')\">page 2</span>\n        <span class=\"chip\" onclick=\"setSQL('SELECT * FROM users ORDER BY joined_at DESC;')\">newest users</span>\n      </div>\n    </div>\n    <div class=\"results\" id=\"results\"><div style=\"color:#94a3b8;padding:10px;font-size:0.8rem\">Loading...</div></div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js\"></script>\n  <script>\n    let db=null;\n    const SEED=`CREATE TABLE users(id INTEGER PRIMARY KEY,name TEXT,email TEXT,city TEXT,joined_at TEXT);CREATE TABLE products(id INTEGER PRIMARY KEY,name TEXT,category TEXT,price REAL,stock INTEGER);CREATE TABLE orders(id INTEGER PRIMARY KEY,user_id INTEGER,product_id INTEGER,quantity INTEGER,total REAL,ordered_at TEXT);INSERT INTO users VALUES(1,'Prashant Kumar','prashant@example.com','Delhi','2024-01-15'),(2,'Alice Singh','alice@example.com','Mumbai','2024-02-20'),(3,'Bob Sharma','bob@example.com','Bangalore','2024-03-10'),(4,'Priya Patel','priya@example.com','Delhi','2024-04-05'),(5,'Rahul Verma','rahul@example.com','Chennai','2024-05-22');INSERT INTO products VALUES(1,'Python Handbook','Books',499,150),(2,'Wireless Mouse','Electronics',799,80),(3,'Mechanical Keyboard','Electronics',2499,30),(4,'SQL Masterclass','Books',649,200),(5,'Webcam HD','Electronics',1299,45),(6,'Git Cheatsheet','Books',199,500);INSERT INTO orders VALUES(1,1,1,1,499,'2024-06-01'),(2,1,3,1,2499,'2024-06-02'),(3,2,2,2,1598,'2024-06-03'),(4,3,4,1,649,'2024-06-04'),(5,4,5,1,1299,'2024-06-05'),(6,2,6,3,597,'2024-06-06'),(7,5,1,2,998,'2024-06-07'),(8,1,4,1,649,'2024-06-08');`;\n    async function init(){const SQL=await initSqlJs({locateFile:f=>`https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/${f}`});db=new SQL.Database();db.run(SEED);runSQL();}\n    function setSQL(q){document.getElementById('sql').value=q;runSQL();}\n    function runSQL(){if(!db)return;const q=document.getElementById('sql').value.trim();const res=document.getElementById('results');const t0=performance.now();try{const results=db.exec(q);const ms=(performance.now()-t0).toFixed(1);if(!results.length){res.innerHTML=`<div class=\"status\" style=\"color:#4fd1c5\">✓ OK (${ms}ms)</div>`;return;}const{columns,values}=results[0];const rows=values.map(r=>`<tr>${r.map(v=>`<td>${v??'<span style=\"color:#64748b\">NULL</span>'}</td>`).join('')}</tr>`).join('');res.innerHTML=`<div class=\"status\" style=\"color:#4fd1c5\">✓ ${values.length} row(s) · ${ms}ms</div><table><thead><tr>${columns.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`;}catch(e){res.innerHTML=`<div class=\"err\">✗ ${e.message}</div>`;}}\n    document.getElementById('sql').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runSQL();}});\n    init();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "sql-sort-q1",
+          "question": "What does LIMIT 5 OFFSET 10 return?",
+          "type": "multiple-choice",
+          "options": [
+            "The first 5 rows, then skip 10",
+            "Rows 11 through 15 (skip first 10, return next 5)",
+            "10 rows starting from row 5",
+            "A random 5 rows from the table"
+          ],
+          "correctAnswer": 1,
+          "explanation": "OFFSET skips rows first, then LIMIT takes from there. LIMIT 5 OFFSET 10 skips the first 10 rows and returns the next 5 (rows 11-15). This is page 3 with a page size of 5."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Does the row order matter without ORDER BY?",
+      "a": "Yes — without ORDER BY, the database can return rows in any order it wants. It might be consistent today but change after an index rebuild or table update. Never depend on row order without an explicit ORDER BY."
+    },
+    {
+      "q": "What is wrong with OFFSET for deep pagination?",
+      "a": "OFFSET 100000 still causes the database to process 100,000 rows before skipping them — it's O(n) for the offset. Keyset pagination (WHERE id > last_id ORDER BY id LIMIT 10) uses the index and is always O(log n). Use keyset for large datasets."
+    }
+  ],
+  "sources": [
+    {
+      "name": "SQLite ORDER BY and LIMIT",
+      "url": "https://www.sqlite.org/lang_select.html#orderby",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["API pagination", "leaderboards", "top-N reports", "user lists"],
+    "examples": [
+      "SELECT * FROM posts ORDER BY created_at DESC LIMIT 10 OFFSET ?  — paginated blog feed",
+      "SELECT user_id, SUM(total) FROM orders GROUP BY user_id ORDER BY SUM(total) DESC LIMIT 10 — top 10 customers",
+      "SELECT * FROM events ORDER BY id WHERE id > ? LIMIT 50 — keyset pagination"
+    ]
+  }
+}

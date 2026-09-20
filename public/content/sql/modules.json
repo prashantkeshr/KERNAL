@@ -1,0 +1,57 @@
+[
+  {
+    "id": "sql-foundations",
+    "title": "SQL Foundations",
+    "subtitle": "Databases, tables, and your first queries",
+    "order": 1,
+    "lessons": [
+      { "id": "01-introduction", "title": "Introduction to SQL", "order": 1 },
+      { "id": "02-select-basics", "title": "SELECT Basics", "order": 2 },
+      { "id": "03-filtering", "title": "Filtering with WHERE", "order": 3 }
+    ]
+  },
+  {
+    "id": "sql-queries",
+    "title": "Querying Data",
+    "subtitle": "Sort, aggregate, and join tables",
+    "order": 2,
+    "lessons": [
+      { "id": "04-sorting-limiting", "title": "Sorting & Limiting", "order": 4 },
+      { "id": "05-aggregate-functions", "title": "Aggregate Functions", "order": 5 },
+      { "id": "06-joins", "title": "Joins", "order": 6 }
+    ]
+  },
+  {
+    "id": "sql-advanced",
+    "title": "Advanced Queries",
+    "subtitle": "Subqueries, CTEs, and window functions",
+    "order": 3,
+    "lessons": [
+      { "id": "07-subqueries", "title": "Subqueries", "order": 7 },
+      { "id": "08-window-functions", "title": "Window Functions", "order": 8 },
+      { "id": "09-ctes", "title": "CTEs (WITH clause)", "order": 9 }
+    ]
+  },
+  {
+    "id": "sql-data-management",
+    "title": "Data Management",
+    "subtitle": "Insert, update, delete, and schema design",
+    "order": 4,
+    "lessons": [
+      { "id": "10-insert-update-delete", "title": "INSERT, UPDATE, DELETE", "order": 10 },
+      { "id": "11-schema-design", "title": "Schema Design", "order": 11 },
+      { "id": "12-indexes", "title": "Indexes & Performance", "order": 12 }
+    ]
+  },
+  {
+    "id": "sql-practical",
+    "title": "Practical SQL",
+    "subtitle": "Transactions, views, and real databases",
+    "order": 5,
+    "lessons": [
+      { "id": "13-transactions", "title": "Transactions & ACID", "order": 13 },
+      { "id": "14-views", "title": "Views & Virtual Tables", "order": 14 },
+      { "id": "15-sqlite-postgresql", "title": "SQLite vs PostgreSQL", "order": 15 }
+    ]
+  }
+]

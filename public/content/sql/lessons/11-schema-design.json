@@ -1,0 +1,108 @@
+{
+  "id": "11-schema-design",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "sql",
+  "technologyVersion": "SQL (SQLite 3 / PostgreSQL 16)",
+  "module": "sql-data-management",
+  "title": "Schema Design",
+  "subtitle": "CREATE TABLE, data types, constraints, and normalization",
+  "difficulty": "beginner",
+  "estimatedMinutes": 22,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["sql/10-insert-update-delete"],
+  "skillsTaught": ["sql.create-table", "sql.data-types", "sql.constraints", "sql.foreign-keys", "sql.alter-table"],
+  "skillsUsed": ["sql.insert", "sql.select"],
+  "relatedConcepts": ["sql.indexes", "sql.normalization"],
+  "whyItExists": {
+    "problem": "Before you can INSERT data, you need to define what structure it follows. Without a schema, every row could look different — there's no enforcement of types, required fields, or relationships.",
+    "solution": "CREATE TABLE defines the table's columns, data types, and constraints. Constraints enforce rules: NOT NULL means the field can't be empty, UNIQUE prevents duplicates, FOREIGN KEY links tables together.",
+    "whenToUse": "When building a new application or migrating data. Schema design is upfront work that saves huge amounts of pain later.",
+    "whenNotToUse": "Schema-less (document) databases like MongoDB trade structure for flexibility — useful when data shape varies per row. For well-defined, relational data, SQL schemas are the right choice."
+  },
+  "explainModes": {
+    "beginner": "CREATE TABLE is like defining a spreadsheet's columns before any data goes in. You say 'this column holds integers', 'that one holds text and can't be empty', 'this one must be unique.' The database then enforces those rules on every INSERT.",
+    "simple": "CREATE TABLE name (col1 TYPE constraint, col2 TYPE, ...);. Types: INTEGER, REAL, TEXT, BLOB (binary). Constraints: NOT NULL (required), UNIQUE (no duplicates), DEFAULT value, CHECK (custom rule), PRIMARY KEY (unique identifier), FOREIGN KEY (links to another table). ALTER TABLE adds/renames columns. DROP TABLE deletes it. IF NOT EXISTS prevents error if already exists.",
+    "standard": "SQLite type affinity: any column can store any type (flexible but different from PostgreSQL). INTEGER PRIMARY KEY in SQLite is an alias for the rowid (auto-increment). AUTOINCREMENT keyword prevents rowid reuse after deletion. FOREIGN KEY constraints must be enabled explicitly: PRAGMA foreign_keys = ON. CHECK constraint: CHECK (price > 0). ON DELETE CASCADE deletes child rows when parent is deleted. ON UPDATE CASCADE propagates updates.",
+    "technical": "SQLite's type system uses affinity (TEXT, NUMERIC, INTEGER, REAL, BLOB) — values are stored in the most efficient format. PostgreSQL has strict typing. Normalization levels: 1NF (atomic values, no repeating groups), 2NF (no partial dependencies), 3NF (no transitive dependencies). IDENTITY/SERIAL in PostgreSQL: CREATE TABLE t (id INTEGER GENERATED ALWAYS AS IDENTITY). Constraints can be named: CONSTRAINT pk_users PRIMARY KEY (id). Named constraints can be dropped: ALTER TABLE t DROP CONSTRAINT constraint_name.",
+    "deepDive": "Normalization vs denormalization trade-off: normalized schemas minimize redundancy (single source of truth) but require joins; denormalized schemas (computed/duplicated columns) are faster to read but harder to keep consistent. The right level depends on read vs write ratio and query complexity. Temporal tables (PostgreSQL) track history. Partitioning (PostgreSQL) splits large tables by range or list — each partition is stored separately. Generated columns (PostgreSQL 12+, SQLite 3.31+): GENERATED ALWAYS AS (expr) STORED — computed from other columns, stored on disk. Virtual generated columns are computed on read."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "CREATE TABLE and data types"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "create_table.sql",
+      "code": "-- Create the users table\nCREATE TABLE IF NOT EXISTS users (\n    id        INTEGER PRIMARY KEY AUTOINCREMENT,\n    name      TEXT    NOT NULL,\n    email     TEXT    NOT NULL UNIQUE,\n    city      TEXT,\n    joined_at TEXT    NOT NULL DEFAULT (DATE('now'))\n);\n\n-- Create the products table\nCREATE TABLE IF NOT EXISTS products (\n    id       INTEGER PRIMARY KEY AUTOINCREMENT,\n    name     TEXT    NOT NULL,\n    category TEXT    NOT NULL,\n    price    REAL    NOT NULL CHECK (price >= 0),  -- no negative prices!\n    stock    INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0)\n);\n\n-- Create the orders table with FOREIGN KEY references\nCREATE TABLE IF NOT EXISTS orders (\n    id         INTEGER PRIMARY KEY AUTOINCREMENT,\n    user_id    INTEGER NOT NULL REFERENCES users(id)    ON DELETE CASCADE,\n    product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE RESTRICT,\n    quantity   INTEGER NOT NULL CHECK (quantity > 0),\n    total      REAL    NOT NULL,\n    ordered_at TEXT    NOT NULL DEFAULT (DATETIME('now'))\n);"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "ALTER TABLE and DROP TABLE"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "alter_table.sql",
+      "code": "-- Add a column (SQLite supports ADD COLUMN)\nALTER TABLE users ADD COLUMN phone TEXT;\n\n-- Rename a column (SQLite 3.25+)\nALTER TABLE users RENAME COLUMN phone TO phone_number;\n\n-- SQLite does NOT support DROP COLUMN on older versions\n-- PostgreSQL: ALTER TABLE users DROP COLUMN phone_number;\n\n-- Drop a table\n-- DROP TABLE IF EXISTS old_table;\n\n-- See table structure\nPRAGMA table_info(users);\n\n-- See all tables\nSELECT name FROM sqlite_master WHERE type='table' ORDER BY name;"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Schema designer",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:16px; margin:0; }\n    .layout { display:grid; grid-template-rows:auto 1fr; gap:10px; height:calc(100vh - 32px); }\n    .top { display:flex; flex-direction:column; gap:8px; }\n    .editor-row { display:flex; gap:8px; align-items:flex-start; }\n    textarea { flex:1; background:#0b0e14; border:1px solid #2d3748; border-radius:6px; color:#e2e8f0; padding:10px; font-family:monospace; font-size:0.82rem; resize:vertical; min-height:120px; }\n    .btns { display:flex; flex-direction:column; gap:6px; }\n    button { padding:8px 14px; border:none; border-radius:5px; font-weight:700; cursor:pointer; font-size:0.8rem; white-space:nowrap; }\n    .chips { display:flex; flex-wrap:wrap; gap:6px; }\n    .chip { background:#1a1f2b; border:1px solid #2d3748; border-radius:4px; padding:3px 10px; font-family:monospace; font-size:0.72rem; cursor:pointer; color:#94a3b8; }\n    .chip:hover { border-color:#4fd1c5; color:#4fd1c5; }\n    .results { background:#0b0e14; border-radius:6px; overflow:auto; }\n    .status { font-size:0.75rem; padding:6px 10px; }\n    table { border-collapse:collapse; width:100%; font-family:monospace; font-size:0.78rem; }\n    th { color:#4fd1c5; padding:6px 12px; border-bottom:1px solid #2d3748; text-align:left; position:sticky; top:0; background:#111827; }\n    td { padding:5px 12px; border-bottom:1px solid #1a1f2b; }\n    tr:hover td { background:#1a1f2b; }\n    .err { color:#ef4444; padding:10px; font-family:monospace; font-size:0.82rem; }\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"sql\" spellcheck=\"false\">-- Create a fresh blog schema\nCREATE TABLE posts (\n  id         INTEGER PRIMARY KEY AUTOINCREMENT,\n  title      TEXT    NOT NULL,\n  body       TEXT    NOT NULL,\n  published  INTEGER NOT NULL DEFAULT 0 CHECK (published IN (0,1)),\n  created_at TEXT    NOT NULL DEFAULT (DATETIME('now'))\n);\n\nINSERT INTO posts (title, body) VALUES ('Hello World', 'First post!');\nINSERT INTO posts (title, body, published) VALUES ('SQL Guide', 'Learn SQL', 1);\n\nSELECT * FROM posts;</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runSQL()\">▶ Run</button>\n          <button style=\"background:#2d3748;color:#94a3b8\" onclick=\"resetDB()\">Reset DB</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setSQL('SELECT name FROM sqlite_master WHERE type=\\'table\\' ORDER BY name;')\">list tables</span>\n        <span class=\"chip\" onclick=\"setSQL('PRAGMA table_info(posts);')\">table info</span>\n        <span class=\"chip\" onclick=\"setSQL('ALTER TABLE posts ADD COLUMN author TEXT DEFAULT \\'Anonymous\\';;\\nSELECT * FROM posts;')\">add column</span>\n        <span class=\"chip\" onclick=\"setSQL('-- Test CHECK constraint\\nINSERT INTO posts (title, body, published) VALUES (\\'Bad\\',\\'x\\',2);')\">violate CHECK</span>\n      </div>\n    </div>\n    <div class=\"results\" id=\"results\"><div style=\"color:#94a3b8;padding:10px;font-size:0.8rem\">Loading...</div></div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js\"></script>\n  <script>\n    let db=null, SQL=null;\n    async function init(){SQL=await initSqlJs({locateFile:f=>`https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/${f}`});db=new SQL.Database();document.getElementById('results').innerHTML='<div style=\"color:#94a3b8;padding:10px;font-size:0.8rem\">Ready. Write a CREATE TABLE and click ▶ Run.</div>';}\n    function resetDB(){if(!SQL)return;try{db.close();}catch(e){}db=new SQL.Database();document.getElementById('results').innerHTML='<div class=\"status\" style=\"color:#4fd1c5\">✓ Database cleared.</div>';}\n    function setSQL(q){document.getElementById('sql').value=q;runSQL();}\n    function runSQL(){if(!db)return;const stmts=document.getElementById('sql').value.trim();const res=document.getElementById('results');const t0=performance.now();try{const results=db.exec(stmts);const ms=(performance.now()-t0).toFixed(1);if(!results.length){res.innerHTML=`<div class=\"status\" style=\"color:#4fd1c5\">✓ OK · ${ms}ms</div>`;return;}const last=results[results.length-1];const{columns,values}=last;const rows=values.map(r=>`<tr>${r.map(v=>`<td>${v??'<span style=\"color:#64748b\">NULL</span>'}</td>`).join('')}</tr>`).join('');res.innerHTML=`<div class=\"status\" style=\"color:#4fd1c5\">✓ ${values.length} row(s) · ${ms}ms</div><table><thead><tr>${columns.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`;}catch(e){res.innerHTML=`<div class=\"err\">✗ ${e.message}</div>`;}}\n    document.getElementById('sql').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runSQL();}});\n    init();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "sql-schema-q1",
+          "question": "What constraint ensures a column cannot contain NULL values?",
+          "type": "multiple-choice",
+          "options": [
+            "UNIQUE",
+            "CHECK (col != NULL)",
+            "NOT NULL",
+            "DEFAULT ''"
+          ],
+          "correctAnswer": 2,
+          "explanation": "NOT NULL is the constraint that prevents a column from storing NULL. If you try to INSERT without providing a value for a NOT NULL column (and there's no DEFAULT), the database raises an error. UNIQUE only prevents duplicate values — it still allows multiple NULLs in most databases."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What are the SQLite data types?",
+      "a": "SQLite uses 5 storage classes: NULL, INTEGER (1-8 bytes), REAL (8-byte float), TEXT (UTF-8), and BLOB (raw binary). Unlike PostgreSQL which is strictly typed, SQLite stores values in the most efficient format based on 'type affinity'. This means TEXT '42' and INTEGER 42 can both live in the same column."
+    },
+    {
+      "q": "How do I enable foreign key enforcement in SQLite?",
+      "a": "By default, SQLite parses FOREIGN KEY syntax but doesn't enforce it. Run PRAGMA foreign_keys = ON; at the start of every connection. This is a per-connection setting — you must set it each time you open the database."
+    }
+  ],
+  "sources": [
+    {
+      "name": "SQLite CREATE TABLE",
+      "url": "https://www.sqlite.org/lang_createtable.html",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every database-backed application", "migrations", "data modeling"],
+    "examples": [
+      "CREATE TABLE sessions (token TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), expires_at TEXT) — auth sessions",
+      "CHECK (status IN ('pending','shipped','delivered')) — enum-like constraint",
+      "FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE SET NULL — category hierarchy"
+    ]
+  }
+}

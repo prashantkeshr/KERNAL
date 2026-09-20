@@ -1,0 +1,104 @@
+{
+  "id": "14-views",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "sql",
+  "technologyVersion": "SQL (SQLite 3 / PostgreSQL 16)",
+  "module": "sql-practical",
+  "title": "Views",
+  "subtitle": "CREATE VIEW — named saved queries and virtual tables",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 15,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["sql/13-transactions"],
+  "skillsTaught": ["sql.create-view", "sql.drop-view", "sql.materialized-view"],
+  "skillsUsed": ["sql.select", "sql.joins", "sql.aggregate-functions"],
+  "relatedConcepts": ["sql.ctes", "sql.indexes"],
+  "whyItExists": {
+    "problem": "Complex JOIN queries are written over and over again across many parts of an application. If the schema changes, every copy must be updated. Junior devs write inefficient versions; code diverges.",
+    "solution": "A view is a named SELECT query stored in the database. Any query can SELECT from a view as if it were a table. The underlying query runs on every access.",
+    "whenToUse": "Frequently used complex JOINs. Simplified read access for application code. Hiding sensitive columns (show view without password_hash). Abstracting schema changes.",
+    "whenNotToUse": "If the view is very expensive to compute and called often — use a materialized view (PostgreSQL) or a caching layer instead. Views in SQLite are read-only (no INSERT/UPDATE through views)."
+  },
+  "explainModes": {
+    "beginner": "A view is like saving a query by name. Instead of writing a 5-table JOIN every time, you save it as 'order_details' and then just SELECT * FROM order_details. The database runs the JOIN for you every time you query the view.",
+    "simple": "CREATE VIEW name AS SELECT ...; — save a query. SELECT * FROM name; — query it like a table. DROP VIEW name; — remove it. CREATE OR REPLACE VIEW (PostgreSQL) — update it. Views are virtual — no data is stored. ALTER VIEW isn't supported in SQLite — drop and recreate.",
+    "standard": "Views are expanded inline at query time — the planner merges the view's SELECT with the outer query for optimization. SQLite views are always read-only. PostgreSQL: simple views over a single table without GROUP BY are sometimes updatable (INSTEAD OF triggers for complex ones). WITH CHECK OPTION prevents inserts/updates that wouldn't be visible in the view.",
+    "technical": "Materialized views (PostgreSQL): REFRESH MATERIALIZED VIEW name — store results physically. Fast to query (no JOIN at read time) but data is stale until refreshed. CREATE MATERIALIZED VIEW ... WITH DATA. Concurrent refresh: REFRESH MATERIALIZED VIEW CONCURRENTLY (requires unique index). Not available in SQLite — replicate with a real table + periodic INSERT INTO ... SELECT. Views can be built on top of other views (view chaining) but deep chains can confuse the optimizer.",
+    "deepDive": "Updatable views (PostgreSQL): a view is automatically updatable if it satisfies strict conditions (single base table, no DISTINCT/GROUP BY/HAVING/LIMIT/UNION/aggregate/window function). INSTEAD OF triggers handle writes to complex views. Row-level security (PostgreSQL): combine views with RLS policies to enforce tenant isolation. CREATE POLICY tenant_isolation ON orders USING (user_id = current_setting('app.user_id')::INT). This pattern lets the application set a session variable, and the database enforces the filter on every query — zero chance of a missing WHERE clause leaking data."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Creating and using views"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "views.sql",
+      "code": "-- View: full order details (replaces repetitive 3-table join)\nCREATE VIEW IF NOT EXISTS order_details AS\nSELECT\n    o.id         AS order_id,\n    u.name       AS customer,\n    u.city,\n    p.name       AS product,\n    p.category,\n    o.quantity,\n    o.total,\n    o.ordered_at\nFROM orders o\nJOIN users    u ON o.user_id    = u.id\nJOIN products p ON o.product_id = p.id;\n\n-- Now query the view like a table\nSELECT * FROM order_details;\n\n-- Filter on the view\nSELECT customer, product, total\nFROM order_details\nWHERE category = 'Electronics'\nORDER BY total DESC;\n\n-- Aggregate on the view\nSELECT customer, SUM(total) AS total_spent\nFROM order_details\nGROUP BY customer\nORDER BY total_spent DESC;"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "More view patterns"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "more_views.sql",
+      "code": "-- View: customer summary (hides the raw orders table complexity)\nCREATE VIEW IF NOT EXISTS customer_summary AS\nSELECT\n    u.id,\n    u.name,\n    u.city,\n    COUNT(o.id)            AS order_count,\n    COALESCE(SUM(o.total), 0) AS total_spent,\n    MAX(o.ordered_at)      AS last_order_date\nFROM users u\nLEFT JOIN orders o ON u.id = o.user_id\nGROUP BY u.id, u.name, u.city;\n\nSELECT * FROM customer_summary ORDER BY total_spent DESC;\n\n-- List all views\nSELECT name FROM sqlite_master WHERE type = 'view';\n\n-- Drop a view\n-- DROP VIEW IF EXISTS order_details;"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: View builder",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:16px; margin:0; }\n    .layout { display:grid; grid-template-rows:auto 1fr; gap:10px; height:calc(100vh - 32px); }\n    .top { display:flex; flex-direction:column; gap:8px; }\n    .editor-row { display:flex; gap:8px; align-items:flex-start; }\n    textarea { flex:1; background:#0b0e14; border:1px solid #2d3748; border-radius:6px; color:#e2e8f0; padding:10px; font-family:monospace; font-size:0.82rem; resize:vertical; min-height:120px; }\n    .btns { display:flex; flex-direction:column; gap:6px; }\n    button { padding:8px 14px; border:none; border-radius:5px; font-weight:700; cursor:pointer; font-size:0.8rem; white-space:nowrap; }\n    .chips { display:flex; flex-wrap:wrap; gap:6px; }\n    .chip { background:#1a1f2b; border:1px solid #2d3748; border-radius:4px; padding:3px 10px; font-family:monospace; font-size:0.72rem; cursor:pointer; color:#94a3b8; }\n    .chip:hover { border-color:#4fd1c5; color:#4fd1c5; }\n    .results { background:#0b0e14; border-radius:6px; overflow:auto; }\n    .status { font-size:0.75rem; padding:6px 10px; }\n    table { border-collapse:collapse; width:100%; font-family:monospace; font-size:0.78rem; }\n    th { color:#4fd1c5; padding:6px 12px; border-bottom:1px solid #2d3748; text-align:left; position:sticky; top:0; background:#111827; }\n    td { padding:5px 12px; border-bottom:1px solid #1a1f2b; }\n    tr:hover td { background:#1a1f2b; }\n    .err { color:#ef4444; padding:10px; font-family:monospace; font-size:0.82rem; }\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"sql\" spellcheck=\"false\">CREATE VIEW order_details AS\nSELECT o.id AS order_id, u.name AS customer, p.name AS product,\n       o.quantity, o.total, o.ordered_at\nFROM orders o\nJOIN users u ON o.user_id=u.id\nJOIN products p ON o.product_id=p.id;\n\nSELECT * FROM order_details ORDER BY ordered_at;</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runSQL()\">▶ Run</button>\n          <button style=\"background:#2d3748;color:#94a3b8\" onclick=\"resetDB()\">Reset DB</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setSQL('SELECT name FROM sqlite_master WHERE type=\\'view\\';')\">list views</span>\n        <span class=\"chip\" onclick=\"setSQL('SELECT customer, SUM(total) AS spent FROM order_details GROUP BY customer ORDER BY spent DESC;')\">aggregate view</span>\n        <span class=\"chip\" onclick=\"setSQL('SELECT * FROM order_details WHERE product LIKE \\'%Book%\\';')\">filter view</span>\n        <span class=\"chip\" onclick=\"setSQL('CREATE VIEW customer_summary AS SELECT u.name, COUNT(o.id) AS orders, COALESCE(SUM(o.total),0) AS spent FROM users u LEFT JOIN orders o ON u.id=o.user_id GROUP BY u.id;\\nSELECT * FROM customer_summary ORDER BY spent DESC;')\">customer summary</span>\n      </div>\n    </div>\n    <div class=\"results\" id=\"results\"><div style=\"color:#94a3b8;padding:10px;font-size:0.8rem\">Loading...</div></div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js\"></script>\n  <script>\n    let db=null, SQL=null;\n    const SEED=`CREATE TABLE users(id INTEGER PRIMARY KEY,name TEXT,email TEXT,city TEXT,joined_at TEXT);CREATE TABLE products(id INTEGER PRIMARY KEY,name TEXT,category TEXT,price REAL,stock INTEGER);CREATE TABLE orders(id INTEGER PRIMARY KEY,user_id INTEGER,product_id INTEGER,quantity INTEGER,total REAL,ordered_at TEXT);INSERT INTO users VALUES(1,'Prashant Kumar','prashant@example.com','Delhi','2024-01-15'),(2,'Alice Singh','alice@example.com','Mumbai','2024-02-20'),(3,'Bob Sharma','bob@example.com','Bangalore','2024-03-10'),(4,'Priya Patel','priya@example.com','Delhi','2024-04-05'),(5,'Rahul Verma','rahul@example.com','Chennai','2024-05-22');INSERT INTO products VALUES(1,'Python Handbook','Books',499,150),(2,'Wireless Mouse','Electronics',799,80),(3,'Mechanical Keyboard','Electronics',2499,30),(4,'SQL Masterclass','Books',649,200),(5,'Webcam HD','Electronics',1299,45),(6,'Git Cheatsheet','Books',199,500);INSERT INTO orders VALUES(1,1,1,1,499,'2024-06-01'),(2,1,3,1,2499,'2024-06-02'),(3,2,2,2,1598,'2024-06-03'),(4,3,4,1,649,'2024-06-04'),(5,4,5,1,1299,'2024-06-05'),(6,2,6,3,597,'2024-06-06'),(7,5,1,2,998,'2024-06-07'),(8,1,4,1,649,'2024-06-08');`;\n    async function init(){SQL=await initSqlJs({locateFile:f=>`https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/${f}`});db=new SQL.Database();db.run(SEED);runSQL();}\n    function resetDB(){if(!SQL)return;try{db.close();}catch(e){}db=new SQL.Database();db.run(SEED);document.getElementById('results').innerHTML='<div class=\"status\" style=\"color:#4fd1c5\">✓ Database reset.</div>';}\n    function setSQL(q){document.getElementById('sql').value=q;runSQL();}\n    function runSQL(){if(!db)return;const stmts=document.getElementById('sql').value.trim();const res=document.getElementById('results');const t0=performance.now();try{const results=db.exec(stmts);const ms=(performance.now()-t0).toFixed(1);if(!results.length){res.innerHTML=`<div class=\"status\" style=\"color:#4fd1c5\">✓ OK · ${ms}ms</div>`;return;}const last=results[results.length-1];const{columns,values}=last;const rows=values.map(r=>`<tr>${r.map(v=>`<td>${v??'<span style=\"color:#64748b\">NULL</span>'}</td>`).join('')}</tr>`).join('');res.innerHTML=`<div class=\"status\" style=\"color:#4fd1c5\">✓ ${values.length} row(s) · ${ms}ms</div><table><thead><tr>${columns.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`;}catch(e){res.innerHTML=`<div class=\"err\">✗ ${e.message}</div>`;}}\n    document.getElementById('sql').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runSQL();}});\n    init();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "sql-view-q1",
+          "question": "What happens to the underlying data when you DROP VIEW?",
+          "type": "multiple-choice",
+          "options": [
+            "The underlying tables are dropped too",
+            "Nothing — the view is just a saved SELECT; dropping it doesn't affect the tables",
+            "All rows returned by the view are deleted",
+            "The view is archived, not deleted"
+          ],
+          "correctAnswer": 1,
+          "explanation": "A view stores no data of its own — it's just a named query. DROP VIEW removes the saved query definition. The underlying tables and their data are completely unaffected. To delete data, you'd use DELETE FROM on the actual tables."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Are views faster than writing the same query directly?",
+      "a": "Not inherently — a view is expanded inline at query time, so the database runs the same JOIN. However, views encourage writing the query once correctly (with proper indexes), and then it's reused everywhere. For performance, PostgreSQL's materialized views store the result physically and are much faster to read — at the cost of potentially stale data until refreshed."
+    }
+  ],
+  "sources": [
+    {
+      "name": "SQLite CREATE VIEW",
+      "url": "https://www.sqlite.org/lang_createview.html",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["reporting dashboards", "API backends", "data access layers", "security (hiding columns)"],
+    "examples": [
+      "CREATE VIEW public_users AS SELECT id, name, city FROM users — hide email/password",
+      "CREATE VIEW sales_report AS SELECT ... complex join ... — expose to non-SQL analysts",
+      "CREATE MATERIALIZED VIEW daily_stats AS SELECT ... REFRESH MATERIALIZED VIEW CONCURRENTLY daily_stats — nightly dashboard refresh"
+    ]
+  }
+}

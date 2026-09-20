@@ -79,7 +79,7 @@
     "order": 6,
     "stage": 6,
     "playground": "sql",
-    "enabled": false,
+    "enabled": true,
     "description": "Queries, joins, data modeling",
     "estimatedHours": 20
   },

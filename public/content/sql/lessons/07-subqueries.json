@@ -1,0 +1,104 @@
+{
+  "id": "07-subqueries",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "sql",
+  "technologyVersion": "SQL (SQLite 3 / PostgreSQL 16)",
+  "module": "sql-advanced",
+  "title": "Subqueries",
+  "subtitle": "Nested SELECT — scalar, IN, EXISTS, and derived tables",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 20,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["sql/06-joins"],
+  "skillsTaught": ["sql.subqueries", "sql.scalar-subquery", "sql.correlated-subquery", "sql.exists"],
+  "skillsUsed": ["sql.select", "sql.where", "sql.joins"],
+  "relatedConcepts": ["sql.ctes", "sql.window-functions"],
+  "whyItExists": {
+    "problem": "Some questions require multiple steps: 'Find products more expensive than the average.' You need to compute the average first, then compare. Joins can't express this directly.",
+    "solution": "A subquery is a SELECT inside another SELECT. The inner query runs first and provides its result to the outer query. Subqueries can appear in SELECT, FROM, WHERE, and HAVING.",
+    "whenToUse": "Multi-step logic: compute then compare, filter using aggregated results, find rows based on related rows in another table.",
+    "whenNotToUse": "When a JOIN or CTE would be clearer. Correlated subqueries run once per outer row — can be slow. Prefer a JOIN or window function for performance at scale."
+  },
+  "explainModes": {
+    "beginner": "A subquery is a query inside a query. Think of it as answering a smaller question first, then using that answer in the bigger question. 'Find products more expensive than average' = first ask 'what IS the average?', then compare each price to it.",
+    "simple": "Scalar subquery: (SELECT AVG(price) FROM products) — returns one value, used in SELECT or WHERE. IN subquery: WHERE id IN (SELECT user_id FROM orders) — matches any returned value. EXISTS: WHERE EXISTS (SELECT 1 FROM orders WHERE user_id = u.id) — true if any rows match. Derived table: FROM (SELECT ...) AS alias — subquery in FROM.",
+    "standard": "Scalar subquery must return exactly 1 row and 1 column or it errors. Uncorrelated subquery runs once. Correlated subquery references the outer query and runs once per outer row — slow on large tables. EXISTS short-circuits on first match (efficient). NOT EXISTS is the anti-join pattern. Subquery in SELECT: SELECT name, (SELECT COUNT(*) FROM orders WHERE user_id = u.id) AS order_count FROM users u — correlated scalar subquery.",
+    "technical": "The optimizer can often unnest (inline) subqueries and convert them to equivalent JOINs for better plans. EXISTS is implemented as a semi-join. NOT IN with NULLs is a trap — if the subquery returns any NULLs, NOT IN returns no rows (NULL-comparison issue). Use NOT EXISTS instead. Derived tables (subquery in FROM) create temporary result sets — now superseded by CTEs (WITH clause) for readability.",
+    "deepDive": "Lateral subqueries (LATERAL keyword) allow the right-side subquery in FROM to reference columns from tables to its left — they run per row. Not available in all databases; SQLite 3.41+ supports it. For top-N per group, LATERAL + ORDER BY LIMIT is clean and efficient. The Unnest() function with LATERAL is a common PostgreSQL pattern for expanding arrays into rows. Materialized CTEs (WITH ... AS MATERIALIZED) force the optimizer to compute the CTE once."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Scalar subqueries and IN"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "subqueries.sql",
+      "code": "-- Scalar subquery: returns one value\n-- Products more expensive than the average\nSELECT name, price\nFROM products\nWHERE price > (SELECT AVG(price) FROM products);\n\n-- Scalar subquery in SELECT column\nSELECT\n    name,\n    price,\n    ROUND((SELECT AVG(price) FROM products), 2) AS avg_price,\n    price - ROUND((SELECT AVG(price) FROM products), 2) AS diff_from_avg\nFROM products;\n\n-- IN subquery: users who have placed at least one order\nSELECT name, city\nFROM users\nWHERE id IN (SELECT DISTINCT user_id FROM orders);\n\n-- NOT IN: users who have NEVER ordered\nSELECT name, city\nFROM users\nWHERE id NOT IN (SELECT user_id FROM orders);"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "EXISTS and derived tables"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "exists_derived.sql",
+      "code": "-- EXISTS: efficient, stops on first match\nSELECT name\nFROM users u\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.user_id = u.id AND o.total > 1000\n);\n-- 'Give me users who have at least one order over 1000'\n\n-- NOT EXISTS (preferred over NOT IN)\nSELECT name\nFROM users u\nWHERE NOT EXISTS (\n    SELECT 1 FROM orders o WHERE o.user_id = u.id\n);\n\n-- Derived table: subquery in FROM\n-- Find users whose average order exceeds 500\nSELECT u.name, avg_orders.avg_total\nFROM users u\nJOIN (\n    SELECT user_id, ROUND(AVG(total), 2) AS avg_total\n    FROM orders\n    GROUP BY user_id\n) AS avg_orders ON u.id = avg_orders.user_id\nWHERE avg_orders.avg_total > 500;"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Subquery sandbox",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:16px; margin:0; }\n    .layout { display:grid; grid-template-rows:auto 1fr; gap:10px; height:calc(100vh - 32px); }\n    .top { display:flex; flex-direction:column; gap:8px; }\n    .editor-row { display:flex; gap:8px; align-items:flex-start; }\n    textarea { flex:1; background:#0b0e14; border:1px solid #2d3748; border-radius:6px; color:#e2e8f0; padding:10px; font-family:monospace; font-size:0.82rem; resize:vertical; min-height:110px; }\n    .btns { display:flex; flex-direction:column; gap:6px; }\n    button { padding:8px 14px; border:none; border-radius:5px; font-weight:700; cursor:pointer; font-size:0.8rem; white-space:nowrap; }\n    .chips { display:flex; flex-wrap:wrap; gap:6px; }\n    .chip { background:#1a1f2b; border:1px solid #2d3748; border-radius:4px; padding:3px 10px; font-family:monospace; font-size:0.72rem; cursor:pointer; color:#94a3b8; }\n    .chip:hover { border-color:#4fd1c5; color:#4fd1c5; }\n    .results { background:#0b0e14; border-radius:6px; overflow:auto; }\n    .status { font-size:0.75rem; padding:6px 10px; }\n    table { border-collapse:collapse; width:100%; font-family:monospace; font-size:0.78rem; }\n    th { color:#4fd1c5; padding:6px 12px; border-bottom:1px solid #2d3748; text-align:left; position:sticky; top:0; background:#111827; }\n    td { padding:5px 12px; border-bottom:1px solid #1a1f2b; }\n    tr:hover td { background:#1a1f2b; }\n    .err { color:#ef4444; padding:10px; font-family:monospace; font-size:0.82rem; }\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"sql\" spellcheck=\"false\">SELECT name, price\nFROM products\nWHERE price > (SELECT AVG(price) FROM products);</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runSQL()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setSQL('SELECT name, price, ROUND((SELECT AVG(price) FROM products),2) AS avg FROM products;')\">avg in SELECT</span>\n        <span class=\"chip\" onclick=\"setSQL('SELECT name FROM users WHERE id IN (SELECT DISTINCT user_id FROM orders);')\">IN subquery</span>\n        <span class=\"chip\" onclick=\"setSQL('SELECT name FROM users WHERE id NOT IN (SELECT user_id FROM orders);')\">NOT IN</span>\n        <span class=\"chip\" onclick=\"setSQL('SELECT name FROM users u WHERE EXISTS (SELECT 1 FROM orders o WHERE o.user_id=u.id AND o.total>1000);')\">EXISTS</span>\n        <span class=\"chip\" onclick=\"setSQL('SELECT u.name, s.avg_total FROM users u JOIN (SELECT user_id, ROUND(AVG(total),2) AS avg_total FROM orders GROUP BY user_id) s ON u.id=s.user_id WHERE s.avg_total>500;')\">derived table</span>\n      </div>\n    </div>\n    <div class=\"results\" id=\"results\"><div style=\"color:#94a3b8;padding:10px;font-size:0.8rem\">Loading...</div></div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js\"></script>\n  <script>\n    let db=null;\n    const SEED=`CREATE TABLE users(id INTEGER PRIMARY KEY,name TEXT,email TEXT,city TEXT,joined_at TEXT);CREATE TABLE products(id INTEGER PRIMARY KEY,name TEXT,category TEXT,price REAL,stock INTEGER);CREATE TABLE orders(id INTEGER PRIMARY KEY,user_id INTEGER,product_id INTEGER,quantity INTEGER,total REAL,ordered_at TEXT);INSERT INTO users VALUES(1,'Prashant Kumar','prashant@example.com','Delhi','2024-01-15'),(2,'Alice Singh','alice@example.com','Mumbai','2024-02-20'),(3,'Bob Sharma','bob@example.com','Bangalore','2024-03-10'),(4,'Priya Patel','priya@example.com','Delhi','2024-04-05'),(5,'Rahul Verma','rahul@example.com','Chennai','2024-05-22');INSERT INTO products VALUES(1,'Python Handbook','Books',499,150),(2,'Wireless Mouse','Electronics',799,80),(3,'Mechanical Keyboard','Electronics',2499,30),(4,'SQL Masterclass','Books',649,200),(5,'Webcam HD','Electronics',1299,45),(6,'Git Cheatsheet','Books',199,500);INSERT INTO orders VALUES(1,1,1,1,499,'2024-06-01'),(2,1,3,1,2499,'2024-06-02'),(3,2,2,2,1598,'2024-06-03'),(4,3,4,1,649,'2024-06-04'),(5,4,5,1,1299,'2024-06-05'),(6,2,6,3,597,'2024-06-06'),(7,5,1,2,998,'2024-06-07'),(8,1,4,1,649,'2024-06-08');`;\n    async function init(){const SQL=await initSqlJs({locateFile:f=>`https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/${f}`});db=new SQL.Database();db.run(SEED);runSQL();}\n    function setSQL(q){document.getElementById('sql').value=q;runSQL();}\n    function runSQL(){if(!db)return;const q=document.getElementById('sql').value.trim();const res=document.getElementById('results');const t0=performance.now();try{const results=db.exec(q);const ms=(performance.now()-t0).toFixed(1);if(!results.length){res.innerHTML=`<div class=\"status\" style=\"color:#4fd1c5\">✓ OK (${ms}ms)</div>`;return;}const{columns,values}=results[0];const rows=values.map(r=>`<tr>${r.map(v=>`<td>${v??'<span style=\"color:#64748b\">NULL</span>'}</td>`).join('')}</tr>`).join('');res.innerHTML=`<div class=\"status\" style=\"color:#4fd1c5\">✓ ${values.length} row(s) · ${ms}ms</div><table><thead><tr>${columns.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`;}catch(e){res.innerHTML=`<div class=\"err\">✗ ${e.message}</div>`;}}\n    document.getElementById('sql').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runSQL();}});\n    init();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "sql-sub-q1",
+          "question": "What is the risk of using NOT IN with a subquery that might return NULL values?",
+          "type": "multiple-choice",
+          "options": [
+            "It causes a syntax error",
+            "NULL values are silently ignored",
+            "If the subquery returns any NULL, NOT IN returns no rows at all",
+            "It only matters for text columns"
+          ],
+          "correctAnswer": 2,
+          "explanation": "NOT IN (1, 2, NULL) is equivalent to NOT (id=1 OR id=2 OR id=NULL). Since id=NULL evaluates to NULL (not FALSE), the entire NOT expression evaluates to NOT NULL = NULL for every row — so nothing passes the filter. Use NOT EXISTS to avoid this trap."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "When should I use a subquery vs a JOIN?",
+      "a": "JOINs are usually faster and more readable for combining rows from related tables. Use subqueries when you need to compute something first (scalar subquery for averages/counts), use IN/EXISTS for existence checks, or build derived tables for intermediate aggregations. When a subquery gets complex, convert it to a CTE (WITH clause) for readability."
+    }
+  ],
+  "sources": [
+    {
+      "name": "SQLite Subqueries",
+      "url": "https://www.sqlite.org/lang_select.html#subquery_expressions",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["complex filters", "data quality checks", "business analytics"],
+    "examples": [
+      "WHERE price > (SELECT AVG(price) FROM products WHERE category = 'Electronics') — above-category-average items",
+      "WHERE NOT EXISTS (SELECT 1 FROM payments WHERE payments.order_id = orders.id) — unpaid orders",
+      "FROM (SELECT user_id, NTILE(4) OVER (ORDER BY SUM(total)) AS quartile FROM orders GROUP BY user_id) — customer segmentation"
+    ]
+  }
+}

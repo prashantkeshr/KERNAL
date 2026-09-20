@@ -1,0 +1,104 @@
+{
+  "id": "12-indexes",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "sql",
+  "technologyVersion": "SQL (SQLite 3 / PostgreSQL 16)",
+  "module": "sql-data-management",
+  "title": "Indexes",
+  "subtitle": "Speed up queries with CREATE INDEX and EXPLAIN QUERY PLAN",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 18,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["sql/11-schema-design"],
+  "skillsTaught": ["sql.create-index", "sql.explain-query-plan", "sql.index-strategy"],
+  "skillsUsed": ["sql.select", "sql.where", "sql.join"],
+  "relatedConcepts": ["sql.schema-design", "sql.transactions"],
+  "whyItExists": {
+    "problem": "Without an index, finding a row by email requires scanning every row in the table — O(n) time. With 1 million users, that's a full table scan for every login query.",
+    "solution": "An index is a separate data structure (B-tree) that maps column values to row locations. Finding rows by an indexed column is O(log n) instead of O(n).",
+    "whenToUse": "Columns frequently used in WHERE, JOIN ON, or ORDER BY. Foreign key columns. Columns with high cardinality (many distinct values — email, username, UUID). Columns searched by range (price BETWEEN).",
+    "whenNotToUse": "Columns rarely queried. Small tables (< a few thousand rows) — a scan may be faster than index overhead. Very low cardinality columns (is_active with only true/false) — a scan may be equally fast. Write-heavy tables where index maintenance cost outweighs read benefit."
+  },
+  "explainModes": {
+    "beginner": "An index is like a book's index. Without it, finding 'chapter about JOINs' means reading every page. With the index, you jump directly to page 47. The database builds this lookup structure for you — you just tell it which column to index.",
+    "simple": "CREATE INDEX idx_name ON table(col). CREATE UNIQUE INDEX prevents duplicate values. DROP INDEX idx_name. EXPLAIN QUERY PLAN SELECT ... shows whether the optimizer uses your index. A 'SCAN' means full table scan (no index). A 'SEARCH ... USING INDEX' means index is being used. Composite index: CREATE INDEX idx_name ON orders(user_id, ordered_at).",
+    "standard": "Primary key automatically has an index. UNIQUE constraint creates an automatic unique index. Index overhead: every INSERT/UPDATE/DELETE must also update the index — indexes slow down writes. SQLite uses B-tree indexes. Index is most useful when query touches < ~10-20% of rows. Partial index: CREATE INDEX idx ON orders(total) WHERE status='pending' — only indexes rows matching the condition, smaller and faster.",
+    "technical": "Covering index: if all columns in a query are in the index, the database reads only the index (never touches the table) — very fast. Include columns with INCLUDE clause (PostgreSQL). SQLite automatically uses the best index using the query planner. ANALYZE updates table statistics, helping the planner make better decisions. REINDEX rebuilds an index (after corruption or major changes).",
+    "deepDive": "B-tree index: balanced tree where each node holds sorted key values and pointers. O(log n) for lookup, insert, delete. Range queries are efficient — the tree is sorted. Hash indexes (PostgreSQL) are O(1) for equality but don't support range queries. GIN (Generalized Inverted Index) for full-text search and JSONB. GiST for geometric types and full-text. BRIN (Block Range Index) for very large tables with correlated data (timestamps). Index bloat: after many updates/deletes, index pages have dead entries — VACUUM ANALYZE in PostgreSQL reclaims space."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Creating and using indexes"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "indexes.sql",
+      "code": "-- Create an index on email (for fast login queries)\nCREATE INDEX IF NOT EXISTS idx_users_email ON users(email);\n\n-- Unique index (also enforces uniqueness)\nCREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_unique ON users(email);\n\n-- Index on foreign key (speeds up JOINs)\nCREATE INDEX IF NOT EXISTS idx_orders_user_id    ON orders(user_id);\nCREATE INDEX IF NOT EXISTS idx_orders_product_id ON orders(product_id);\n\n-- Composite index: ORDER BY ordered_at WHERE user_id = ?\nCREATE INDEX IF NOT EXISTS idx_orders_user_date\n    ON orders(user_id, ordered_at);\n\n-- See existing indexes\nSELECT name, tbl_name FROM sqlite_master WHERE type = 'index';\n\n-- Drop an index\n-- DROP INDEX IF EXISTS idx_users_email;"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "EXPLAIN QUERY PLAN"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "explain.sql",
+      "code": "-- Show the query plan: does it use an index?\nEXPLAIN QUERY PLAN\nSELECT * FROM users WHERE email = 'alice@example.com';\n-- Result with index: SEARCH users USING INDEX idx_users_email\n-- Result without: SCAN users\n\n-- Check a JOIN plan\nEXPLAIN QUERY PLAN\nSELECT u.name, o.total\nFROM orders o\nJOIN users u ON o.user_id = u.id\nWHERE o.total > 1000;\n-- Should show SEARCH orders USING INDEX and SEARCH users USING INDEX\n\n-- Check sort plan\nEXPLAIN QUERY PLAN\nSELECT * FROM orders ORDER BY user_id, ordered_at;\n-- With composite index: SCAN orders USING INDEX idx_orders_user_date\n-- Without: SCAN + USE TEMP B-TREE FOR ORDER BY"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Index explorer",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:16px; margin:0; }\n    .layout { display:grid; grid-template-rows:auto 1fr; gap:10px; height:calc(100vh - 32px); }\n    .top { display:flex; flex-direction:column; gap:8px; }\n    .editor-row { display:flex; gap:8px; align-items:flex-start; }\n    textarea { flex:1; background:#0b0e14; border:1px solid #2d3748; border-radius:6px; color:#e2e8f0; padding:10px; font-family:monospace; font-size:0.82rem; resize:vertical; min-height:100px; }\n    .btns { display:flex; flex-direction:column; gap:6px; }\n    button { padding:8px 14px; border:none; border-radius:5px; font-weight:700; cursor:pointer; font-size:0.8rem; white-space:nowrap; }\n    .chips { display:flex; flex-wrap:wrap; gap:6px; }\n    .chip { background:#1a1f2b; border:1px solid #2d3748; border-radius:4px; padding:3px 10px; font-family:monospace; font-size:0.72rem; cursor:pointer; color:#94a3b8; }\n    .chip:hover { border-color:#4fd1c5; color:#4fd1c5; }\n    .results { background:#0b0e14; border-radius:6px; overflow:auto; }\n    .status { font-size:0.75rem; padding:6px 10px; }\n    table { border-collapse:collapse; width:100%; font-family:monospace; font-size:0.78rem; }\n    th { color:#4fd1c5; padding:6px 12px; border-bottom:1px solid #2d3748; text-align:left; position:sticky; top:0; background:#111827; }\n    td { padding:5px 12px; border-bottom:1px solid #1a1f2b; }\n    tr:hover td { background:#1a1f2b; }\n    .err { color:#ef4444; padding:10px; font-family:monospace; font-size:0.82rem; }\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"sql\" spellcheck=\"false\">-- See query plan WITHOUT an index\nEXPLAIN QUERY PLAN\nSELECT * FROM users WHERE email = 'alice@example.com';</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runSQL()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setSQL('CREATE INDEX idx_email ON users(email);\\nEXPLAIN QUERY PLAN SELECT * FROM users WHERE email=\\'alice@example.com\\';')\">add index + plan</span>\n        <span class=\"chip\" onclick=\"setSQL('SELECT name FROM sqlite_master WHERE type=\\'index\\';')\">list indexes</span>\n        <span class=\"chip\" onclick=\"setSQL('EXPLAIN QUERY PLAN SELECT u.name, o.total FROM orders o JOIN users u ON o.user_id=u.id WHERE o.total>1000;')\">join plan</span>\n        <span class=\"chip\" onclick=\"setSQL('CREATE INDEX idx_order_uid ON orders(user_id);\\nEXPLAIN QUERY PLAN SELECT * FROM orders WHERE user_id=1;')\">FK index plan</span>\n      </div>\n    </div>\n    <div class=\"results\" id=\"results\"><div style=\"color:#94a3b8;padding:10px;font-size:0.8rem\">Loading...</div></div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js\"></script>\n  <script>\n    let db=null;\n    const SEED=`CREATE TABLE users(id INTEGER PRIMARY KEY,name TEXT,email TEXT,city TEXT,joined_at TEXT);CREATE TABLE products(id INTEGER PRIMARY KEY,name TEXT,category TEXT,price REAL,stock INTEGER);CREATE TABLE orders(id INTEGER PRIMARY KEY,user_id INTEGER,product_id INTEGER,quantity INTEGER,total REAL,ordered_at TEXT);INSERT INTO users VALUES(1,'Prashant Kumar','prashant@example.com','Delhi','2024-01-15'),(2,'Alice Singh','alice@example.com','Mumbai','2024-02-20'),(3,'Bob Sharma','bob@example.com','Bangalore','2024-03-10'),(4,'Priya Patel','priya@example.com','Delhi','2024-04-05'),(5,'Rahul Verma','rahul@example.com','Chennai','2024-05-22');INSERT INTO products VALUES(1,'Python Handbook','Books',499,150),(2,'Wireless Mouse','Electronics',799,80),(3,'Mechanical Keyboard','Electronics',2499,30),(4,'SQL Masterclass','Books',649,200),(5,'Webcam HD','Electronics',1299,45),(6,'Git Cheatsheet','Books',199,500);INSERT INTO orders VALUES(1,1,1,1,499,'2024-06-01'),(2,1,3,1,2499,'2024-06-02'),(3,2,2,2,1598,'2024-06-03'),(4,3,4,1,649,'2024-06-04'),(5,4,5,1,1299,'2024-06-05'),(6,2,6,3,597,'2024-06-06'),(7,5,1,2,998,'2024-06-07'),(8,1,4,1,649,'2024-06-08');`;\n    async function init(){const SQL=await initSqlJs({locateFile:f=>`https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/${f}`});db=new SQL.Database();db.run(SEED);runSQL();}\n    function setSQL(q){document.getElementById('sql').value=q;runSQL();}\n    function runSQL(){if(!db)return;const stmts=document.getElementById('sql').value.trim();const res=document.getElementById('results');const t0=performance.now();try{const results=db.exec(stmts);const ms=(performance.now()-t0).toFixed(1);if(!results.length){res.innerHTML=`<div class=\"status\" style=\"color:#4fd1c5\">✓ OK · ${ms}ms</div>`;return;}const last=results[results.length-1];const{columns,values}=last;const rows=values.map(r=>`<tr>${r.map(v=>`<td>${v??'<span style=\"color:#64748b\">NULL</span>'}</td>`).join('')}</tr>`).join('');res.innerHTML=`<div class=\"status\" style=\"color:#4fd1c5\">✓ ${values.length} row(s) · ${ms}ms</div><table><thead><tr>${columns.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`;}catch(e){res.innerHTML=`<div class=\"err\">✗ ${e.message}</div>`;}}\n    document.getElementById('sql').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runSQL();}});\n    init();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "sql-idx-q1",
+          "question": "Why do indexes slow down INSERT and UPDATE operations?",
+          "type": "multiple-choice",
+          "options": [
+            "They don't — indexes only affect SELECT queries",
+            "The index data structure must be updated for every write, adding overhead",
+            "Indexes lock the table during writes",
+            "Indexes are rebuilt from scratch on every write"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Every INSERT, UPDATE, or DELETE must also update every index on the affected columns. Adding a row to the table means inserting into the B-tree index too. For write-heavy tables, too many indexes slow down writes more than they help reads — so choose indexes deliberately based on actual query patterns."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do I know which indexes to create?",
+      "a": "Start with: (1) foreign key columns — always index them for JOIN performance, (2) columns in WHERE clauses of frequent, slow queries — use EXPLAIN QUERY PLAN to identify full table scans, (3) columns in ORDER BY for pagination queries. Don't pre-create indexes speculatively — measure first, index second."
+    }
+  ],
+  "sources": [
+    {
+      "name": "SQLite query planning",
+      "url": "https://www.sqlite.org/queryplanner.html",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["login queries", "search features", "report generation", "API pagination"],
+    "examples": [
+      "CREATE INDEX idx_posts_author ON posts(author_id) — fast posts-by-author query",
+      "CREATE INDEX idx_events_ts ON events(occurred_at) — fast time-range queries",
+      "EXPLAIN QUERY PLAN before deploying a new query in production"
+    ]
+  }
+}

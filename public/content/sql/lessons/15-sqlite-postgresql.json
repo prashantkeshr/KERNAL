@@ -1,0 +1,130 @@
+{
+  "id": "15-sqlite-postgresql",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "sql",
+  "technologyVersion": "SQL (SQLite 3 / PostgreSQL 16)",
+  "module": "sql-practical",
+  "title": "SQLite vs PostgreSQL",
+  "subtitle": "Dialect differences, Python integration, and choosing the right database",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 20,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["sql/14-views"],
+  "skillsTaught": ["sql.sqlite-vs-postgresql", "sql.python-sqlite3", "sql.python-psycopg2", "sql.choosing-database"],
+  "skillsUsed": ["sql.select", "sql.insert", "sql.transactions"],
+  "relatedConcepts": ["sql.schema-design", "sql.transactions"],
+  "whyItExists": {
+    "problem": "SQL is a standard but every database has different data types, functions, and features. What works in SQLite may not work in PostgreSQL. Understanding the differences prevents surprises when moving to production.",
+    "solution": "Learn the key differences between SQLite (embedded, file-based, zero-config) and PostgreSQL (client-server, production-grade, feature-rich). Understand how to connect and query both from Python.",
+    "whenToUse": "SQLite: development, local apps, mobile, embedded. PostgreSQL: production web apps, concurrent users, complex queries, JSON, full-text search, large data.",
+    "whenNotToUse": "Don't use SQLite for high-concurrency web apps — it has a single writer. Don't use PostgreSQL when you need a zero-config file-based database — SQLite is simpler."
+  },
+  "explainModes": {
+    "beginner": "SQLite is like a spreadsheet file — the whole database lives in one .db file, no server needed. PostgreSQL is a full server — it runs as a background process, handles many users at once, and is used in real web applications. Both speak SQL, but with small differences.",
+    "simple": "SQLite: file-based, zero config, great for dev/mobile. PostgreSQL: server-based, handles concurrent users, production-grade. Key differences: data types (INTEGER/REAL/TEXT vs INT/DECIMAL/VARCHAR), booleans (0/1 vs TRUE/FALSE), date functions (DATE('now') vs NOW()), AUTOINCREMENT vs SERIAL/IDENTITY. Python: sqlite3 (stdlib) vs psycopg2/asyncpg. Connection strings. Parameterized queries (? vs %s).",
+    "standard": "SQLite dynamic typing: any value can go in any column. PostgreSQL strict typing: 'hello' in an INTEGER column is an error. SQLite concurrency: WAL mode allows one writer + concurrent readers; still single-writer. PostgreSQL: full MVCC, many concurrent writers. SQLite foreign keys: off by default (PRAGMA foreign_keys=ON). PostgreSQL: on by default. SQLite: no user/role system. PostgreSQL: full role-based access control. Migration path: SQLite for prototyping, PostgreSQL for production with minimal query changes.",
+    "technical": "Python sqlite3: standard library, synchronous, .db file. Parameterized: cursor.execute('SELECT * FROM t WHERE id=?', (id,)). Python psycopg2: external package, synchronous, DSN connection string. Parameterized: cursor.execute('SELECT * FROM t WHERE id=%s', (id,)). asyncpg: async PostgreSQL driver. SQLAlchemy ORM: abstracts both databases — switch by changing the connection string. Alembic: migration tool for SQLAlchemy. psycopg3 (psycopg): new async-first driver.",
+    "deepDive": "SQLite use cases in production: local-first apps (synced later), mobile apps, embedded systems, CLI tools, test fixtures. Turso (libSQL) extends SQLite for multi-tenant cloud. PostgreSQL extensions: pg_vector for AI embeddings, pg_trgm for fuzzy search, PostGIS for geospatial, TimescaleDB for time-series. Connection pooling: PgBouncer sits between app and PostgreSQL, reusing connections. PostgreSQL LISTEN/NOTIFY: real-time pub-sub over the database connection. Logical replication for read replicas and CDC (Change Data Capture)."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Key dialect differences"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "dialect_differences.sql",
+      "code": "-- ─────────────────────────────────────────\n-- SQLite                  PostgreSQL\n-- ─────────────────────────────────────────\n\n-- AUTO-INCREMENT\n-- SQLite:      INTEGER PRIMARY KEY AUTOINCREMENT\n-- PostgreSQL:  id SERIAL PRIMARY KEY\n--              id INTEGER GENERATED ALWAYS AS IDENTITY\n\n-- CURRENT TIMESTAMP\n-- SQLite:      DATETIME('now'), DATE('now')\n-- PostgreSQL:  NOW(), CURRENT_TIMESTAMP, CURRENT_DATE\n\n-- BOOLEANS (SQLite has no BOOLEAN type)\n-- SQLite:      INTEGER (0 = false, 1 = true)\n-- PostgreSQL:  BOOLEAN (TRUE/FALSE)\n\n-- STRING functions\n-- SQLite:      || for concatenation, instr(), substr()\n-- PostgreSQL:  || or CONCAT(), position(), substring()\n\n-- JSON\n-- SQLite:      json() (basic), json_extract()\n-- PostgreSQL:  JSON, JSONB (binary, indexed), -> and ->> operators\n\n-- FULL TEXT SEARCH\n-- SQLite:      FTS5 extension\n-- PostgreSQL:  tsvector, tsquery, @@ operator, GIN indexes\n\n-- ENABLE FOREIGN KEYS (SQLite only)\nPRAGMA foreign_keys = ON;"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Python integration"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "sqlite_usage.py",
+      "code": "# ── SQLite (stdlib, no install needed) ──\nimport sqlite3\n\n# Connect to a file (creates it if it doesn't exist)\nconn = sqlite3.connect('mydb.db')\nconn.row_factory = sqlite3.Row  # rows as dict-like objects\n\n# Enable foreign keys\nconn.execute('PRAGMA foreign_keys = ON')\n\ncur = conn.cursor()\n\n# Parameterized query — use ? placeholders\ncur.execute('SELECT * FROM users WHERE city = ?', ('Delhi',))\nfor row in cur.fetchall():\n    print(row['name'], row['email'])\n\n# Insert with transaction\nwith conn:  # auto-commits or rolls back on exception\n    conn.execute(\n        'INSERT INTO users (name, email, city, joined_at) VALUES (?,?,?,?)',\n        ('New User', 'new@example.com', 'Pune', '2024-07-01')\n    )\n    row_id = conn.execute('SELECT last_insert_rowid()').fetchone()[0]\n    print('Inserted ID:', row_id)\n\nconn.close()"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "postgresql_usage.py",
+      "code": "# ── PostgreSQL (install: pip install psycopg2-binary) ──\nimport psycopg2\nfrom psycopg2.extras import RealDictCursor\n\n# Connection string\nconn = psycopg2.connect(\n    host='localhost',\n    port=5432,\n    dbname='mydb',\n    user='postgres',\n    password='secret'\n    # or: dsn='postgresql://postgres:secret@localhost:5432/mydb'\n)\nconn.autocommit = False  # explicit transactions\n\n# Use %s placeholders (not ?) for PostgreSQL\nwith conn.cursor(cursor_factory=RealDictCursor) as cur:\n    cur.execute('SELECT * FROM users WHERE city = %s', ('Delhi',))\n    for row in cur.fetchall():\n        print(row['name'], row['email'])\n\n# Commit / rollback\ntry:\n    with conn.cursor() as cur:\n        cur.execute(\n            'INSERT INTO users (name, email, city) VALUES (%s, %s, %s) RETURNING id',\n            ('New User', 'new@example.com', 'Pune')\n        )\n        new_id = cur.fetchone()[0]\n    conn.commit()\nexcept Exception:\n    conn.rollback()\n    raise\nfinally:\n    conn.close()"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "SQLAlchemy — one codebase for both"
+    },
+    {
+      "type": "code",
+      "lang": "python",
+      "filename": "sqlalchemy_usage.py",
+      "code": "# pip install sqlalchemy\nfrom sqlalchemy import create_engine, text\n\n# SQLite\nengine = create_engine('sqlite:///mydb.db')\n\n# PostgreSQL\n# engine = create_engine('postgresql+psycopg2://user:pass@localhost/mydb')\n\n# Same code works for both!\nwith engine.connect() as conn:\n    result = conn.execute(text('SELECT * FROM users WHERE city = :city'),\n                          {'city': 'Delhi'})\n    for row in result:\n        print(row.name, row.email)"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: SQLite compatibility sandbox",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:16px; margin:0; }\n    .layout { display:grid; grid-template-rows:auto 1fr; gap:10px; height:calc(100vh - 32px); }\n    .top { display:flex; flex-direction:column; gap:8px; }\n    .editor-row { display:flex; gap:8px; align-items:flex-start; }\n    textarea { flex:1; background:#0b0e14; border:1px solid #2d3748; border-radius:6px; color:#e2e8f0; padding:10px; font-family:monospace; font-size:0.82rem; resize:vertical; min-height:100px; }\n    .btns { display:flex; flex-direction:column; gap:6px; }\n    button { padding:8px 14px; border:none; border-radius:5px; font-weight:700; cursor:pointer; font-size:0.8rem; white-space:nowrap; }\n    .chips { display:flex; flex-wrap:wrap; gap:6px; }\n    .chip { background:#1a1f2b; border:1px solid #2d3748; border-radius:4px; padding:3px 10px; font-family:monospace; font-size:0.72rem; cursor:pointer; color:#94a3b8; }\n    .chip:hover { border-color:#4fd1c5; color:#4fd1c5; }\n    .results { background:#0b0e14; border-radius:6px; overflow:auto; }\n    .status { font-size:0.75rem; padding:6px 10px; }\n    table { border-collapse:collapse; width:100%; font-family:monospace; font-size:0.78rem; }\n    th { color:#4fd1c5; padding:6px 12px; border-bottom:1px solid #2d3748; text-align:left; position:sticky; top:0; background:#111827; }\n    td { padding:5px 12px; border-bottom:1px solid #1a1f2b; }\n    tr:hover td { background:#1a1f2b; }\n    .err { color:#ef4444; padding:10px; font-family:monospace; font-size:0.82rem; }\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"sql\" spellcheck=\"false\">-- SQLite date functions\nSELECT\n  DATE('now')                  AS today,\n  DATETIME('now')              AS now_utc,\n  DATE('now', '+7 days')       AS next_week,\n  strftime('%Y-%m', 'now')     AS year_month;\n</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runSQL()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setSQL('SELECT sqlite_version();')\">SQLite version</span>\n        <span class=\"chip\" onclick=\"setSQL('SELECT name || \\' — \\' || city AS label FROM users;')\">string concat (||)</span>\n        <span class=\"chip\" onclick=\"setSQL('SELECT json_object(\\'name\\',name,\\'city\\',city) AS json_row FROM users LIMIT 3;')\">JSON output</span>\n        <span class=\"chip\" onclick=\"setSQL('SELECT typeof(id), typeof(price), typeof(name) FROM products LIMIT 1;')\">type affinity</span>\n        <span class=\"chip\" onclick=\"setSQL('SELECT name, CASE WHEN price > 1000 THEN \\'expensive\\' WHEN price > 500 THEN \\'mid\\' ELSE \\'budget\\' END AS tier FROM products;')\">CASE expression</span>\n      </div>\n    </div>\n    <div class=\"results\" id=\"results\"><div style=\"color:#94a3b8;padding:10px;font-size:0.8rem\">Loading...</div></div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js\"></script>\n  <script>\n    let db=null;\n    const SEED=`CREATE TABLE users(id INTEGER PRIMARY KEY,name TEXT,email TEXT,city TEXT,joined_at TEXT);CREATE TABLE products(id INTEGER PRIMARY KEY,name TEXT,category TEXT,price REAL,stock INTEGER);CREATE TABLE orders(id INTEGER PRIMARY KEY,user_id INTEGER,product_id INTEGER,quantity INTEGER,total REAL,ordered_at TEXT);INSERT INTO users VALUES(1,'Prashant Kumar','prashant@example.com','Delhi','2024-01-15'),(2,'Alice Singh','alice@example.com','Mumbai','2024-02-20'),(3,'Bob Sharma','bob@example.com','Bangalore','2024-03-10'),(4,'Priya Patel','priya@example.com','Delhi','2024-04-05'),(5,'Rahul Verma','rahul@example.com','Chennai','2024-05-22');INSERT INTO products VALUES(1,'Python Handbook','Books',499,150),(2,'Wireless Mouse','Electronics',799,80),(3,'Mechanical Keyboard','Electronics',2499,30),(4,'SQL Masterclass','Books',649,200),(5,'Webcam HD','Electronics',1299,45),(6,'Git Cheatsheet','Books',199,500);INSERT INTO orders VALUES(1,1,1,1,499,'2024-06-01'),(2,1,3,1,2499,'2024-06-02'),(3,2,2,2,1598,'2024-06-03'),(4,3,4,1,649,'2024-06-04'),(5,4,5,1,1299,'2024-06-05'),(6,2,6,3,597,'2024-06-06'),(7,5,1,2,998,'2024-06-07'),(8,1,4,1,649,'2024-06-08');`;\n    async function init(){const SQL=await initSqlJs({locateFile:f=>`https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/${f}`});db=new SQL.Database();db.run(SEED);runSQL();}\n    function setSQL(q){document.getElementById('sql').value=q;runSQL();}\n    function runSQL(){if(!db)return;const q=document.getElementById('sql').value.trim();const res=document.getElementById('results');const t0=performance.now();try{const results=db.exec(q);const ms=(performance.now()-t0).toFixed(1);if(!results.length){res.innerHTML=`<div class=\"status\" style=\"color:#4fd1c5\">✓ OK (${ms}ms)</div>`;return;}const{columns,values}=results[0];const rows=values.map(r=>`<tr>${r.map(v=>`<td>${v??'<span style=\"color:#64748b\">NULL</span>'}</td>`).join('')}</tr>`).join('');res.innerHTML=`<div class=\"status\" style=\"color:#4fd1c5\">✓ ${values.length} row(s) · ${ms}ms</div><table><thead><tr>${columns.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`;}catch(e){res.innerHTML=`<div class=\"err\">✗ ${e.message}</div>`;}}\n    document.getElementById('sql').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runSQL();}});\n    init();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "sql-pg-q1",
+          "question": "Which parameter placeholder do you use in Python's psycopg2 for PostgreSQL?",
+          "type": "multiple-choice",
+          "options": [
+            "? (same as sqlite3)",
+            "%s",
+            ":name",
+            "{0}"
+          ],
+          "correctAnswer": 1,
+          "explanation": "psycopg2 uses %s as the parameterized placeholder: cursor.execute('SELECT * FROM users WHERE id = %s', (user_id,)). SQLite's sqlite3 uses ?. Both drivers handle escaping for you — never use string formatting (f-strings or %) to build SQL queries with user input, as that causes SQL injection."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "When should I use SQLite vs PostgreSQL?",
+      "a": "SQLite: local/desktop apps, CLI tools, development databases, mobile apps, single-user or low-concurrency scenarios. Its main limit is single-writer — only one INSERT/UPDATE/DELETE at a time. PostgreSQL: any web application with concurrent users, when you need JSON, full-text search, robust role-based access, logical replication, or extension ecosystem. Start with SQLite for development — its schema is valid PostgreSQL SQL with minor adjustments."
+    },
+    {
+      "q": "How do I migrate from SQLite to PostgreSQL?",
+      "a": "The SQL is largely compatible with small changes: AUTOINCREMENT → SERIAL or GENERATED ALWAYS AS IDENTITY, DATE('now') → NOW(), INTEGER boolean columns → BOOLEAN TRUE/FALSE. Use SQLAlchemy with Alembic migrations to manage schema changes across both databases. The pgloader tool can migrate SQLite data directly to PostgreSQL."
+    }
+  ],
+  "sources": [
+    {
+      "name": "SQLite when to use it",
+      "url": "https://www.sqlite.org/whentouse.html",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "psycopg2 documentation",
+      "url": "https://www.psycopg.org/docs/",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["choosing database for new projects", "Python web apps", "local-first applications"],
+    "examples": [
+      "import sqlite3; conn = sqlite3.connect('app.db') — local app or test fixture",
+      "psycopg2.connect(os.environ['DATABASE_URL']) — production PostgreSQL",
+      "create_engine('sqlite:///test.db') → create_engine(os.environ['DATABASE_URL']) — swap with one env var"
+    ]
+  }
+}

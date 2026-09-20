@@ -1,0 +1,108 @@
+{
+  "id": "06-joins",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "sql",
+  "technologyVersion": "SQL (SQLite 3 / PostgreSQL 16)",
+  "module": "sql-queries",
+  "title": "Joins",
+  "subtitle": "INNER JOIN, LEFT JOIN, RIGHT JOIN, and FULL OUTER JOIN",
+  "difficulty": "beginner",
+  "estimatedMinutes": 25,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["sql/05-aggregate-functions"],
+  "skillsTaught": ["sql.inner-join", "sql.left-join", "sql.right-join", "sql.full-join", "sql.join-conditions"],
+  "skillsUsed": ["sql.select", "sql.where", "sql.group-by"],
+  "relatedConcepts": ["sql.foreign-keys", "sql.subqueries"],
+  "whyItExists": {
+    "problem": "Data is stored across multiple tables to avoid duplication (normalization). Orders reference users by user_id, not by copying the user's name into every order row. You need a way to bring data from multiple tables together into a single result.",
+    "solution": "JOIN combines rows from two tables based on a matching condition. INNER JOIN returns only matching rows. LEFT JOIN keeps all left-table rows even if there's no match. RIGHT JOIN keeps all right-table rows.",
+    "whenToUse": "Any time you need data from more than one table in a single result set.",
+    "whenNotToUse": "Joining too many tables (5+) can degrade performance — consider denormalization or materialized views for heavy analytics. Don't join without a condition — that creates a Cartesian product (every row times every row)."
+  },
+  "explainModes": {
+    "beginner": "INNER JOIN is like a Venn diagram's overlapping center — it only keeps rows that match in both tables. LEFT JOIN keeps everything from the left table and matches from the right (or NULL if no match). Think of LEFT JOIN as 'all orders with user info if available.'",
+    "simple": "INNER JOIN table2 ON t1.col = t2.col — only matching rows. LEFT JOIN — all rows from left table, NULLs where no right match. RIGHT JOIN — all rows from right table, NULLs where no left match. FULL OUTER JOIN — all rows from both, NULLs where no match. Aliases: FROM users u JOIN orders o ON u.id = o.user_id. Multiple joins: chain them.",
+    "standard": "JOIN without keyword defaults to INNER JOIN. Table aliases prevent column ambiguity. When both tables have same column name, prefix: users.name vs products.name. CROSS JOIN produces Cartesian product (all combinations). SELF JOIN joins a table to itself (e.g., employee → manager from same table). USING (col) shorthand: ON t1.col = t2.col when column names match. NATURAL JOIN — implicit USING on all matching column names (fragile, avoid).",
+    "technical": "Join algorithms: nested loop (for small tables), hash join (build hash of smaller table, probe with larger), merge join (both tables sorted on join key). The query optimizer chooses based on table sizes and available indexes. Join order matters for nested loops but the optimizer can reorder. Explicit join order hints exist in some databases. Predicate pushdown applies WHERE conditions early to reduce join input sizes.",
+    "deepDive": "Lateral joins (LATERAL keyword, PostgreSQL/SQLite 3.41+) allow the right side to reference columns from the left side — like a correlated subquery in FROM. For each row of the left table, the right-side query is executed. Useful for: top-N per group, unpivoting. Anti-join (NOT EXISTS / NOT IN) finds rows in the left table with NO match in the right. Semi-join (EXISTS) finds rows with at least one match without returning right-table columns."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "INNER JOIN — only matching rows"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "inner_join.sql",
+      "code": "-- Get order details WITH user names\n-- Without join: orders only has user_id (a number), not the name\nSELECT\n    orders.id         AS order_id,\n    users.name        AS customer,\n    orders.total,\n    orders.ordered_at\nFROM orders\nINNER JOIN users ON orders.user_id = users.id;\n\n-- Shorter with aliases\nSELECT\n    o.id     AS order_id,\n    u.name   AS customer,\n    o.total,\n    o.ordered_at\nFROM orders o\nJOIN users u ON o.user_id = u.id;  -- JOIN = INNER JOIN\n\n-- Join all three tables\nSELECT\n    u.name            AS customer,\n    p.name            AS product,\n    o.quantity,\n    o.total\nFROM orders o\nJOIN users    u ON o.user_id    = u.id\nJOIN products p ON o.product_id = p.id\nORDER BY o.ordered_at;"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "LEFT JOIN — keep all left rows"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "left_join.sql",
+      "code": "-- LEFT JOIN: all users, even those with no orders\n-- Users without orders get NULL for order columns\nSELECT\n    u.name,\n    COUNT(o.id)  AS order_count,\n    SUM(o.total) AS total_spent\nFROM users u\nLEFT JOIN orders o ON u.id = o.user_id\nGROUP BY u.id, u.name\nORDER BY total_spent DESC;\n\n-- Find users who have NEVER placed an order\n-- (rows where the right table produced NULL)\nSELECT u.name, u.email\nFROM users u\nLEFT JOIN orders o ON u.id = o.user_id\nWHERE o.id IS NULL;   -- o.id is NULL = no matching order"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Join visualiser",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:16px; margin:0; }\n    .layout { display:grid; grid-template-rows:auto 1fr; gap:10px; height:calc(100vh - 32px); }\n    .top { display:flex; flex-direction:column; gap:8px; }\n    .editor-row { display:flex; gap:8px; align-items:flex-start; }\n    textarea { flex:1; background:#0b0e14; border:1px solid #2d3748; border-radius:6px; color:#e2e8f0; padding:10px; font-family:monospace; font-size:0.82rem; resize:vertical; min-height:110px; }\n    .btns { display:flex; flex-direction:column; gap:6px; }\n    button { padding:8px 14px; border:none; border-radius:5px; font-weight:700; cursor:pointer; font-size:0.8rem; white-space:nowrap; }\n    .chips { display:flex; flex-wrap:wrap; gap:6px; }\n    .chip { background:#1a1f2b; border:1px solid #2d3748; border-radius:4px; padding:3px 10px; font-family:monospace; font-size:0.72rem; cursor:pointer; color:#94a3b8; }\n    .chip:hover { border-color:#4fd1c5; color:#4fd1c5; }\n    .results { background:#0b0e14; border-radius:6px; overflow:auto; }\n    .status { font-size:0.75rem; padding:6px 10px; }\n    table { border-collapse:collapse; width:100%; font-family:monospace; font-size:0.78rem; }\n    th { color:#4fd1c5; padding:6px 12px; border-bottom:1px solid #2d3748; text-align:left; position:sticky; top:0; background:#111827; }\n    td { padding:5px 12px; border-bottom:1px solid #1a1f2b; }\n    tr:hover td { background:#1a1f2b; }\n    .err { color:#ef4444; padding:10px; font-family:monospace; font-size:0.82rem; }\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"sql\" spellcheck=\"false\">SELECT u.name AS customer, p.name AS product, o.quantity, o.total\nFROM orders o\nJOIN users u ON o.user_id = u.id\nJOIN products p ON o.product_id = p.id\nORDER BY o.ordered_at;</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runSQL()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setSQL('SELECT o.id, u.name, o.total FROM orders o JOIN users u ON o.user_id = u.id;')\">INNER JOIN</span>\n        <span class=\"chip\" onclick=\"setSQL('SELECT u.name, COUNT(o.id) AS orders, COALESCE(SUM(o.total),0) AS spent FROM users u LEFT JOIN orders o ON u.id = o.user_id GROUP BY u.id ORDER BY spent DESC;')\">LEFT JOIN all users</span>\n        <span class=\"chip\" onclick=\"setSQL('SELECT u.name FROM users u LEFT JOIN orders o ON u.id = o.user_id WHERE o.id IS NULL;')\">users with no orders</span>\n        <span class=\"chip\" onclick=\"setSQL('SELECT u.name, p.name AS product, o.total FROM orders o JOIN users u ON o.user_id=u.id JOIN products p ON o.product_id=p.id WHERE p.category=\\'Electronics\\';')\">electronics orders</span>\n      </div>\n    </div>\n    <div class=\"results\" id=\"results\"><div style=\"color:#94a3b8;padding:10px;font-size:0.8rem\">Loading...</div></div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js\"></script>\n  <script>\n    let db=null;\n    const SEED=`CREATE TABLE users(id INTEGER PRIMARY KEY,name TEXT,email TEXT,city TEXT,joined_at TEXT);CREATE TABLE products(id INTEGER PRIMARY KEY,name TEXT,category TEXT,price REAL,stock INTEGER);CREATE TABLE orders(id INTEGER PRIMARY KEY,user_id INTEGER,product_id INTEGER,quantity INTEGER,total REAL,ordered_at TEXT);INSERT INTO users VALUES(1,'Prashant Kumar','prashant@example.com','Delhi','2024-01-15'),(2,'Alice Singh','alice@example.com','Mumbai','2024-02-20'),(3,'Bob Sharma','bob@example.com','Bangalore','2024-03-10'),(4,'Priya Patel','priya@example.com','Delhi','2024-04-05'),(5,'Rahul Verma','rahul@example.com','Chennai','2024-05-22');INSERT INTO products VALUES(1,'Python Handbook','Books',499,150),(2,'Wireless Mouse','Electronics',799,80),(3,'Mechanical Keyboard','Electronics',2499,30),(4,'SQL Masterclass','Books',649,200),(5,'Webcam HD','Electronics',1299,45),(6,'Git Cheatsheet','Books',199,500);INSERT INTO orders VALUES(1,1,1,1,499,'2024-06-01'),(2,1,3,1,2499,'2024-06-02'),(3,2,2,2,1598,'2024-06-03'),(4,3,4,1,649,'2024-06-04'),(5,4,5,1,1299,'2024-06-05'),(6,2,6,3,597,'2024-06-06'),(7,5,1,2,998,'2024-06-07'),(8,1,4,1,649,'2024-06-08');`;\n    async function init(){const SQL=await initSqlJs({locateFile:f=>`https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/${f}`});db=new SQL.Database();db.run(SEED);runSQL();}\n    function setSQL(q){document.getElementById('sql').value=q;runSQL();}\n    function runSQL(){if(!db)return;const q=document.getElementById('sql').value.trim();const res=document.getElementById('results');const t0=performance.now();try{const results=db.exec(q);const ms=(performance.now()-t0).toFixed(1);if(!results.length){res.innerHTML=`<div class=\"status\" style=\"color:#4fd1c5\">✓ OK (${ms}ms)</div>`;return;}const{columns,values}=results[0];const rows=values.map(r=>`<tr>${r.map(v=>`<td>${v??'<span style=\"color:#64748b\">NULL</span>'}</td>`).join('')}</tr>`).join('');res.innerHTML=`<div class=\"status\" style=\"color:#4fd1c5\">✓ ${values.length} row(s) · ${ms}ms</div><table><thead><tr>${columns.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`;}catch(e){res.innerHTML=`<div class=\"err\">✗ ${e.message}</div>`;}}\n    document.getElementById('sql').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runSQL();}});\n    init();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "sql-join-q1",
+          "question": "What does LEFT JOIN return that INNER JOIN does not?",
+          "type": "multiple-choice",
+          "options": [
+            "Rows from the right table that have no match in the left table",
+            "Rows from the left table even when there is no matching row in the right table",
+            "Duplicate rows from both tables",
+            "All rows from both tables regardless of matching"
+          ],
+          "correctAnswer": 1,
+          "explanation": "INNER JOIN only returns rows where there's a match in BOTH tables. LEFT JOIN also returns all rows from the LEFT table — if there's no matching row in the right table, the right table's columns are filled with NULL. This is useful for 'find users who have no orders.'"
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What happens if I forget the ON condition?",
+      "a": "Without ON, you get a CROSS JOIN (Cartesian product) — every row from the left table matched with every row from the right. 5 users × 6 products = 30 rows. This is almost never what you want and can produce millions of rows on large tables."
+    },
+    {
+      "q": "How do I find rows in table A that have no matching row in table B?",
+      "a": "Use LEFT JOIN + WHERE right_table.primary_key IS NULL. Example: SELECT u.name FROM users u LEFT JOIN orders o ON u.id = o.user_id WHERE o.id IS NULL — users who have never ordered. This is called an 'anti-join.'"
+    }
+  ],
+  "sources": [
+    {
+      "name": "SQLite JOIN operations",
+      "url": "https://www.sqlite.org/lang_select.html#join",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every app with related data", "reporting", "dashboards", "APIs returning nested data"],
+    "examples": [
+      "SELECT u.email, COUNT(o.id) FROM users u LEFT JOIN orders o ON u.id=o.user_id — send email to users with 0 orders",
+      "SELECT p.name, SUM(o.quantity) AS sold FROM products p LEFT JOIN orders o ON p.id=o.product_id GROUP BY p.id — include unsold products",
+      "Three-table join: posts JOIN users JOIN comments for a blog feed"
+    ]
+  }
+}

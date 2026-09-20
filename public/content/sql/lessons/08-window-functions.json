@@ -1,0 +1,104 @@
+{
+  "id": "08-window-functions",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "sql",
+  "technologyVersion": "SQL (SQLite 3 / PostgreSQL 16)",
+  "module": "sql-advanced",
+  "title": "Window Functions",
+  "subtitle": "ROW_NUMBER, RANK, LAG, LEAD, and PARTITION BY",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 22,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["sql/07-subqueries"],
+  "skillsTaught": ["sql.window-functions", "sql.partition-by", "sql.row-number", "sql.rank", "sql.lag-lead"],
+  "skillsUsed": ["sql.select", "sql.order-by", "sql.group-by"],
+  "relatedConcepts": ["sql.ctes", "sql.aggregate-functions"],
+  "whyItExists": {
+    "problem": "GROUP BY collapses rows — you can't see individual rows alongside their group aggregate. You can't rank items within a group without complex subqueries. You can't compare a row to the previous row.",
+    "solution": "Window functions compute across a 'window' of related rows without collapsing them. Each row keeps its identity but gains computed values from its neighbors — rank, running total, previous value.",
+    "whenToUse": "Ranking items per group. Running totals. Moving averages. Comparing a row to the previous/next row. Percentiles. Leaderboards.",
+    "whenNotToUse": "Window functions are computed after GROUP BY — if you need one aggregate per group and no row-level detail, GROUP BY is simpler."
+  },
+  "explainModes": {
+    "beginner": "Imagine a leaderboard. GROUP BY COUNT(*) tells you 'user 1 has 3 orders' — but collapses to one row. A window function lets you see all orders AND add a rank column showing '1st, 2nd, 3rd most expensive' — keeping all rows intact.",
+    "simple": "func() OVER (PARTITION BY col ORDER BY col2). PARTITION BY divides rows into groups (like GROUP BY but doesn't collapse). ORDER BY within OVER determines order within the window. ROW_NUMBER() — 1,2,3 per partition. RANK() — ties get same rank, gaps after. DENSE_RANK() — ties same, no gaps. LAG(col, n) — value from n rows before. LEAD(col, n) — value from n rows ahead. SUM/AVG OVER — running total/average.",
+    "standard": "Window function syntax: func() OVER (PARTITION BY p ORDER BY o ROWS BETWEEN ... AND ...). Frame clause: ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW (default for running sum). PARTITION BY is optional — omit to treat all rows as one window. Window functions run after WHERE/GROUP BY/HAVING, in the SELECT/ORDER BY phase. Cannot be used in WHERE or HAVING (use a CTE or subquery).",
+    "technical": "Frame types: ROWS (physical rows), RANGE (logical range of values — default for most functions). RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW groups ties together. FILTER clause works with window functions: SUM(col) FILTER (WHERE condition) OVER (...). Named windows: WINDOW w AS (PARTITION BY ...) — reuse in multiple functions. Aggregate functions (SUM, AVG, COUNT) can all be used as window functions with OVER.",
+    "deepDive": "Window functions are computed in a single pass with the sort for ORDER BY — efficient. For large datasets, PARTITION BY reduces sort size. First/last value in a window: FIRST_VALUE(col) OVER (...) and LAST_VALUE with correct frame. Percentile: PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY col) — exact median in PostgreSQL. NTH_VALUE(col, n). CUME_DIST() — cumulative distribution. PERCENT_RANK(). The combination of CTE + window function is the most powerful pattern for analytical SQL."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Ranking functions"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "window_rank.sql",
+      "code": "-- ROW_NUMBER: sequential numbers within partition\nSELECT\n    name, category, price,\n    ROW_NUMBER() OVER (PARTITION BY category ORDER BY price DESC) AS rank_in_category\nFROM products;\n\n-- RANK: ties get the same rank, with gaps\n-- DENSE_RANK: ties get the same rank, no gaps\nSELECT\n    name, total,\n    RANK()       OVER (ORDER BY total DESC) AS rank_with_gap,\n    DENSE_RANK() OVER (ORDER BY total DESC) AS rank_no_gap\nFROM orders;\n\n-- Top product per category (using ROW_NUMBER)\n-- (CTEs will be explained in the next lesson)\nSELECT name, category, price\nFROM (\n    SELECT\n        name, category, price,\n        ROW_NUMBER() OVER (PARTITION BY category ORDER BY price DESC) AS rn\n    FROM products\n)\nWHERE rn = 1;"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "LAG, LEAD, and running totals"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "lag_lead.sql",
+      "code": "-- LAG: value from the previous row\n-- LEAD: value from the next row\nSELECT\n    id, total, ordered_at,\n    LAG(total)  OVER (ORDER BY ordered_at) AS prev_order_total,\n    LEAD(total) OVER (ORDER BY ordered_at) AS next_order_total,\n    total - LAG(total) OVER (ORDER BY ordered_at) AS change_from_prev\nFROM orders;\n\n-- Running total (cumulative sum)\nSELECT\n    ordered_at,\n    total,\n    SUM(total) OVER (ORDER BY ordered_at) AS running_total\nFROM orders;\n\n-- Running total per user\nSELECT\n    user_id,\n    total,\n    ordered_at,\n    SUM(total) OVER (PARTITION BY user_id ORDER BY ordered_at) AS user_running_total\nFROM orders;\n\n-- Average + count alongside individual rows\n-- (without GROUP BY — rows are NOT collapsed)\nSELECT\n    name, price, category,\n    ROUND(AVG(price) OVER (PARTITION BY category), 2) AS category_avg,\n    COUNT(*) OVER (PARTITION BY category) AS category_count\nFROM products;"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Window function sandbox",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:16px; margin:0; }\n    .layout { display:grid; grid-template-rows:auto 1fr; gap:10px; height:calc(100vh - 32px); }\n    .top { display:flex; flex-direction:column; gap:8px; }\n    .editor-row { display:flex; gap:8px; align-items:flex-start; }\n    textarea { flex:1; background:#0b0e14; border:1px solid #2d3748; border-radius:6px; color:#e2e8f0; padding:10px; font-family:monospace; font-size:0.82rem; resize:vertical; min-height:120px; }\n    .btns { display:flex; flex-direction:column; gap:6px; }\n    button { padding:8px 14px; border:none; border-radius:5px; font-weight:700; cursor:pointer; font-size:0.8rem; white-space:nowrap; }\n    .chips { display:flex; flex-wrap:wrap; gap:6px; }\n    .chip { background:#1a1f2b; border:1px solid #2d3748; border-radius:4px; padding:3px 10px; font-family:monospace; font-size:0.72rem; cursor:pointer; color:#94a3b8; }\n    .chip:hover { border-color:#4fd1c5; color:#4fd1c5; }\n    .results { background:#0b0e14; border-radius:6px; overflow:auto; }\n    .status { font-size:0.75rem; padding:6px 10px; }\n    table { border-collapse:collapse; width:100%; font-family:monospace; font-size:0.78rem; }\n    th { color:#4fd1c5; padding:6px 12px; border-bottom:1px solid #2d3748; text-align:left; position:sticky; top:0; background:#111827; }\n    td { padding:5px 12px; border-bottom:1px solid #1a1f2b; }\n    tr:hover td { background:#1a1f2b; }\n    .err { color:#ef4444; padding:10px; font-family:monospace; font-size:0.82rem; }\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"sql\" spellcheck=\"false\">SELECT name, category, price,\n  ROW_NUMBER() OVER (PARTITION BY category ORDER BY price DESC) AS rank_in_cat,\n  ROUND(AVG(price) OVER (PARTITION BY category), 2) AS cat_avg\nFROM products;</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runSQL()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setSQL('SELECT id,total,ordered_at, SUM(total) OVER (ORDER BY ordered_at) AS running_total FROM orders;')\">running total</span>\n        <span class=\"chip\" onclick=\"setSQL('SELECT id,total,ordered_at, LAG(total) OVER (ORDER BY ordered_at) AS prev, total-COALESCE(LAG(total) OVER (ORDER BY ordered_at),0) AS change FROM orders;')\">LAG change</span>\n        <span class=\"chip\" onclick=\"setSQL('SELECT name,category,price, RANK() OVER (PARTITION BY category ORDER BY price DESC) AS rnk FROM products;')\">RANK by cat</span>\n        <span class=\"chip\" onclick=\"setSQL('SELECT name,category,price FROM (SELECT name,category,price, ROW_NUMBER() OVER (PARTITION BY category ORDER BY price DESC) AS rn FROM products) WHERE rn=1;')\">top per cat</span>\n      </div>\n    </div>\n    <div class=\"results\" id=\"results\"><div style=\"color:#94a3b8;padding:10px;font-size:0.8rem\">Loading...</div></div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js\"></script>\n  <script>\n    let db=null;\n    const SEED=`CREATE TABLE users(id INTEGER PRIMARY KEY,name TEXT,email TEXT,city TEXT,joined_at TEXT);CREATE TABLE products(id INTEGER PRIMARY KEY,name TEXT,category TEXT,price REAL,stock INTEGER);CREATE TABLE orders(id INTEGER PRIMARY KEY,user_id INTEGER,product_id INTEGER,quantity INTEGER,total REAL,ordered_at TEXT);INSERT INTO users VALUES(1,'Prashant Kumar','prashant@example.com','Delhi','2024-01-15'),(2,'Alice Singh','alice@example.com','Mumbai','2024-02-20'),(3,'Bob Sharma','bob@example.com','Bangalore','2024-03-10'),(4,'Priya Patel','priya@example.com','Delhi','2024-04-05'),(5,'Rahul Verma','rahul@example.com','Chennai','2024-05-22');INSERT INTO products VALUES(1,'Python Handbook','Books',499,150),(2,'Wireless Mouse','Electronics',799,80),(3,'Mechanical Keyboard','Electronics',2499,30),(4,'SQL Masterclass','Books',649,200),(5,'Webcam HD','Electronics',1299,45),(6,'Git Cheatsheet','Books',199,500);INSERT INTO orders VALUES(1,1,1,1,499,'2024-06-01'),(2,1,3,1,2499,'2024-06-02'),(3,2,2,2,1598,'2024-06-03'),(4,3,4,1,649,'2024-06-04'),(5,4,5,1,1299,'2024-06-05'),(6,2,6,3,597,'2024-06-06'),(7,5,1,2,998,'2024-06-07'),(8,1,4,1,649,'2024-06-08');`;\n    async function init(){const SQL=await initSqlJs({locateFile:f=>`https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/${f}`});db=new SQL.Database();db.run(SEED);runSQL();}\n    function setSQL(q){document.getElementById('sql').value=q;runSQL();}\n    function runSQL(){if(!db)return;const q=document.getElementById('sql').value.trim();const res=document.getElementById('results');const t0=performance.now();try{const results=db.exec(q);const ms=(performance.now()-t0).toFixed(1);if(!results.length){res.innerHTML=`<div class=\"status\" style=\"color:#4fd1c5\">✓ OK (${ms}ms)</div>`;return;}const{columns,values}=results[0];const rows=values.map(r=>`<tr>${r.map(v=>`<td>${v??'<span style=\"color:#64748b\">NULL</span>'}</td>`).join('')}</tr>`).join('');res.innerHTML=`<div class=\"status\" style=\"color:#4fd1c5\">✓ ${values.length} row(s) · ${ms}ms</div><table><thead><tr>${columns.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`;}catch(e){res.innerHTML=`<div class=\"err\">✗ ${e.message}</div>`;}}\n    document.getElementById('sql').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runSQL();}});\n    init();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "sql-win-q1",
+          "question": "What is the key difference between window functions and GROUP BY aggregation?",
+          "type": "multiple-choice",
+          "options": [
+            "Window functions are slower",
+            "Window functions collapse multiple rows into one; GROUP BY doesn't",
+            "GROUP BY collapses rows; window functions compute aggregates without collapsing rows",
+            "They are equivalent"
+          ],
+          "correctAnswer": 2,
+          "explanation": "GROUP BY collapses multiple rows into one row per group — you lose the individual row details. Window functions add computed values (rank, running total, etc.) to EACH row without collapsing them. This lets you see individual order details AND their rank simultaneously."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is PARTITION BY in a window function?",
+      "a": "PARTITION BY divides rows into groups (like GROUP BY), but rows stay separate — they're not collapsed. The window function is computed independently for each partition. ROW_NUMBER() OVER (PARTITION BY category ORDER BY price) gives separate 1,2,3 numbering within each category."
+    }
+  ],
+  "sources": [
+    {
+      "name": "SQLite Window Functions",
+      "url": "https://www.sqlite.org/windowfunctions.html",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["leaderboards", "running totals", "period-over-period comparison", "top-N per group"],
+    "examples": [
+      "ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at) — number a user's orders",
+      "SUM(revenue) OVER (PARTITION BY month ORDER BY day) — cumulative monthly revenue",
+      "LAG(price) OVER (ORDER BY date) — compare today's price to yesterday"
+    ]
+  }
+}

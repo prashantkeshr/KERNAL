@@ -1,0 +1,108 @@
+{
+  "id": "03-filtering",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "sql",
+  "technologyVersion": "SQL (SQLite 3 / PostgreSQL 16)",
+  "module": "sql-foundations",
+  "title": "Filtering with WHERE",
+  "subtitle": "AND, OR, NOT, IN, BETWEEN, LIKE, and NULL",
+  "difficulty": "beginner",
+  "estimatedMinutes": 20,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["sql/02-select-basics"],
+  "skillsTaught": ["sql.where", "sql.and-or-not", "sql.in", "sql.between", "sql.like", "sql.null"],
+  "skillsUsed": ["sql.select"],
+  "relatedConcepts": ["sql.order-by", "sql.aggregate"],
+  "whyItExists": {
+    "problem": "SELECT * FROM table returns millions of rows. You need to filter down to only the rows that match specific conditions.",
+    "solution": "The WHERE clause filters rows before returning them. Combine conditions with AND, OR, NOT. Use BETWEEN for ranges, IN for value lists, LIKE for pattern matching, IS NULL for missing data.",
+    "whenToUse": "Anytime you want a subset of rows — users from a city, orders above a price, products matching a search term.",
+    "whenNotToUse": "To filter grouped results (after GROUP BY), use HAVING — not WHERE. WHERE runs before aggregation."
+  },
+  "explainModes": {
+    "beginner": "WHERE is like a filter. SELECT * FROM users WHERE city = 'Delhi' returns only users from Delhi. Add AND to require multiple conditions, OR to allow either. LIKE with % matches any text.",
+    "simple": "WHERE condition. Operators: =, !=, <, >, <=, >=. AND, OR, NOT with parentheses for grouping. IN (val1, val2, val3) — match any. BETWEEN a AND b — inclusive range. LIKE 'pattern' — % for any chars, _ for one char. IS NULL / IS NOT NULL — test for missing values. Never use = NULL (always IS NULL).",
+    "standard": "Condition evaluation uses three-valued logic (TRUE, FALSE, NULL). Any comparison with NULL returns NULL (not FALSE) — which is why = NULL never works. Short-circuit evaluation: A AND B stops at A if A is FALSE. For case-insensitive LIKE in SQLite use LIKE (it's case-insensitive by default for ASCII). In PostgreSQL, ILIKE for case-insensitive. IN with subquery: WHERE id IN (SELECT user_id FROM orders).",
+    "technical": "Predicate pushdown: the engine evaluates WHERE early to reduce the row set before other operations. Index usage: = and range (<, >, BETWEEN) on indexed columns use index scans. LIKE 'prefix%' can use an index; LIKE '%suffix' cannot (full scan). NOT IN with NULLs is a classic bug: NOT IN (1, 2, NULL) returns no rows because NULL comparisons return NULL. Use NOT EXISTS instead.",
+    "deepDive": "SQL's three-valued logic (Codd, 1979) exists because NULL represents 'unknown.' NULL AND TRUE = NULL, NULL OR TRUE = TRUE, NULL AND FALSE = FALSE. Practical implications: rows where a condition evaluates to NULL are excluded (same as FALSE). Coalesce(col, default) converts NULL to a value. IS DISTINCT FROM / IS NOT DISTINCT FROM treat NULL as a normal value (NULLs are equal to each other)."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Basic conditions"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "where.sql",
+      "code": "-- Equality\nSELECT * FROM users WHERE city = 'Delhi';\n\n-- Comparison\nSELECT * FROM products WHERE price > 1000;\nSELECT * FROM products WHERE price <= 500;\n\n-- Not equal\nSELECT * FROM products WHERE category != 'Books';\n-- OR use: category <> 'Books'\n\n-- Multiple conditions with AND / OR\nSELECT * FROM products WHERE category = 'Electronics' AND price < 1000;\nSELECT * FROM users WHERE city = 'Delhi' OR city = 'Mumbai';\n\n-- NOT\nSELECT * FROM products WHERE NOT category = 'Books';\n\n-- Parentheses for grouping\nSELECT * FROM products\nWHERE (category = 'Books' OR category = 'Electronics')\n  AND price < 1000;"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "IN, BETWEEN, LIKE, and NULL"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "in_between_like.sql",
+      "code": "-- IN — match any value in a list\nSELECT * FROM users WHERE city IN ('Delhi', 'Mumbai', 'Chennai');\n\n-- NOT IN\nSELECT * FROM products WHERE category NOT IN ('Books');\n\n-- BETWEEN — inclusive range\nSELECT * FROM products WHERE price BETWEEN 500 AND 1000;\n-- Same as: price >= 500 AND price <= 1000\n\n-- LIKE — pattern matching\nSELECT * FROM products WHERE name LIKE 'W%';     -- starts with W\nSELECT * FROM products WHERE name LIKE '%book%'; -- contains 'book'\nSELECT * FROM users WHERE email LIKE '%@example.com';\n-- % = any number of chars, _ = exactly one char\n\n-- IS NULL / IS NOT NULL\nSELECT * FROM orders WHERE total IS NOT NULL;\n-- NEVER use: WHERE total = NULL (always returns nothing!)"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: WHERE clause explorer",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:16px; margin:0; }\n    .layout { display:grid; grid-template-rows:auto 1fr; gap:10px; height:calc(100vh - 32px); }\n    .top { display:flex; flex-direction:column; gap:8px; }\n    .editor-row { display:flex; gap:8px; align-items:flex-start; }\n    textarea { flex:1; background:#0b0e14; border:1px solid #2d3748; border-radius:6px; color:#e2e8f0; padding:10px; font-family:monospace; font-size:0.85rem; resize:vertical; min-height:90px; }\n    .btns { display:flex; flex-direction:column; gap:6px; }\n    button { padding:8px 14px; border:none; border-radius:5px; font-weight:700; cursor:pointer; font-size:0.8rem; white-space:nowrap; }\n    .chips { display:flex; flex-wrap:wrap; gap:6px; }\n    .chip { background:#1a1f2b; border:1px solid #2d3748; border-radius:4px; padding:3px 10px; font-family:monospace; font-size:0.72rem; cursor:pointer; color:#94a3b8; }\n    .chip:hover { border-color:#4fd1c5; color:#4fd1c5; }\n    .results { background:#0b0e14; border-radius:6px; overflow:auto; }\n    .status { font-size:0.75rem; padding:6px 10px; }\n    table { border-collapse:collapse; width:100%; font-family:monospace; font-size:0.78rem; }\n    th { color:#4fd1c5; padding:6px 12px; border-bottom:1px solid #2d3748; text-align:left; position:sticky; top:0; background:#111827; }\n    td { padding:5px 12px; border-bottom:1px solid #1a1f2b; }\n    tr:hover td { background:#1a1f2b; }\n    .err { color:#ef4444; padding:10px; font-family:monospace; font-size:0.82rem; }\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"sql\" spellcheck=\"false\">SELECT * FROM products WHERE category = 'Electronics';</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runSQL()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setSQL(\\\"SELECT * FROM products WHERE price > 1000;\\\")\">&gt; 1000</span>\n        <span class=\"chip\" onclick=\"setSQL(\\\"SELECT * FROM products WHERE price BETWEEN 500 AND 1000;\\\")\">\">BETWEEN</span>\n        <span class=\"chip\" onclick=\"setSQL(\\\"SELECT * FROM users WHERE city IN ('Delhi', 'Mumbai');\\\")\">\">IN list</span>\n        <span class=\"chip\" onclick=\"setSQL(\\\"SELECT * FROM products WHERE name LIKE '%book%';\\\")\">\">LIKE</span>\n        <span class=\"chip\" onclick=\"setSQL(\\\"SELECT * FROM products WHERE category = 'Electronics' AND price < 1000;\\\")\">\">AND</span>\n        <span class=\"chip\" onclick=\"setSQL(\\\"SELECT * FROM users WHERE city = 'Delhi' OR city = 'Mumbai';\\\")\">\">OR</span>\n      </div>\n    </div>\n    <div class=\"results\" id=\"results\"><div style=\"color:#94a3b8;padding:10px;font-size:0.8rem\">Loading sql.js...</div></div>\n  </div>\n\n  <script src=\"https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js\"></script>\n  <script>\n    let db = null;\n    const SEED = `CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, email TEXT, city TEXT, joined_at TEXT);CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, category TEXT, price REAL, stock INTEGER);CREATE TABLE orders (id INTEGER PRIMARY KEY, user_id INTEGER, product_id INTEGER, quantity INTEGER, total REAL, ordered_at TEXT);INSERT INTO users VALUES (1,'Prashant Kumar','prashant@example.com','Delhi','2024-01-15'),(2,'Alice Singh','alice@example.com','Mumbai','2024-02-20'),(3,'Bob Sharma','bob@example.com','Bangalore','2024-03-10'),(4,'Priya Patel','priya@example.com','Delhi','2024-04-05'),(5,'Rahul Verma','rahul@example.com','Chennai','2024-05-22');INSERT INTO products VALUES (1,'Python Handbook','Books',499,150),(2,'Wireless Mouse','Electronics',799,80),(3,'Mechanical Keyboard','Electronics',2499,30),(4,'SQL Masterclass','Books',649,200),(5,'Webcam HD','Electronics',1299,45),(6,'Git Cheatsheet','Books',199,500);INSERT INTO orders VALUES (1,1,1,1,499,'2024-06-01'),(2,1,3,1,2499,'2024-06-02'),(3,2,2,2,1598,'2024-06-03'),(4,3,4,1,649,'2024-06-04'),(5,4,5,1,1299,'2024-06-05'),(6,2,6,3,597,'2024-06-06'),(7,5,1,2,998,'2024-06-07'),(8,1,4,1,649,'2024-06-08');`;\n    async function init() {\n      const SQL = await initSqlJs({ locateFile: f => `https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/${f}` });\n      db = new SQL.Database(); db.run(SEED); runSQL();\n    }\n    function setSQL(q) { document.getElementById('sql').value = q; runSQL(); }\n    function runSQL() {\n      if (!db) return;\n      const q = document.getElementById('sql').value.trim();\n      const res = document.getElementById('results');\n      const t0 = performance.now();\n      try {\n        const results = db.exec(q);\n        const ms = (performance.now()-t0).toFixed(1);\n        if (!results.length) { res.innerHTML=`<div class=\"status\" style=\"color:#4fd1c5\">✓ OK (${ms}ms)</div>`; return; }\n        const {columns,values} = results[0];\n        const rows = values.map(r=>`<tr>${r.map(v=>`<td>${v??'<span style=\"color:#64748b\">NULL</span>'}</td>`).join('')}</tr>`).join('');\n        res.innerHTML=`<div class=\"status\" style=\"color:#4fd1c5\">✓ ${values.length} row(s) · ${ms}ms</div><table><thead><tr>${columns.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`;\n      } catch(e) { res.innerHTML=`<div class=\"err\">✗ ${e.message}</div>`; }\n    }\n    document.getElementById('sql').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runSQL();}});\n    init();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "sql-where-q1",
+          "question": "Why does WHERE price = NULL return no rows, even if some prices are NULL?",
+          "type": "multiple-choice",
+          "options": [
+            "NULL is a reserved keyword and can't be compared",
+            "Because = NULL evaluates to NULL (unknown), not TRUE — use IS NULL instead",
+            "You need to quote it: WHERE price = 'NULL'",
+            "It's a bug in SQL"
+          ],
+          "correctAnswer": 1,
+          "explanation": "SQL uses three-valued logic. NULL represents 'unknown.' Any comparison with NULL (=, !=, <, >) returns NULL, not TRUE or FALSE. Rows where the condition evaluates to NULL are excluded. Use IS NULL and IS NOT NULL to test for missing values."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between IN and = with OR?",
+      "a": "WHERE city IN ('Delhi', 'Mumbai') is exactly equivalent to WHERE city = 'Delhi' OR city = 'Mumbai' — just shorter and more readable. IN is preferred for 3+ values. IN also accepts a subquery: WHERE id IN (SELECT user_id FROM orders)."
+    },
+    {
+      "q": "Is LIKE case-sensitive?",
+      "a": "In SQLite: LIKE is case-insensitive for ASCII characters (A matches a). In PostgreSQL: LIKE is case-sensitive; use ILIKE for case-insensitive. In MySQL: case-sensitivity depends on the collation. Best practice: normalise your data (store lowercase emails) to avoid depending on case-insensitive matching."
+    }
+  ],
+  "sources": [
+    {
+      "name": "SQLite WHERE documentation",
+      "url": "https://www.sqlite.org/lang_select.html#where_clause",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["search features", "filtered reports", "user lookups", "data validation"],
+    "examples": [
+      "WHERE status = 'active' AND created_at > '2024-01-01' — filter recent active users",
+      "WHERE email LIKE '%@gmail.com' — find users with Gmail addresses",
+      "WHERE deleted_at IS NULL — soft-delete pattern (only fetch non-deleted rows)"
+    ]
+  }
+}

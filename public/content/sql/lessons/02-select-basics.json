@@ -1,0 +1,97 @@
+{
+  "id": "02-select-basics",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "sql",
+  "technologyVersion": "SQL (SQLite 3 / PostgreSQL 16)",
+  "module": "sql-foundations",
+  "title": "SELECT Basics",
+  "subtitle": "Retrieve rows and columns from a table",
+  "difficulty": "beginner",
+  "estimatedMinutes": 18,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["sql/01-introduction"],
+  "skillsTaught": ["sql.select", "sql.from", "sql.column-alias", "sql.distinct", "sql.limit"],
+  "skillsUsed": ["sql.tables"],
+  "relatedConcepts": ["sql.where", "sql.order-by"],
+  "whyItExists": {
+    "problem": "Data is stored in database tables. You need a way to retrieve specific rows and columns from those tables.",
+    "solution": "The SELECT statement is the most fundamental SQL command. SELECT col1, col2 FROM table retrieves those columns from every row. Add WHERE, ORDER BY, LIMIT to narrow the results.",
+    "whenToUse": "Any time you want to read data from a database.",
+    "whenNotToUse": "SELECT doesn't modify data. For creating/changing data use INSERT, UPDATE, DELETE."
+  },
+  "explainModes": {
+    "beginner": "SELECT tells the database what columns you want. FROM tells it which table to look in. SELECT * means 'give me everything.' SELECT name, email means 'only these two columns.'",
+    "simple": "SELECT col1, col2 FROM table — basic retrieval. SELECT * FROM table — all columns. SELECT DISTINCT col FROM table — unique values only. SELECT col AS alias — rename column in output. LIMIT n — only return n rows. SELECT 1+1 — expressions without a table.",
+    "standard": "Column order in SELECT controls output order. Aliases (AS) are visible in ORDER BY but NOT in WHERE (use the expression again). DISTINCT removes duplicate rows across all selected columns. LIMIT / FETCH FIRST n ROWS ONLY (ANSI SQL) / TOP n (SQL Server). Calculated columns: SELECT price * 1.18 AS price_with_tax FROM products.",
+    "technical": "SELECT is evaluated conceptually in this order: FROM → WHERE → GROUP BY → HAVING → SELECT → DISTINCT → ORDER BY → LIMIT. This explains why column aliases from SELECT cannot be used in WHERE. SELECT without FROM is valid in most databases (SQLite, PostgreSQL) — useful for expressions: SELECT 2+2, 'hello'. SQL keywords are case-insensitive; by convention write them uppercase.",
+    "deepDive": "The relational algebra operation for SELECT is projection (π) — choosing columns — and selection (σ) — filtering rows. DISTINCT is implemented as sort+dedup or hash-dedup by the engine — can be expensive. SELECT INTO (SQL Server) or CREATE TABLE AS SELECT (SQLite/PG) creates a new table from query results. In PostgreSQL, LATERAL joins allow correlated subqueries in FROM."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The SELECT statement"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "select.sql",
+      "code": "-- Get all columns from all rows\nSELECT * FROM users;\n\n-- Get specific columns\nSELECT name, city FROM users;\n\n-- Rename columns with aliases\nSELECT name AS full_name, email AS contact FROM users;\n\n-- Calculated columns\nSELECT name, price, stock, price * stock AS inventory_value\nFROM products;\n\n-- Unique values only\nSELECT DISTINCT city FROM users;\n\n-- Limit number of rows\nSELECT * FROM products LIMIT 3;\n\n-- Expressions without a table\nSELECT 2 + 2 AS sum, 'SQL' AS language, UPPER('hello') AS greeting;"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Live SQL editor",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:16px; margin:0; }\n    .layout { display:grid; grid-template-rows:auto 1fr; gap:10px; height:calc(100vh - 32px); }\n    .top { display:flex; flex-direction:column; gap:8px; }\n    .editor-row { display:flex; gap:8px; align-items:flex-start; }\n    textarea { flex:1; background:#0b0e14; border:1px solid #2d3748; border-radius:6px; color:#e2e8f0; padding:10px; font-family:monospace; font-size:0.85rem; resize:vertical; min-height:80px; }\n    .btns { display:flex; flex-direction:column; gap:6px; }\n    button { padding:8px 14px; border:none; border-radius:5px; font-weight:700; cursor:pointer; font-size:0.8rem; white-space:nowrap; }\n    .chips { display:flex; flex-wrap:wrap; gap:6px; }\n    .chip { background:#1a1f2b; border:1px solid #2d3748; border-radius:4px; padding:3px 10px; font-family:monospace; font-size:0.75rem; cursor:pointer; color:#94a3b8; transition:border-color .15s; }\n    .chip:hover { border-color:#4fd1c5; color:#4fd1c5; }\n    .results { background:#0b0e14; border-radius:6px; overflow:auto; }\n    .status { font-size:0.75rem; padding:6px 10px; }\n    table { border-collapse:collapse; width:100%; font-family:monospace; font-size:0.78rem; }\n    th { color:#4fd1c5; padding:6px 12px; border-bottom:1px solid #2d3748; text-align:left; position:sticky; top:0; background:#111827; }\n    td { padding:5px 12px; border-bottom:1px solid #1a1f2b; }\n    tr:hover td { background:#1a1f2b; }\n    .err { color:#ef4444; padding:10px; font-family:monospace; font-size:0.82rem; }\n    #loading { color:#94a3b8; padding:10px; font-size:0.8rem; }\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"sql\" spellcheck=\"false\">SELECT name, city FROM users;</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runSQL()\">▶ Run</button>\n          <button style=\"background:#2d3748;color:#94a3b8\" onclick=\"resetDB()\">Reset DB</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setSQL('SELECT * FROM users;')\">SELECT *</span>\n        <span class=\"chip\" onclick=\"setSQL('SELECT name, city FROM users;')\">specific cols</span>\n        <span class=\"chip\" onclick=\"setSQL('SELECT DISTINCT city FROM users;')\">DISTINCT</span>\n        <span class=\"chip\" onclick=\"setSQL('SELECT name, price * stock AS inventory_value FROM products;')\">calculated col</span>\n        <span class=\"chip\" onclick=\"setSQL('SELECT * FROM products LIMIT 3;')\">LIMIT</span>\n        <span class=\"chip\" onclick=\"setSQL('SELECT name AS product, price AS \\u20b9price FROM products;')\">aliases</span>\n      </div>\n    </div>\n    <div class=\"results\" id=\"results\"><div id=\"loading\">Loading sql.js...</div></div>\n  </div>\n\n  <script src=\"https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js\"></script>\n  <script>\n    let db = null;\n    const SEED = `\n      CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, email TEXT, city TEXT, joined_at TEXT);\n      CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, category TEXT, price REAL, stock INTEGER);\n      CREATE TABLE orders (id INTEGER PRIMARY KEY, user_id INTEGER, product_id INTEGER, quantity INTEGER, total REAL, ordered_at TEXT);\n      INSERT INTO users VALUES (1,'Prashant Kumar','prashant@example.com','Delhi','2024-01-15');\n      INSERT INTO users VALUES (2,'Alice Singh','alice@example.com','Mumbai','2024-02-20');\n      INSERT INTO users VALUES (3,'Bob Sharma','bob@example.com','Bangalore','2024-03-10');\n      INSERT INTO users VALUES (4,'Priya Patel','priya@example.com','Delhi','2024-04-05');\n      INSERT INTO users VALUES (5,'Rahul Verma','rahul@example.com','Chennai','2024-05-22');\n      INSERT INTO products VALUES (1,'Python Handbook','Books',499,150);\n      INSERT INTO products VALUES (2,'Wireless Mouse','Electronics',799,80);\n      INSERT INTO products VALUES (3,'Mechanical Keyboard','Electronics',2499,30);\n      INSERT INTO products VALUES (4,'SQL Masterclass','Books',649,200);\n      INSERT INTO products VALUES (5,'Webcam HD','Electronics',1299,45);\n      INSERT INTO products VALUES (6,'Git Cheatsheet','Books',199,500);\n      INSERT INTO orders VALUES (1,1,1,1,499,'2024-06-01');\n      INSERT INTO orders VALUES (2,1,3,1,2499,'2024-06-02');\n      INSERT INTO orders VALUES (3,2,2,2,1598,'2024-06-03');\n      INSERT INTO orders VALUES (4,3,4,1,649,'2024-06-04');\n      INSERT INTO orders VALUES (5,4,5,1,1299,'2024-06-05');\n      INSERT INTO orders VALUES (6,2,6,3,597,'2024-06-06');\n      INSERT INTO orders VALUES (7,5,1,2,998,'2024-06-07');\n      INSERT INTO orders VALUES (8,1,4,1,649,'2024-06-08');\n    `;\n\n    async function init() {\n      try {\n        const SQL = await initSqlJs({ locateFile: f => `https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/${f}` });\n        db = new SQL.Database();\n        db.run(SEED);\n        document.getElementById('loading').textContent = 'Database ready. Click Run or choose an example.';\n        runSQL();\n      } catch(e) {\n        document.getElementById('loading').innerHTML = `<span class=\"err\">Failed to load sql.js: ${e.message}</span>`;\n      }\n    }\n\n    function setSQL(q) { document.getElementById('sql').value = q; runSQL(); }\n\n    function runSQL() {\n      if (!db) return;\n      const q = document.getElementById('sql').value.trim();\n      const res = document.getElementById('results');\n      const t0 = performance.now();\n      try {\n        const results = db.exec(q);\n        const elapsed = (performance.now() - t0).toFixed(1);\n        if (!results.length) {\n          res.innerHTML = `<div class=\"status\" style=\"color:#4fd1c5\">✓ Query executed (${elapsed}ms) — no rows returned</div>`;\n        } else {\n          const { columns, values } = results[0];\n          const rows = values.map(r => `<tr>${r.map(v => `<td>${v ?? '<span style=\"color:#64748b\">NULL</span>'}</td>`).join('')}</tr>`).join('');\n          res.innerHTML = `<div class=\"status\" style=\"color:#4fd1c5\">✓ ${values.length} row(s) in ${elapsed}ms</div><table><thead><tr>${columns.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`;\n        }\n      } catch(e) {\n        res.innerHTML = `<div class=\"err\">✗ ${e.message}</div>`;\n      }\n    }\n\n    function resetDB() {\n      if (!db) return;\n      db.close();\n      const SQL = db.constructor;\n      db = new SQL.Database ? (() => { db = new SQL.Database(); db.run(SEED); document.getElementById('results').innerHTML = '<div class=\"status\" style=\"color:#4fd1c5\">Database reset to original data.</div>'; })() : null;\n    }\n\n    document.getElementById('sql').addEventListener('keydown', e => {\n      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); runSQL(); }\n    });\n\n    init();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "sql-select-q1",
+          "question": "What does SELECT * FROM products return?",
+          "type": "multiple-choice",
+          "options": [
+            "Only the first row of products",
+            "All columns and all rows from the products table",
+            "The product count",
+            "An error — you must specify column names"
+          ],
+          "correctAnswer": 1,
+          "explanation": "* is a wildcard meaning 'all columns.' SELECT * FROM products retrieves every column (id, name, category, price, stock) and every row in the products table."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is SQL case-sensitive?",
+      "a": "SQL keywords (SELECT, FROM, WHERE) are case-insensitive — SELECT, select, and Select are the same. Column and table names follow the database's rules — usually case-insensitive but best to match the exact case you created them with. String comparisons can be case-sensitive depending on the database's collation."
+    },
+    {
+      "q": "What is the difference between AS and no alias?",
+      "a": "Without AS, the column in the output keeps its original name (or the expression text). With AS alias, the output column gets the alias name. Aliases make results more readable and are required for calculated columns. They're also how you reference aggregated columns in ORDER BY."
+    }
+  ],
+  "sources": [
+    {
+      "name": "SQLite SELECT documentation",
+      "url": "https://www.sqlite.org/lang_select.html",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every data query", "dashboards", "reports", "API data fetching"],
+    "examples": [
+      "SELECT user_id, SUM(total) AS lifetime_value FROM orders GROUP BY user_id",
+      "SELECT DISTINCT country FROM customers — list all countries with customers",
+      "SELECT name, price * 1.18 AS price_incl_gst FROM products"
+    ]
+  }
+}

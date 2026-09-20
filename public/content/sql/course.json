@@ -1,0 +1,16 @@
+{
+  "id": "sql",
+  "name": "SQL",
+  "version": "SQL (SQLite 3 / PostgreSQL 16)",
+  "difficulty": "beginner",
+  "estimatedHours": 20,
+  "modules": [
+    "sql-foundations",
+    "sql-queries",
+    "sql-advanced",
+    "sql-data-management",
+    "sql-practical"
+  ],
+  "prerequisites": ["python"],
+  "certificationAvailable": true
+}
