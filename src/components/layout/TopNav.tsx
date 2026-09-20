@@ -43,9 +43,9 @@ export default function TopNav() {
       </button>
 
       {/* Logo */}
-      <Link to="/" className="flex items-center gap-2 font-mono font-semibold text-lg select-none shrink-0">
-        <span className="text-k-accent">&gt;_</span>
-        <span className="text-k-text hidden sm:inline">KERNAL</span>
+      <Link to="/" className="flex items-center gap-2 select-none shrink-0">
+        <img src="/icon-192.png" alt="KERNAL mascot" className="h-8 w-8 object-contain drop-shadow-sm" />
+        <span className="font-black text-lg tracking-widest text-k-text uppercase hidden sm:inline">KERNAL</span>
       </Link>
 
       {/* Search */}

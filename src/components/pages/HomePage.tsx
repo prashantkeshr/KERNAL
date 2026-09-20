@@ -52,9 +52,9 @@ export default function HomePage() {
       <section className="mb-12">
         <div className="flex items-start gap-4 mb-6">
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="font-mono text-2xl text-k-accent font-bold">&gt;_</span>
-              <span className="font-mono text-2xl font-bold text-k-text">KERNAL</span>
+            <div className="flex items-center gap-3 mb-3">
+              <img src="/icon-192.png" alt="KERNAL" className="h-12 w-12 object-contain" />
+              <span className="font-black text-3xl tracking-widest text-k-text uppercase">KERNAL</span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-bold text-k-text mb-3 leading-tight">
               The core of every coder.
