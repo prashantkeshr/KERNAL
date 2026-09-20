@@ -1,0 +1,104 @@
+{
+  "id": "02-basic-types",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "typescript",
+  "technologyVersion": "TypeScript 5.x",
+  "module": "ts-foundations",
+  "title": "Basic Types",
+  "subtitle": "string, number, boolean, null, undefined, any, unknown, void, never",
+  "difficulty": "beginner",
+  "estimatedMinutes": 20,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["typescript/01-introduction"],
+  "skillsTaught": ["ts.string", "ts.number", "ts.boolean", "ts.null-undefined", "ts.any", "ts.unknown", "ts.void", "ts.never"],
+  "skillsUsed": ["js.variables", "js.functions"],
+  "relatedConcepts": ["ts.union-types", "ts.interfaces"],
+  "whyItExists": {
+    "problem": "JavaScript has 8 primitive types but no way to enforce which type a variable holds. TypeScript maps these to named types you can annotate and the compiler enforces.",
+    "solution": "TypeScript's basic types mirror JavaScript's primitives: string, number, boolean, null, undefined. Plus TypeScript-specific helpers: any (opt-out of type checking), unknown (safe any), void (no return value), never (impossible value).",
+    "whenToUse": "Everywhere. These are the building blocks of every TypeScript program.",
+    "whenNotToUse": "Avoid any — it turns off type checking. Use unknown instead when you genuinely don't know the type. Prefer explicit types for function parameters; let inference handle variable declarations."
+  },
+  "explainModes": {
+    "beginner": "TypeScript has named versions of JavaScript's types: string for text, number for numbers, boolean for true/false. It also has any (means 'anything goes, no checking') and unknown (safer version — you must check the type before using it). void means a function returns nothing. never means something can never happen.",
+    "simple": "string, number, boolean — basic primitives. null and undefined — their own types (with strictNullChecks). any — disables type checking (avoid). unknown — like any but safe; must narrow before use. void — function return type when no value returned. never — return type of functions that throw or never return (infinite loop). object — non-primitive. Function — typed with parameter and return types.",
+    "standard": "strictNullChecks (enabled with strict): null and undefined are NOT assignable to other types — prevents a whole class of bugs. Without it, null is assignable to string (like Java's null). With it: let x: string = null is an error. Use string | null for nullable strings. The undefined type is for uninitialized or missing values. Use type: type | undefined for optional values.",
+    "technical": "number covers both integers and floats (IEEE 754 double precision — same as JS). bigint for arbitrary precision integers (64-bit+). symbol for unique identifiers. Template literal types: type Greeting = `Hello, ${string}` — a string that starts with 'Hello, '. Literal types: type Direction = 'left' | 'right' — only those exact values allowed. const assertion: const config = { port: 3000 } as const — port has type 3000 (literal), not number.",
+    "deepDive": "The never type represents the bottom type — a value that can never exist. Use case: exhaustive checks. if (x is string) ... else if (x is number) ... else { const _check: never = x } — if x has no remaining type variants, the assignment to never compiles; if you later add a new union member and forget to handle it, it errors. This pattern enforces exhaustive switch/if handling at compile time. satisfies operator (TS 4.9): const config = { port: 3000 } satisfies Config — validates against Config but keeps the literal type (3000, not number)."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Primitive types"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "primitives.ts",
+      "code": "// Primitive types\nlet username: string  = 'Alice';\nlet age: number       = 30;\nlet isAdmin: boolean  = false;\nlet nothing: null     = null;\nlet missing: undefined = undefined;\n\n// TypeScript infers from literals — annotations optional here\nconst PI = 3.14159;   // inferred: number\nconst APP = 'KERNAL'; // inferred: string\n\n// Template literal types (TS 4.1+)\ntype EventName = `on${string}`;  // 'onClick', 'onSubmit', etc.\nconst handler: EventName = 'onClick';\n\n// Literal types — only specific values allowed\ntype Direction = 'left' | 'right' | 'up' | 'down';\nlet dir: Direction = 'left';\n// dir = 'diagonal';  // Error: not assignable to type Direction\n\n// bigint — large integers\nconst big: bigint = 9999999999999999n;"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "any, unknown, void, never"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "special_types.ts",
+      "code": "// any — opt out of type checking (avoid!)\nlet data: any = 'hello';\ndata = 42;           // OK — any accepts anything\ndata.toUpperCase();  // OK at compile time — but crashes if data is a number!\n\n// unknown — safe version of any (prefer this)\nlet value: unknown = 'hello';\n// value.toUpperCase();  // Error: can't use unknown without checking type first\nif (typeof value === 'string') {\n    console.log(value.toUpperCase());  // OK — narrowed to string\n}\n\n// void — function returns nothing\nfunction logMessage(msg: string): void {\n    console.log(msg);\n    // return 42;  // Error: can't return a value from void function\n}\n\n// never — function never returns (throws or loops forever)\nfunction fail(msg: string): never {\n    throw new Error(msg);\n}\n\n// never for exhaustive checks\ntype Status = 'active' | 'inactive';\nfunction describe(s: Status): string {\n    if (s === 'active')   return 'User is active';\n    if (s === 'inactive') return 'User is inactive';\n    const _exhaustive: never = s;  // Error if Status gains a new variant\n    return _exhaustive;\n}"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Type explorer",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:16px; margin:0; }\n    .layout { display:grid; grid-template-rows:auto 1fr; gap:10px; height:calc(100vh - 32px); }\n    .top { display:flex; flex-direction:column; gap:8px; }\n    .editor-row { display:flex; gap:8px; align-items:flex-start; }\n    textarea { flex:1; background:#0b0e14; border:1px solid #2d3748; border-radius:6px; color:#e2e8f0; padding:10px; font-family:monospace; font-size:0.82rem; resize:vertical; min-height:130px; }\n    .btns { display:flex; flex-direction:column; gap:6px; }\n    button { padding:8px 14px; border:none; border-radius:5px; font-weight:700; cursor:pointer; font-size:0.8rem; white-space:nowrap; }\n    .chips { display:flex; flex-wrap:wrap; gap:6px; }\n    .chip { background:#1a1f2b; border:1px solid #2d3748; border-radius:4px; padding:3px 10px; font-family:monospace; font-size:0.72rem; cursor:pointer; color:#94a3b8; }\n    .chip:hover { border-color:#4fd1c5; color:#4fd1c5; }\n    .panels { display:grid; grid-template-columns:1fr 1fr; gap:8px; }\n    .panel { background:#0b0e14; border-radius:6px; overflow:auto; padding:10px; font-family:monospace; font-size:0.78rem; }\n    .panel-label { font-size:0.7rem; color:#4fd1c5; margin-bottom:6px; }\n    .ok { color:#4fd1c5; } .err { color:#ef4444; }\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"ts\" spellcheck=\"false\">// unknown vs any\nlet safe: unknown = 'hello';\nlet unsafe: any = 'hello';\n\n// Must narrow unknown before using\nif (typeof safe === 'string') {\n  console.log('safe:', safe.toUpperCase());\n}\n\n// any: no check needed (but risky)\nunsafe = 42;\nconsole.log('unsafe type:', typeof unsafe);\n\n// void function\nfunction log(msg: string): void {\n  console.log('LOG:', msg);\n}\nlog('TypeScript types!');\n</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runTS()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setTS('// Literal type\\ntype Dir = \\'N\\' | \\'S\\' | \\'E\\' | \\'W\\';\\nlet heading: Dir = \\'N\\';\\nconsole.log(\\'Heading:\\', heading);\\n// heading = \\'NE\\'; // error!')\">\">literal type</span>\n        <span class=\"chip\" onclick=\"setTS('// bigint\\nconst big: bigint = 9007199254740993n;\\nconst num: number = 9007199254740993;  // loses precision\\nconsole.log(big.toString());\\nconsole.log(num.toString());')\">bigint</span>\n        <span class=\"chip\" onclick=\"setTS('// never — exhaustive check\\ntype Shape = \\'circle\\' | \\'square\\';\\nfunction area(s: Shape): number {\\n  if (s === \\'circle\\') return 3.14;\\n  if (s === \\'square\\') return 1;\\n  const _: never = s; // add a new shape and this errors\\n  return _;\\n}\\nconsole.log(area(\\'circle\\'));')\">never exhaustive</span>\n      </div>\n    </div>\n    <div class=\"panels\">\n      <div class=\"panel\" id=\"output\"><div class=\"panel-label\">OUTPUT</div></div>\n      <div class=\"panel\" id=\"js\"><div class=\"panel-label\">COMPILED JS</div></div>\n    </div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/typescript@5.3.3/lib/typescript.js\"></script>\n  <script>\n    function setTS(code){document.getElementById('ts').value=code;runTS();}\n    function runTS(){\n      const src=document.getElementById('ts').value;\n      const out=document.getElementById('output');\n      const jsPanel=document.getElementById('js');\n      try{\n        const result=ts.transpileModule(src,{compilerOptions:{target:ts.ScriptTarget.ES2020,strict:true}});\n        const jsCode=result.outputText;\n        jsPanel.innerHTML='<div class=\"panel-label\">COMPILED JS</div><pre style=\"color:#64748b;margin:0;white-space:pre-wrap\">'+jsCode.replace(/</g,'&lt;')+'</pre>';\n        const logs=[];\n        const orig=console.log;\n        console.log=(...a)=>logs.push(a.map(x=>typeof x==='object'?JSON.stringify(x):String(x)).join(' '));\n        try{new Function(jsCode)();}finally{console.log=orig;}\n        out.innerHTML='<div class=\"panel-label\">OUTPUT</div>'+(logs.length?logs.map(l=>`<div class=\"ok\">${l.replace(/</g,'&lt;')}</div>`).join(''):'<div style=\"color:#64748b\">No output</div>');\n      }catch(e){out.innerHTML='<div class=\"panel-label\">OUTPUT</div><div class=\"err\">✗ '+e.message.replace(/</g,'&lt;')+'</div>';}\n    }\n    document.getElementById('ts').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runTS();}});\n    runTS();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "ts-types-q1",
+          "question": "What is the difference between any and unknown?",
+          "type": "multiple-choice",
+          "options": [
+            "They are identical — any is just an alias for unknown",
+            "any allows using the value without type checks; unknown requires narrowing first",
+            "unknown is faster at runtime",
+            "any is for primitives, unknown is for objects"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Both accept any value, but unknown is safer. With any, you can call methods and access properties without checks — risky because the type might be wrong at runtime. With unknown, TypeScript forces you to narrow the type first (typeof check, instanceof, etc.) before using it. Always prefer unknown over any when you're unsure of the type."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What does strictNullChecks do?",
+      "a": "With strictNullChecks (on by default with strict: true), null and undefined are their own types — they can't be assigned to string, number, etc. This prevents a huge category of 'Cannot read property of null' runtime errors. To allow null: use string | null. This is the single most impactful TypeScript setting."
+    }
+  ],
+  "sources": [
+    {
+      "name": "TypeScript Handbook — Everyday Types",
+      "url": "https://www.typescriptlang.org/docs/handbook/2/everyday-types.html",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["all TypeScript code"],
+    "examples": [
+      "function parseJSON(input: string): unknown — return unknown, force callers to narrow",
+      "type Status = 'pending' | 'active' | 'closed' — literal union instead of string",
+      "function assertNever(x: never): never { throw new Error() } — exhaustive check helper"
+    ]
+  }
+}

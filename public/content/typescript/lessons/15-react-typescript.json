@@ -1,0 +1,110 @@
+{
+  "id": "15-react-typescript",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "typescript",
+  "technologyVersion": "TypeScript 5.x",
+  "module": "ts-practical",
+  "title": "TypeScript with React",
+  "subtitle": "Props interfaces, useState<T>, useRef<T>, event types, and React.FC",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 22,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["typescript/14-strict-mode"],
+  "skillsTaught": ["ts.react-props", "ts.useState-generic", "ts.useRef-generic", "ts.react-events", "ts.react-fc"],
+  "skillsUsed": ["ts.interfaces", "ts.generics", "ts.union-types"],
+  "relatedConcepts": ["ts.strict-mode", "ts.modules"],
+  "whyItExists": {
+    "problem": "React components have no enforcement on what props they accept. Passing the wrong prop type, using the wrong event type, or forgetting a required prop are common bugs in plain JavaScript React.",
+    "solution": "TypeScript + React: define an interface for component props, annotate useState with its value type, use React's typed event types for handlers. The result: component contracts that TypeScript enforces at every call site.",
+    "whenToUse": "Every React project in production should use TypeScript. Type checking catches prop typos and wrong types before runtime. IDEs provide full autocomplete for props, events, and React APIs.",
+    "whenNotToUse": "Quick throwaway prototypes or examples where you just want to move fast. Switch to TypeScript before the code grows."
+  },
+  "explainModes": {
+    "beginner": "In React with TypeScript, you describe what 'ingredients' a component needs using an interface. TypeScript then checks every place you use that component — if you forget a required prop or pass the wrong type, it's an error before you even open the browser.",
+    "simple": "Props interface: interface Props { label: string; count?: number }. Component: function Btn({ label }: Props) { ... }. useState: useState<number>(0) — value is number, setter expects number | (prev: number) => number. useRef: useRef<HTMLInputElement>(null) — ref.current is HTMLInputElement | null. Events: React.MouseEvent<HTMLButtonElement>, React.ChangeEvent<HTMLInputElement>.",
+    "standard": "React.FC<Props> is a function component type. It automatically includes children in props and infers the return type as JSX.Element. Modern best practice (React 18+): prefer plain function + return type annotation over React.FC, since React.FC has some tricky behaviors (children used to be implicit in older React). Event handler type: (e: React.ChangeEvent<HTMLInputElement>) => void. React.FormEvent<HTMLFormElement> for form submit.",
+    "technical": "JSX.Element vs React.ReactNode vs React.ReactElement: JSX.Element is the return type of JSX expressions. React.ReactNode is the wider type (anything that can be rendered: string, number, null, JSX). Use React.ReactNode for children type. React.ComponentPropsWithRef<'button'> extracts all HTML button attributes — spread them with your extras: interface ButtonProps extends React.ComponentPropsWithRef<'button'> { label: string }. useReducer generic: useReducer<Reducer<State, Action>>(reducer, initialState).",
+    "deepDive": "Generic components: function Select<T>({ options, onSelect }: { options: T[]; onSelect: (v: T) => void }) — component is parameterized by the option type. Context with TypeScript: createContext requires a type and a default: const Ctx = createContext<User | null>(null). Custom hooks: function useLocalStorage<T>(key: string): [T | null, (val: T) => void] — typed hook. forwardRef: const Input = forwardRef<HTMLInputElement, InputProps>((props, ref) => ...) — typed ref forwarding. Type-safe routing with react-router-dom: useParams<{ id: string }>() — params are typed."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Typed props and state"
+    },
+    {
+      "type": "code",
+      "lang": "tsx",
+      "filename": "Button.tsx",
+      "code": "import React, { useState } from 'react';\n\n// Props interface — required and optional props\ninterface ButtonProps {\n    label: string;            // required\n    variant?: 'primary' | 'secondary' | 'danger';  // optional union type\n    disabled?: boolean;\n    onClick?: () => void;\n}\n\n// Function component with typed props\nfunction Button({ label, variant = 'primary', disabled = false, onClick }: ButtonProps) {\n    return (\n        <button\n            disabled={disabled}\n            onClick={onClick}\n            className={`btn btn-${variant}`}\n        >\n            {label}\n        </button>\n    );\n}\n\n// Using Button — TypeScript checks props at call site:\n// <Button />  ← Error: 'label' is required\n// <Button label=\"Save\" variant=\"invalid\" /> ← Error: not in union\n// <Button label=\"Save\" />   ← OK\n// <Button label=\"Delete\" variant=\"danger\" onClick={() => {}} /> ← OK"
+    },
+    {
+      "type": "code",
+      "lang": "tsx",
+      "filename": "Counter.tsx",
+      "code": "import React, { useState, useRef } from 'react';\n\n// useState with explicit type\nfunction Counter() {\n    const [count, setCount] = useState<number>(0);\n    const [name, setName]   = useState<string>('');\n\n    // Typed event handlers\n    const handleInput = (e: React.ChangeEvent<HTMLInputElement>): void => {\n        setName(e.target.value);\n    };\n\n    return (\n        <div>\n            <input value={name} onChange={handleInput} placeholder=\"Name\" />\n            <p>{name || 'Stranger'} clicked {count} times</p>\n            <button onClick={() => setCount(c => c + 1)}>+1</button>\n            <button onClick={() => setCount(0)}>Reset</button>\n        </div>\n    );\n}\n\n// useRef — typed element reference\nfunction FocusInput() {\n    const inputRef = useRef<HTMLInputElement>(null);\n\n    const focusIt = (): void => {\n        // inputRef.current is HTMLInputElement | null\n        inputRef.current?.focus();\n    };\n\n    return (\n        <>\n            <input ref={inputRef} />\n            <button onClick={focusIt}>Focus</button>\n        </>\n    );\n}"
+    },
+    {
+      "type": "code",
+      "lang": "tsx",
+      "filename": "UserList.tsx",
+      "code": "import React from 'react';\n\ninterface User {\n    id: number;\n    name: string;\n    email: string;\n    role: 'admin' | 'user';\n}\n\n// Generic component — works with any item that has an id\ninterface ListProps<T extends { id: number }> {\n    items: T[];\n    renderItem: (item: T) => React.ReactNode;\n    emptyMessage?: string;\n}\n\nfunction List<T extends { id: number }>({ items, renderItem, emptyMessage = 'No items' }: ListProps<T>) {\n    if (items.length === 0) return <p>{emptyMessage}</p>;\n    return <ul>{items.map(item => <li key={item.id}>{renderItem(item)}</li>)}</ul>;\n}\n\n// Usage — TypeScript infers T as User from items prop:\nconst users: User[] = [\n    { id: 1, name: 'Alice', email: 'a@ex.com', role: 'admin' },\n    { id: 2, name: 'Bob',   email: 'b@ex.com', role: 'user' },\n];\n\nfunction UserList() {\n    return (\n        <List\n            items={users}\n            renderItem={u => <span>{u.name} ({u.role})</span>}\n            emptyMessage=\"No users found\"\n        />\n    );\n}\n\nexport { Button, Counter, FocusInput, UserList };"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: React + TypeScript patterns (simulated)",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:16px; margin:0; }\n    .layout { display:grid; grid-template-rows:auto 1fr; gap:10px; height:calc(100vh - 32px); }\n    .top { display:flex; flex-direction:column; gap:8px; }\n    .editor-row { display:flex; gap:8px; align-items:flex-start; }\n    textarea { flex:1; background:#0b0e14; border:1px solid #2d3748; border-radius:6px; color:#e2e8f0; padding:10px; font-family:monospace; font-size:0.82rem; resize:vertical; min-height:140px; }\n    .btns { display:flex; flex-direction:column; gap:6px; }\n    button { padding:8px 14px; border:none; border-radius:5px; font-weight:700; cursor:pointer; font-size:0.8rem; white-space:nowrap; }\n    .chips { display:flex; flex-wrap:wrap; gap:6px; }\n    .chip { background:#1a1f2b; border:1px solid #2d3748; border-radius:4px; padding:3px 10px; font-family:monospace; font-size:0.72rem; cursor:pointer; color:#94a3b8; }\n    .chip:hover { border-color:#4fd1c5; color:#4fd1c5; }\n    .panels { display:grid; grid-template-columns:1fr 1fr; gap:8px; }\n    .panel { background:#0b0e14; border-radius:6px; overflow:auto; padding:10px; font-family:monospace; font-size:0.78rem; }\n    .panel-label { font-size:0.7rem; color:#4fd1c5; margin-bottom:6px; }\n    .ok { color:#4fd1c5; } .err { color:#ef4444; }\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"ts\" spellcheck=\"false\">// React+TS patterns demonstrated with plain TypeScript\n// (no JSX — playground doesn't have React runtime)\n\ninterface ButtonProps {\n  label: string;\n  variant?: 'primary' | 'secondary' | 'danger';\n  disabled?: boolean;\n  onClick?: () => void;\n}\n\n// Simulating typed component props validation\nfunction renderButton(props: ButtonProps): string {\n  const { label, variant = 'primary', disabled = false } = props;\n  return `<button class=\"btn-${variant}\"${disabled ? ' disabled' : ''}>${label}</button>`;\n}\n\nconsole.log(renderButton({ label: 'Save' }));\nconsole.log(renderButton({ label: 'Delete', variant: 'danger' }));\nconsole.log(renderButton({ label: 'Cancel', variant: 'secondary', disabled: true }));\n\n// useState simulation — typed state\ntype State<T> = { value: T; set: (v: T) => void };\nfunction createState<T>(initial: T): State<T> {\n  let val = initial;\n  return { get value() { return val; }, set(v) { val = v; } };\n}\n\nconst count = createState<number>(0);\nconst name  = createState<string>('');\ncount.set(5);\nname.set('Alice');\nconsole.log(`${name.value} clicked ${count.value} times`);\n</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runTS()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setTS('// Props with children\\ninterface CardProps {\\n  title: string;\\n  children: string; // ReactNode in real React\\n}\\nfunction renderCard({ title, children }: CardProps): string {\\n  return `[${title}] ${children}`;\\n}\\nconsole.log(renderCard({ title: \\'Welcome\\', children: \\'Hello TypeScript!\\' }));')\">children prop</span>\n        <span class=\"chip\" onclick=\"setTS('// Event handler types\\ntype ChangeHandler = (value: string) => void;\\ntype SubmitHandler = () => void;\\n\\ninterface FormProps {\\n  initialValue: string;\\n  onSubmit: SubmitHandler;\\n  onChange: ChangeHandler;\\n}\\n\\nfunction simulateForm(props: FormProps) {\\n  props.onChange(\\'updated value\\');\\n  props.onSubmit();\\n}\\nsimulateForm({\\n  initialValue: \\'hello\\',\\n  onSubmit: () => console.log(\\'submitted!\\'),\\n  onChange: v => console.log(\\'changed:\\', v)\\n});')\">event handlers</span>\n        <span class=\"chip\" onclick=\"setTS('// Generic component type\\ninterface ListProps<T> {\\n  items: T[];\\n  getLabel: (item: T) => string;\\n}\\nfunction renderList<T>({ items, getLabel }: ListProps<T>): string {\\n  return items.map(getLabel).join(\\', \\');\\n}\\nconst nums = renderList({ items: [1,2,3], getLabel: n => String(n) });\\nconst strs = renderList({ items: [\\'a\\',\\'b\\'], getLabel: s => s.toUpperCase() });\\nconsole.log(nums, strs);')\">generic component</span>\n      </div>\n    </div>\n    <div class=\"panels\">\n      <div class=\"panel\" id=\"output\"><div class=\"panel-label\">OUTPUT</div></div>\n      <div class=\"panel\" id=\"js\"><div class=\"panel-label\">COMPILED JS</div></div>\n    </div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/typescript@5.3.3/lib/typescript.js\"></script>\n  <script>\n    function setTS(code){document.getElementById('ts').value=code;runTS();}\n    function runTS(){\n      const src=document.getElementById('ts').value;\n      const out=document.getElementById('output');\n      const jsPanel=document.getElementById('js');\n      try{\n        const result=ts.transpileModule(src,{compilerOptions:{target:ts.ScriptTarget.ES2020,strict:true}});\n        const jsCode=result.outputText;\n        jsPanel.innerHTML='<div class=\"panel-label\">COMPILED JS</div><pre style=\"color:#64748b;margin:0;white-space:pre-wrap\">'+jsCode.replace(/</g,'&lt;')+'</pre>';\n        const logs=[];\n        const orig=console.log;\n        console.log=(...a)=>logs.push(a.map(x=>typeof x==='object'?JSON.stringify(x):String(x)).join(' '));\n        try{new Function(jsCode)();}finally{console.log=orig;}\n        out.innerHTML='<div class=\"panel-label\">OUTPUT</div>'+(logs.length?logs.map(l=>`<div class=\"ok\">${l.replace(/</g,'&lt;')}</div>`).join(''):'<div style=\"color:#64748b\">No output</div>');\n      }catch(e){out.innerHTML='<div class=\"panel-label\">OUTPUT</div><div class=\"err\">✗ '+e.message.replace(/</g,'&lt;')+'</div>';}\n    }\n    document.getElementById('ts').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runTS();}});\n    runTS();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "ts-react-q1",
+          "question": "What is the correct type for `useState` when managing a `User | null` state?",
+          "type": "multiple-choice",
+          "options": [
+            "useState(null)",
+            "useState<User | null>(null)",
+            "useState<User>(null)",
+            "useState<User>() with no initial value"
+          ],
+          "correctAnswer": 1,
+          "explanation": "useState<User | null>(null) is correct. The generic type parameter tells TypeScript what types the state can hold. With User | null, the setter accepts User, null, or a function (prev: User | null) => User | null. If you wrote useState<User>(null), TypeScript would error — null is not assignable to User (with strictNullChecks). If you wrote useState(null), TypeScript would infer the type as null — and you'd never be able to set a User."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Should I use React.FC or plain function components?",
+      "a": "Modern React (18+) best practice: use plain function components with an explicit props interface. React.FC<Props> is fine but has some quirks (it used to include children implicitly, which is not always wanted). Plain function syntax is more explicit: function Button({ label }: ButtonProps): JSX.Element { ... } — the props and return type are clear. Most modern React codebases avoid React.FC."
+    }
+  ],
+  "sources": [
+    {
+      "name": "React TypeScript Cheatsheet",
+      "url": "https://react-typescript-cheatsheet.netlify.app/",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "TypeScript Handbook — React",
+      "url": "https://www.typescriptlang.org/docs/handbook/react.html",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every production React codebase", "Next.js apps", "Remix apps"],
+    "examples": [
+      "function Modal({ isOpen, onClose, children }: ModalProps): JSX.Element | null",
+      "const [users, setUsers] = useState<User[]>([])",
+      "const formRef = useRef<HTMLFormElement>(null)"
+    ]
+  }
+}

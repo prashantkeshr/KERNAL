@@ -1,0 +1,104 @@
+{
+  "id": "08-union-intersection",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "typescript",
+  "technologyVersion": "TypeScript 5.x",
+  "module": "ts-advanced",
+  "title": "Union, Intersection & Narrowing",
+  "subtitle": "Advanced union types, type narrowing with typeof / instanceof / in, exhaustive checks",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 22,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["typescript/07-generics"],
+  "skillsTaught": ["ts.union-narrowing", "ts.typeof-guard", "ts.instanceof-guard", "ts.in-guard", "ts.exhaustive-check"],
+  "skillsUsed": ["ts.union-types", "ts.type-aliases", "ts.never"],
+  "relatedConcepts": ["ts.type-guards", "ts.discriminated-unions"],
+  "whyItExists": {
+    "problem": "When you have a union type (string | number), TypeScript knows the value is one of those types but not which one. Using string methods on a number (or vice versa) would be an error — but TypeScript can't automatically know which branch you're in.",
+    "solution": "Type narrowing: checks like typeof, instanceof, or in narrow the type within a branch. TypeScript's control flow analysis tracks which type is active in each block — after an if (typeof x === 'string') check, TypeScript treats x as string in that block.",
+    "whenToUse": "Whenever you have a union type and need to access type-specific properties or methods. Also use discriminated union narrowing (switching on a kind field) for object unions.",
+    "whenNotToUse": "Don't reach for as Type casts to avoid narrowing — that bypasses type checking. Write the proper guard instead."
+  },
+  "explainModes": {
+    "beginner": "When a value can be a string OR a number, TypeScript doesn't know which one you have at a given point in the code. You need to check first ('if this is a string, do X; if it's a number, do Y'). TypeScript watches these checks and knows the type in each branch.",
+    "simple": "typeof x === 'string' narrows x to string. instanceof x narrows to a class type. 'prop' in x checks if x has that property. Discriminated union: switch on shape.kind narrows to specific variant. Exhaustive check: default: const _: never = x — TypeScript errors if x still has types left.",
+    "standard": "Control flow analysis: TypeScript tracks which types are possible at each code location after assignments, returns, throws, and type guards. Truthy/falsy narrowing: if (x) — narrows out null, undefined, 0, '' from the type. Equality narrowing: if (x === 'left') narrows x to 'left' (literal). Array.isArray() narrows to any[]. Type predicates (user-defined guards): function isString(x: unknown): x is string.",
+    "technical": "In expressions: 'length' in x — narrows x to types that have a length property. Negation: if (!cond) — narrows in the else branch. Optional chaining doesn't narrow: x?.prop doesn't narrow x to defined in the call. Assertion functions: function assertString(x: unknown): asserts x is string — after call, TS treats x as string (throws if not). Discriminant analysis: TypeScript analyzes which variants of a discriminated union can match each case.",
+    "deepDive": "TypeScript's narrowing is flow-based — it tracks types through loops, early returns, and assignments. When you assign x = 'hello' inside an if block, x is narrowed to string for the rest of that block. Loop narrowing: TypeScript can narrow inside for/while loops. The type of a variable can widen after a loop if the loop might not execute. Branded types: using a discriminant field on primitives: type UserId = number & { __brand: 'UserId' } — nominal typing for primitives."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Type narrowing"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "narrowing.ts",
+      "code": "// typeof narrowing — works for primitives\nfunction printValue(x: string | number | boolean): void {\n    if (typeof x === 'string') {\n        console.log('String:', x.toUpperCase());\n    } else if (typeof x === 'number') {\n        console.log('Number:', x.toFixed(2));\n    } else {\n        console.log('Boolean:', x);\n    }\n}\nprintValue('hello');  // String: HELLO\nprintValue(3.14159);  // Number: 3.14\nprintValue(true);     // Boolean: true\n\n// instanceof narrowing — works for class instances\nclass Dog { bark() { return 'Woof!'; } }\nclass Cat { meow() { return 'Meow!'; } }\n\nfunction makeSound(animal: Dog | Cat): string {\n    if (animal instanceof Dog) return animal.bark();\n    return animal.meow();\n}\nconsole.log(makeSound(new Dog()));\nconsole.log(makeSound(new Cat()));\n\n// in narrowing — checks property existence\ninterface Admin  { role: 'admin'; permissions: string[]; }\ninterface Viewer { role: 'viewer'; }\n\nfunction describe(user: Admin | Viewer): string {\n    if ('permissions' in user) {\n        return `Admin with ${user.permissions.length} permissions`;\n    }\n    return `Viewer: read-only`;\n}\n\n// Nullish narrowing — narrow out null/undefined\nfunction greet(name: string | null): string {\n    if (name === null) return 'Hello, stranger!';\n    return `Hello, ${name}!`;  // name is string here\n}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Discriminated unions and exhaustive checks"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "exhaustive.ts",
+      "code": "// Discriminated union — switch on the kind field\ntype Circle    = { kind: 'circle';    radius: number };\ntype Rectangle = { kind: 'rectangle'; width: number; height: number };\ntype Triangle  = { kind: 'triangle';  base: number;  height: number };\ntype Shape = Circle | Rectangle | Triangle;\n\nfunction area(shape: Shape): number {\n    switch (shape.kind) {\n        case 'circle':    return Math.PI * shape.radius ** 2;\n        case 'rectangle': return shape.width * shape.height;\n        case 'triangle':  return 0.5 * shape.base * shape.height;\n        default:\n            // Exhaustive check — shape has type 'never' here\n            // If you add a new Shape variant and forget a case,\n            // TypeScript will error on this line:\n            const _exhaustive: never = shape;\n            return _exhaustive;\n    }\n}\nconsole.log(area({ kind: 'circle', radius: 5 }).toFixed(2));\n\n// User-defined type guard (predicate)\ninterface Fish { swim(): void; }\ninterface Bird { fly(): void; }\n\nfunction isFish(pet: Fish | Bird): pet is Fish {\n    return 'swim' in pet;\n}\n\nfunction move(pet: Fish | Bird): void {\n    if (isFish(pet)) {\n        pet.swim();   // TypeScript knows it's Fish here\n    } else {\n        pet.fly();    // TypeScript knows it's Bird here\n    }\n}"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Type narrowing",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:16px; margin:0; }\n    .layout { display:grid; grid-template-rows:auto 1fr; gap:10px; height:calc(100vh - 32px); }\n    .top { display:flex; flex-direction:column; gap:8px; }\n    .editor-row { display:flex; gap:8px; align-items:flex-start; }\n    textarea { flex:1; background:#0b0e14; border:1px solid #2d3748; border-radius:6px; color:#e2e8f0; padding:10px; font-family:monospace; font-size:0.82rem; resize:vertical; min-height:140px; }\n    .btns { display:flex; flex-direction:column; gap:6px; }\n    button { padding:8px 14px; border:none; border-radius:5px; font-weight:700; cursor:pointer; font-size:0.8rem; white-space:nowrap; }\n    .chips { display:flex; flex-wrap:wrap; gap:6px; }\n    .chip { background:#1a1f2b; border:1px solid #2d3748; border-radius:4px; padding:3px 10px; font-family:monospace; font-size:0.72rem; cursor:pointer; color:#94a3b8; }\n    .chip:hover { border-color:#4fd1c5; color:#4fd1c5; }\n    .panels { display:grid; grid-template-columns:1fr 1fr; gap:8px; }\n    .panel { background:#0b0e14; border-radius:6px; overflow:auto; padding:10px; font-family:monospace; font-size:0.78rem; }\n    .panel-label { font-size:0.7rem; color:#4fd1c5; margin-bottom:6px; }\n    .ok { color:#4fd1c5; } .err { color:#ef4444; }\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"ts\" spellcheck=\"false\">// typeof narrowing\nfunction format(x: string | number): string {\n  if (typeof x === 'string') return x.toUpperCase();\n  return x.toFixed(2);\n}\nconsole.log(format('hello'));\nconsole.log(format(3.14159));\n\n// Discriminated union + exhaustive check\ntype Shape = { kind: 'circle'; r: number } | { kind: 'square'; s: number };\nfunction area(sh: Shape): number {\n  switch (sh.kind) {\n    case 'circle': return Math.PI * sh.r ** 2;\n    case 'square': return sh.s ** 2;\n    default: const _: never = sh; return _;\n  }\n}\nconsole.log(area({ kind: 'circle', r: 5 }).toFixed(2));\nconsole.log(area({ kind: 'square', s: 4 }));\n</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runTS()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setTS('// instanceof\\nclass Cat { meow() { return \\'Meow!\\'; } }\\nclass Dog { bark() { return \\'Woof!\\'; } }\\nfunction sound(a: Cat | Dog) {\\n  if (a instanceof Cat) return a.meow();\\n  return a.bark();\\n}\\nconsole.log(sound(new Cat()));\\nconsole.log(sound(new Dog()));')\">instanceof</span>\n        <span class=\"chip\" onclick=\"setTS('// in narrowing\\ninterface Admin { admin: true; level: number }\\ninterface User  { name: string }\\nfunction info(x: Admin | User): string {\\n  if (\\'admin\\' in x) return \\'Admin level \\' + x.level;\\n  return \\'User: \\' + x.name;\\n}\\nconsole.log(info({ admin: true, level: 5 }));\\nconsole.log(info({ name: \\'Alice\\' }));')\">in guard</span>\n        <span class=\"chip\" onclick=\"setTS('// Nullish narrowing\\nfunction greet(name: string | null | undefined): string {\\n  if (name == null) return \\'Hello, stranger!\\';\\n  return `Hello, ${name}!`;\\n}\\nconsole.log(greet(\\'Alice\\'));\\nconsole.log(greet(null));\\nconsole.log(greet(undefined));')\">nullish</span>\n      </div>\n    </div>\n    <div class=\"panels\">\n      <div class=\"panel\" id=\"output\"><div class=\"panel-label\">OUTPUT</div></div>\n      <div class=\"panel\" id=\"js\"><div class=\"panel-label\">COMPILED JS</div></div>\n    </div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/typescript@5.3.3/lib/typescript.js\"></script>\n  <script>\n    function setTS(code){document.getElementById('ts').value=code;runTS();}\n    function runTS(){\n      const src=document.getElementById('ts').value;\n      const out=document.getElementById('output');\n      const jsPanel=document.getElementById('js');\n      try{\n        const result=ts.transpileModule(src,{compilerOptions:{target:ts.ScriptTarget.ES2020,strict:true}});\n        const jsCode=result.outputText;\n        jsPanel.innerHTML='<div class=\"panel-label\">COMPILED JS</div><pre style=\"color:#64748b;margin:0;white-space:pre-wrap\">'+jsCode.replace(/</g,'&lt;')+'</pre>';\n        const logs=[];\n        const orig=console.log;\n        console.log=(...a)=>logs.push(a.map(x=>typeof x==='object'?JSON.stringify(x):String(x)).join(' '));\n        try{new Function(jsCode)();}finally{console.log=orig;}\n        out.innerHTML='<div class=\"panel-label\">OUTPUT</div>'+(logs.length?logs.map(l=>`<div class=\"ok\">${l.replace(/</g,'&lt;')}</div>`).join(''):'<div style=\"color:#64748b\">No output</div>');\n      }catch(e){out.innerHTML='<div class=\"panel-label\">OUTPUT</div><div class=\"err\">✗ '+e.message.replace(/</g,'&lt;')+'</div>';}\n    }\n    document.getElementById('ts').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runTS();}});\n    runTS();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "ts-narrow-q1",
+          "question": "After `if (typeof x === 'string') { ... }`, what is the type of x in the else branch if x was typed as `string | number`?",
+          "type": "multiple-choice",
+          "options": [
+            "string | number — same as before",
+            "number — TypeScript eliminates string from the union",
+            "any — TypeScript gives up narrowing in else",
+            "never — the else branch is unreachable"
+          ],
+          "correctAnswer": 1,
+          "explanation": "TypeScript's control flow analysis narrows the type: in the if block, x is string. In the else block, TypeScript knows x is NOT a string (we just checked), so it eliminates string from the union. What remains is number. This is called type narrowing — TypeScript gets smarter about the type at each code location."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is a user-defined type guard (function x is T)?",
+      "a": "A function that returns `x is T` (a type predicate) as its return type. When called, TypeScript narrows x to type T in the true branch. Example: function isString(x: unknown): x is string { return typeof x === 'string' }. This lets you encapsulate a narrowing check and reuse it across your codebase."
+    }
+  ],
+  "sources": [
+    {
+      "name": "TypeScript Handbook — Narrowing",
+      "url": "https://www.typescriptlang.org/docs/handbook/2/narrowing.html",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["API response handling", "event handling", "form validation", "Redux reducers"],
+    "examples": [
+      "if (response instanceof Error) — distinguish errors from data",
+      "function isApiError(x: unknown): x is ApiError { return 'code' in (x as any) }",
+      "Redux reducer: switch (action.type) — each case narrows action to specific variant"
+    ]
+  }
+}

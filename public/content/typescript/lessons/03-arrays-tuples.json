@@ -1,0 +1,104 @@
+{
+  "id": "03-arrays-tuples",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "typescript",
+  "technologyVersion": "TypeScript 5.x",
+  "module": "ts-foundations",
+  "title": "Arrays & Tuples",
+  "subtitle": "Typed arrays, readonly, and fixed-length tuples",
+  "difficulty": "beginner",
+  "estimatedMinutes": 16,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["typescript/02-basic-types"],
+  "skillsTaught": ["ts.typed-arrays", "ts.tuples", "ts.readonly", "ts.array-methods"],
+  "skillsUsed": ["js.arrays", "ts.basic-types"],
+  "relatedConcepts": ["ts.generics", "ts.interfaces"],
+  "whyItExists": {
+    "problem": "A JavaScript array can hold values of any type — [1, 'hello', true] is valid. This makes it easy to accidentally mix types or access elements that don't exist.",
+    "solution": "TypeScript lets you type arrays to hold only one type: number[], or string[]. Tuples let you define fixed-length arrays where each position has its own type — [string, number] for a [name, age] pair.",
+    "whenToUse": "Type arrays whenever you know all elements share a type. Use tuples for structured pairs/triples where position has meaning (coordinates, key-value pairs, function return values).",
+    "whenNotToUse": "Don't use tuples for long structures — use interfaces or objects instead. Tuples lose their positional meaning beyond 3-4 elements."
+  },
+  "explainModes": {
+    "beginner": "number[] means 'an array that can only contain numbers'. string[] means 'array of strings only'. A tuple [string, number] is like a fixed-size box where slot 0 must be a string and slot 1 must be a number — useful for things like [name, score] pairs.",
+    "simple": "Array types: number[], string[], boolean[]. Generic form: Array<string> (same thing). Readonly: readonly number[] or ReadonlyArray<number> — can't push/pop. Tuple: [string, number] — exactly 2 elements with those types. Named tuple: [name: string, age: number]. Rest in tuple: [string, ...number[]] — one string then any number of numbers. Destructuring with types.",
+    "standard": "const assertion: const colors = ['red', 'blue'] as const — type is readonly ['red', 'blue'], not string[]. This prevents mutation and narrows the type to the literal values. Tuple spread: [...tuple1, ...tuple2]. Array.isArray() narrows to any[]. Type predicates (is) for narrowing to typed arrays. Multi-dimensional arrays: number[][] or string[][].",
+    "technical": "Array<T> is generic syntax equivalent to T[]. TypeScript's Array type is covariant: string[] is assignable to (string | number)[] but not vice versa. Tuple types are subtypes of their corresponding array types: [string, number] is assignable to (string | number)[]. Variadic tuple types (TS 4.0): function concat<T extends unknown[], U extends unknown[]>(a: [...T], b: [...U]): [...T, ...U] — combines tuple types.",
+    "deepDive": "Labeled tuple elements improve readability and IDE display: type Coordinate = [x: number, y: number, z?: number]. Optional elements in tuples (trailing only): [string, number?]. Rest elements in tuples: [string, ...number[]] matches ['a', 1, 2, 3]. Tuples are the backbone of TypeScript's inferring from function arguments: Parameters<typeof fn> extracts a function's parameter types as a tuple. ReturnType<typeof fn> extracts the return type."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Typed arrays"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "arrays.ts",
+      "code": "// Array of numbers — two equivalent syntaxes\nconst scores: number[] = [95, 87, 72, 100];\nconst names: Array<string> = ['Alice', 'Bob', 'Charlie'];\n\n// TypeScript knows the element type, so methods are typed\nconst doubled = scores.map(n => n * 2);  // number[]\nconst upper   = names.map(s => s.toUpperCase()); // string[]\n\n// Cannot push wrong type\nscores.push(88);        // OK\n// scores.push('great'); // Error: string is not assignable to number\n\n// Readonly array — cannot mutate\nconst fixed: readonly number[] = [1, 2, 3];\n// fixed.push(4);   // Error: push does not exist on readonly number[]\n// fixed[0] = 99;   // Error: Index signature is readonly\n\n// Multi-dimensional\nconst matrix: number[][] = [[1, 0], [0, 1]];\n\n// Type is inferred from content\nconst inferred = [1, 2, 3];        // number[]\nconst mixed    = [1, 'two', true]; // (number | string | boolean)[]"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Tuples"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "tuples.ts",
+      "code": "// Tuple: fixed length, each position has its own type\nconst point: [number, number] = [10, 20];      // x, y\nconst entry: [string, number] = ['Alice', 95]; // name, score\n\n// Named tuple elements (TS 4.0) — better IDE support\ntype Coordinate = [x: number, y: number];\nconst loc: Coordinate = [48.8, 2.3];\nconsole.log('x:', loc[0], 'y:', loc[1]);\n\n// Destructuring tuples\nconst [name, score] = entry;\nconsole.log(`${name} scored ${score}`);\n\n// Optional tuple elements\ntype RGB = [r: number, g: number, b: number, a?: number];\nconst red: RGB = [255, 0, 0];          // no alpha\nconst transparent: RGB = [0, 0, 0, 0]; // with alpha\n\n// as const — infers literal tuple type\nconst STATUS = ['active', 'inactive', 'pending'] as const;\n// type: readonly ['active', 'inactive', 'pending']\ntype Status = typeof STATUS[number]; // 'active' | 'inactive' | 'pending'\n\n// Useful pattern: function returning multiple values as tuple\nfunction divmod(a: number, b: number): [quotient: number, remainder: number] {\n    return [Math.floor(a / b), a % b];\n}\nconst [q, r] = divmod(17, 5);\nconsole.log(`17 / 5 = ${q} remainder ${r}`);"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Arrays and tuples",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:16px; margin:0; }\n    .layout { display:grid; grid-template-rows:auto 1fr; gap:10px; height:calc(100vh - 32px); }\n    .top { display:flex; flex-direction:column; gap:8px; }\n    .editor-row { display:flex; gap:8px; align-items:flex-start; }\n    textarea { flex:1; background:#0b0e14; border:1px solid #2d3748; border-radius:6px; color:#e2e8f0; padding:10px; font-family:monospace; font-size:0.82rem; resize:vertical; min-height:130px; }\n    .btns { display:flex; flex-direction:column; gap:6px; }\n    button { padding:8px 14px; border:none; border-radius:5px; font-weight:700; cursor:pointer; font-size:0.8rem; white-space:nowrap; }\n    .chips { display:flex; flex-wrap:wrap; gap:6px; }\n    .chip { background:#1a1f2b; border:1px solid #2d3748; border-radius:4px; padding:3px 10px; font-family:monospace; font-size:0.72rem; cursor:pointer; color:#94a3b8; }\n    .chip:hover { border-color:#4fd1c5; color:#4fd1c5; }\n    .panels { display:grid; grid-template-columns:1fr 1fr; gap:8px; }\n    .panel { background:#0b0e14; border-radius:6px; overflow:auto; padding:10px; font-family:monospace; font-size:0.78rem; }\n    .panel-label { font-size:0.7rem; color:#4fd1c5; margin-bottom:6px; }\n    .ok { color:#4fd1c5; } .err { color:#ef4444; }\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"ts\" spellcheck=\"false\">// Typed array + tuple\nconst scores: number[] = [95, 87, 72];\nconsole.log('scores:', scores);\nconsole.log('avg:', scores.reduce((a,b)=>a+b,0)/scores.length);\n\n// Tuple: name + score\nconst entry: [string, number] = ['Alice', 100];\nconst [name, score] = entry;\nconsole.log(`${name}: ${score}`);\n\n// divmod returning a tuple\nfunction divmod(a: number, b: number): [number, number] {\n  return [Math.floor(a/b), a%b];\n}\nconst [q, r] = divmod(17, 5);\nconsole.log(`17/5 = ${q} rem ${r}`);\n</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runTS()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setTS('// as const — literal tuple\\nconst DIRS = [\\'N\\',\\'S\\',\\'E\\',\\'W\\'] as const;\\ntype Dir = typeof DIRS[number];\\nconst go: Dir = \\'N\\';\\nconsole.log(DIRS, go);')\">as const</span>\n        <span class=\"chip\" onclick=\"setTS('// 2D matrix\\nconst grid: number[][] = [[1,0,0],[0,1,0],[0,0,1]];\\ngrid.forEach(row => console.log(row.join(\\' \\')));')\">matrix</span>\n        <span class=\"chip\" onclick=\"setTS('// Typed array methods\\nconst nums: number[] = [3,1,4,1,5,9,2,6];\\nconst sorted = [...nums].sort((a,b)=>a-b);\\nconst evens = nums.filter(n => n%2===0);\\nconsole.log(sorted, evens);')\">array methods</span>\n      </div>\n    </div>\n    <div class=\"panels\">\n      <div class=\"panel\" id=\"output\"><div class=\"panel-label\">OUTPUT</div></div>\n      <div class=\"panel\" id=\"js\"><div class=\"panel-label\">COMPILED JS</div></div>\n    </div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/typescript@5.3.3/lib/typescript.js\"></script>\n  <script>\n    function setTS(code){document.getElementById('ts').value=code;runTS();}\n    function runTS(){\n      const src=document.getElementById('ts').value;\n      const out=document.getElementById('output');\n      const jsPanel=document.getElementById('js');\n      try{\n        const result=ts.transpileModule(src,{compilerOptions:{target:ts.ScriptTarget.ES2020,strict:true}});\n        const jsCode=result.outputText;\n        jsPanel.innerHTML='<div class=\"panel-label\">COMPILED JS</div><pre style=\"color:#64748b;margin:0;white-space:pre-wrap\">'+jsCode.replace(/</g,'&lt;')+'</pre>';\n        const logs=[];\n        const orig=console.log;\n        console.log=(...a)=>logs.push(a.map(x=>typeof x==='object'?JSON.stringify(x):String(x)).join(' '));\n        try{new Function(jsCode)();}finally{console.log=orig;}\n        out.innerHTML='<div class=\"panel-label\">OUTPUT</div>'+(logs.length?logs.map(l=>`<div class=\"ok\">${l.replace(/</g,'&lt;')}</div>`).join(''):'<div style=\"color:#64748b\">No output</div>');\n      }catch(e){out.innerHTML='<div class=\"panel-label\">OUTPUT</div><div class=\"err\">✗ '+e.message.replace(/</g,'&lt;')+'</div>';}\n    }\n    document.getElementById('ts').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runTS();}});\n    runTS();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "ts-arr-q1",
+          "question": "What does `const data: [string, number]` mean?",
+          "type": "multiple-choice",
+          "options": [
+            "An array of strings and numbers mixed together",
+            "A tuple: exactly 2 elements — first a string, second a number",
+            "An array that can have either strings or numbers at any position",
+            "A type error — you can't mix types in an array"
+          ],
+          "correctAnswer": 1,
+          "explanation": "[string, number] is a tuple type — a fixed-length array where position 0 must be a string and position 1 must be a number. data[0] is always string, data[1] is always number. TypeScript will error if you try to assign a wrong type to either position or add extra elements."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "When should I use a tuple vs an object?",
+      "a": "Tuples work well for 2-3 element structures where order is the convention (coordinates [x, y], divmod result [quotient, remainder]). Beyond 3 elements, or when the structure has named fields, use an interface or object: { x: number, y: number } is clearer than [number, number] when there are many fields."
+    }
+  ],
+  "sources": [
+    {
+      "name": "TypeScript Handbook — Object Types",
+      "url": "https://www.typescriptlang.org/docs/handbook/2/objects.html",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["React hooks return values", "database query results", "coordinate systems"],
+    "examples": [
+      "const [state, setState] = useState<number>(0) — useState returns a tuple",
+      "function useLocalStorage<T>(key: string): [T | null, (val: T) => void]",
+      "const colors = ['red', 'blue'] as const — const assertion for union extraction"
+    ]
+  }
+}

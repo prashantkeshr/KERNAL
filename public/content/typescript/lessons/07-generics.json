@@ -1,0 +1,104 @@
+{
+  "id": "07-generics",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "typescript",
+  "technologyVersion": "TypeScript 5.x",
+  "module": "ts-advanced",
+  "title": "Generics",
+  "subtitle": "Write once, use for any type — generic functions, interfaces, and constraints",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 22,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["typescript/06-functions"],
+  "skillsTaught": ["ts.generic-functions", "ts.generic-interfaces", "ts.generic-constraints", "ts.generic-classes"],
+  "skillsUsed": ["ts.interfaces", "ts.type-aliases", "ts.functions"],
+  "relatedConcepts": ["ts.utility-types", "ts.mapped-types"],
+  "whyItExists": {
+    "problem": "Without generics, you'd need to write a separate identity function for string, number, boolean, etc. Or use any — losing type safety. The same logic can't be reused across types without sacrificing checking.",
+    "solution": "Generics let you write code parameterized by a type variable <T>. The caller provides the type (or TypeScript infers it). The function body is type-checked with T as a placeholder — works for any T.",
+    "whenToUse": "Any utility function that should work for multiple types (wrap, unwrap, map, filter, find). Any data structure (Stack<T>, Queue<T>, Result<T, E>). Any function that takes a callback and returns the callback's return type.",
+    "whenNotToUse": "Don't add a generic type parameter if it only appears in one place — use a specific type instead. If the function only ever works with one type, don't generic-ify it."
+  },
+  "explainModes": {
+    "beginner": "Imagine a box that can hold anything. In JavaScript, a box that holds a string and a box that holds a number would both be plain objects. With generics, you can say Box<string> (a box that holds a string) or Box<number> (a box that holds a number). TypeScript then knows exactly what's inside.",
+    "simple": "function identity<T>(arg: T): T — T is a type variable, filled in when called. identity<string>('hello') or identity('hello') (inference). interface Box<T> { value: T }. Constraint: T extends string — T must be a string or subtype. Multiple type params: function pair<A, B>(a: A, b: B): [A, B]. Default type param: interface Container<T = string>.",
+    "standard": "Type inference from arguments: TypeScript infers T from what you pass — identity(42) infers T as number. Constraints with keyof: function getProperty<T, K extends keyof T>(obj: T, key: K): T[K] — K must be a key of T. Generic classes: class Stack<T> { push(item: T): void; pop(): T | undefined }. Conditional generic constraints: T extends Array<infer Item> — extract the element type of an array.",
+    "technical": "Generic type parameter defaults: interface ApiResponse<T = unknown>. Generic type instantiation: type NumberBox = Box<number>. Variance in generics: TypeScript uses structural covariance by default. Explicit variance markers (TS 4.7): interface Reader<out T> (covariant), interface Writer<in T> (contravariant). Bounded polymorphism: function clamp<T extends number>(v: T, min: T, max: T): T — T is constrained but still generic.",
+    "deepDive": "Generic parameter inference vs. instantiation: TypeScript's inference algorithm attempts to unify the types. When it fails, you get 'Could not infer type argument'. Use explicit type argument to fix: fn<MyType>(...). Conditional types over generics: type IsArray<T> = T extends any[] ? true : false. Recursive generics: type DeepPartial<T> = T extends object ? { [K in keyof T]?: DeepPartial<T[K]> } : T. Mapped types with generic constraints: type Pick<T, K extends keyof T> = { [P in K]: T[P] }."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Generic functions"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "generics.ts",
+      "code": "// Without generics — you'd need a separate function per type:\n// function wrapString(x: string): string[] { return [x]; }\n// function wrapNumber(x: number): number[] { return [x]; }\n\n// With generics — one function for ALL types:\nfunction wrap<T>(item: T): T[] {\n    return [item];\n}\n\nconsole.log(wrap('hello'));  // ['hello'] — TypeScript infers T as string\nconsole.log(wrap(42));       // [42] — T inferred as number\nconsole.log(wrap(true));     // [true] — T inferred as boolean\n\n// The return type is T[], not any[] — still type-safe!\nconst strings = wrap('world'); // string[]\nconst nums    = wrap(99);      // number[]\n\n// Generic identity function\nfunction identity<T>(arg: T): T {\n    return arg;\n}\n\n// Multiple type params\nfunction pair<A, B>(a: A, b: B): [A, B] {\n    return [a, b];\n}\nconsole.log(pair('Alice', 30)); // ['Alice', 30]  (type: [string, number])\nconsole.log(pair(1, true));     // [1, true]       (type: [number, boolean])\n\n// Generic with array utilities\nfunction first<T>(arr: T[]): T | undefined {\n    return arr[0];\n}\nfunction last<T>(arr: T[]): T | undefined {\n    return arr[arr.length - 1];\n}\nconsole.log(first([10, 20, 30]));   // 10\nconsole.log(last(['a', 'b', 'c'])); // 'c'"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Constraints and generic interfaces"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "constraints.ts",
+      "code": "// Constraint: T extends string — T must have a length property\nfunction longest<T extends { length: number }>(a: T, b: T): T {\n    return a.length >= b.length ? a : b;\n}\nconsole.log(longest('hello', 'hi'));       // 'hello'\nconsole.log(longest([1, 2, 3], [4, 5]));  // [1, 2, 3]\n\n// keyof constraint — K must be a key of T\nfunction getProperty<T, K extends keyof T>(obj: T, key: K): T[K] {\n    return obj[key];\n}\nconst user = { name: 'Alice', age: 30, role: 'admin' };\nconsole.log(getProperty(user, 'name'));  // 'Alice' (string)\nconsole.log(getProperty(user, 'age'));   // 30 (number)\n// getProperty(user, 'xyz');  // Error: 'xyz' is not a key of user\n\n// Generic interface\ninterface Box<T> {\n    value: T;\n    map<U>(fn: (val: T) => U): Box<U>;\n}\n\n// Generic class — typed data structure\nclass Stack<T> {\n    private items: T[] = [];\n\n    push(item: T): void   { this.items.push(item); }\n    pop():  T | undefined { return this.items.pop(); }\n    peek(): T | undefined { return this.items[this.items.length - 1]; }\n    get size(): number    { return this.items.length; }\n}\n\nconst numStack = new Stack<number>();\nnumStack.push(1);\nnumStack.push(2);\nnumStack.push(3);\nconsole.log(numStack.peek()); // 3\nconsole.log(numStack.pop());  // 3\nconsole.log(numStack.size);   // 2"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Generic functions",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:16px; margin:0; }\n    .layout { display:grid; grid-template-rows:auto 1fr; gap:10px; height:calc(100vh - 32px); }\n    .top { display:flex; flex-direction:column; gap:8px; }\n    .editor-row { display:flex; gap:8px; align-items:flex-start; }\n    textarea { flex:1; background:#0b0e14; border:1px solid #2d3748; border-radius:6px; color:#e2e8f0; padding:10px; font-family:monospace; font-size:0.82rem; resize:vertical; min-height:140px; }\n    .btns { display:flex; flex-direction:column; gap:6px; }\n    button { padding:8px 14px; border:none; border-radius:5px; font-weight:700; cursor:pointer; font-size:0.8rem; white-space:nowrap; }\n    .chips { display:flex; flex-wrap:wrap; gap:6px; }\n    .chip { background:#1a1f2b; border:1px solid #2d3748; border-radius:4px; padding:3px 10px; font-family:monospace; font-size:0.72rem; cursor:pointer; color:#94a3b8; }\n    .chip:hover { border-color:#4fd1c5; color:#4fd1c5; }\n    .panels { display:grid; grid-template-columns:1fr 1fr; gap:8px; }\n    .panel { background:#0b0e14; border-radius:6px; overflow:auto; padding:10px; font-family:monospace; font-size:0.78rem; }\n    .panel-label { font-size:0.7rem; color:#4fd1c5; margin-bottom:6px; }\n    .ok { color:#4fd1c5; } .err { color:#ef4444; }\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"ts\" spellcheck=\"false\">// Generic wrap function\nfunction wrap<T>(item: T): T[] { return [item]; }\nconsole.log(wrap('hello'));  // ['hello']\nconsole.log(wrap(42));       // [42]\n\n// Generic Stack class\nclass Stack<T> {\n  private items: T[] = [];\n  push(item: T): void { this.items.push(item); }\n  pop(): T | undefined { return this.items.pop(); }\n  peek(): T | undefined { return this.items[this.items.length-1]; }\n}\n\nconst s = new Stack<number>();\ns.push(10); s.push(20); s.push(30);\nconsole.log('peek:', s.peek());\nconsole.log('pop:', s.pop());\n</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runTS()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setTS('// keyof constraint\\nfunction get<T, K extends keyof T>(obj: T, key: K): T[K] {\\n  return obj[key];\\n}\\nconst user = { name: \\'Alice\\', age: 30 };\\nconsole.log(get(user, \\'name\\'));\\nconsole.log(get(user, \\'age\\'));')\">keyof</span>\n        <span class=\"chip\" onclick=\"setTS('// Generic pair\\nfunction pair<A, B>(a: A, b: B): [A, B] { return [a, b]; }\\nconsole.log(pair(\\'Alice\\', 95));\\nconsole.log(pair(true, [1,2,3]));')\">pair</span>\n        <span class=\"chip\" onclick=\"setTS('// Result<T, E> generic type\\ntype Result<T, E = string> =\\n  | { ok: true; data: T }\\n  | { ok: false; error: E };\\n\\nfunction safeDivide(a: number, b: number): Result<number> {\\n  if (b === 0) return { ok: false, error: \\'div by zero\\' };\\n  return { ok: true, data: a / b };\\n}\\nconst r = safeDivide(10, 3);\\nif (r.ok) console.log(r.data.toFixed(4));')\">Result<T></span>\n      </div>\n    </div>\n    <div class=\"panels\">\n      <div class=\"panel\" id=\"output\"><div class=\"panel-label\">OUTPUT</div></div>\n      <div class=\"panel\" id=\"js\"><div class=\"panel-label\">COMPILED JS</div></div>\n    </div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/typescript@5.3.3/lib/typescript.js\"></script>\n  <script>\n    function setTS(code){document.getElementById('ts').value=code;runTS();}\n    function runTS(){\n      const src=document.getElementById('ts').value;\n      const out=document.getElementById('output');\n      const jsPanel=document.getElementById('js');\n      try{\n        const result=ts.transpileModule(src,{compilerOptions:{target:ts.ScriptTarget.ES2020,strict:true}});\n        const jsCode=result.outputText;\n        jsPanel.innerHTML='<div class=\"panel-label\">COMPILED JS</div><pre style=\"color:#64748b;margin:0;white-space:pre-wrap\">'+jsCode.replace(/</g,'&lt;')+'</pre>';\n        const logs=[];\n        const orig=console.log;\n        console.log=(...a)=>logs.push(a.map(x=>typeof x==='object'?JSON.stringify(x):String(x)).join(' '));\n        try{new Function(jsCode)();}finally{console.log=orig;}\n        out.innerHTML='<div class=\"panel-label\">OUTPUT</div>'+(logs.length?logs.map(l=>`<div class=\"ok\">${l.replace(/</g,'&lt;')}</div>`).join(''):'<div style=\"color:#64748b\">No output</div>');\n      }catch(e){out.innerHTML='<div class=\"panel-label\">OUTPUT</div><div class=\"err\">✗ '+e.message.replace(/</g,'&lt;')+'</div>';}\n    }\n    document.getElementById('ts').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runTS();}});\n    runTS();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "ts-gen-q1",
+          "question": "What does `function f<T extends { length: number }>(a: T): number` do?",
+          "type": "multiple-choice",
+          "options": [
+            "f only accepts objects with a length property — strings and arrays qualify",
+            "f only accepts numbers",
+            "f accepts any type T and returns its length as a number",
+            "T extends { length: number } means T must be an array"
+          ],
+          "correctAnswer": 0,
+          "explanation": "The constraint T extends { length: number } means T must have at least a length property that is a number. Strings, arrays, and any object with a length property qualify. This is structural typing — TypeScript doesn't require a specific type, just that the shape matches."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "When should I add a constraint (T extends Something) vs leave T unconstrained?",
+      "a": "Add a constraint when you need to use a property or method of T inside the function body. If you just store or return T (identity, wrap, pair), leave it unconstrained. If you call T.length or T.toString(), constrain with T extends { length: number } etc. The constraint expresses what you actually need, and TypeScript enforces it at call sites."
+    }
+  ],
+  "sources": [
+    {
+      "name": "TypeScript Handbook — Generics",
+      "url": "https://www.typescriptlang.org/docs/handbook/2/generics.html",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["React hooks", "data structures", "API clients", "utility libraries"],
+    "examples": [
+      "function useState<S>(init: S | (() => S)): [S, Dispatch<SetStateAction<S>>]",
+      "class Repository<T extends Entity> { findById(id: number): Promise<T> }",
+      "function memoize<T extends (...args: any[]) => any>(fn: T): T"
+    ]
+  }
+}

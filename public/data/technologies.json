@@ -91,7 +91,7 @@
     "order": 7,
     "stage": 7,
     "playground": "javascript",
-    "enabled": false,
+    "enabled": true,
     "description": "Type-safe JavaScript at scale",
     "estimatedHours": 15
   },

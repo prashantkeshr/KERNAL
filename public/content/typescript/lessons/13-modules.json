@@ -1,0 +1,105 @@
+{
+  "id": "13-modules",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "typescript",
+  "technologyVersion": "TypeScript 5.x",
+  "module": "ts-practical",
+  "title": "Modules & Declaration Files",
+  "subtitle": "import/export with types, type-only imports, .d.ts files, and @types packages",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 18,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["typescript/12-type-guards"],
+  "skillsTaught": ["ts.named-exports", "ts.default-exports", "ts.type-imports", "ts.declaration-files", "ts.types-packages"],
+  "skillsUsed": ["ts.interfaces", "ts.type-aliases", "ts.classes"],
+  "relatedConcepts": ["ts.strict-mode", "ts.tsconfig"],
+  "whyItExists": {
+    "problem": "TypeScript files import and export code like JavaScript, but types also need to be shared. Without explicit type exports, other files can't use your interfaces, type aliases, or class types across module boundaries.",
+    "solution": "TypeScript extends JS module syntax with type exports/imports. The import type and export type syntax explicitly marks type-only imports — they're fully erased at compile time (unlike regular imports, which might generate a require() call).",
+    "whenToUse": "Always. Every non-trivial TypeScript project is module-based. Use import type for types you only need at compile time (interfaces, type aliases, generic parameter types).",
+    "whenNotToUse": "Don't import type for values that are used at runtime (class instances, enum values, constants). Those need a regular import."
+  },
+  "explainModes": {
+    "beginner": "TypeScript can share types between files just like it shares functions and classes. When you only need a type (not actual code) from another file, you can say import type { User } from './user' — TypeScript knows this import exists only to help it check types and erases it completely from the compiled JavaScript.",
+    "simple": "export interface User { ... }. export type ID = string | number. import { User } from './user'. import type { User } from './user' — type-only, erased at compile time. export default class Service { ... }. import Service from './service'. Re-export: export { User } from './user'. Barrel: index.ts that re-exports everything.",
+    "standard": "Declaration files (.d.ts): pure type definitions with no runtime code. They describe the types of JavaScript libraries. @types packages (e.g. npm install -D @types/node) provide .d.ts files for libraries that don't ship TypeScript. allowJs: true — TypeScript can type-check plain JS files. checkJs: true — report errors in JS files. declaration: true in tsconfig — emit .d.ts files alongside your JS output when building a library.",
+    "technical": "import type is erased at emit — it never generates a require() or import statement. This is important for: (1) avoiding circular dependency issues, (2) ensuring no side effects from type-only imports, (3) tools like esbuild that don't run the TypeScript compiler and need to know what to erase. verbatimModuleSyntax (tsconfig option, TS 5.0): forces you to use import type for type-only imports — errors if you use regular import for something that's type-only.",
+    "deepDive": "Module resolution: TypeScript resolves modules using the same algorithm as Node.js by default. moduleResolution: 'bundler' (TS 5.0) for bundler environments that support exports field in package.json. paths in tsconfig for path aliases: paths: { '@/*': ['./src/*'] }. exports field in package.json overrides main for module resolution — TypeScript reads the types field in exports for type declarations. isolatedModules: true forces every file to be a valid module in isolation (required by esbuild/swc which compile file-by-file)."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Exporting and importing types"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "types.ts",
+      "code": "// types.ts — exporting types\nexport interface User {\n    id: number;\n    name: string;\n    email: string;\n}\n\nexport type Status = 'active' | 'inactive' | 'pending';\n\nexport type UserId = number;\n\n// exporting a class (type AND value)\nexport class UserError extends Error {\n    constructor(public code: number, message: string) {\n        super(message);\n    }\n}"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "service.ts",
+      "code": "// service.ts — importing types and values\nimport { User, Status, UserId, UserError } from './types';\n// OR — import only the type, erased at compile time:\nimport type { User, Status, UserId } from './types';\n\n// type-only import: never generates a require() in JS output\n// Use for interfaces, type aliases, and other compile-time-only items\n\nconst users: User[] = [\n    { id: 1, name: 'Alice', email: 'alice@ex.com' },\n    { id: 2, name: 'Bob',   email: 'bob@ex.com' },\n];\n\nfunction findUser(id: UserId): User | undefined {\n    return users.find(u => u.id === id);\n}\n\nfunction setStatus(user: User, status: Status): User {\n    console.log(`Setting ${user.name} to ${status}`);\n    return { ...user };\n}\n\n// Default export\nexport default { findUser, setStatus };"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "declaration_file.d.ts",
+      "code": "// .d.ts file — pure type declarations (no JS emitted)\n// Used by library authors and @types packages\n\n// Describes a JavaScript library that has no TypeScript source\ndeclare module 'my-js-lib' {\n    export function compute(input: number): number;\n    export const VERSION: string;\n\n    export interface Config {\n        timeout?: number;\n        retries?: number;\n    }\n\n    export default function(config?: Config): void;\n}\n\n// Global augmentation — add to existing globals\ndeclare global {\n    interface Window {\n        analytics: {\n            track(event: string, data?: Record<string, unknown>): void;\n        };\n    }\n}\n\nexport {};"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Modules in action",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:16px; margin:0; }\n    .layout { display:grid; grid-template-rows:auto 1fr; gap:10px; height:calc(100vh - 32px); }\n    .top { display:flex; flex-direction:column; gap:8px; }\n    .editor-row { display:flex; gap:8px; align-items:flex-start; }\n    textarea { flex:1; background:#0b0e14; border:1px solid #2d3748; border-radius:6px; color:#e2e8f0; padding:10px; font-family:monospace; font-size:0.82rem; resize:vertical; min-height:140px; }\n    .btns { display:flex; flex-direction:column; gap:6px; }\n    button { padding:8px 14px; border:none; border-radius:5px; font-weight:700; cursor:pointer; font-size:0.8rem; white-space:nowrap; }\n    .chips { display:flex; flex-wrap:wrap; gap:6px; }\n    .chip { background:#1a1f2b; border:1px solid #2d3748; border-radius:4px; padding:3px 10px; font-family:monospace; font-size:0.72rem; cursor:pointer; color:#94a3b8; }\n    .chip:hover { border-color:#4fd1c5; color:#4fd1c5; }\n    .panels { display:grid; grid-template-columns:1fr 1fr; gap:8px; }\n    .panel { background:#0b0e14; border-radius:6px; overflow:auto; padding:10px; font-family:monospace; font-size:0.78rem; }\n    .panel-label { font-size:0.7rem; color:#4fd1c5; margin-bottom:6px; }\n    .ok { color:#4fd1c5; } .err { color:#ef4444; }\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"ts\" spellcheck=\"false\">// Single-file module simulation (real modules would be in separate files)\n// Simulating: types.ts, service.ts used together\n\ninterface Product {\n  id: number;\n  name: string;\n  price: number;\n}\n\ntype ProductFilter = (p: Product) => boolean;\n\nconst products: Product[] = [\n  { id: 1, name: 'Python Handbook', price: 499 },\n  { id: 2, name: 'Wireless Mouse',  price: 799 },\n  { id: 3, name: 'SQL Masterclass', price: 649 },\n];\n\nfunction filterProducts(items: Product[], fn: ProductFilter): Product[] {\n  return items.filter(fn);\n}\n\nconst cheap = filterProducts(products, p => p.price < 700);\ncheap.forEach(p => console.log(`${p.name}: ₹${p.price}`));\n</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runTS()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setTS('// Re-export pattern (barrel index.ts)\\n// In real code: export { User } from \\'./user\\';\\n//               export type { Status } from \\'./types\\';\\n// Here: inline demo\\ninterface User { id: number; name: string }\\ntype Status = \\'active\\' | \\'inactive\\';\\nconst users: User[] = [{ id:1, name:\\'Alice\\'},{id:2,name:\\'Bob\\'}];\\nconsole.log(users.map(u => u.name));')\">barrel</span>\n        <span class=\"chip\" onclick=\"setTS('// Declaration merging (module augmentation)\\ninterface Config { host: string }\\ninterface Config { port: number }  // merged!\\nconst cfg: Config = { host: \\'localhost\\', port: 3000 };\\nconsole.log(cfg);')\">declaration merge</span>\n        <span class=\"chip\" onclick=\"setTS('// Namespace (grouping)\\nnamespace Validators {\\n  export function isEmail(s: string): boolean {\\n    return /^[^@]+@[^@]+\\\\.[^@]+$/.test(s);\\n  }\\n  export function isURL(s: string): boolean {\\n    return s.startsWith(\\'http\\');\\n  }\\n}\\nconsole.log(Validators.isEmail(\\'a@b.com\\'));\\nconsole.log(Validators.isURL(\\'https://x.com\\'));')\">namespace</span>\n      </div>\n    </div>\n    <div class=\"panels\">\n      <div class=\"panel\" id=\"output\"><div class=\"panel-label\">OUTPUT</div></div>\n      <div class=\"panel\" id=\"js\"><div class=\"panel-label\">COMPILED JS</div></div>\n    </div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/typescript@5.3.3/lib/typescript.js\"></script>\n  <script>\n    function setTS(code){document.getElementById('ts').value=code;runTS();}\n    function runTS(){\n      const src=document.getElementById('ts').value;\n      const out=document.getElementById('output');\n      const jsPanel=document.getElementById('js');\n      try{\n        const result=ts.transpileModule(src,{compilerOptions:{target:ts.ScriptTarget.ES2020,strict:true}});\n        const jsCode=result.outputText;\n        jsPanel.innerHTML='<div class=\"panel-label\">COMPILED JS</div><pre style=\"color:#64748b;margin:0;white-space:pre-wrap\">'+jsCode.replace(/</g,'&lt;')+'</pre>';\n        const logs=[];\n        const orig=console.log;\n        console.log=(...a)=>logs.push(a.map(x=>typeof x==='object'?JSON.stringify(x):String(x)).join(' '));\n        try{new Function(jsCode)();}finally{console.log=orig;}\n        out.innerHTML='<div class=\"panel-label\">OUTPUT</div>'+(logs.length?logs.map(l=>`<div class=\"ok\">${l.replace(/</g,'&lt;')}</div>`).join(''):'<div style=\"color:#64748b\">No output</div>');\n      }catch(e){out.innerHTML='<div class=\"panel-label\">OUTPUT</div><div class=\"err\">✗ '+e.message.replace(/</g,'&lt;')+'</div>';}\n    }\n    document.getElementById('ts').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runTS();}});\n    runTS();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "ts-mod-q1",
+          "question": "What is the advantage of `import type { User }` over `import { User }`?",
+          "type": "multiple-choice",
+          "options": [
+            "import type is faster at runtime",
+            "import type is guaranteed to be erased at compile time — no require() or import statement in the JS output, no side effects",
+            "import type allows importing from .d.ts files; regular import does not",
+            "They are identical — the type keyword is just documentation"
+          ],
+          "correctAnswer": 1,
+          "explanation": "import type is guaranteed to be erased completely during compilation — it never generates a require() or ES import statement in the output. This matters because: (1) no accidental side effects from the imported module's initialization code, (2) tools like esbuild that compile file-by-file without type information need to know what to drop, (3) some bundlers use this to optimize tree-shaking."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "When do I need @types packages?",
+      "a": "When a JavaScript library doesn't ship TypeScript types itself. npm install -D @types/node adds types for Node.js built-ins. @types/react adds React types. Modern libraries (zod, prisma, tanstack query) bundle their own types and don't need a separate @types package. Check the library's README or look for a types or typings field in its package.json."
+    }
+  ],
+  "sources": [
+    {
+      "name": "TypeScript Handbook — Modules",
+      "url": "https://www.typescriptlang.org/docs/handbook/2/modules.html",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every TypeScript project", "library authoring", "monorepos"],
+    "examples": [
+      "export type { User, UserUpdate } from './types' — type-only barrel export",
+      "npm install -D @types/express — add types for Express.js",
+      "declare module '*.svg' { const content: string; export default content } — import SVGs as strings in webpack"
+    ]
+  }
+}

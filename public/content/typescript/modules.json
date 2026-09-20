@@ -1,0 +1,37 @@
+[
+  {
+    "id": "ts-foundations",
+    "title": "TypeScript Foundations",
+    "description": "What TypeScript is, type annotations, basic types, arrays, and tuples",
+    "lessons": ["01-introduction", "02-basic-types", "03-arrays-tuples"],
+    "order": 0
+  },
+  {
+    "id": "ts-objects",
+    "title": "Typing Objects and Functions",
+    "description": "Interfaces, type aliases, union types, and typed function signatures",
+    "lessons": ["04-interfaces", "05-type-aliases", "06-functions"],
+    "order": 1
+  },
+  {
+    "id": "ts-advanced",
+    "title": "Advanced Types",
+    "description": "Generics, utility types, and type manipulation",
+    "lessons": ["07-generics", "08-union-intersection", "09-utility-types"],
+    "order": 2
+  },
+  {
+    "id": "ts-classes",
+    "title": "Classes and Enums",
+    "description": "Typed classes, access modifiers, enums, and type guards",
+    "lessons": ["10-classes", "11-enums", "12-type-guards"],
+    "order": 3
+  },
+  {
+    "id": "ts-practical",
+    "title": "TypeScript in Practice",
+    "description": "Modules, strict mode, React+TypeScript, and tooling",
+    "lessons": ["13-modules", "14-strict-mode", "15-react-typescript"],
+    "order": 4
+  }
+]

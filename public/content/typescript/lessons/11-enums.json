@@ -1,0 +1,104 @@
+{
+  "id": "11-enums",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "typescript",
+  "technologyVersion": "TypeScript 5.x",
+  "module": "ts-classes",
+  "title": "Enums",
+  "subtitle": "Numeric enums, string enums, const enums, and when to prefer union types instead",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 16,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["typescript/10-classes"],
+  "skillsTaught": ["ts.numeric-enum", "ts.string-enum", "ts.const-enum", "ts.enum-vs-union"],
+  "skillsUsed": ["ts.basic-types", "ts.union-types"],
+  "relatedConcepts": ["ts.type-guards", "ts.discriminated-unions"],
+  "whyItExists": {
+    "problem": "Using raw strings or numbers as status flags ('active', 'inactive', 1, 2, 3) makes code hard to read and allows typos. You lose IDE autocomplete and TypeScript checking.",
+    "solution": "Enums group related constants under a named type. string enums give readable values (Direction.North = 'N'), numeric enums give integer values (Status.Active = 0). const enums are inlined at compile time — zero runtime overhead.",
+    "whenToUse": "Use string enums when the value must be readable (logged, serialized, sent over network). Use const enums for pure compile-time constants in a single codebase. Consider union types ('N' | 'S' | 'E' | 'W') for simple cases.",
+    "whenNotToUse": "Avoid numeric enums in public APIs — the values change if you add members in the middle. Don't use const enums across package boundaries (they get inlined, so the importing code bakes in the values — breakage if the values change later)."
+  },
+  "explainModes": {
+    "beginner": "An enum is a named list of constants. Instead of writing 'active' or 'inactive' as plain strings, you write Status.Active and Status.Inactive. TypeScript knows these are the only valid values — it errors if you pass something else. You also get autocomplete in your IDE.",
+    "simple": "enum Direction { North, South, East, West } — numeric (0,1,2,3). enum Status { Active = 'ACTIVE', Inactive = 'INACTIVE' } — string enum (recommended). const enum Size { S, M, L } — inlined at compile time, no runtime object. Access: Direction.North. Reverse lookup on numeric enums: Direction[0] === 'North'. String enums: no reverse lookup.",
+    "standard": "Enums are one of the few TypeScript features that emit JavaScript code (they generate an object). String enums are preferred for APIs — the values are readable strings. const enum values are inlined — const enum A { X = 1 } and A.X in code becomes 1 in the compiled JS. This means the enum object doesn't exist at runtime. Heterogeneous enums (mixing strings and numbers) — avoid. Computed enum members: enum Flags { A = 1 << 0, B = 1 << 1, C = 1 << 2 } — bitmask flags.",
+    "technical": "Enums generate a bidirectional mapping for numeric members: Direction['North'] === 0 AND Direction[0] === 'North'. String enums only have forward mapping. TypeScript 5.0+ allows using enum members as types in type positions directly. Ambient enums (declare enum): used in .d.ts files to declare an enum from an external JS library without generating code. Enum member types: each member is its own literal type — Direction.North is the type '0 & { __brand: 'Direction.North' }' effectively.",
+    "deepDive": "The TypeScript team has expressed regret about enums in some contexts — they're the only feature that breaks the 'TypeScript is a type layer on top of JS' principle. Alternative: const DIRECTIONS = { North: 0, South: 1, East: 2, West: 3 } as const; type Direction = typeof DIRECTIONS[keyof typeof DIRECTIONS]; — pure JS object, zero TS magic, same type safety. This pattern is increasingly preferred over enums in modern TypeScript codebases."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Numeric and string enums"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "enums.ts",
+      "code": "// Numeric enum — auto-increments from 0\nenum Direction {\n    North,   // 0\n    South,   // 1\n    East,    // 2\n    West     // 3\n}\nconsole.log(Direction.North);   // 0\nconsole.log(Direction[0]);      // 'North' (reverse lookup)\n\n// Custom numeric start\nenum Priority {\n    Low    = 1,\n    Medium = 5,\n    High   = 10\n}\nconsole.log(Priority.High);  // 10\n\n// String enum — values are explicit readable strings\nenum Status {\n    Active   = 'ACTIVE',\n    Inactive = 'INACTIVE',\n    Pending  = 'PENDING'\n}\nconsole.log(Status.Active);    // 'ACTIVE'\nconsole.log(Status.Inactive);  // 'INACTIVE'\n\nfunction processOrder(status: Status): string {\n    switch (status) {\n        case Status.Active:   return 'Processing...';\n        case Status.Inactive: return 'Account inactive';\n        case Status.Pending:  return 'Waiting for payment';\n    }\n}\nconsole.log(processOrder(Status.Active));\nconsole.log(processOrder(Status.Pending));"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "const enums and the union type alternative"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "const_enum_vs_union.ts",
+      "code": "// const enum — inlined at compile time, no runtime object\nconst enum Size { Small = 'S', Medium = 'M', Large = 'L' }\nconst mySize = Size.Medium;  // compiled to: const mySize = 'M'\n// Size doesn't exist at runtime — it's replaced by its value\n\n// Union type alternative — often preferred in modern TS\ntype Direction = 'N' | 'S' | 'E' | 'W';\n\nfunction move(dir: Direction, steps: number): string {\n    return `Moving ${steps} step(s) ${dir}`;\n}\nconsole.log(move('N', 3));\n// move('X', 3);  // Error: 'X' is not assignable to Direction\n\n// Object + keyof pattern — no enum, same type safety\nconst Status = {\n    Active:   'ACTIVE',\n    Inactive: 'INACTIVE',\n    Pending:  'PENDING'\n} as const;\n\ntype StatusType = typeof Status[keyof typeof Status];\n// same as: 'ACTIVE' | 'INACTIVE' | 'PENDING'\n\nfunction setStatus(s: StatusType): void {\n    console.log('Status set to:', s);\n}\nsetStatus(Status.Active);   // 'ACTIVE'\nsetStatus('PENDING');        // also works — literal is valid\n// setStatus('UNKNOWN');     // Error\n\nconsole.log(Status);"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Enums",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:16px; margin:0; }\n    .layout { display:grid; grid-template-rows:auto 1fr; gap:10px; height:calc(100vh - 32px); }\n    .top { display:flex; flex-direction:column; gap:8px; }\n    .editor-row { display:flex; gap:8px; align-items:flex-start; }\n    textarea { flex:1; background:#0b0e14; border:1px solid #2d3748; border-radius:6px; color:#e2e8f0; padding:10px; font-family:monospace; font-size:0.82rem; resize:vertical; min-height:130px; }\n    .btns { display:flex; flex-direction:column; gap:6px; }\n    button { padding:8px 14px; border:none; border-radius:5px; font-weight:700; cursor:pointer; font-size:0.8rem; white-space:nowrap; }\n    .chips { display:flex; flex-wrap:wrap; gap:6px; }\n    .chip { background:#1a1f2b; border:1px solid #2d3748; border-radius:4px; padding:3px 10px; font-family:monospace; font-size:0.72rem; cursor:pointer; color:#94a3b8; }\n    .chip:hover { border-color:#4fd1c5; color:#4fd1c5; }\n    .panels { display:grid; grid-template-columns:1fr 1fr; gap:8px; }\n    .panel { background:#0b0e14; border-radius:6px; overflow:auto; padding:10px; font-family:monospace; font-size:0.78rem; }\n    .panel-label { font-size:0.7rem; color:#4fd1c5; margin-bottom:6px; }\n    .ok { color:#4fd1c5; } .err { color:#ef4444; }\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"ts\" spellcheck=\"false\">// String enum\nenum Role { Admin = 'ADMIN', User = 'USER', Guest = 'GUEST' }\n\nfunction describe(role: Role): string {\n  switch (role) {\n    case Role.Admin: return 'Full access';\n    case Role.User:  return 'Standard access';\n    case Role.Guest: return 'Read only';\n  }\n}\nconsole.log(describe(Role.Admin));\nconsole.log(describe(Role.Guest));\nconsole.log(Object.values(Role));\n</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runTS()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setTS('// Numeric enum + reverse lookup\\nenum Dir { N, S, E, W }\\nconsole.log(Dir.N);        // 0\\nconsole.log(Dir[0]);       // N (reverse lookup)\\nconsole.log(Object.entries(Dir));')\">numeric enum</span>\n        <span class=\"chip\" onclick=\"setTS('// Union type — modern alternative to enum\\ntype Status = \\'active\\' | \\'inactive\\' | \\'pending\\';\\nfunction label(s: Status): string {\\n  if (s === \\'active\\') return \\'✓ Active\\';\\n  if (s === \\'inactive\\') return \\'✗ Inactive\\';\\n  return \\'⏳ Pending\\';\\n}\\nconsole.log(label(\\'active\\'));\\nconsole.log(label(\\'pending\\'));')\">union alt</span>\n        <span class=\"chip\" onclick=\"setTS('// as const object pattern\\nconst HTTP = { OK: 200, Created: 201, BadRequest: 400, NotFound: 404 } as const;\\ntype HttpCode = typeof HTTP[keyof typeof HTTP];\\nconst code: HttpCode = HTTP.OK;\\nconsole.log(\\'Status:\\', code);\\nconsole.log(HTTP);')\">as const</span>\n      </div>\n    </div>\n    <div class=\"panels\">\n      <div class=\"panel\" id=\"output\"><div class=\"panel-label\">OUTPUT</div></div>\n      <div class=\"panel\" id=\"js\"><div class=\"panel-label\">COMPILED JS</div></div>\n    </div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/typescript@5.3.3/lib/typescript.js\"></script>\n  <script>\n    function setTS(code){document.getElementById('ts').value=code;runTS();}\n    function runTS(){\n      const src=document.getElementById('ts').value;\n      const out=document.getElementById('output');\n      const jsPanel=document.getElementById('js');\n      try{\n        const result=ts.transpileModule(src,{compilerOptions:{target:ts.ScriptTarget.ES2020,strict:true}});\n        const jsCode=result.outputText;\n        jsPanel.innerHTML='<div class=\"panel-label\">COMPILED JS</div><pre style=\"color:#64748b;margin:0;white-space:pre-wrap\">'+jsCode.replace(/</g,'&lt;')+'</pre>';\n        const logs=[];\n        const orig=console.log;\n        console.log=(...a)=>logs.push(a.map(x=>typeof x==='object'?JSON.stringify(x):String(x)).join(' '));\n        try{new Function(jsCode)();}finally{console.log=orig;}\n        out.innerHTML='<div class=\"panel-label\">OUTPUT</div>'+(logs.length?logs.map(l=>`<div class=\"ok\">${l.replace(/</g,'&lt;')}</div>`).join(''):'<div style=\"color:#64748b\">No output</div>');\n      }catch(e){out.innerHTML='<div class=\"panel-label\">OUTPUT</div><div class=\"err\">✗ '+e.message.replace(/</g,'&lt;')+'</div>';}\n    }\n    document.getElementById('ts').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runTS();}});\n    runTS();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "ts-enum-q1",
+          "question": "Why are string enums generally preferred over numeric enums for public APIs?",
+          "type": "multiple-choice",
+          "options": [
+            "String enums compile to smaller JavaScript",
+            "Numeric enum values can accidentally change if you insert a new member in the middle — string enums have stable, readable values",
+            "String enums support reverse lookup; numeric enums don't",
+            "TypeScript validates string enum values at runtime; it doesn't validate numeric values"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Numeric enum values are auto-assigned (0, 1, 2...). If you insert a new member in the middle, all subsequent values shift — breaking any stored data or external code that relied on specific numbers. String enums have explicit values that never change. Plus, string values are readable in logs and network payloads: 'ACTIVE' is clearer than 2."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Should I use enums or union types?",
+      "a": "Union types ('active' | 'inactive') are simpler, have no runtime overhead, and are just plain JS. Use them for most cases. Use enums when: the group of constants needs an explicit name (Status, Direction), when you want autocomplete to show just the enum members, or when the values need to be iterable at runtime (Object.values(MyEnum)). The 'as const object' pattern is a middle ground: const Status = { Active: 'ACTIVE' } as const — typed like an enum, plain JS at runtime."
+    }
+  ],
+  "sources": [
+    {
+      "name": "TypeScript Handbook — Enums",
+      "url": "https://www.typescriptlang.org/docs/handbook/enums.html",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["HTTP status codes", "Redux action types", "direction/movement systems", "payment states"],
+    "examples": [
+      "enum HttpMethod { GET = 'GET', POST = 'POST', PUT = 'PUT', DELETE = 'DELETE' }",
+      "const OrderStatus = { Pending: 'pending', Processing: 'processing', Shipped: 'shipped' } as const",
+      "type LogLevel = 'debug' | 'info' | 'warn' | 'error'"
+    ]
+  }
+}

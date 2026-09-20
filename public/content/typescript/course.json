@@ -1,0 +1,10 @@
+{
+  "id": "typescript",
+  "name": "TypeScript",
+  "version": "TypeScript 5.x",
+  "difficulty": "intermediate",
+  "estimatedHours": 15,
+  "modules": ["ts-foundations", "ts-objects", "ts-advanced", "ts-classes", "ts-practical"],
+  "prerequisites": ["javascript"],
+  "certificationAvailable": true
+}

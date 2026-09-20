@@ -1,0 +1,104 @@
+{
+  "id": "12-type-guards",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "typescript",
+  "technologyVersion": "TypeScript 5.x",
+  "module": "ts-classes",
+  "title": "Type Guards",
+  "subtitle": "typeof, instanceof, in, user-defined predicates (x is T), and assertion functions",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 18,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["typescript/11-enums"],
+  "skillsTaught": ["ts.typeof-guard", "ts.instanceof-guard", "ts.in-guard", "ts.type-predicate", "ts.assertion-function"],
+  "skillsUsed": ["ts.union-types", "ts.interfaces", "ts.classes", "ts.never"],
+  "relatedConcepts": ["ts.narrowing", "ts.discriminated-unions"],
+  "whyItExists": {
+    "problem": "TypeScript's type narrowing works automatically for simple typeof/instanceof checks, but complex validation logic (checking an API response matches an interface) isn't automatically recognized. TypeScript needs a way to trust your validation logic.",
+    "solution": "Type predicates: a function with return type x is T. When the function returns true, TypeScript narrows x to T in the true branch. Assertion functions: asserts x is T — after calling the function, TypeScript treats x as T in the calling scope.",
+    "whenToUse": "Whenever you validate an unknown/any value from an external source (API, user input, localStorage) and want TypeScript to recognize the narrowed type. Also for reusable narrowing logic.",
+    "whenNotToUse": "Don't use assertion functions as a shortcut to cast types without validating — that's the same as using as T, which bypasses safety. The predicate function must actually check the type."
+  },
+  "explainModes": {
+    "beginner": "A type guard is a function that checks if a value is a specific type and tells TypeScript about the result. You write it once, and TypeScript trusts it everywhere you use it. Instead of repeating typeof x === 'string' checks, you write isString(x) and TypeScript knows that after the check, x is a string.",
+    "simple": "typeof x === 'string' — built-in narrowing. x instanceof MyClass — narrows to MyClass. 'prop' in x — narrows to types with that property. User-defined predicate: function isUser(x: unknown): x is User { return ... }. Assertion function: function assertUser(x: unknown): asserts x is User { if (!isUser(x)) throw new Error(); }.",
+    "standard": "Type predicates work with if/else, ternary, and filter. isString is treated as () => x is string — when it returns true, TypeScript narrows. Array narrowing: array.filter(isUser) — the result type is User[] (not (User | OtherType)[]). Assertion functions: after calling assertUser(x), TypeScript knows x is User — even without an if check. They're useful in constructor validation and express-style middleware.",
+    "technical": "Type predicate syntax requires specifying which parameter is narrowed: function isA(x: A | B): x is A. Multiple predicates with intersection: rarely needed — TypeScript doesn't support x is A & B in predicate syntax directly. Discriminant-based guard: function isCircle(s: Shape): s is Circle { return s.kind === 'circle' } — often redundant if you're already using switch (s.kind). Custom guard with assertion: function assert(cond: unknown, msg?: string): asserts cond { if (!cond) throw new Error(msg) }.",
+    "deepDive": "Type predicates are not verified by TypeScript — you can write function isString(x: unknown): x is string { return true; } and TypeScript will trust it even though it's wrong. This is intentional: TypeScript gives you a way to push knowledge about runtime behavior into the type system, with the responsibility of correctness on you. Composing predicates: function isActiveUser(x: unknown): x is ActiveUser { return isUser(x) && x.status === 'active' }. Assertion function types: asserts condition, asserts value is T — both exist in the TS stdlib."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Built-in type guards"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "builtin_guards.ts",
+      "code": "// typeof guard — primitives\nfunction format(x: string | number | boolean): string {\n    if (typeof x === 'string')  return x.trim().toUpperCase();\n    if (typeof x === 'number')  return x.toFixed(2);\n    return x ? 'YES' : 'NO';\n}\nconsole.log(format('  hello  '));  // HELLO\nconsole.log(format(3.14159));     // 3.14\nconsole.log(format(true));        // YES\n\n// instanceof guard — class instances\nclass ApiError extends Error {\n    constructor(public code: number, message: string) {\n        super(message);\n    }\n}\nclass NetworkError extends Error {\n    constructor(public url: string, message: string) {\n        super(message);\n    }\n}\n\nfunction handleError(err: Error): string {\n    if (err instanceof ApiError) {\n        return `API error ${err.code}: ${err.message}`;\n    }\n    if (err instanceof NetworkError) {\n        return `Network error at ${err.url}: ${err.message}`;\n    }\n    return `Unknown error: ${err.message}`;\n}\nconsole.log(handleError(new ApiError(404, 'Not found')));\nconsole.log(handleError(new NetworkError('/api', 'Timeout')));\n\n// in guard — property check\ninterface Cat { meow(): string; }\ninterface Dog { bark(): string; }\n\nfunction makeNoise(pet: Cat | Dog): string {\n    if ('meow' in pet) return pet.meow();\n    return pet.bark();\n}\nconsole.log(makeNoise({ meow: () => 'Meoow!' }));"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "User-defined type predicates"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "predicates.ts",
+      "code": "interface User {\n    id: number;\n    name: string;\n    email: string;\n}\n\n// Type predicate: returns x is User\nfunction isUser(x: unknown): x is User {\n    return (\n        typeof x === 'object' &&\n        x !== null &&\n        'id' in x && typeof (x as any).id === 'number' &&\n        'name' in x && typeof (x as any).name === 'string' &&\n        'email' in x && typeof (x as any).email === 'string'\n    );\n}\n\n// Now TypeScript knows the type after the guard\nconst fromApi: unknown = { id: 1, name: 'Alice', email: 'alice@ex.com' };\nif (isUser(fromApi)) {\n    console.log(fromApi.name.toUpperCase());  // TypeScript knows: string\n    console.log(fromApi.email);\n}\n\n// Works with array.filter too!\nconst items: unknown[] = [\n    { id: 1, name: 'Alice', email: 'alice@ex.com' },\n    'not a user',\n    42,\n    { id: 2, name: 'Bob', email: 'bob@ex.com' },\n];\nconst users: User[] = items.filter(isUser);  // User[], not unknown[]!\nconsole.log(users.map(u => u.name));\n\n// Assertion function — throws if condition not met\nfunction assertUser(x: unknown): asserts x is User {\n    if (!isUser(x)) throw new Error(`Expected User, got ${JSON.stringify(x)}`);\n}\n\nconst data: unknown = { id: 3, name: 'Charlie', email: 'c@ex.com' };\nassertUser(data);\n// After assertUser, TypeScript knows data is User:\nconsole.log(data.name);"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Type guards",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:16px; margin:0; }\n    .layout { display:grid; grid-template-rows:auto 1fr; gap:10px; height:calc(100vh - 32px); }\n    .top { display:flex; flex-direction:column; gap:8px; }\n    .editor-row { display:flex; gap:8px; align-items:flex-start; }\n    textarea { flex:1; background:#0b0e14; border:1px solid #2d3748; border-radius:6px; color:#e2e8f0; padding:10px; font-family:monospace; font-size:0.82rem; resize:vertical; min-height:140px; }\n    .btns { display:flex; flex-direction:column; gap:6px; }\n    button { padding:8px 14px; border:none; border-radius:5px; font-weight:700; cursor:pointer; font-size:0.8rem; white-space:nowrap; }\n    .chips { display:flex; flex-wrap:wrap; gap:6px; }\n    .chip { background:#1a1f2b; border:1px solid #2d3748; border-radius:4px; padding:3px 10px; font-family:monospace; font-size:0.72rem; cursor:pointer; color:#94a3b8; }\n    .chip:hover { border-color:#4fd1c5; color:#4fd1c5; }\n    .panels { display:grid; grid-template-columns:1fr 1fr; gap:8px; }\n    .panel { background:#0b0e14; border-radius:6px; overflow:auto; padding:10px; font-family:monospace; font-size:0.78rem; }\n    .panel-label { font-size:0.7rem; color:#4fd1c5; margin-bottom:6px; }\n    .ok { color:#4fd1c5; } .err { color:#ef4444; }\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"ts\" spellcheck=\"false\">// User-defined type predicate\ninterface Product { id: number; name: string; price: number; }\n\nfunction isProduct(x: unknown): x is Product {\n  return typeof x === 'object' && x !== null &&\n    'id' in x && 'name' in x && 'price' in x;\n}\n\nconst items: unknown[] = [\n  { id: 1, name: 'Keyboard', price: 2499 },\n  'not a product',\n  null,\n  { id: 2, name: 'Mouse', price: 799 },\n];\n\nconst products = items.filter(isProduct);  // Product[]\nproducts.forEach(p => console.log(`${p.name}: ₹${p.price}`));\n</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runTS()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setTS('// typeof guard\\nfunction double(x: string | number): string | number {\\n  if (typeof x === \\'string\\') return x.repeat(2);\\n  return x * 2;\\n}\\nconsole.log(double(\\'hi\\'));\\nconsole.log(double(5));')\">typeof</span>\n        <span class=\"chip\" onclick=\"setTS('// assert helper\\nfunction assert(cond: unknown, msg: string = \\'assertion failed\\'): asserts cond {\\n  if (!cond) throw new Error(msg);\\n}\\nconst val: unknown = 42;\\nassert(typeof val === \\'number\\', \\'must be number\\');\\nconsole.log(val.toFixed(2));  // val is number now')\">assert</span>\n        <span class=\"chip\" onclick=\"setTS('// instanceof\\nclass DB { query(sql: string) { return `result of: ${sql}`; } }\\nclass Cache { get(k: string) { return `cached: ${k}`; } }\\nfunction fetch(src: DB | Cache, key: string) {\\n  if (src instanceof DB) return src.query(`SELECT * WHERE id=${key}`);\\n  return src.get(key);\\n}\\nconsole.log(fetch(new DB(), \\'42\\'));\\nconsole.log(fetch(new Cache(), \\'user:1\\'));')\">instanceof</span>\n      </div>\n    </div>\n    <div class=\"panels\">\n      <div class=\"panel\" id=\"output\"><div class=\"panel-label\">OUTPUT</div></div>\n      <div class=\"panel\" id=\"js\"><div class=\"panel-label\">COMPILED JS</div></div>\n    </div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/typescript@5.3.3/lib/typescript.js\"></script>\n  <script>\n    function setTS(code){document.getElementById('ts').value=code;runTS();}\n    function runTS(){\n      const src=document.getElementById('ts').value;\n      const out=document.getElementById('output');\n      const jsPanel=document.getElementById('js');\n      try{\n        const result=ts.transpileModule(src,{compilerOptions:{target:ts.ScriptTarget.ES2020,strict:true}});\n        const jsCode=result.outputText;\n        jsPanel.innerHTML='<div class=\"panel-label\">COMPILED JS</div><pre style=\"color:#64748b;margin:0;white-space:pre-wrap\">'+jsCode.replace(/</g,'&lt;')+'</pre>';\n        const logs=[];\n        const orig=console.log;\n        console.log=(...a)=>logs.push(a.map(x=>typeof x==='object'?JSON.stringify(x):String(x)).join(' '));\n        try{new Function(jsCode)();}finally{console.log=orig;}\n        out.innerHTML='<div class=\"panel-label\">OUTPUT</div>'+(logs.length?logs.map(l=>`<div class=\"ok\">${l.replace(/</g,'&lt;')}</div>`).join(''):'<div style=\"color:#64748b\">No output</div>');\n      }catch(e){out.innerHTML='<div class=\"panel-label\">OUTPUT</div><div class=\"err\">✗ '+e.message.replace(/</g,'&lt;')+'</div>';}\n    }\n    document.getElementById('ts').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runTS();}});\n    runTS();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "ts-guard-q1",
+          "question": "Why is `items.filter(isUser)` typed as `User[]` when `isUser` is a type predicate?",
+          "type": "multiple-choice",
+          "options": [
+            "TypeScript automatically infers the type from the filter callback",
+            "The type predicate return type `x is User` tells TypeScript that when isUser returns true, the element is User — Array.filter uses this to narrow the result array type",
+            "The result is always User[] regardless of the predicate return type",
+            "filter() always returns the element type of the input array"
+          ],
+          "correctAnswer": 1,
+          "explanation": "TypeScript's Array.filter signature has an overload specifically for type predicates: filter<S extends T>(predicate: (value: T) => value is S): S[]. When you pass a type predicate function (x: unknown): x is User, TypeScript uses the S type (User) as the return array's element type. Without a type predicate, filter returns the same type as the input array."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Can I write a wrong type predicate? Does TypeScript catch it?",
+      "a": "Yes, you can write a lying predicate — TypeScript doesn't verify that your predicate actually checks the right thing. function isString(x: unknown): x is string { return true } would compile. TypeScript trusts you. This is intentional: some runtime checks are too complex for the type system to verify. The responsibility for correctness is yours. Use libraries like zod or io-ts for validated type narrowing."
+    }
+  ],
+  "sources": [
+    {
+      "name": "TypeScript Handbook — Narrowing",
+      "url": "https://www.typescriptlang.org/docs/handbook/2/narrowing.html",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["API response validation", "form data parsing", "event handling", "Redux middleware"],
+    "examples": [
+      "function isApiError(x: unknown): x is ApiError { return x instanceof Error && 'code' in x }",
+      "const users = (await fetchAll()).filter(isUser) — typed filtering",
+      "function requireAuth(req: Request): asserts req is AuthenticatedRequest { if (!req.user) throw new UnauthorizedError() }"
+    ]
+  }
+}

@@ -1,0 +1,104 @@
+{
+  "id": "10-classes",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "typescript",
+  "technologyVersion": "TypeScript 5.x",
+  "module": "ts-classes",
+  "title": "Classes in TypeScript",
+  "subtitle": "Typed classes, access modifiers, constructors, abstract classes, and implements",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 22,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["typescript/09-utility-types"],
+  "skillsTaught": ["ts.class-types", "ts.access-modifiers", "ts.readonly-class", "ts.abstract-class", "ts.implements"],
+  "skillsUsed": ["ts.interfaces", "ts.generics", "ts.basic-types"],
+  "relatedConcepts": ["ts.enums", "ts.type-guards"],
+  "whyItExists": {
+    "problem": "JavaScript classes have no access control — any code can read or set any property. There's no enforcement that a class implements a required interface shape.",
+    "solution": "TypeScript adds access modifiers (public, private, protected, readonly), typed properties and constructor parameters, abstract classes, and the implements keyword to enforce interface contracts.",
+    "whenToUse": "When modeling entities with behavior and state (domain objects, services, repositories). When you need access control or you want to enforce an interface contract.",
+    "whenNotToUse": "Don't use classes just to group functions — a module with exported functions is simpler. Don't model simple data bags as classes — use interfaces + plain objects."
+  },
+  "explainModes": {
+    "beginner": "TypeScript classes work like JavaScript classes but with labels. public means anyone can use it, private means only the class itself can use it, readonly means it can only be set once (in the constructor). abstract means 'this class can't be used directly — you must create a subclass that fills in the details'.",
+    "simple": "class C { public x: number; private y: string; protected z: boolean; readonly id: number; }. Parameter shorthand: constructor(public name: string) — auto-creates and assigns a public name property. abstract class A { abstract doWork(): void; } — can't instantiate A directly. class B extends A { doWork() { ... } }. class D implements Interface { ... }.",
+    "standard": "TypeScript classes emit real JavaScript classes. Access modifiers (public/private/protected) are compile-time only — the JavaScript output doesn't enforce them at runtime. For true runtime private fields, use # (native JavaScript private fields). Static class members: static count = 0. Getters and setters: get name(): string, set name(v: string). Class generic: class Box<T> { constructor(public value: T) {} }.",
+    "technical": "Implementing multiple interfaces: class C implements A, B. Class types: TypeScript generates both a value (the class constructor) and a type (the instance type). typeof MyClass is the constructor type; MyClass alone is the instance type. Override: override method() — requires noImplicitOverride tsconfig flag. Private fields with # use JavaScript's native WeakMap-based privacy — enforced at runtime.",
+    "deepDive": "Abstract classes can have both abstract members (no implementation, must be overridden) and concrete members (have implementation, can be inherited). An abstract class is unlike an interface in that it can have constructor logic, concrete methods, and state. Mixin pattern: function Timestamped<TBase extends Constructor>(Base: TBase) { return class extends Base { createdAt = new Date() } } — adding behavior to existing classes without deep inheritance hierarchies."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Typed class with access modifiers"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "classes.ts",
+      "code": "class BankAccount {\n    readonly id: number;          // set once in constructor\n    private balance: number;      // only this class can access\n    protected owner: string;      // this class and subclasses\n    public currency: string;      // anyone can access\n\n    constructor(id: number, owner: string, initialBalance: number) {\n        this.id = id;\n        this.owner = owner;\n        this.balance = initialBalance;\n        this.currency = 'INR';\n    }\n\n    // Public method — part of the API\n    deposit(amount: number): void {\n        if (amount <= 0) throw new Error('Amount must be positive');\n        this.balance += amount;\n    }\n\n    withdraw(amount: number): void {\n        if (amount > this.balance) throw new Error('Insufficient funds');\n        this.balance -= amount;\n    }\n\n    getBalance(): number {\n        return this.balance;  // controlled access to private field\n    }\n}\n\nconst account = new BankAccount(1, 'Alice', 1000);\naccount.deposit(500);\naccount.withdraw(200);\nconsole.log(account.getBalance());  // 1300\n// account.balance;  // Error: private\n// account.id = 2;   // Error: readonly\n\n// Parameter property shorthand — same as above but shorter\nclass Point {\n    constructor(\n        public readonly x: number,\n        public readonly y: number\n    ) {}\n\n    distanceTo(other: Point): number {\n        return Math.hypot(this.x - other.x, this.y - other.y);\n    }\n}\nconst p1 = new Point(0, 0);\nconst p2 = new Point(3, 4);\nconsole.log(p1.distanceTo(p2));  // 5"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Abstract classes and implements"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "abstract.ts",
+      "code": "// Interface — the contract\ninterface Serializable {\n    serialize(): string;\n    toJSON(): object;\n}\n\n// Abstract class — partial implementation\nabstract class Shape implements Serializable {\n    constructor(public readonly color: string) {}\n\n    abstract area(): number;    // subclass MUST implement\n    abstract perimeter(): number;\n\n    // Concrete method — available in all subclasses\n    describe(): string {\n        return `A ${this.color} shape with area ${this.area().toFixed(2)}`;\n    }\n\n    serialize(): string {\n        return JSON.stringify(this.toJSON());\n    }\n}\n\nclass Circle extends Shape {\n    constructor(color: string, public readonly radius: number) {\n        super(color);\n    }\n    area():      number { return Math.PI * this.radius ** 2; }\n    perimeter(): number { return 2 * Math.PI * this.radius; }\n    toJSON(): object {\n        return { type: 'circle', radius: this.radius, color: this.color };\n    }\n}\n\nclass Rectangle extends Shape {\n    constructor(\n        color: string,\n        public readonly width: number,\n        public readonly height: number\n    ) { super(color); }\n    area():      number { return this.width * this.height; }\n    perimeter(): number { return 2 * (this.width + this.height); }\n    toJSON(): object {\n        return { type: 'rectangle', width: this.width, height: this.height, color: this.color };\n    }\n}\n\nconst c = new Circle('red', 5);\nconst r = new Rectangle('blue', 4, 6);\n\nconsole.log(c.describe());\nconsole.log(r.describe());\nconsole.log(c.serialize());\n// const s = new Shape('green');  // Error: Cannot instantiate abstract class"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: TypeScript classes",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:16px; margin:0; }\n    .layout { display:grid; grid-template-rows:auto 1fr; gap:10px; height:calc(100vh - 32px); }\n    .top { display:flex; flex-direction:column; gap:8px; }\n    .editor-row { display:flex; gap:8px; align-items:flex-start; }\n    textarea { flex:1; background:#0b0e14; border:1px solid #2d3748; border-radius:6px; color:#e2e8f0; padding:10px; font-family:monospace; font-size:0.82rem; resize:vertical; min-height:140px; }\n    .btns { display:flex; flex-direction:column; gap:6px; }\n    button { padding:8px 14px; border:none; border-radius:5px; font-weight:700; cursor:pointer; font-size:0.8rem; white-space:nowrap; }\n    .chips { display:flex; flex-wrap:wrap; gap:6px; }\n    .chip { background:#1a1f2b; border:1px solid #2d3748; border-radius:4px; padding:3px 10px; font-family:monospace; font-size:0.72rem; cursor:pointer; color:#94a3b8; }\n    .chip:hover { border-color:#4fd1c5; color:#4fd1c5; }\n    .panels { display:grid; grid-template-columns:1fr 1fr; gap:8px; }\n    .panel { background:#0b0e14; border-radius:6px; overflow:auto; padding:10px; font-family:monospace; font-size:0.78rem; }\n    .panel-label { font-size:0.7rem; color:#4fd1c5; margin-bottom:6px; }\n    .ok { color:#4fd1c5; } .err { color:#ef4444; }\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"ts\" spellcheck=\"false\">class Counter {\n  private count: number = 0;\n  readonly name: string;\n  constructor(name: string) { this.name = name; }\n  increment(by: number = 1): void { this.count += by; }\n  decrement(by: number = 1): void { this.count = Math.max(0, this.count - by); }\n  get value(): number { return this.count; }\n  reset(): void { this.count = 0; }\n}\n\nconst c = new Counter('visits');\nc.increment();\nc.increment();\nc.increment(5);\nconsole.log(`${c.name}: ${c.value}`);\nc.decrement(2);\nconsole.log(`${c.name}: ${c.value}`);\nc.reset();\nconsole.log(`${c.name}: ${c.value}`);\n</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runTS()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setTS('// Parameter shorthand\\nclass Point {\\n  constructor(public x: number, public y: number) {}\\n  toString() { return `(${this.x}, ${this.y})`; }\\n  distanceTo(p: Point) { return Math.hypot(p.x-this.x, p.y-this.y); }\\n}\\nconst a = new Point(0,0), b = new Point(3,4);\\nconsole.log(a.toString(), b.toString());\\nconsole.log(\\'dist:\\', a.distanceTo(b));')\">param shorthand</span>\n        <span class=\"chip\" onclick=\"setTS('// Generic class\\nclass Stack<T> {\\n  private items: T[] = [];\\n  push(v: T) { this.items.push(v); }\\n  pop(): T | undefined { return this.items.pop(); }\\n  get size() { return this.items.length; }\\n}\\nconst s = new Stack<string>();\\ns.push(\\'a\\'); s.push(\\'b\\'); s.push(\\'c\\');\\nconsole.log(\\'size:\\', s.size, \\'pop:\\', s.pop());')\">generic class</span>\n        <span class=\"chip\" onclick=\"setTS('// Static members\\nclass IdGen {\\n  private static next = 1;\\n  static generate(): number { return this.next++; }\\n}\\nconsole.log(IdGen.generate());\\nconsole.log(IdGen.generate());\\nconsole.log(IdGen.generate());')\">static</span>\n      </div>\n    </div>\n    <div class=\"panels\">\n      <div class=\"panel\" id=\"output\"><div class=\"panel-label\">OUTPUT</div></div>\n      <div class=\"panel\" id=\"js\"><div class=\"panel-label\">COMPILED JS</div></div>\n    </div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/typescript@5.3.3/lib/typescript.js\"></script>\n  <script>\n    function setTS(code){document.getElementById('ts').value=code;runTS();}\n    function runTS(){\n      const src=document.getElementById('ts').value;\n      const out=document.getElementById('output');\n      const jsPanel=document.getElementById('js');\n      try{\n        const result=ts.transpileModule(src,{compilerOptions:{target:ts.ScriptTarget.ES2020,strict:true}});\n        const jsCode=result.outputText;\n        jsPanel.innerHTML='<div class=\"panel-label\">COMPILED JS</div><pre style=\"color:#64748b;margin:0;white-space:pre-wrap\">'+jsCode.replace(/</g,'&lt;')+'</pre>';\n        const logs=[];\n        const orig=console.log;\n        console.log=(...a)=>logs.push(a.map(x=>typeof x==='object'?JSON.stringify(x):String(x)).join(' '));\n        try{new Function(jsCode)();}finally{console.log=orig;}\n        out.innerHTML='<div class=\"panel-label\">OUTPUT</div>'+(logs.length?logs.map(l=>`<div class=\"ok\">${l.replace(/</g,'&lt;')}</div>`).join(''):'<div style=\"color:#64748b\">No output</div>');\n      }catch(e){out.innerHTML='<div class=\"panel-label\">OUTPUT</div><div class=\"err\">✗ '+e.message.replace(/</g,'&lt;')+'</div>';}\n    }\n    document.getElementById('ts').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runTS();}});\n    runTS();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "ts-class-q1",
+          "question": "What does `constructor(private name: string)` do in TypeScript?",
+          "type": "multiple-choice",
+          "options": [
+            "Creates a local parameter named name, not a class property",
+            "Creates a private class property named name and assigns the constructor argument to it automatically",
+            "Makes the constructor private",
+            "Throws a compile error — private is not allowed in constructors"
+          ],
+          "correctAnswer": 1,
+          "explanation": "TypeScript's parameter property shorthand: using an access modifier (public/private/protected/readonly) in the constructor parameter list automatically creates a class property with that name and modifier, and assigns the constructor argument to it. It's equivalent to writing: private name: string; and this.name = name; inside the constructor body."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Are TypeScript's private fields actually private at runtime?",
+      "a": "No — TypeScript's private modifier is only enforced at compile time. The compiled JavaScript has no access control. For true runtime privacy, use JavaScript's native # private fields: class C { #secret = 'hidden'; }. These use WeakMap-based storage and are truly inaccessible from outside the class. TypeScript supports # fields and enforces them at both compile and runtime."
+    }
+  ],
+  "sources": [
+    {
+      "name": "TypeScript Handbook — Classes",
+      "url": "https://www.typescriptlang.org/docs/handbook/2/classes.html",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["ORM entities", "service classes", "dependency injection", "state machines"],
+    "examples": [
+      "class UserService { constructor(private db: Database, private logger: Logger) {} }",
+      "abstract class BaseEntity { abstract validate(): boolean; }",
+      "class EventEmitter<T extends Record<string, unknown>> { ... }"
+    ]
+  }
+}

@@ -1,0 +1,104 @@
+{
+  "id": "09-utility-types",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "typescript",
+  "technologyVersion": "TypeScript 5.x",
+  "module": "ts-advanced",
+  "title": "Utility Types",
+  "subtitle": "Partial, Required, Readonly, Pick, Omit, Record, ReturnType — TypeScript's built-in type transformers",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 20,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["typescript/08-union-intersection"],
+  "skillsTaught": ["ts.Partial", "ts.Required", "ts.Readonly", "ts.Pick", "ts.Omit", "ts.Record", "ts.ReturnType", "ts.Parameters"],
+  "skillsUsed": ["ts.generics", "ts.interfaces", "ts.keyof"],
+  "relatedConcepts": ["ts.mapped-types", "ts.conditional-types"],
+  "whyItExists": {
+    "problem": "You often need variations of an existing type: a version where all fields are optional (for updates), a version where certain fields are excluded (for a public API response), or a readonly version (for configuration). Rewriting the type by hand leads to duplication.",
+    "solution": "TypeScript ships built-in utility types — generic type transformers that derive a new type from an existing one. Partial<T> makes all fields optional. Pick<T, K> keeps only certain fields. Omit<T, K> removes certain fields.",
+    "whenToUse": "Whenever you need a modified version of an existing type. These are everyday tools in TypeScript — use them liberally.",
+    "whenNotToUse": "Don't chain multiple utility types when the result would be confusing. If you need a very specific shape, just write it as a new interface. Utility types are for common transformations, not every case."
+  },
+  "explainModes": {
+    "beginner": "Imagine you have a User type with 10 fields. When you update a user, you might only change 2 or 3 fields. Instead of writing a new UpdateUser type with all those fields as optional, you write Partial<User> — it automatically makes every field optional. These are shortcuts for common type patterns.",
+    "simple": "Partial<T> — all fields optional. Required<T> — all fields required (removes ?). Readonly<T> — all fields readonly. Pick<T, 'a' | 'b'> — keep only those fields. Omit<T, 'a' | 'b'> — remove those fields. Record<K, V> — object type with keys of type K and values of type V. ReturnType<typeof fn> — the return type of a function. Parameters<typeof fn> — tuple of parameter types.",
+    "standard": "These are implemented with mapped types and conditional types in the TS standard library. Partial<T> = { [K in keyof T]?: T[K] }. Required<T> = { [K in keyof T]-?: T[K] } (the - removes ?). Readonly<T> = { readonly [K in keyof T]: T[K] }. Pick<T, K> = { [P in K]: T[P] }. Omit<T, K> = Pick<T, Exclude<keyof T, K>>. NonNullable<T> removes null and undefined from a union.",
+    "technical": "Awaited<T> — unwraps Promises: Awaited<Promise<string>> = string. ConstructorParameters<T> — parameter tuple of a class constructor. InstanceType<T> — instance type of a class. ThisType<T> — sets the this type inside an object literal. Mutable<T> (community pattern) — removes readonly: { -readonly [K in keyof T]: T[K] }. DeepPartial<T> — recursive partial (not built-in, but commonly implemented).",
+    "deepDive": "The utility types are implemented in lib.es5.d.ts using template literal types, mapped types, and conditional types. You can implement your own: type DeepReadonly<T> = { readonly [K in keyof T]: T[K] extends object ? DeepReadonly<T[K]> : T[K] }. Template literal utility types: Uppercase<S>, Lowercase<S>, Capitalize<S>, Uncapitalize<S> — transform string literal types. type Keys<T> = keyof T extends string ? Uppercase<keyof T> : never."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Transforming existing types"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "utility_types.ts",
+      "code": "interface User {\n    id: number;\n    name: string;\n    email: string;\n    role: 'admin' | 'user';\n    createdAt: string;\n}\n\n// Partial<T> — all fields become optional (useful for updates)\ntype UserUpdate = Partial<User>;\nconst update: UserUpdate = { name: 'New Name' };  // only name changed\n\n// Required<T> — all optional fields become required\ninterface Config { host?: string; port?: number; }\ntype StrictConfig = Required<Config>;\nconst cfg: StrictConfig = { host: 'localhost', port: 3000 }; // both required\n\n// Readonly<T> — all fields immutable\ntype FrozenUser = Readonly<User>;\nconst frozen: FrozenUser = { id: 1, name: 'Alice', email: 'a@b.com', role: 'user', createdAt: '2024' };\n// frozen.name = 'Bob';  // Error: readonly\n\n// Pick<T, K> — keep only certain fields\ntype UserSummary = Pick<User, 'id' | 'name' | 'role'>;\nconst summary: UserSummary = { id: 1, name: 'Alice', role: 'user' };\n\n// Omit<T, K> — remove certain fields\ntype PublicUser = Omit<User, 'createdAt'>;\nconst pub: PublicUser = { id: 1, name: 'Alice', email: 'a@b.com', role: 'user' };\n\nconsole.log(summary);\nconsole.log(pub);"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Record, ReturnType, and Parameters"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "more_utilities.ts",
+      "code": "// Record<K, V> — typed object/map\ntype RolePermissions = Record<'admin' | 'user' | 'guest', string[]>;\nconst permissions: RolePermissions = {\n    admin: ['read', 'write', 'delete'],\n    user:  ['read', 'write'],\n    guest: ['read'],\n};\n\n// Record with string keys\ntype ScoreBoard = Record<string, number>;\nconst scores: ScoreBoard = { Alice: 95, Bob: 87, Charlie: 72 };\nconsole.log(scores['Alice']);\n\n// ReturnType<typeof fn> — extract return type\nfunction getUser() {\n    return { id: 1, name: 'Alice', email: 'alice@example.com' };\n}\ntype UserData = ReturnType<typeof getUser>;  // { id: number; name: string; email: string; }\n\n// Parameters<typeof fn> — extract parameter types as tuple\nfunction login(username: string, password: string, remember: boolean): boolean {\n    return true;\n}\ntype LoginParams = Parameters<typeof login>;  // [string, string, boolean]\nconst args: LoginParams = ['alice', 'secret', true];\nlogin(...args);\n\n// NonNullable<T> — remove null and undefined\ntype MaybeName = string | null | undefined;\ntype Name = NonNullable<MaybeName>;  // string\n\n// Awaited<T> — unwrap Promise\ntype AwaitedUser = Awaited<Promise<{ id: number; name: string }>>;\n// same as { id: number; name: string }\n\nconsole.log(permissions);"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Utility types",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:16px; margin:0; }\n    .layout { display:grid; grid-template-rows:auto 1fr; gap:10px; height:calc(100vh - 32px); }\n    .top { display:flex; flex-direction:column; gap:8px; }\n    .editor-row { display:flex; gap:8px; align-items:flex-start; }\n    textarea { flex:1; background:#0b0e14; border:1px solid #2d3748; border-radius:6px; color:#e2e8f0; padding:10px; font-family:monospace; font-size:0.82rem; resize:vertical; min-height:140px; }\n    .btns { display:flex; flex-direction:column; gap:6px; }\n    button { padding:8px 14px; border:none; border-radius:5px; font-weight:700; cursor:pointer; font-size:0.8rem; white-space:nowrap; }\n    .chips { display:flex; flex-wrap:wrap; gap:6px; }\n    .chip { background:#1a1f2b; border:1px solid #2d3748; border-radius:4px; padding:3px 10px; font-family:monospace; font-size:0.72rem; cursor:pointer; color:#94a3b8; }\n    .chip:hover { border-color:#4fd1c5; color:#4fd1c5; }\n    .panels { display:grid; grid-template-columns:1fr 1fr; gap:8px; }\n    .panel { background:#0b0e14; border-radius:6px; overflow:auto; padding:10px; font-family:monospace; font-size:0.78rem; }\n    .panel-label { font-size:0.7rem; color:#4fd1c5; margin-bottom:6px; }\n    .ok { color:#4fd1c5; } .err { color:#ef4444; }\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"ts\" spellcheck=\"false\">interface Product {\n  id: number;\n  name: string;\n  price: number;\n  stock: number;\n  category: string;\n}\n\n// Partial — for update operations\ntype ProductUpdate = Partial<Product>;\nconst patch: ProductUpdate = { price: 599, stock: 45 };\nconsole.log('Update:', patch);\n\n// Pick — public API response\ntype ProductCard = Pick<Product, 'id' | 'name' | 'price'>;\nconst card: ProductCard = { id: 1, name: 'Keyboard', price: 2499 };\nconsole.log('Card:', card);\n\n// Record — category lookup\ntype CategoryMap = Record<string, number>;\nconst counts: CategoryMap = { Books: 3, Electronics: 5 };\nconsole.log('Counts:', counts);\n</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runTS()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setTS('// Omit\\ninterface User { id: number; name: string; password: string }\\ntype SafeUser = Omit<User, \\'password\\'>;\\nconst u: SafeUser = { id: 1, name: \\'Alice\\' };\\nconsole.log(u);')\">Omit</span>\n        <span class=\"chip\" onclick=\"setTS('// ReturnType\\nfunction fetchUser() {\\n  return { id: 1, name: \\'Alice\\', active: true };\\n}\\ntype UserData = ReturnType<typeof fetchUser>;\\nconst d: UserData = fetchUser();\\nconsole.log(d);')\">ReturnType</span>\n        <span class=\"chip\" onclick=\"setTS('// Readonly\\ntype Config = Readonly<{ host: string; port: number }>;\\nconst cfg: Config = { host: \\'localhost\\', port: 3000 };\\nconsole.log(cfg.host, cfg.port);\\n// cfg.port = 8080; // Error: readonly')\">Readonly</span>\n      </div>\n    </div>\n    <div class=\"panels\">\n      <div class=\"panel\" id=\"output\"><div class=\"panel-label\">OUTPUT</div></div>\n      <div class=\"panel\" id=\"js\"><div class=\"panel-label\">COMPILED JS</div></div>\n    </div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/typescript@5.3.3/lib/typescript.js\"></script>\n  <script>\n    function setTS(code){document.getElementById('ts').value=code;runTS();}\n    function runTS(){\n      const src=document.getElementById('ts').value;\n      const out=document.getElementById('output');\n      const jsPanel=document.getElementById('js');\n      try{\n        const result=ts.transpileModule(src,{compilerOptions:{target:ts.ScriptTarget.ES2020,strict:true}});\n        const jsCode=result.outputText;\n        jsPanel.innerHTML='<div class=\"panel-label\">COMPILED JS</div><pre style=\"color:#64748b;margin:0;white-space:pre-wrap\">'+jsCode.replace(/</g,'&lt;')+'</pre>';\n        const logs=[];\n        const orig=console.log;\n        console.log=(...a)=>logs.push(a.map(x=>typeof x==='object'?JSON.stringify(x):String(x)).join(' '));\n        try{new Function(jsCode)();}finally{console.log=orig;}\n        out.innerHTML='<div class=\"panel-label\">OUTPUT</div>'+(logs.length?logs.map(l=>`<div class=\"ok\">${l.replace(/</g,'&lt;')}</div>`).join(''):'<div style=\"color:#64748b\">No output</div>');\n      }catch(e){out.innerHTML='<div class=\"panel-label\">OUTPUT</div><div class=\"err\">✗ '+e.message.replace(/</g,'&lt;')+'</div>';}\n    }\n    document.getElementById('ts').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runTS();}});\n    runTS();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "ts-util-q1",
+          "question": "You have `interface User { id: number; name: string; password: string }`. Which utility type gives you a new type with all fields except password?",
+          "type": "multiple-choice",
+          "options": [
+            "Pick<User, 'id' | 'name'>",
+            "Omit<User, 'password'>",
+            "Partial<User>",
+            "Both Pick and Omit work — pick the one you prefer"
+          ],
+          "correctAnswer": 3,
+          "explanation": "Both work! Pick<User, 'id' | 'name'> keeps only the listed fields. Omit<User, 'password'> removes the listed field and keeps the rest. For large interfaces, Omit is more convenient (fewer fields to list). For small interfaces or when you want explicit control over what's exposed, Pick is clearer. Real code uses both."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is there a built-in DeepPartial utility type?",
+      "a": "No, but it's commonly implemented: type DeepPartial<T> = T extends object ? { [K in keyof T]?: DeepPartial<T[K]> } : T. TypeScript doesn't include it because recursive mapped types have some edge cases. Libraries like 'utility-types' or 'ts-essentials' provide DeepPartial and other recursive variants."
+    }
+  ],
+  "sources": [
+    {
+      "name": "TypeScript Handbook — Utility Types",
+      "url": "https://www.typescriptlang.org/docs/handbook/utility-types.html",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["API design", "form state", "configuration objects", "data transformations"],
+    "examples": [
+      "function updateUser(id: number, data: Partial<User>): Promise<User>",
+      "type ApiResponse<T> = Readonly<{ data: T; status: number }>",
+      "type RouteHandlers = Record<string, (req: Request) => Response>"
+    ]
+  }
+}

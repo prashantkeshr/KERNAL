@@ -1,0 +1,104 @@
+{
+  "id": "14-strict-mode",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "typescript",
+  "technologyVersion": "TypeScript 5.x",
+  "module": "ts-practical",
+  "title": "Strict Mode & tsconfig",
+  "subtitle": "strict flag, strictNullChecks, noImplicitAny, noUncheckedIndexedAccess, and essential tsconfig options",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 18,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["typescript/13-modules"],
+  "skillsTaught": ["ts.tsconfig", "ts.strict-flag", "ts.strictNullChecks", "ts.noImplicitAny", "ts.noUncheckedIndexedAccess"],
+  "skillsUsed": ["ts.basic-types", "ts.interfaces", "ts.functions"],
+  "relatedConcepts": ["ts.modules", "ts.react-typescript"],
+  "whyItExists": {
+    "problem": "TypeScript's default settings are lenient — to ease migration from JavaScript. But lenient defaults (any inference, nullable everywhere) defeat the purpose of TypeScript for new projects.",
+    "solution": "strict: true enables all strict mode checks in one line. strictNullChecks prevents null/undefined from sneaking into typed variables. noImplicitAny prevents TypeScript from silently using any when it can't infer a type. These flags catch far more bugs.",
+    "whenToUse": "Always. Start every new TypeScript project with strict: true in tsconfig.json. You'll thank yourself later.",
+    "whenNotToUse": "When migrating a large existing JavaScript codebase — you might turn on strict flags incrementally. But for new code, strict: true from day one."
+  },
+  "explainModes": {
+    "beginner": "TypeScript has a setting called strict mode that turns on all the strictest checks. Without it, TypeScript misses some bugs. With it, TypeScript catches many more errors before your code runs. Think of it as 'extra careful mode'.",
+    "simple": "tsconfig.json: { 'compilerOptions': { 'strict': true } } — enables all strict checks. strict: true is a shorthand for: strictNullChecks, noImplicitAny, strictFunctionTypes, strictBindCallApply, strictPropertyInitialization, noImplicitThis. noUncheckedIndexedAccess: arr[i] type is T | undefined, not T. exactOptionalPropertyTypes: optional prop can't be explicitly set to undefined.",
+    "standard": "strictNullChecks is the most impactful: without it, null is assignable to string (like Java). With it, string | null is required. noImplicitAny: TypeScript must be able to infer the type, or you must annotate it. Prevents implicit any in callbacks and parameters. target and lib: target controls emitted JS version. lib controls which browser/runtime APIs are available in types. Useful: lib: ['ES2022', 'DOM'] for browser code, lib: ['ES2022'] for Node.js.",
+    "technical": "strict: true flags included: strictNullChecks, noImplicitAny, strictFunctionTypes (prevents method bivariance), strictBindCallApply (types .call/.bind/.apply correctly), strictPropertyInitialization (class properties must be initialized in constructor). Additional recommended flags: noUncheckedIndexedAccess (arrays and index signatures return T | undefined), exactOptionalPropertyTypes (option?: T means T, not T | undefined when assigning), noImplicitReturns (all code paths in function must return), noFallthroughCasesInSwitch.",
+    "deepDive": "tsconfig.json extends: most monorepos have a base tsconfig that projects inherit and override. Composite projects (composite: true): enables TypeScript project references for large codebases — each subproject has its own tsconfig, and tsc only recompiles what changed. incremental: true caches the last compilation to speed up rebuilds (.tsbuildinfo file). skipLibCheck: true skips type checking of .d.ts files — useful when third-party types have bugs, but hides your own declaration errors. isolatedModules: true — required by esbuild/swc because they compile files in parallel without a full type pass."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "tsconfig.json essentials"
+    },
+    {
+      "type": "code",
+      "lang": "json",
+      "filename": "tsconfig.json",
+      "code": "{\n  \"compilerOptions\": {\n    // — Target & Output —\n    \"target\": \"ES2022\",          // which JS version to emit\n    \"module\": \"ESNext\",          // module format (ESNext for bundlers)\n    \"outDir\": \"./dist\",          // where compiled JS goes\n    \"rootDir\": \"./src\",          // source root\n    \"declaration\": true,         // emit .d.ts for library authors\n    \"sourceMap\": true,           // emit source maps for debugging\n\n    // — Strict mode (ALWAYS ON for new projects) —\n    \"strict\": true,              // enables all strict checks below\n    // \"strictNullChecks\": true, // null/undefined not assignable to other types\n    // \"noImplicitAny\": true,    // error on implicit any\n    // \"strictFunctionTypes\": true,\n    // \"strictPropertyInitialization\": true,\n\n    // — Extra recommended flags —\n    \"noUncheckedIndexedAccess\": true, // arr[i] is T | undefined\n    \"noImplicitReturns\": true,        // all paths must return\n    \"noFallthroughCasesInSwitch\": true,\n    \"exactOptionalPropertyTypes\": true,\n\n    // — Module resolution —\n    \"moduleResolution\": \"bundler\",    // for Vite/esbuild/webpack 5\n    \"esModuleInterop\": true,          // allow default import from CJS\n    \"allowSyntheticDefaultImports\": true,\n    \"resolveJsonModule\": true,        // import JSON files\n    \"skipLibCheck\": true,             // skip checking .d.ts files\n\n    // — JSX (for React projects) —\n    // \"jsx\": \"react-jsx\"\n  },\n  \"include\": [\"src\"],\n  \"exclude\": [\"node_modules\", \"dist\"]\n}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "What strict mode catches"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "strict_examples.ts",
+      "code": "// strictNullChecks — null must be handled\nfunction getLength(s: string | null): number {\n    // Without strictNullChecks: s.length would compile (crash at runtime)\n    // With strictNullChecks:\n    if (s === null) return 0;\n    return s.length;  // TypeScript knows: s is string here\n}\nconsole.log(getLength('hello'));  // 5\nconsole.log(getLength(null));     // 0\n\n// noImplicitAny — must annotate when TypeScript can't infer\n// Without noImplicitAny: TypeScript silently uses 'any' here:\n// function log(msg) { ... }  ← msg is any — no checking!\n// With noImplicitAny: Error — Parameter 'msg' implicitly has an 'any' type\nfunction log(msg: string): void {  // must annotate\n    console.log('[LOG]', msg);\n}\n\n// noUncheckedIndexedAccess — array access returns T | undefined\nconst items = ['a', 'b', 'c'];\nconst first = items[0];  // type: string | undefined (not just string!)\nif (first !== undefined) {\n    console.log(first.toUpperCase());  // safe\n}\n\n// strictPropertyInitialization — must init class props\nclass User {\n    name: string;     // Error without assignment: not initialized\n    constructor(name: string) {\n        this.name = name;  // OK — assigned in constructor\n    }\n}\n\nconsole.log(new User('Alice').name);"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Strict mode effects",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:16px; margin:0; }\n    .layout { display:grid; grid-template-rows:auto 1fr; gap:10px; height:calc(100vh - 32px); }\n    .top { display:flex; flex-direction:column; gap:8px; }\n    .editor-row { display:flex; gap:8px; align-items:flex-start; }\n    textarea { flex:1; background:#0b0e14; border:1px solid #2d3748; border-radius:6px; color:#e2e8f0; padding:10px; font-family:monospace; font-size:0.82rem; resize:vertical; min-height:140px; }\n    .btns { display:flex; flex-direction:column; gap:6px; }\n    button { padding:8px 14px; border:none; border-radius:5px; font-weight:700; cursor:pointer; font-size:0.8rem; white-space:nowrap; }\n    .chips { display:flex; flex-wrap:wrap; gap:6px; }\n    .chip { background:#1a1f2b; border:1px solid #2d3748; border-radius:4px; padding:3px 10px; font-family:monospace; font-size:0.72rem; cursor:pointer; color:#94a3b8; }\n    .chip:hover { border-color:#4fd1c5; color:#4fd1c5; }\n    .panels { display:grid; grid-template-columns:1fr 1fr; gap:8px; }\n    .panel { background:#0b0e14; border-radius:6px; overflow:auto; padding:10px; font-family:monospace; font-size:0.78rem; }\n    .panel-label { font-size:0.7rem; color:#4fd1c5; margin-bottom:6px; }\n    .ok { color:#4fd1c5; } .err { color:#ef4444; }\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"ts\" spellcheck=\"false\">// strictNullChecks in action\nfunction getUser(id: number): { name: string } | null {\n  if (id === 1) return { name: 'Alice' };\n  return null;\n}\n\nconst user = getUser(1);\n// Without null check: user.name would be unsafe\nif (user !== null) {\n  console.log(user.name.toUpperCase());  // safe\n}\n\nconst missing = getUser(99);\nconsole.log(missing?.name ?? 'User not found');\n\n// Optional chaining + nullish coalescing\nconst users = [{ name: 'Alice' }, { name: 'Bob' }];\nconst first = users[0];\nconsole.log(first?.name ?? 'empty list');\n</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runTS()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setTS('// noImplicitReturns — all paths must return\\nfunction grade(score: number): string {\\n  if (score >= 90) return \\'A\\';\\n  if (score >= 80) return \\'B\\';\\n  if (score >= 70) return \\'C\\';\\n  return \\'F\\';  // without this: error (not all paths return)\\n}\\nconsole.log(grade(95), grade(75), grade(55));')\">all paths return</span>\n        <span class=\"chip\" onclick=\"setTS('// Strict null handling\\nfunction divide(a: number, b: number): number | null {\\n  if (b === 0) return null;\\n  return a / b;\\n}\\nconst result = divide(10, 3);\\nif (result !== null) console.log(result.toFixed(4));\\nconst bad = divide(5, 0);\\nconsole.log(bad ?? \\'division by zero\\');')\">nullable result</span>\n        <span class=\"chip\" onclick=\"setTS('// Definite assignment assertion (!): I guarantee it will be set\\nclass LazyUser {\\n  name!: string;  // trust me, it will be set before use\\n  init(name: string) { this.name = name; }\\n}\\nconst u = new LazyUser();\\nu.init(\\'Alice\\');\\nconsole.log(u.name);')\">definite assign</span>\n      </div>\n    </div>\n    <div class=\"panels\">\n      <div class=\"panel\" id=\"output\"><div class=\"panel-label\">OUTPUT</div></div>\n      <div class=\"panel\" id=\"js\"><div class=\"panel-label\">COMPILED JS</div></div>\n    </div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/typescript@5.3.3/lib/typescript.js\"></script>\n  <script>\n    function setTS(code){document.getElementById('ts').value=code;runTS();}\n    function runTS(){\n      const src=document.getElementById('ts').value;\n      const out=document.getElementById('output');\n      const jsPanel=document.getElementById('js');\n      try{\n        const result=ts.transpileModule(src,{compilerOptions:{target:ts.ScriptTarget.ES2020,strict:true}});\n        const jsCode=result.outputText;\n        jsPanel.innerHTML='<div class=\"panel-label\">COMPILED JS</div><pre style=\"color:#64748b;margin:0;white-space:pre-wrap\">'+jsCode.replace(/</g,'&lt;')+'</pre>';\n        const logs=[];\n        const orig=console.log;\n        console.log=(...a)=>logs.push(a.map(x=>typeof x==='object'?JSON.stringify(x):String(x)).join(' '));\n        try{new Function(jsCode)();}finally{console.log=orig;}\n        out.innerHTML='<div class=\"panel-label\">OUTPUT</div>'+(logs.length?logs.map(l=>`<div class=\"ok\">${l.replace(/</g,'&lt;')}</div>`).join(''):'<div style=\"color:#64748b\">No output</div>');\n      }catch(e){out.innerHTML='<div class=\"panel-label\">OUTPUT</div><div class=\"err\">✗ '+e.message.replace(/</g,'&lt;')+'</div>';}\n    }\n    document.getElementById('ts').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runTS();}});\n    runTS();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "ts-strict-q1",
+          "question": "With `noUncheckedIndexedAccess: true`, what is the type of `arr[0]` when `arr: string[]`?",
+          "type": "multiple-choice",
+          "options": [
+            "string",
+            "string | undefined",
+            "string | null",
+            "unknown"
+          ],
+          "correctAnswer": 1,
+          "explanation": "With noUncheckedIndexedAccess, accessing an array by index returns T | undefined — because the index might be out of bounds. Without this flag, TypeScript assumes arr[i] always returns T (not undefined), which can lead to runtime errors when the index is invalid. This flag makes TypeScript much safer for array operations."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "My existing project has many strict mode errors. How do I enable strict incrementally?",
+      "a": "Instead of strict: true, enable individual flags one at a time: start with noImplicitAny (highest value), then strictNullChecks (most impactful), then the others. Fix errors for each flag before enabling the next. Alternatively, use // @ts-check in JS files or ts-migrate tool to do the migration semi-automatically."
+    }
+  ],
+  "sources": [
+    {
+      "name": "TypeScript tsconfig reference",
+      "url": "https://www.typescriptlang.org/tsconfig",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every production TypeScript project"],
+    "examples": [
+      "All React projects created with create-react-app or Vite have strict: true by default",
+      "Node.js projects: target: 'ES2022', module: 'NodeNext', moduleResolution: 'NodeNext'",
+      "Library projects: declaration: true, declarationMap: true, sourceMap: true"
+    ]
+  }
+}
