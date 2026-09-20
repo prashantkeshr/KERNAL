@@ -1,0 +1,129 @@
+{
+  "id": "07-display-flow",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "css",
+  "technologyVersion": "CSS3",
+  "module": "css-layout",
+  "title": "Display & Flow",
+  "subtitle": "block, inline, inline-block, overflow",
+  "difficulty": "beginner",
+  "estimatedMinutes": 18,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["css/04-box-model"],
+  "skillsTaught": ["css.display", "css.flow", "css.overflow"],
+  "skillsUsed": ["css.box-model"],
+  "relatedConcepts": ["css.flexbox", "css.grid", "css.positioning"],
+  "whyItExists": {
+    "problem": "Without a layout system, elements stack vertically (block) or flow horizontally (inline) with no control. Complex layouts are impossible.",
+    "solution": "The display property controls which layout algorithm applies to an element and its children. Mastering it is the gateway to all CSS layout.",
+    "whenToUse": "Whenever you need to control how elements stack, sit side-by-side, or hide.",
+    "whenNotToUse": "Don't use display: none for accessibility — content hidden this way is invisible to screen readers. Use visibility: hidden to keep it in the layout, or use ARIA when hiding from assistive tech specifically."
+  },
+  "explainModes": {
+    "beginner": "By default, headings and paragraphs stack vertically (block). Spans and links sit on the same line (inline). You change this with the display property.",
+    "simple": "display has three main values for legacy flow: block (full width, new line), inline (wraps in text, no width/height), inline-block (inline but respects width/height). Modern layout uses flexbox and grid.",
+    "standard": "display determines two things: the outer display type (block or inline — how it sits in normal flow) and the inner display type (how children are arranged). display: flex sets outer=block, inner=flex. display: inline-flex sets outer=inline, inner=flex.",
+    "technical": "The CSS Display Module Level 3 separates display into two keywords: <display-outside> (block | inline) and <display-inside> (flow | flow-root | flex | grid | table). display: block is shorthand for block flow. display: flow-root creates a new block formatting context — the modern replacement for the clearfix hack.",
+    "deepDive": "Normal flow (block formatting context + inline formatting context) is the default layout mode. Block elements stack; inline elements wrap. Floats and positioned elements are removed from normal flow. Flex and grid containers create new formatting contexts entirely. Understanding which context each element creates is essential for predicting margin collapse behaviour and element stacking."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Block vs inline"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "display.css",
+      "code": "/* BLOCK — full width, stacks vertically, respects width/height/margin */\ndiv, p, h1, section, article { display: block; }  /* defaults */\n\n/* INLINE — sits in text flow, width/height have NO effect */\nspan, a, strong, em { display: inline; }          /* defaults */\n\n/* INLINE-BLOCK — sits in text flow BUT respects width, height, padding */\n.badge {\n  display: inline-block;\n  padding: 4px 10px;\n  border-radius: 999px;\n  background: #4fd1c5;\n  color: #0e1116;\n  font-size: 0.75rem;\n  font-weight: 700;\n}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Showing and hiding elements"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "visibility.css",
+      "code": "/* Removed from layout AND invisible */\n.hidden { display: none; }\n\n/* Invisible but STILL takes up space */\n.invisible { visibility: hidden; }\n\n/* Transparent but still interactive */\n.transparent { opacity: 0; }\n\n/* Visually hidden but accessible to screen readers */\n.sr-only {\n  position: absolute;\n  width: 1px;\n  height: 1px;\n  padding: 0;\n  margin: -1px;\n  overflow: hidden;\n  clip: rect(0, 0, 0, 0);\n  white-space: nowrap;\n  border: 0;\n}"
+    },
+    {
+      "type": "tip",
+      "text": "The <code>.sr-only</code> pattern hides content visually while keeping it accessible to screen readers. Use it for skip links, icon button labels, and form hints."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Overflow"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "overflow.css",
+      "code": ".box {\n  overflow: visible; /* default — content spills outside the box */\n  overflow: hidden;  /* clips content to the box boundaries */\n  overflow: scroll;  /* always shows scrollbars */\n  overflow: auto;    /* scrollbars only when content overflows */\n\n  /* Axis-specific */\n  overflow-x: hidden;\n  overflow-y: auto;\n}"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Display values",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <style>\n    body { background: #0e1116; color: #e2e8f0; font-family: sans-serif; padding: 24px; }\n    .block-demo { background: #1a1f2b; border: 1px solid #4fd1c5; padding: 12px; margin: 8px 0; }\n    .inline-demo { background: #264de4; padding: 4px 8px; }\n    .badge { display: inline-block; background: #4fd1c5; color: #0e1116; padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; }\n  </style>\n</head>\n<body>\n  <div class=\"block-demo\">Block element — full width</div>\n  <div class=\"block-demo\">Another block — new line</div>\n  <p>Inline: <span class=\"inline-demo\">span A</span> and <span class=\"inline-demo\">span B</span> sit side by side.</p>\n  <p>Badges: <span class=\"badge\">HTML</span> <span class=\"badge\">CSS</span> <span class=\"badge\">JS</span></p>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "css-disp-q1",
+          "question": "Which display value sits inline with text BUT allows setting width and height?",
+          "type": "multiple-choice",
+          "options": ["block", "inline", "inline-block", "flex"],
+          "correctAnswer": 2,
+          "explanation": "inline-block sits in the text flow (like inline) but respects width, height, padding, and margin (like block). It is commonly used for badges and buttons."
+        },
+        {
+          "id": "css-disp-q2",
+          "question": "display: none removes an element from the accessibility tree.",
+          "type": "true-false",
+          "correctAnswer": "true",
+          "explanation": "display: none removes the element from layout AND makes it invisible to screen readers. Use the .sr-only pattern if you need to hide something visually but keep it accessible."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What replaced the float layout technique?",
+      "a": "Flexbox and CSS Grid replaced float-based layouts. Floats are still valid for wrapping text around images (their original purpose), but should not be used for page layout."
+    },
+    {
+      "q": "What is display: contents?",
+      "a": "display: contents makes the element itself invisible (no box is generated) but its children participate in the parent's layout as if the element didn't exist. Useful for wrapper divs in flexbox/grid."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — display",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/CSS/display",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "MDN — Normal Flow",
+      "url": "https://developer.mozilla.org/en-US/docs/Learn/CSS/CSS_layout/Normal_Flow",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["navigation bars", "badges", "card grids", "dropdown menus"],
+    "examples": [
+      "GitHub uses display: inline-block for its language colour dot and label in repo listings",
+      "The .sr-only pattern is used in Bootstrap and Tailwind for accessible icon-only buttons"
+    ]
+  }
+}

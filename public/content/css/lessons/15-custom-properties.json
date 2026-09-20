@@ -1,0 +1,152 @@
+{
+  "id": "15-custom-properties",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "css",
+  "technologyVersion": "CSS3",
+  "module": "css-advanced",
+  "title": "CSS Variables",
+  "subtitle": "Custom properties, var(), theming",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 18,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["css/03-cascade-specificity"],
+  "skillsTaught": ["css.custom-properties", "css.variables", "css.theming"],
+  "skillsUsed": ["css.cascade", "css.colors"],
+  "relatedConcepts": ["css.colors", "css.media-queries"],
+  "whyItExists": {
+    "problem": "A brand colour used in 50 places requires 50 edits to change. Without variables, CSS is repetitive and hard to maintain. Themes (dark/light mode) require duplicating entire rulesets.",
+    "solution": "CSS custom properties (CSS variables) let you define a value once, reference it everywhere with var(), and change it in one place to update the entire design. Scoped to the cascade, they enable powerful theming.",
+    "whenToUse": "Design tokens (colours, spacing, typography), theme switching (dark/light mode), component variants, dynamic values updated by JavaScript.",
+    "whenNotToUse": "For values that never change or are used only once, a variable adds complexity without benefit."
+  },
+  "explainModes": {
+    "beginner": "CSS variables are named values you define once and reuse everywhere. Change the variable once and every place that uses it updates automatically — like find-and-replace, but smarter.",
+    "simple": "Define: --variable-name: value on :root. Use: color: var(--variable-name). You can also provide a fallback: var(--brand, teal) uses teal if --brand is not set.",
+    "standard": "Custom properties cascade and inherit like any CSS property. They can be overridden in scoped selectors — set --color: blue on :root, then override with --color: red on .dark-theme. They are available in calc(), used in animations, and accessible from JavaScript.",
+    "technical": "Custom properties are live: JavaScript can write document.documentElement.style.setProperty('--accent', '#ff0000') and all elements using var(--accent) update immediately. They accept any valid CSS value (including strings — though strings cannot be used in calc()). They can hold complete property values including spaces and commas.",
+    "deepDive": "@property (Houdini CSS Properties and Values API) defines custom properties with a type, initial value, and inheritance flag. This enables animation between custom property values (normally not possible because the browser doesn't know the type) and syntax validation. @property --accent { syntax: '<color>'; initial-value: #4fd1c5; inherits: true; } makes --accent animatable with transition."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Defining and using variables"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "variables.css",
+      "code": "/* Define on :root to make globally available */\n:root {\n  /* Colors */\n  --color-bg:       #0e1116;\n  --color-surface:  #1a1f2b;\n  --color-border:   #2d3748;\n  --color-accent:   #4fd1c5;\n  --color-text:     #e2e8f0;\n  --color-muted:    #94a3b8;\n\n  /* Spacing */\n  --space-sm:  8px;\n  --space-md:  16px;\n  --space-lg:  24px;\n  --space-xl:  40px;\n\n  /* Typography */\n  --font-sans: 'Inter', system-ui, sans-serif;\n  --font-mono: 'Fira Code', monospace;\n  --text-base: 1rem;\n\n  /* Borders */\n  --radius-sm: 4px;\n  --radius-md: 8px;\n  --radius-lg: 12px;\n}\n\n/* Use anywhere in your stylesheet */\nbody {\n  background: var(--color-bg);\n  color: var(--color-text);\n  font-family: var(--font-sans);\n}\n\n.card {\n  background: var(--color-surface);\n  border: 1px solid var(--color-border);\n  border-radius: var(--radius-md);\n  padding: var(--space-lg);\n}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Fallback values"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "fallback.css",
+      "code": "/* var(--variable, fallback-value) */\n.button {\n  background: var(--button-color, var(--color-accent));\n  /* If --button-color is not set, use --color-accent.\n     If --color-accent is also not set, use nothing (invalid). */\n  color: var(--button-text, #0e1116);\n}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Theming — dark and light mode"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "theming.css",
+      "code": "/* DARK theme (default) */\n:root {\n  --bg:      #0e1116;\n  --surface: #1a1f2b;\n  --text:    #e2e8f0;\n  --accent:  #4fd1c5;\n}\n\n/* LIGHT theme — overrides the same variables */\n:root[data-theme='light'] {\n  --bg:      #ffffff;\n  --surface: #f8fafc;\n  --text:    #0f172a;\n  --accent:  #0d9488;\n}\n\n/* Or use media query for automatic OS-level preference */\n@media (prefers-color-scheme: light) {\n  :root {\n    --bg:      #ffffff;\n    --surface: #f8fafc;\n    --text:    #0f172a;\n  }\n}\n\n/* ALL components automatically use the right theme: */\nbody    { background: var(--bg); color: var(--text); }\n.card   { background: var(--surface); }\n.accent { color: var(--accent); }"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "CSS variables in JavaScript"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "js-interaction.css",
+      "code": "/* Define a variable for JS to control */\n:root { --scroll-progress: 0; }\n\n.progress-bar {\n  width: calc(var(--scroll-progress) * 100%);\n  height: 4px;\n  background: var(--color-accent);\n}"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "filename": "js-variables.html",
+      "code": "<script>\n// Toggle theme\ndocument.documentElement.dataset.theme = 'light';\n\n// Update a variable dynamically\nwindow.addEventListener('scroll', () => {\n  const progress = window.scrollY / (document.body.offsetHeight - window.innerHeight);\n  document.documentElement.style.setProperty('--scroll-progress', progress);\n});\n</script>"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Theme switching with CSS variables",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\" data-theme=\"dark\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <style>\n    :root[data-theme=\"dark\"]  { --bg: #0e1116; --surface: #1a1f2b; --text: #e2e8f0; --accent: #4fd1c5; --border: #2d3748; }\n    :root[data-theme=\"light\"] { --bg: #f8fafc;  --surface: #ffffff;  --text: #0f172a;  --accent: #0d9488; --border: #e2e8f0; }\n    *, *::before, *::after { box-sizing: border-box; }\n    body { background: var(--bg); color: var(--text); font-family: sans-serif; padding: 32px; transition: background 300ms, color 300ms; }\n    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 24px; margin-bottom: 16px; }\n    h2 { color: var(--accent); margin: 0 0 8px; }\n    button { background: var(--accent); color: var(--bg); border: none; padding: 10px 20px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 1rem; }\n  </style>\n</head>\n<body>\n  <button onclick=\"document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'\">Toggle Theme</button>\n  <div class=\"card\"><h2>CSS Variables</h2><p>All colours update instantly by changing one variable.</p></div>\n  <div class=\"card\"><h2>Design Tokens</h2><p>A single source of truth for your entire design system.</p></div>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "css-var-q1",
+          "question": "How do you define a CSS custom property (variable)?",
+          "type": "multiple-choice",
+          "options": [
+            "$accent: #4fd1c5;",
+            "@accent: #4fd1c5;",
+            "--accent: #4fd1c5;",
+            "var-accent: #4fd1c5;"
+          ],
+          "correctAnswer": 2,
+          "explanation": "CSS custom properties start with double dashes: --accent: #4fd1c5. They are typically defined on :root to make them globally available."
+        },
+        {
+          "id": "css-var-q2",
+          "question": "CSS variables can be updated with JavaScript to create dynamic styles.",
+          "type": "true-false",
+          "correctAnswer": "true",
+          "explanation": "JavaScript can read and write CSS variables using getPropertyValue and setProperty on element.style or document.documentElement.style. This enables dynamic theming, scroll-driven animations, and interactive styling without re-applying CSS classes."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between CSS variables and SASS/LESS variables?",
+      "a": "SASS/LESS variables are compiled away — they exist only in source code and produce static CSS. CSS custom properties are live in the browser — they can be changed by JavaScript, they cascade and inherit, and they can be inspected in DevTools."
+    },
+    {
+      "q": "Can I use CSS variables in media queries?",
+      "a": "Not directly in the @media condition itself (you can't write @media (min-width: var(--breakpoint))). But you can override variable values inside media queries: @media (prefers-color-scheme: light) { :root { --bg: white; } }."
+    },
+    {
+      "q": "How do I access a CSS variable from JavaScript?",
+      "a": "Read: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(). Write: document.documentElement.style.setProperty('--accent', '#ff0000')."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — Using CSS custom properties",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/CSS/Using_CSS_custom_properties",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "CSS-Tricks — A Complete Guide to Custom Properties",
+      "url": "https://css-tricks.com/a-complete-guide-to-custom-properties/",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["design systems", "dark/light theme switching", "component variants", "dynamic animations"],
+    "examples": [
+      "GitHub's entire dark/light theme is implemented with ~500 CSS custom properties toggled by a data attribute",
+      "KERNAL's design tokens (--k-accent, --k-bg, --k-surface) are CSS variables that power both themes",
+      "Tailwind CSS 3 uses CSS variables internally for opacity modifiers and JIT values"
+    ]
+  }
+}

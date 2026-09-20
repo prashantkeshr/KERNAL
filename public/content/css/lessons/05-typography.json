@@ -1,0 +1,151 @@
+{
+  "id": "05-typography",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "css",
+  "technologyVersion": "CSS3",
+  "module": "css-box-model",
+  "title": "Typography",
+  "subtitle": "fonts, sizes, weight, line-height",
+  "difficulty": "beginner",
+  "estimatedMinutes": 18,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["css/01-introduction"],
+  "skillsTaught": ["css.typography", "css.fonts", "css.text-properties"],
+  "skillsUsed": ["css.basics", "css.units"],
+  "relatedConcepts": ["css.colors", "css.units"],
+  "whyItExists": {
+    "problem": "Browsers render text in a default serif font at a fixed size. Real designs require custom typefaces, readable line lengths, and a clear visual hierarchy.",
+    "solution": "CSS typography properties control every aspect of text: the font family, size, weight, line height, letter spacing, alignment, and decoration.",
+    "whenToUse": "On every project. Typography is the foundation of readable, professional-looking interfaces.",
+    "whenNotToUse": "Text itself — the words — belongs in HTML. CSS only controls how it looks, not what it says."
+  },
+  "explainModes": {
+    "beginner": "Typography CSS is how you tell the browser which font to use, how big to make it, how thick the letters are, and how much space to put between lines.",
+    "simple": "font-family picks the typeface, font-size sets the size, font-weight controls boldness, and line-height sets vertical spacing between lines. text-align positions text left, right, or centre.",
+    "standard": "font-family accepts a comma-separated list of fonts — the browser uses the first one available, falling back to the next. font-size is typically set in rem (relative to root) for scalability. line-height should be unitless (1.5) rather than a fixed px value so it scales with font-size.",
+    "technical": "CSS fonts work via the @font-face rule or the Google Fonts API. The font shorthand packs font-style, font-variant, font-weight, font-size/line-height, and font-family into one declaration. Variable fonts (a single file containing many weights/widths) are now widely supported and dramatically reduce font payload.",
+    "deepDive": "The CSS Fonts Module Level 4 adds font-display (controlling flash-of-unstyled-text behaviour), font-variation-settings for variable font axes, and optical sizing. The text rendering pipeline: Unicode codepoints → font glyphs (via font matching) → layout (shaping, kerning, ligatures via HarfBuzz) → rasterisation. font-kerning, font-feature-settings, and text-rendering: optimizeLegibility enable OpenType features like ligatures and alternates."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Font family and fallbacks"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "typography.css",
+      "code": "body {\n  /* List fonts in preference order; end with a generic family */\n  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;\n}\n\ncode, pre {\n  font-family: 'Fira Code', 'Consolas', 'Courier New', monospace;\n}\n\n/* Load a web font from Google Fonts */\n@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Size, weight, and style"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "font-properties.css",
+      "code": "h1 {\n  font-size: 2.5rem;    /* relative to root font size (usually 16px) */\n  font-weight: 700;     /* 100–900; 400 = normal, 700 = bold */\n  font-style: normal;   /* normal | italic | oblique */\n  letter-spacing: -0.02em; /* tighten display headings */\n  text-transform: uppercase; /* DISPLAY HEADINGS */\n}\n\np {\n  font-size: 1rem;      /* 16px at default browser settings */\n  font-weight: 400;\n  line-height: 1.6;     /* unitless — 1.6 × font-size — scales correctly */\n}"
+    },
+    {
+      "type": "tip",
+      "text": "Use <strong>unitless line-height</strong> (e.g. <code>1.5</code>) not <code>24px</code>. A unitless value multiplies the element's own font-size, so it scales correctly when the font-size changes."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Text alignment and decoration"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "text-layout.css",
+      "code": ".hero    { text-align: center; }\n.article { text-align: left; }  /* default — most readable for body text */\n\na {\n  text-decoration: none;        /* remove underline */\n  text-decoration: underline;   /* explicit underline */\n}\n\n.truncate {\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;      /* shows '...' when text overflows */\n  max-width: 200px;\n}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Type scale — consistent hierarchy"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "type-scale.css",
+      "code": ":root {\n  --text-xs:   0.75rem;   /* 12px */\n  --text-sm:   0.875rem;  /* 14px */\n  --text-base: 1rem;      /* 16px */\n  --text-lg:   1.125rem;  /* 18px */\n  --text-xl:   1.25rem;   /* 20px */\n  --text-2xl:  1.5rem;    /* 24px */\n  --text-3xl:  1.875rem;  /* 30px */\n  --text-4xl:  2.25rem;   /* 36px */\n}\n\nh1 { font-size: var(--text-4xl); font-weight: 800; }\nh2 { font-size: var(--text-2xl); font-weight: 700; }\np  { font-size: var(--text-base); line-height: 1.6; }"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Typography",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <link href=\"https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Fira+Code&display=swap\" rel=\"stylesheet\" />\n  <style>\n    body { background: #0e1116; color: #e2e8f0; font-family: 'Inter', sans-serif; padding: 32px; max-width: 600px; }\n    h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; color: #4fd1c5; margin-bottom: 8px; }\n    p  { font-size: 1rem; line-height: 1.7; color: #94a3b8; }\n    code { font-family: 'Fira Code', monospace; background: #1a1f2b; padding: 2px 6px; border-radius: 4px; font-size: 0.875rem; }\n  </style>\n</head>\n<body>\n  <h1>Typography matters</h1>\n  <p>Good typography makes text readable and beautiful. Try changing <code>font-size</code>, <code>line-height</code>, or <code>letter-spacing</code> above.</p>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "css-typo-q1",
+          "question": "What font-weight value represents 'bold'?",
+          "type": "multiple-choice",
+          "options": ["400", "600", "700", "900"],
+          "correctAnswer": 2,
+          "explanation": "font-weight: 700 is the standard 'bold' weight. 400 is regular/normal. 900 is extra-black. Many fonts only have 400 and 700 available."
+        },
+        {
+          "id": "css-typo-q2",
+          "question": "Why is unitless line-height (e.g. 1.6) better than a fixed px value?",
+          "type": "multiple-choice",
+          "options": [
+            "It loads faster",
+            "It scales proportionally when font-size changes",
+            "It is the only valid syntax",
+            "It prevents text from wrapping"
+          ],
+          "correctAnswer": 1,
+          "explanation": "A unitless line-height multiplies the element's own font-size. If you later change font-size from 16px to 20px, line-height adjusts automatically. A fixed 24px value would not scale."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between em and rem for font sizes?",
+      "a": "em is relative to the parent element's font-size. rem is relative to the root (<html>) font-size (usually 16px). rem is easier to reason about because it does not compound through nested elements."
+    },
+    {
+      "q": "How do I load custom fonts?",
+      "a": "Use Google Fonts: add <link href=\"https://fonts.googleapis.com/css2?family=Inter...\" rel=\"stylesheet\"> to your <head>, then set font-family: 'Inter', sans-serif in CSS. For self-hosted fonts, use @font-face with the font file URLs."
+    },
+    {
+      "q": "How many fonts should I use on a page?",
+      "a": "One to two font families is usually enough. One for body text, optionally one for headings or code. Every additional font family is an extra network request."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — Fundamental text and font styling",
+      "url": "https://developer.mozilla.org/en-US/docs/Learn/CSS/Styling_text/Fundamentals",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "Google Fonts",
+      "url": "https://fonts.google.com",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every website", "design systems", "documentation sites", "blogs"],
+    "examples": [
+      "Stripe uses Inter with a carefully tuned type scale for their marketing pages",
+      "GitHub uses a system font stack (font-family: -apple-system, BlinkMacSystemFont...) for zero-latency font loading",
+      "KERNAL itself uses Inter for UI and Fira Code for code blocks"
+    ]
+  }
+}

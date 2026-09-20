@@ -1,0 +1,130 @@
+{
+  "id": "10-positioning",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "css",
+  "technologyVersion": "CSS3",
+  "module": "css-layout",
+  "title": "Positioning",
+  "subtitle": "static, relative, absolute, fixed, sticky",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 20,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["css/07-display-flow"],
+  "skillsTaught": ["css.positioning", "css.z-index", "css.stacking"],
+  "skillsUsed": ["css.display", "css.box-model"],
+  "relatedConcepts": ["css.flexbox", "css.grid"],
+  "whyItExists": {
+    "problem": "Normal document flow stacks elements sequentially. Some UI elements need to escape flow — tooltips, modals, sticky headers, floating buttons — and sit relative to another element or the viewport.",
+    "solution": "The position property lets elements break out of normal flow and be placed precisely using top, right, bottom, left coordinates relative to a chosen reference point.",
+    "whenToUse": "Tooltips, modals, dropdown menus, sticky navigation, floating action buttons, overlapping UI effects.",
+    "whenNotToUse": "Don't use positioning for standard page layouts — flexbox and grid are purpose-built for that and easier to maintain."
+  },
+  "explainModes": {
+    "beginner": "Normally, elements sit where the browser puts them. Positioning lets you move elements somewhere specific — 'always stay at the top of the screen' (fixed) or 'sit 10px from the top of my parent' (absolute).",
+    "simple": "position: static (default, normal flow). relative (offset from its natural position). absolute (placed relative to its nearest positioned ancestor). fixed (placed relative to the viewport — stays while you scroll). sticky (stays in flow until it hits the scroll boundary, then sticks).",
+    "standard": "A positioned element (anything except static) creates a new stacking context for z-index. Absolute and fixed elements are removed from normal flow — other elements don't see them. Sticky is a hybrid: it behaves like relative until a scroll threshold, then fixed. z-index only works on positioned elements.",
+    "technical": "The stacking context determines z-index layering. A new stacking context is created by position != static with z-index != auto, transform, opacity < 1, filter, will-change, and others. Children cannot escape a stacking context's z-index layer — a child with z-index: 9999 cannot appear above a sibling whose parent has a lower stacking context.",
+    "deepDive": "The containing block for an absolutely positioned element is its nearest ancestor with position: relative, absolute, fixed, or sticky. If none exists, it's the initial containing block (the viewport). For fixed elements, a transformed ancestor creates a new containing block instead of the viewport — a common source of bugs when trying to position relative to the screen. CSS logical properties (inset-inline-start, inset-block-end) replace top/right/bottom/left for RTL-aware layouts."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The five position values"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "positioning.css",
+      "code": "/* STATIC (default) — normal flow, top/right/bottom/left have no effect */\n.normal { position: static; }\n\n/* RELATIVE — stays in flow, offset from its natural position */\n.shifted {\n  position: relative;\n  top: 10px;   /* moves DOWN 10px from where it would normally be */\n  left: 20px;\n}\n\n/* ABSOLUTE — removed from flow, placed relative to nearest positioned ancestor */\n.tooltip {\n  position: absolute;\n  top: 0;\n  right: 0;   /* top-right corner of containing block */\n}\n\n/* FIXED — removed from flow, placed relative to VIEWPORT — stays while scrolling */\n.header {\n  position: fixed;\n  top: 0;\n  left: 0;\n  right: 0;\n  z-index: 100;\n}\n\n/* STICKY — in flow until threshold, then fixed */\n.sticky-nav {\n  position: sticky;\n  top: 0;   /* sticks when it reaches 0px from top of viewport */\n  z-index: 50;\n}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Containing block — the anchor for absolute"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "containing-block.css",
+      "code": "/* Pattern: position: relative on parent, absolute on child */\n.card {\n  position: relative;    /* makes this the containing block */\n}\n\n.card .badge {\n  position: absolute;\n  top: 12px;\n  right: 12px;           /* top-right corner of .card, not the page */\n}\n\n/* Without position: relative on .card,\n   .badge would be positioned relative to the nearest\n   positioned ancestor — possibly the entire page */"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "z-index — stacking order"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "z-index.css",
+      "code": "/* Higher z-index = closer to the viewer */\n.modal-overlay  { position: fixed; z-index: 300; }\n.modal          { position: fixed; z-index: 400; }\n.tooltip        { position: absolute; z-index: 200; }\n.header         { position: fixed; z-index: 100; }\n\n/* z-index only works on POSITIONED elements (not static) */\n.div-no-position { z-index: 999; }  /* has NO effect */"
+    },
+    {
+      "type": "warning",
+      "text": "A common z-index mistake: setting z-index on a non-positioned element (position: static) has no effect. The element must have position set to anything other than static."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Positioning",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <style>\n    *, *::before, *::after { box-sizing: border-box; }\n    body { background: #0e1116; color: #e2e8f0; font-family: sans-serif; padding: 80px 24px 24px; }\n    /* Fixed header */\n    .header { position: fixed; top: 0; left: 0; right: 0; background: #1a1f2b; border-bottom: 1px solid #2d3748; padding: 12px 24px; z-index: 100; color: #4fd1c5; font-weight: 700; }\n    /* Card with badge */\n    .card { position: relative; background: #1a1f2b; border: 1px solid #2d3748; border-radius: 8px; padding: 24px; margin-bottom: 16px; }\n    .badge { position: absolute; top: 12px; right: 12px; background: #4fd1c5; color: #0e1116; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; }\n  </style>\n</head>\n<body>\n  <div class=\"header\">Fixed Header — stays while you scroll</div>\n  <div class=\"card\">\n    <span class=\"badge\">NEW</span>\n    <h3>Absolute positioned badge</h3>\n    <p>The badge is positioned at top-right of this card because the card has position: relative.</p>\n  </div>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "css-pos-q1",
+          "question": "Which position value removes an element from normal flow and places it relative to the viewport?",
+          "type": "multiple-choice",
+          "options": ["relative", "absolute", "fixed", "sticky"],
+          "correctAnswer": 2,
+          "explanation": "position: fixed removes the element from flow and places it relative to the viewport. It stays in position even when the page scrolls."
+        },
+        {
+          "id": "css-pos-q2",
+          "question": "For position: absolute to be positioned relative to a parent element, the parent must have position set to something other than static.",
+          "type": "true-false",
+          "correctAnswer": "true",
+          "explanation": "Absolutely positioned elements are placed relative to their nearest ancestor that has position: relative, absolute, fixed, or sticky. Without this, they fall back to the initial containing block (the viewport)."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between fixed and sticky?",
+      "a": "fixed is always relative to the viewport — it never moves. sticky starts in normal flow (like relative) and only sticks when scrolled to the specified threshold (top: 0). A sticky element is constrained to its scroll container; fixed is not."
+    },
+    {
+      "q": "Why doesn't my z-index work?",
+      "a": "Two common reasons: (1) the element has position: static — z-index only works on positioned elements. (2) A parent creates a stacking context with a lower z-index — children cannot escape their parent's stacking layer."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — position",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/CSS/position",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "MDN — Understanding CSS z-index",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_positioned_layout/Understanding_z-index",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["sticky navigation", "modal dialogs", "tooltips", "dropdown menus", "floating action buttons"],
+    "examples": [
+      "GitHub's sticky file header in code review uses position: sticky",
+      "Every modal dialog uses position: fixed with a z-index overlay",
+      "Notification toasts (top-right corner) use position: fixed to stay on screen while content scrolls"
+    ]
+  }
+}

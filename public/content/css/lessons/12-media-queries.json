@@ -1,0 +1,141 @@
+{
+  "id": "12-media-queries",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "css",
+  "technologyVersion": "CSS3",
+  "module": "css-responsive",
+  "title": "Media Queries",
+  "subtitle": "@media, breakpoints, mobile-first",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 20,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["css/11-units"],
+  "skillsTaught": ["css.media-queries", "css.breakpoints", "css.mobile-first"],
+  "skillsUsed": ["css.units", "css.display"],
+  "relatedConcepts": ["css.responsive-design", "css.grid"],
+  "whyItExists": {
+    "problem": "A layout designed for desktop breaks on mobile. Column widths become too narrow, navigation collapses illegibly, and text becomes too small to read.",
+    "solution": "Media queries apply CSS conditionally based on the device's characteristics — primarily screen width. Different styles apply at different screen sizes.",
+    "whenToUse": "Whenever a layout needs to change at a specific screen size — collapsing navigation, switching columns to rows, resizing headings.",
+    "whenNotToUse": "Don't use media queries as a first resort. Use fluid units (%, fr, clamp()) first — they handle many size differences automatically. Media queries for gross layout changes."
+  },
+  "explainModes": {
+    "beginner": "A media query is like an 'if statement' for screen size. 'If the screen is at least 768px wide, show the sidebar.' You write base styles for mobile, then add media queries for larger screens.",
+    "simple": "@media (min-width: 768px) { ... } applies styles only when the viewport is 768px or wider. Mobile-first means you write the mobile styles first (no query) and add queries for larger screens.",
+    "standard": "Media queries use @media with conditions. Width queries are most common: min-width for mobile-first, max-width for desktop-first. Modern range syntax: @media (width >= 768px). Common breakpoints: 640px (sm), 768px (md), 1024px (lg), 1280px (xl).",
+    "technical": "Media queries can test: width, height, orientation, resolution, aspect-ratio, color, prefers-color-scheme, prefers-reduced-motion, and hover capability. Level 4 adds range syntax and container queries (separate feature). The cascade still applies inside queries — specificity and source order determine which rule wins.",
+    "deepDive": "The Media Queries Level 5 specification adds environment variables (env()), better logical operators, and media query ranges. Critically, prefers-reduced-motion and prefers-color-scheme enable accessibility and UX features without JavaScript. container queries (@container) are the evolution beyond media queries — styles respond to the parent element's size rather than the viewport, enabling truly reusable components."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Basic media query syntax"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "media-queries.css",
+      "code": "/* Classic syntax */\n@media (min-width: 768px) {\n  .sidebar { display: block; }  /* only on screens >= 768px */\n}\n\n/* Modern range syntax (Level 4) */\n@media (width >= 768px) {\n  .sidebar { display: block; }\n}\n\n/* Range: between two widths */\n@media (600px <= width < 1024px) {\n  .layout { grid-template-columns: 1fr 1fr; }\n}\n\n/* Combining conditions */\n@media (min-width: 768px) and (orientation: landscape) {\n  .hero { min-height: 60vh; }\n}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Mobile-first approach (recommended)"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "mobile-first.css",
+      "code": "/* BASE STYLES — mobile (no query) */\n.cards {\n  display: grid;\n  grid-template-columns: 1fr;  /* single column on mobile */\n  gap: 16px;\n}\n\nnav ul {\n  display: none;               /* hide nav links on mobile */\n}\n\n/* TABLET — 640px+ */\n@media (min-width: 640px) {\n  .cards {\n    grid-template-columns: 1fr 1fr;  /* two columns */\n  }\n}\n\n/* DESKTOP — 1024px+ */\n@media (min-width: 1024px) {\n  .cards {\n    grid-template-columns: repeat(3, 1fr);  /* three columns */\n  }\n  nav ul {\n    display: flex;\n    gap: 24px;\n  }\n}"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Mobile-first</strong> is recommended: write base styles for the smallest screen, then add min-width queries for larger screens. Browsers download all CSS but skip applying queries that don't match — mobile devices execute less CSS."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Accessibility media queries"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "accessibility-queries.css",
+      "code": "/* Respect OS dark mode preference */\n@media (prefers-color-scheme: dark) {\n  :root {\n    --bg: #0e1116;\n    --text: #e2e8f0;\n  }\n}\n\n/* Reduce motion for users who need it */\n@media (prefers-reduced-motion: reduce) {\n  *, *::before, *::after {\n    animation-duration: 0.01ms !important;\n    transition-duration: 0.01ms !important;\n  }\n}\n\n/* Coarse pointer (touch device) — make touch targets larger */\n@media (pointer: coarse) {\n  button { min-height: 44px; min-width: 44px; }\n}"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Responsive grid with media queries",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n  <style>\n    *, *::before, *::after { box-sizing: border-box; }\n    body { background: #0e1116; color: #e2e8f0; font-family: sans-serif; padding: 16px; }\n    .cards {\n      display: grid;\n      grid-template-columns: 1fr; /* mobile: 1 column */\n      gap: 16px;\n    }\n    @media (min-width: 540px) {\n      .cards { grid-template-columns: 1fr 1fr; } /* 2 columns */\n    }\n    @media (min-width: 900px) {\n      .cards { grid-template-columns: repeat(3, 1fr); } /* 3 columns */\n    }\n    .card { background: #1a1f2b; border: 1px solid #2d3748; border-radius: 8px; padding: 20px; }\n    .card h3 { color: #4fd1c5; margin: 0 0 8px; }\n    .card p { color: #94a3b8; margin: 0; font-size: 0.875rem; }\n  </style>\n</head>\n<body>\n  <div class=\"cards\">\n    <div class=\"card\"><h3>HTML</h3><p>Structure of the web</p></div>\n    <div class=\"card\"><h3>CSS</h3><p>Style of the web</p></div>\n    <div class=\"card\"><h3>JavaScript</h3><p>Behaviour</p></div>\n    <div class=\"card\"><h3>Git</h3><p>Version control</p></div>\n    <div class=\"card\"><h3>Python</h3><p>General programming</p></div>\n    <div class=\"card\"><h3>SQL</h3><p>Data querying</p></div>\n  </div>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "css-mq-q1",
+          "question": "Which approach is recommended for writing responsive CSS?",
+          "type": "multiple-choice",
+          "options": [
+            "Desktop-first with max-width queries",
+            "Mobile-first with min-width queries",
+            "Using JavaScript to add/remove classes",
+            "Writing separate stylesheets per device"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Mobile-first writes base styles for the smallest screen, then adds min-width media queries for larger screens. It results in less CSS for mobile devices and aligns with progressive enhancement."
+        },
+        {
+          "id": "css-mq-q2",
+          "question": "Which media query enables dark mode based on the user's OS setting?",
+          "type": "multiple-choice",
+          "options": [
+            "@media (theme: dark)",
+            "@media (color-scheme: dark)",
+            "@media (prefers-color-scheme: dark)",
+            "@media (dark-mode: enabled)"
+          ],
+          "correctAnswer": 2,
+          "explanation": "@media (prefers-color-scheme: dark) detects the operating system or browser's colour scheme preference. It applies the enclosed styles automatically when the user has dark mode enabled."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What breakpoints should I use?",
+      "a": "Common breakpoints: 640px (small tablets), 768px (tablets), 1024px (laptops), 1280px (desktops). Tailwind CSS uses these exact values. However, design for content — add a breakpoint wherever your layout breaks, not at arbitrary device widths."
+    },
+    {
+      "q": "Do media queries affect performance?",
+      "a": "Browsers download all CSS regardless of media queries. Non-matching queries are not applied but are still parsed. For performance, keep CSS concise rather than worrying about individual media queries."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — Media queries",
+      "url": "https://developer.mozilla.org/en-US/docs/Learn/CSS/CSS_layout/Media_queries",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "MDN — prefers-reduced-motion",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["responsive navigation", "card grids", "dark mode", "print styles", "touch targets"],
+    "examples": [
+      "GitHub's main navigation collapses to a hamburger menu below 1012px viewport width",
+      "Apple.com switches from a multi-column layout to single-column on iPad",
+      "KERNAL itself uses prefers-reduced-motion to disable CSS animations for affected users"
+    ]
+  }
+}

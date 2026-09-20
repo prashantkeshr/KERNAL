@@ -1,0 +1,151 @@
+{
+  "id": "14-transitions-animations",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "css",
+  "technologyVersion": "CSS3",
+  "module": "css-advanced",
+  "title": "Transitions & Animations",
+  "subtitle": "transition, @keyframes, animation",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 22,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["css/03-cascade-specificity"],
+  "skillsTaught": ["css.transitions", "css.animations", "css.keyframes"],
+  "skillsUsed": ["css.selectors", "css.pseudo-classes"],
+  "relatedConcepts": ["css.custom-properties", "css.transforms"],
+  "whyItExists": {
+    "problem": "Abrupt visual changes (colour switches, element appearances) feel jarring and cheap. Motion conveys state, guides attention, and provides feedback.",
+    "solution": "CSS transitions animate between two states smoothly. CSS animations run independently with @keyframes, enabling looping and complex multi-step sequences — all without JavaScript.",
+    "whenToUse": "Hover effects, focus states, loading indicators, entrance animations, micro-interactions.",
+    "whenNotToUse": "Always respect prefers-reduced-motion. Avoid animations that serve no purpose — motion should communicate something. Gratuitous animation decreases usability."
+  },
+  "explainModes": {
+    "beginner": "transition makes a CSS change happen smoothly over time instead of instantly. animation plays a sequence automatically — like a flipbook.",
+    "simple": "transition: property duration easing — animates a CSS property change on trigger (:hover, :focus). @keyframes defines a sequence of CSS states. animation: name duration easing — plays that sequence.",
+    "standard": "Transitions need a trigger (state change). animations run automatically or on class addition. Both use easing functions (ease, linear, cubic-bezier). transform and opacity animate on the GPU — prefer them over animating width, margin, or color for 60fps performance.",
+    "technical": "CSS transitions trigger when a property changes value (by pseudo-class, class toggle, or JavaScript). The transition calculates the interpolation between from and to values. Animations use @keyframes with percentage waypoints. will-change: transform hints the browser to promote the element to a GPU layer before animation starts.",
+    "deepDive": "The Web Animations API (WAAPI) exposes CSS animation internals to JavaScript, allowing play, pause, reverse, and speed control. CSS scroll-driven animations (Scroll Timeline, View Timeline — 2023+) animate based on scroll position with zero JavaScript. Both are hardware-accelerated when animating transform and opacity."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "CSS Transitions"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "transitions.css",
+      "code": ".button {\n  background: #4fd1c5;\n  color: #0e1116;\n  padding: 12px 24px;\n  border-radius: 8px;\n  border: none;\n  cursor: pointer;\n\n  /* transition: property duration easing delay */\n  transition: background 200ms ease;\n\n  /* Multiple properties */\n  transition:\n    background 200ms ease,\n    transform  150ms ease,\n    box-shadow 200ms ease;\n\n  /* All properties (use sparingly — expensive) */\n  transition: all 200ms ease;\n}\n\n.button:hover {\n  background: #38b2ac;\n  transform: translateY(-2px);\n  box-shadow: 0 8px 20px rgba(79, 209, 197, 0.3);\n}\n\n.button:active {\n  transform: translateY(0);\n}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Easing functions"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "easing.css",
+      "code": "/* Keyword easings */\ntransition: all 300ms ease;         /* slow start and end (default) */\ntransition: all 300ms ease-in;      /* slow start */\ntransition: all 300ms ease-out;     /* slow end — feels natural */\ntransition: all 300ms ease-in-out;  /* slow start and end */\ntransition: all 300ms linear;       /* constant speed */\n\n/* Custom cubic-bezier */\ntransition: all 300ms cubic-bezier(0.34, 1.56, 0.64, 1); /* spring bounce */\n\n/* Modern: spring-like step functions */\ntransition: all 400ms steps(4, end);"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "CSS Animations with @keyframes"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "animations.css",
+      "code": "/* Define the animation sequence */\n@keyframes fadeIn {\n  from { opacity: 0; transform: translateY(8px); }\n  to   { opacity: 1; transform: translateY(0); }\n}\n\n@keyframes pulse {\n  0%   { transform: scale(1); }\n  50%  { transform: scale(1.05); }\n  100% { transform: scale(1); }\n}\n\n@keyframes spin {\n  from { transform: rotate(0deg); }\n  to   { transform: rotate(360deg); }\n}\n\n/* Apply animations */\n.card {\n  animation: fadeIn 300ms ease-out;\n  animation-fill-mode: both;  /* keep final state after animation ends */\n}\n\n.loader {\n  animation: spin 1s linear infinite;\n}\n\n.badge {\n  animation: pulse 2s ease-in-out infinite;\n}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Performance — animate transform and opacity"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "perf-animations.css",
+      "code": "/* ✅ GPU-accelerated — smooth 60fps */\n.good:hover {\n  transform: translateX(8px);\n  opacity: 0.8;\n}\n\n/* ❌ Forces layout recalculation — janky */\n.bad:hover {\n  margin-left: 8px;    /* triggers layout */\n  width: 110%;         /* triggers layout */\n}"
+    },
+    {
+      "type": "warning",
+      "text": "Always check <code>prefers-reduced-motion</code>: wrap all non-essential animations in <code>@media (prefers-reduced-motion: no-preference) { ... }</code>. Some users experience motion sickness from animations."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Transitions and animations",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <style>\n    *, *::before, *::after { box-sizing: border-box; }\n    body { background: #0e1116; color: #e2e8f0; font-family: sans-serif; padding: 40px; display: flex; gap: 24px; flex-wrap: wrap; }\n    @keyframes fadeInUp {\n      from { opacity: 0; transform: translateY(16px); }\n      to   { opacity: 1; transform: translateY(0); }\n    }\n    @keyframes spin { to { transform: rotate(360deg); } }\n    .btn {\n      background: #4fd1c5; color: #0e1116; padding: 12px 24px;\n      border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 1rem;\n      transition: background 200ms ease, transform 150ms ease, box-shadow 200ms ease;\n    }\n    .btn:hover { background: #38b2ac; transform: translateY(-3px); box-shadow: 0 8px 20px rgba(79,209,197,0.3); }\n    .btn:active { transform: translateY(0); }\n    .card {\n      background: #1a1f2b; border: 1px solid #2d3748; border-radius: 10px; padding: 24px;\n      animation: fadeInUp 400ms ease-out both;\n      width: 180px; text-align: center;\n    }\n    .loader { width: 32px; height: 32px; border: 3px solid #2d3748; border-top-color: #4fd1c5; border-radius: 50%; animation: spin 0.8s linear infinite; }\n  </style>\n</head>\n<body>\n  <button class=\"btn\">Hover me!</button>\n  <div class=\"card\"><h3 style=\"color:#4fd1c5;margin:0 0 8px\">Fade In</h3><p style=\"color:#94a3b8;margin:0;font-size:0.8rem\">Animated on load</p></div>\n  <div class=\"loader\"></div>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "css-anim-q1",
+          "question": "Which CSS property allows an element to transition smoothly to a new state?",
+          "type": "multiple-choice",
+          "options": ["animation", "transition", "transform", "motion"],
+          "correctAnswer": 1,
+          "explanation": "transition animates the change between two CSS states (like normal and :hover). animation uses @keyframes to run sequences automatically."
+        },
+        {
+          "id": "css-anim-q2",
+          "question": "Which CSS properties should you animate for the best performance?",
+          "type": "multiple-choice",
+          "options": [
+            "width and height",
+            "margin and padding",
+            "transform and opacity",
+            "top and left"
+          ],
+          "correctAnswer": 2,
+          "explanation": "transform and opacity are composited on the GPU and do not trigger layout or paint recalculation. Animating them produces smooth 60fps animations. Animating margin, padding, width, or top triggers expensive layout recalculations."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between transition and animation?",
+      "a": "transition animates between two states triggered by a change (hover, focus, class toggle). animation runs a @keyframes sequence independently — it can loop, have multiple steps, and start automatically without a trigger."
+    },
+    {
+      "q": "What does animation-fill-mode: both do?",
+      "a": "both applies the animation's first keyframe before it starts (forwards fills) and keeps the last keyframe after it ends (backwards fills). Without it, elements snap back to their original state after the animation completes."
+    },
+    {
+      "q": "What is transform: translateY(-3px) and why is it used for hover effects?",
+      "a": "translateY(-3px) moves the element 3px upward. It is used on hover to create a 'lift' effect that feels tactile. It is GPU-accelerated (unlike margin-top), so it runs at 60fps with no layout cost."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — Using CSS transitions",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_transitions/Using_CSS_transitions",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "MDN — Using CSS animations",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_animations/Using_CSS_animations",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["button hover effects", "page transitions", "loading spinners", "notification toasts", "skeleton screens"],
+    "examples": [
+      "GitHub uses CSS transitions on its button hover states throughout the interface",
+      "Stripe's homepage uses complex @keyframes animations for its gradient background",
+      "Every modern loading spinner is a CSS animation: spin @keyframes on a border-top-colored circle"
+    ]
+  }
+}

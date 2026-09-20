@@ -1,0 +1,179 @@
+{
+  "id": "01-introduction",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "css",
+  "technologyVersion": "CSS3",
+  "module": "css-foundations",
+  "title": "Introduction to CSS",
+  "subtitle": "Style your first web page",
+  "difficulty": "beginner",
+  "estimatedMinutes": 15,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["html/01-introduction"],
+  "skillsTaught": ["css.basics", "css.linking", "css.syntax"],
+  "skillsUsed": ["html.basics"],
+  "relatedConcepts": ["css.selectors", "css.box-model"],
+  "whyItExists": {
+    "problem": "HTML describes structure but has no way to control colour, size, font, or layout. Without CSS every web page would look the same — black text on a white background.",
+    "solution": "CSS (Cascading Style Sheets) is a separate language that describes how HTML elements should look. You write rules that target elements and set their visual properties.",
+    "whenToUse": "Every time you need to control the appearance of a web page — colour, typography, spacing, layout, animation.",
+    "whenNotToUse": "CSS cannot respond to user actions or fetch data. For interactive behaviour use JavaScript."
+  },
+  "explainModes": {
+    "beginner": "CSS is like a painting instruction for HTML. HTML builds the walls; CSS decides the colour, the font, and how far apart things sit.",
+    "simple": "CSS lets you write rules: 'all paragraphs should be grey' or 'the main heading should be 32px and bold'. Each rule has a selector (what to target) and declarations (what to change).",
+    "standard": "CSS is a style sheet language that works alongside HTML. A CSS rule consists of a selector and a declaration block. The declaration block contains property–value pairs separated by semicolons. You link a CSS file to HTML with a <link> element in <head>.",
+    "technical": "CSS3 is modular: separate specifications cover selectors, the box model, flexbox, grid, animations, and custom properties. Browsers implement modules independently. The cascade algorithm determines which declaration wins when multiple rules target the same element.",
+    "deepDive": "Browsers parse CSS into a CSSOM (CSS Object Model) tree, which is combined with the DOM to form a render tree. Layout, paint, and composite phases follow. Understanding which CSS properties trigger layout (e.g. width, padding) versus paint-only (e.g. color, background) versus composite-only (e.g. transform, opacity) is critical for performance optimisation."
+  },
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "<strong>CSS</strong> stands for <strong>Cascading Style Sheets</strong>. It is the language browsers use to decide how HTML elements look — colours, fonts, spacing, and layout."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Linking CSS to HTML"
+    },
+    {
+      "type": "paragraph",
+      "text": "The most common way to use CSS is an external file linked from your HTML <code>&lt;head&gt;</code>:"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "filename": "index.html",
+      "code": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <title>My Page</title>\n  <link rel=\"stylesheet\" href=\"style.css\" />\n</head>\n<body>\n  <h1>Hello, CSS!</h1>\n  <p>This paragraph will be styled.</p>\n</body>\n</html>"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "CSS rule anatomy"
+    },
+    {
+      "type": "paragraph",
+      "text": "A CSS rule has two parts: a <strong>selector</strong> (what to target) and a <strong>declaration block</strong> (what to change):"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "style.css",
+      "code": "/* selector  { property: value; } */\n\nh1 {\n  color: #4fd1c5;     /* text colour */\n  font-size: 2rem;    /* text size   */\n}\n\np {\n  color: #94a3b8;\n  line-height: 1.6;\n}"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "<strong>selector</strong> — which HTML element(s) to target (<code>h1</code>, <code>p</code>, <code>.card</code>)",
+        "<strong>property</strong> — what to change (<code>color</code>, <code>font-size</code>, <code>margin</code>)",
+        "<strong>value</strong> — the new value (<code>#4fd1c5</code>, <code>2rem</code>, <code>0 auto</code>)",
+        "<strong>declaration</strong> — one property–value pair, ending with a semicolon",
+        "<strong>declaration block</strong> — all declarations inside the curly braces"
+      ]
+    },
+    {
+      "type": "tip",
+      "text": "CSS comments use <code>/* ... */</code> syntax. Use them to explain non-obvious values like magic numbers or colour choices."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Three ways to write CSS"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "filename": "three-ways.html",
+      "code": "<!-- 1. External stylesheet (BEST — reusable across pages) -->\n<link rel=\"stylesheet\" href=\"style.css\" />\n\n<!-- 2. Internal style block (useful for single pages) -->\n<style>\n  h1 { color: teal; }\n</style>\n\n<!-- 3. Inline style (AVOID — hard to maintain) -->\n<h1 style=\"color: teal;\">Title</h1>"
+    },
+    {
+      "type": "warning",
+      "text": "Avoid inline styles. They mix structure and presentation, they cannot be reused, and they have very high specificity — making them hard to override later."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Style a page",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <style>\n    body {\n      background: #0e1116;\n      color: #e2e8f0;\n      font-family: sans-serif;\n      padding: 24px;\n    }\n    h1 {\n      color: #4fd1c5;\n      font-size: 2rem;\n    }\n    p {\n      color: #94a3b8;\n      line-height: 1.6;\n    }\n  </style>\n</head>\n<body>\n  <h1>Hello, CSS!</h1>\n  <p>Try changing the colors and font-size above.</p>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "css-intro-q1",
+          "question": "What does CSS stand for?",
+          "type": "multiple-choice",
+          "options": [
+            "Cascading Style Sheets",
+            "Computer Style Syntax",
+            "Creative Style System",
+            "Cascading Syntax Sheets"
+          ],
+          "correctAnswer": 0,
+          "explanation": "CSS stands for Cascading Style Sheets. 'Cascading' refers to the priority system that determines which rule wins when multiple rules target the same element."
+        },
+        {
+          "id": "css-intro-q2",
+          "question": "Which HTML element correctly links an external CSS file?",
+          "type": "multiple-choice",
+          "options": [
+            "<style href=\"style.css\" />",
+            "<link rel=\"stylesheet\" href=\"style.css\" />",
+            "<css src=\"style.css\" />",
+            "<import href=\"style.css\" />"
+          ],
+          "correctAnswer": 1,
+          "explanation": "<link rel=\"stylesheet\" href=\"style.css\" /> placed inside <head> is the correct way to link an external CSS file."
+        },
+        {
+          "id": "css-intro-q3",
+          "question": "Inline styles are the recommended way to apply CSS.",
+          "type": "true-false",
+          "correctAnswer": "false",
+          "explanation": "Inline styles are generally avoided because they mix structure and presentation, cannot be reused, and are difficult to override due to their high specificity."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Do I need to learn HTML before CSS?",
+      "a": "Yes. CSS targets HTML elements, so you need to understand tags, classes, and IDs before CSS selectors make sense."
+    },
+    {
+      "q": "What is the difference between CSS and CSS3?",
+      "a": "CSS3 is the current version of CSS, introduced around 2011. It added modules for flexbox, grid, animations, custom properties, and media queries. All modern browsers support CSS3 features."
+    },
+    {
+      "q": "Can I use multiple CSS files?",
+      "a": "Yes. Large projects often split CSS across multiple files — one for layout, one for typography, one per component. Each file needs its own <link> tag in HTML."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — CSS basics",
+      "url": "https://developer.mozilla.org/en-US/docs/Learn/Getting_started_with_the_web/CSS_basics",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "CSS-Tricks — How CSS works",
+      "url": "https://css-tricks.com/how-css-works/",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every website", "web apps", "email templates", "print stylesheets"],
+    "examples": [
+      "GitHub's dark mode is implemented entirely with CSS custom properties toggled by a class on <html>",
+      "Twitter's card layout uses CSS flexbox",
+      "Apple.com's full-screen hero images use CSS background-size: cover"
+    ]
+  }
+}

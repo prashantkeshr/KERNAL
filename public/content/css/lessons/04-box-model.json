@@ -1,0 +1,154 @@
+{
+  "id": "04-box-model",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "css",
+  "technologyVersion": "CSS3",
+  "module": "css-box-model",
+  "title": "The Box Model",
+  "subtitle": "margin, padding, border, box-sizing",
+  "difficulty": "beginner",
+  "estimatedMinutes": 20,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["css/01-introduction"],
+  "skillsTaught": ["css.box-model", "css.margin", "css.padding", "css.border"],
+  "skillsUsed": ["css.basics"],
+  "relatedConcepts": ["css.flexbox", "css.grid"],
+  "whyItExists": {
+    "problem": "Every element on a page takes up space. Without a clear model for how that space is calculated, sizing and spacing elements would be guesswork.",
+    "solution": "The CSS box model defines every element as a rectangular box with four layers: content, padding, border, and margin. Once you understand these layers, spacing is predictable.",
+    "whenToUse": "Whenever you need to control spacing, size, or borders of any element.",
+    "whenNotToUse": "The box model always applies. You cannot opt out of it, but you can change which dimensions are included with box-sizing."
+  },
+  "explainModes": {
+    "beginner": "Every HTML element is a box. Inside is the content. Around the content is padding (breathing room inside the box). Around that is the border (the wall). Outside is margin (space between boxes).",
+    "simple": "The box has four layers from inside out: content → padding → border → margin. By default, width and height control only the content area. padding and border add to the total size.",
+    "standard": "In the default content-box model, width/height set the content dimensions. Total element width = content width + padding-left + padding-right + border-left + border-right. box-sizing: border-box changes this so width includes padding and border — far more predictable.",
+    "technical": "The visual formatting model distinguishes block-level boxes from inline boxes. Margin collapsing occurs between adjacent block margins and between parent and first/last child margins when no border or padding separates them. Negative margins are valid and pull elements in the opposite direction.",
+    "deepDive": "The CSS Box Model specification defines three box-sizing values: content-box (default), border-box, and padding-box (removed). Browser DevTools visualise all four layers as nested rectangles. The outline property is outside the border but does not affect layout — it overlaps adjacent elements. Margin collapsing only occurs in block formatting contexts; it does not happen inside flex or grid containers."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The four layers"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "box-model.css",
+      "code": ".card {\n  /* Content area */\n  width: 300px;\n  height: 200px;\n\n  /* Padding — space INSIDE the border */\n  padding: 24px;            /* all four sides */\n  padding: 16px 24px;       /* top/bottom  left/right */\n  padding: 8px 16px 24px 32px; /* top right bottom left */\n\n  /* Border */\n  border: 2px solid #4fd1c5;\n  border-radius: 8px;\n\n  /* Margin — space OUTSIDE the border */\n  margin: 16px;\n  margin: 0 auto;           /* centre horizontally */\n}"
+    },
+    {
+      "type": "tip",
+      "text": "Use browser DevTools (F12 → Elements → Computed) to see the box model diagram for any element. It shows content, padding, border, and margin as coloured rings."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "box-sizing: border-box"
+    },
+    {
+      "type": "paragraph",
+      "text": "By default, <code>width</code> sets only the <strong>content area</strong>. Padding and border are added on top. This makes sizing unintuitive. <code>box-sizing: border-box</code> fixes it:"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "box-sizing.css",
+      "code": "/* Default (content-box): total width = 300 + 24 + 24 + 2 + 2 = 352px */\n.default {\n  width: 300px;\n  padding: 24px;\n  border: 2px solid;\n}\n\n/* border-box: total width = exactly 300px */\n.better {\n  box-sizing: border-box;\n  width: 300px;\n  padding: 24px;\n  border: 2px solid;\n}\n\n/* Apply border-box to everything — industry standard */\n*, *::before, *::after {\n  box-sizing: border-box;\n}"
+    },
+    {
+      "type": "warning",
+      "text": "Always add <code>*, *::before, *::after { box-sizing: border-box; }</code> at the top of your stylesheet. It prevents dozens of sizing bugs."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Margin collapsing"
+    },
+    {
+      "type": "paragraph",
+      "text": "When two vertical margins meet, they <strong>collapse</strong> — the larger one survives, not the sum of both:"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "margin-collapse.css",
+      "code": "h2 { margin-bottom: 24px; }\np  { margin-top: 16px; }\n\n/* Gap between h2 and p = 24px (not 40px) — larger wins */\n\n/* Collapsing does NOT happen in flexbox or grid containers */"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: The box model",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <style>\n    *, *::before, *::after { box-sizing: border-box; }\n    body { background: #0e1116; color: #e2e8f0; font-family: sans-serif; padding: 24px; }\n    .card {\n      width: 280px;\n      padding: 24px;\n      border: 2px solid #4fd1c5;\n      border-radius: 8px;\n      margin: 16px;\n      background: #1a1f2b;\n    }\n  </style>\n</head>\n<body>\n  <div class=\"card\">\n    <h3>Card Title</h3>\n    <p>Change padding, border, and margin above to see the box model in action.</p>\n  </div>\n  <div class=\"card\">\n    <h3>Second Card</h3>\n    <p>Notice the space between cards is the margin value.</p>\n  </div>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "css-box-q1",
+          "question": "With box-sizing: content-box (default), what is the total rendered width of an element with width: 200px, padding: 20px, and border: 5px?",
+          "type": "multiple-choice",
+          "options": ["200px", "240px", "250px", "225px"],
+          "correctAnswer": 2,
+          "explanation": "content-box: total = 200 + 20 + 20 + 5 + 5 = 250px. Padding and border are added to the content width."
+        },
+        {
+          "id": "css-box-q2",
+          "question": "Which property creates space INSIDE the border?",
+          "type": "multiple-choice",
+          "options": ["margin", "padding", "border-spacing", "gap"],
+          "correctAnswer": 1,
+          "explanation": "Padding is the space between the content and the border — inside the element. Margin is the space outside the border, between the element and its neighbours."
+        },
+        {
+          "id": "css-box-q3",
+          "question": "Margin collapsing also occurs inside flexbox containers.",
+          "type": "true-false",
+          "correctAnswer": "false",
+          "explanation": "Margin collapsing only happens in block formatting contexts. It does NOT occur inside flex containers, grid containers, or elements with overflow other than visible."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between padding and margin?",
+      "a": "Padding is space inside the element (between content and border). It inherits the element's background colour. Margin is space outside the element (between the border and adjacent elements). It is always transparent."
+    },
+    {
+      "q": "How do I centre an element horizontally?",
+      "a": "For a block element with a set width, use margin: 0 auto. This distributes available space equally on both sides. For flex/grid containers, use justify-content: center instead."
+    },
+    {
+      "q": "Can I have negative margins?",
+      "a": "Yes. Negative margins pull an element in the opposite direction — a negative margin-top pulls the element upward. They are valid CSS and useful for overlapping effects, but use them sparingly."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — The box model",
+      "url": "https://developer.mozilla.org/en-US/docs/Learn/CSS/Building_blocks/The_box_model",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "CSS-Tricks — The CSS Box Model",
+      "url": "https://css-tricks.com/the-css-box-model/",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every CSS layout", "card components", "buttons", "form fields"],
+    "examples": [
+      "GitHub's pull-request diff uses padding to indent code inside bordered containers",
+      "Bootstrap's .container uses margin: 0 auto and a max-width for centred layouts",
+      "Notion's block editor uses padding to create breathing room inside content blocks"
+    ]
+  }
+}

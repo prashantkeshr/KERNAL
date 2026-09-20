@@ -1,0 +1,57 @@
+[
+  {
+    "id": "css-foundations",
+    "title": "Foundations",
+    "description": "What CSS is, how it connects to HTML, selectors, and how the cascade works.",
+    "order": 1,
+    "lessons": [
+      { "id": "01-introduction",        "title": "Introduction to CSS",        "subtitle": "Style your first web page",               "difficulty": "beginner",     "estimatedMinutes": 15, "status": "published" },
+      { "id": "02-selectors",           "title": "Selectors",                  "subtitle": "Target exactly the right elements",        "difficulty": "beginner",     "estimatedMinutes": 20, "status": "published" },
+      { "id": "03-cascade-specificity", "title": "Cascade & Specificity",      "subtitle": "Which rule wins and why",                  "difficulty": "intermediate", "estimatedMinutes": 20, "status": "published" }
+    ]
+  },
+  {
+    "id": "css-box-model",
+    "title": "Box Model & Typography",
+    "description": "Every element is a box. Control its size, spacing, text, and colour.",
+    "order": 2,
+    "lessons": [
+      { "id": "04-box-model",          "title": "The Box Model",              "subtitle": "margin, padding, border, box-sizing",      "difficulty": "beginner",     "estimatedMinutes": 20, "status": "published" },
+      { "id": "05-typography",         "title": "Typography",                 "subtitle": "fonts, sizes, weight, line-height",        "difficulty": "beginner",     "estimatedMinutes": 18, "status": "published" },
+      { "id": "06-colors-backgrounds", "title": "Colors & Backgrounds",       "subtitle": "color, background, gradients, opacity",    "difficulty": "beginner",     "estimatedMinutes": 18, "status": "published" }
+    ]
+  },
+  {
+    "id": "css-layout",
+    "title": "Layout",
+    "description": "Control how elements flow and position on the page with modern CSS layout systems.",
+    "order": 3,
+    "lessons": [
+      { "id": "07-display-flow",       "title": "Display & Flow",             "subtitle": "block, inline, inline-block, overflow",    "difficulty": "beginner",     "estimatedMinutes": 18, "status": "published" },
+      { "id": "08-flexbox",            "title": "Flexbox",                    "subtitle": "1D layout with flex container and items",  "difficulty": "intermediate", "estimatedMinutes": 25, "status": "published" },
+      { "id": "09-grid",               "title": "CSS Grid",                   "subtitle": "2D layout with rows, columns, and areas",  "difficulty": "intermediate", "estimatedMinutes": 25, "status": "published" },
+      { "id": "10-positioning",        "title": "Positioning",                "subtitle": "static, relative, absolute, fixed, sticky","difficulty": "intermediate", "estimatedMinutes": 20, "status": "published" }
+    ]
+  },
+  {
+    "id": "css-responsive",
+    "title": "Responsive Design",
+    "description": "Build layouts that work on every screen size using units and media queries.",
+    "order": 4,
+    "lessons": [
+      { "id": "11-units",              "title": "CSS Units",                  "subtitle": "px, em, rem, %, vw, vh, clamp()",          "difficulty": "intermediate", "estimatedMinutes": 20, "status": "published" },
+      { "id": "12-media-queries",      "title": "Media Queries",              "subtitle": "@media, breakpoints, mobile-first",        "difficulty": "intermediate", "estimatedMinutes": 20, "status": "published" },
+      { "id": "13-responsive-design",  "title": "Responsive Design",         "subtitle": "fluid layouts, object-fit, aspect-ratio",  "difficulty": "intermediate", "estimatedMinutes": 18, "status": "published" }
+    ]
+  },
+  {
+    "id": "css-advanced",
+    "title": "Advanced CSS",
+    "description": "Add motion and maintainability with transitions, animations, and custom properties.",
+    "order": 5,
+    "lessons": [
+      { "id": "14-transitions-animations","title": "Transitions & Animations","subtitle": "transition, @keyframes, animation",         "difficulty": "intermediate", "estimatedMinutes": 22, "status": "published" },
+      { "id": "15-custom-properties",  "title": "CSS Variables",             "subtitle": "Custom properties, var(), theming",        "difficulty": "intermediate", "estimatedMinutes": 18, "status": "published" }
+    ]
+  }
+]

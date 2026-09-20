@@ -1,0 +1,147 @@
+{
+  "id": "08-flexbox",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "css",
+  "technologyVersion": "CSS3",
+  "module": "css-layout",
+  "title": "Flexbox",
+  "subtitle": "1D layout with flex container and items",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 25,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["css/07-display-flow"],
+  "skillsTaught": ["css.flexbox", "css.flex-container", "css.flex-items"],
+  "skillsUsed": ["css.display", "css.box-model"],
+  "relatedConcepts": ["css.grid", "css.gap"],
+  "whyItExists": {
+    "problem": "Before Flexbox, centering elements and building navigation bars required hacky float tricks. Vertical centering was notoriously difficult.",
+    "solution": "Flexbox is a one-dimensional layout system. Set display: flex on a container and its children automatically align in a row (or column), distribute space, and can be centred trivially.",
+    "whenToUse": "Navigation bars, button groups, card rows, centring content, distributing space between items — any single-axis layout.",
+    "whenNotToUse": "For two-dimensional layouts (rows AND columns simultaneously) use CSS Grid instead."
+  },
+  "explainModes": {
+    "beginner": "Flexbox lines children up in a row (or column) and lets you control how they space out. You can say 'space them equally', 'push them to the right', or 'centre them vertically' — all with one or two properties.",
+    "simple": "Set display: flex on the parent. Children automatically line up in a row. justify-content distributes space along the row. align-items aligns them vertically. gap adds space between items.",
+    "standard": "The flex container controls the main axis (row/column) with flex-direction. justify-content aligns along the main axis; align-items along the cross axis. Flex items can grow (flex-grow), shrink (flex-shrink), and have a base size (flex-basis) — combined in the flex shorthand.",
+    "technical": "Flexbox resolves sizes in three steps: (1) compute hypothetical main size using flex-basis, (2) distribute free space by flex-grow/shrink ratios, (3) resolve cross-axis alignment. The flex algorithm runs after the box model. Negative free space activates flex-shrink. order changes visual order without changing DOM order — use with caution for accessibility.",
+    "deepDive": "The flex formatting context creates an independent stacking context. flex: 1 is shorthand for flex: 1 1 0 — grow freely, shrink freely, base size 0. flex: auto is 1 1 auto (base size is intrinsic). flex: none is 0 0 auto — completely rigid. When flex-wrap: wrap is set, each row forms an independent flex line and align-items applies per line. align-content (not align-items) controls spacing between wrapped lines."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Container properties"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "flexbox-container.css",
+      "code": ".container {\n  display: flex;               /* activate flexbox */\n  flex-direction: row;         /* row | row-reverse | column | column-reverse */\n  flex-wrap: wrap;             /* nowrap | wrap | wrap-reverse */\n\n  /* Main axis (row direction by default) */\n  justify-content: flex-start; /* flex-start | flex-end | center | space-between | space-around | space-evenly */\n\n  /* Cross axis (column direction by default) */\n  align-items: stretch;        /* stretch | flex-start | flex-end | center | baseline */\n\n  /* Space between items */\n  gap: 16px;                   /* row-gap and column-gap combined */\n  gap: 12px 24px;              /* row-gap column-gap */\n}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Item properties"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "flexbox-items.css",
+      "code": ".item {\n  /* flex shorthand: grow shrink basis */\n  flex: 1;          /* flex: 1 1 0 — fill available space equally */\n  flex: auto;       /* flex: 1 1 auto — grow/shrink from intrinsic size */\n  flex: none;       /* flex: 0 0 auto — fixed size, no grow/shrink */\n  flex: 0 0 200px;  /* fixed 200px, no grow/shrink */\n\n  /* Override cross-axis alignment for one item */\n  align-self: center;\n\n  /* Change visual order (don't use for logical order) */\n  order: 2;\n}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Common flex patterns"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "flex-patterns.css",
+      "code": "/* Perfect horizontal + vertical centering */\n.center {\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  min-height: 100vh;\n}\n\n/* Navigation bar — logo left, links right */\n.navbar {\n  display: flex;\n  align-items: center;\n  gap: 16px;\n}\n.navbar .spacer { flex: 1; }  /* pushes everything after it to the right */\n\n/* Equal-width card row that wraps */\n.cards {\n  display: flex;\n  flex-wrap: wrap;\n  gap: 16px;\n}\n.card {\n  flex: 1 1 280px;  /* grow/shrink but never narrower than 280px */\n}"
+    },
+    {
+      "type": "tip",
+      "text": "Use <code>gap</code> instead of margins between flex items. Gap only applies between items (not to the outer edges), so you avoid the old 'first/last child margin' hack."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Flexbox layout",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <style>\n    *, *::before, *::after { box-sizing: border-box; }\n    body { background: #0e1116; color: #e2e8f0; font-family: sans-serif; padding: 24px; }\n    .nav {\n      display: flex;\n      align-items: center;\n      gap: 12px;\n      background: #1a1f2b;\n      padding: 12px 20px;\n      border-radius: 8px;\n      margin-bottom: 24px;\n    }\n    .nav .logo { font-weight: 700; color: #4fd1c5; }\n    .nav .spacer { flex: 1; }\n    .nav a { color: #94a3b8; text-decoration: none; font-size: 0.9rem; }\n    .cards { display: flex; flex-wrap: wrap; gap: 16px; }\n    .card {\n      flex: 1 1 200px;\n      background: #1a1f2b;\n      border: 1px solid #2d3748;\n      border-radius: 8px;\n      padding: 20px;\n    }\n    .card h3 { color: #4fd1c5; margin: 0 0 8px; }\n    .card p { color: #94a3b8; margin: 0; font-size: 0.875rem; }\n  </style>\n</head>\n<body>\n  <nav class=\"nav\">\n    <span class=\"logo\">KERNAL</span>\n    <div class=\"spacer\"></div>\n    <a href=\"#\">Learn</a>\n    <a href=\"#\">Roadmap</a>\n    <a href=\"#\">Settings</a>\n  </nav>\n  <div class=\"cards\">\n    <div class=\"card\"><h3>HTML</h3><p>Structure</p></div>\n    <div class=\"card\"><h3>CSS</h3><p>Style</p></div>\n    <div class=\"card\"><h3>JavaScript</h3><p>Behaviour</p></div>\n  </div>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "css-flex-q1",
+          "question": "Which property centres flex items along the MAIN axis?",
+          "type": "multiple-choice",
+          "options": ["align-items", "justify-content", "align-content", "flex-align"],
+          "correctAnswer": 1,
+          "explanation": "justify-content controls distribution along the main axis (horizontal by default). align-items controls alignment along the cross axis (vertical by default)."
+        },
+        {
+          "id": "css-flex-q2",
+          "question": "What does flex: 1 actually mean in full?",
+          "type": "multiple-choice",
+          "options": [
+            "flex: 1 0 auto",
+            "flex: 1 1 0",
+            "flex: 0 1 auto",
+            "flex: 1 1 100%"
+          ],
+          "correctAnswer": 1,
+          "explanation": "flex: 1 expands to flex: 1 1 0 — flex-grow: 1 (share available space equally), flex-shrink: 1 (can shrink), flex-basis: 0 (start from zero width)."
+        },
+        {
+          "id": "css-flex-q3",
+          "question": "Flexbox is the best tool for two-dimensional (rows and columns) layouts.",
+          "type": "true-false",
+          "correctAnswer": "false",
+          "explanation": "Flexbox is a ONE-dimensional layout tool (a single row or column). For two-dimensional layouts, use CSS Grid."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between justify-content and align-items?",
+      "a": "justify-content distributes space along the MAIN axis (horizontal in row direction). align-items aligns items along the CROSS axis (vertical in row direction). Both axes flip if flex-direction: column."
+    },
+    {
+      "q": "When should I use flex: 1 vs flex: auto?",
+      "a": "flex: 1 (grow from 0) distributes space equally regardless of content size. flex: auto (grow from intrinsic size) starts from each item's natural width — so larger content gets proportionally more space."
+    },
+    {
+      "q": "What is flex-wrap and why use it?",
+      "a": "By default flex items all stay on one line and may shrink to fit. flex-wrap: wrap allows items to move to a new row when they would overflow — creating a responsive card grid without media queries."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — Flexbox",
+      "url": "https://developer.mozilla.org/en-US/docs/Learn/CSS/CSS_layout/Flexbox",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "CSS-Tricks — A Complete Guide to Flexbox",
+      "url": "https://css-tricks.com/snippets/css/a-guide-to-flexbox/",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["navigation bars", "button groups", "card rows", "media objects", "form layouts"],
+    "examples": [
+      "GitHub's top navigation bar uses flexbox to align logo, search, and icons horizontally",
+      "Notion's sidebar uses flexbox column to stack nav items with a spacer before account info",
+      "Every modern CSS framework (Bootstrap 5, Tailwind) builds its grid on flexbox"
+    ]
+  }
+}

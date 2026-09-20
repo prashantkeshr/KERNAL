@@ -31,7 +31,7 @@
     "order": 2,
     "stage": 2,
     "playground": "html",
-    "enabled": false,
+    "enabled": true,
     "description": "Styling, layout, animations",
     "estimatedHours": 25
   },

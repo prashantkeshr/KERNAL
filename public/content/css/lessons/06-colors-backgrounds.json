@@ -1,0 +1,147 @@
+{
+  "id": "06-colors-backgrounds",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "css",
+  "technologyVersion": "CSS3",
+  "module": "css-box-model",
+  "title": "Colors & Backgrounds",
+  "subtitle": "color, background, gradients, opacity",
+  "difficulty": "beginner",
+  "estimatedMinutes": 18,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["css/01-introduction"],
+  "skillsTaught": ["css.colors", "css.backgrounds", "css.gradients"],
+  "skillsUsed": ["css.basics"],
+  "relatedConcepts": ["css.custom-properties", "css.typography"],
+  "whyItExists": {
+    "problem": "A page without colour is monotonous. Colour communicates meaning, creates visual hierarchy, and makes a brand recognisable.",
+    "solution": "CSS provides multiple colour formats (hex, RGB, HSL, named) and background properties (solid colour, image, gradient) that cover every design need.",
+    "whenToUse": "For text colour, button colours, backgrounds, hover states, focus indicators, and visual branding.",
+    "whenNotToUse": "Never convey information with colour alone — always pair it with a text label or icon, for colour-blind accessibility."
+  },
+  "explainModes": {
+    "beginner": "CSS colors are like paint. color sets the text colour. background-color fills the box. You can write colours as names (red), hex codes (#ff0000), or rgb() values.",
+    "simple": "CSS has four main colour formats: named (red), hex (#e34c26), rgb/rgba, and hsl/hsla. 'a' in rgba/hsla is alpha — transparency from 0 (invisible) to 1 (solid).",
+    "standard": "hex is the most common format for solid colours. rgba() and hsla() add transparency. hsl() is useful for programmatic colour manipulation — adjusting lightness by a percentage is intuitive. CSS gradients (linear-gradient, radial-gradient) are generated images, not solid colours.",
+    "technical": "CSS Color Level 4 adds oklch() and oklab() — perceptually uniform colour spaces where equal numerical steps produce visually equal perceptual changes. oklch is now supported in all modern browsers and is the best choice for programmatic colour generation. The color-mix() function blends two colours in a given colour space.",
+    "deepDive": "Colour gamuts matter for modern displays. Traditional hex/rgb/hsl are sRGB — a relatively small gamut. P3 (Display P3) covers ~50% more colours and is natively supported on Mac/iOS. CSS supports P3 via color(display-p3 r g b). Browsers that don't support P3 fall back gracefully to sRGB. For truly future-proof colour, define colours in oklch with P3 gamut targets."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Colour formats"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "colors.css",
+      "code": "p {\n  /* Named — 140+ browser colour keywords */\n  color: teal;\n\n  /* Hex — #RRGGBB or shorthand #RGB */\n  color: #4fd1c5;\n  color: #4dc;    /* same as #44ddcc */\n\n  /* RGB — 0-255 per channel */\n  color: rgb(79, 209, 197);\n\n  /* RGBA — with alpha transparency (0=invisible, 1=solid) */\n  color: rgba(79, 209, 197, 0.5);\n\n  /* HSL — hue(0-360) saturation% lightness% */\n  color: hsl(174, 56%, 57%);\n\n  /* OKLCH — modern perceptual colour space */\n  color: oklch(75% 0.12 194);\n}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Background properties"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "backgrounds.css",
+      "code": ".card {\n  background-color: #1a1f2b;\n\n  /* Background image */\n  background-image: url('texture.png');\n  background-size: cover;      /* or contain, or 100% 200px */\n  background-position: center;\n  background-repeat: no-repeat;\n\n  /* Shorthand */\n  background: #1a1f2b url('texture.png') no-repeat center / cover;\n}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Gradients"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "gradients.css",
+      "code": ".hero {\n  /* Linear gradient — from one colour to another */\n  background: linear-gradient(135deg, #0e1116, #1a1f2b);\n\n  /* Linear with multiple stops */\n  background: linear-gradient(to right, #4fd1c5, #7c3aed, #e34c26);\n\n  /* Radial gradient */\n  background: radial-gradient(circle at center, #1a1f2b, #0e1116);\n}\n\n/* Gradient text — requires background-clip */\n.gradient-text {\n  background: linear-gradient(to right, #4fd1c5, #7c3aed);\n  -webkit-background-clip: text;\n  background-clip: text;\n  color: transparent;\n}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Opacity and transparency"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "opacity.css",
+      "code": "/* opacity affects the ENTIRE element including children */\n.overlay { opacity: 0.8; }\n\n/* rgba/hsla affects only that colour — children stay solid */\n.glass {\n  background: rgba(26, 31, 43, 0.7);\n  backdrop-filter: blur(8px);  /* frosted glass effect */\n}"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Colors and gradients",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <style>\n    body { margin: 0; font-family: sans-serif; }\n    .hero {\n      background: linear-gradient(135deg, #0e1116 0%, #1a1f2b 50%, #0e1116 100%);\n      padding: 60px 40px;\n      text-align: center;\n    }\n    h1 {\n      font-size: 3rem;\n      background: linear-gradient(to right, #4fd1c5, #7c3aed);\n      -webkit-background-clip: text;\n      background-clip: text;\n      color: transparent;\n      margin: 0 0 16px;\n    }\n    p { color: #94a3b8; font-size: 1.1rem; }\n    .card {\n      background: rgba(26, 31, 43, 0.8);\n      border: 1px solid rgba(79, 209, 197, 0.3);\n      border-radius: 12px;\n      padding: 24px;\n      margin: 16px auto;\n      max-width: 400px;\n    }\n  </style>\n</head>\n<body>\n  <div class=\"hero\">\n    <h1>KERNAL</h1>\n    <p>Try editing the gradient colours above</p>\n    <div class=\"card\">\n      <p style=\"color:#e2e8f0; margin:0\">Glassmorphism card with rgba background</p>\n    </div>\n  </div>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "css-color-q1",
+          "question": "What does the 'a' in rgba() stand for?",
+          "type": "multiple-choice",
+          "options": ["accent", "alpha (transparency)", "average", "additive"],
+          "correctAnswer": 1,
+          "explanation": "The 'a' is alpha — transparency. 0 is fully transparent (invisible), 1 is fully opaque (solid). 0.5 is 50% transparent."
+        },
+        {
+          "id": "css-color-q2",
+          "question": "You want the background of an element to be semi-transparent but its text to remain fully opaque. Which approach is correct?",
+          "type": "multiple-choice",
+          "options": [
+            "opacity: 0.5",
+            "background: rgba(0,0,0,0.5)",
+            "color: transparent",
+            "visibility: semi"
+          ],
+          "correctAnswer": 1,
+          "explanation": "background: rgba() applies transparency only to that background colour. opacity: 0.5 would make the ENTIRE element — including text — 50% transparent."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Which colour format should I use — hex, rgb, or hsl?",
+      "a": "Hex (#4fd1c5) for static brand colours — it's compact and universally supported. hsl() when you need to programmatically lighten/darken. rgba() when you need transparency. oklch() for the best perceptual consistency in modern browsers."
+    },
+    {
+      "q": "What is backdrop-filter?",
+      "a": "backdrop-filter applies a filter (like blur, brightness) to the content BEHIND an element — creating a frosted-glass effect. It requires the element to have a semi-transparent background to show the effect."
+    },
+    {
+      "q": "How do I pick accessible colour combinations?",
+      "a": "Use a contrast checker like WebAIM Contrast Checker. WCAG AA requires a minimum contrast ratio of 4.5:1 for normal text and 3:1 for large text against the background."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — CSS color",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/CSS/color",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "MDN — Using CSS gradients",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_images/Using_CSS_gradients",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["brand styling", "dark/light themes", "hero sections", "buttons", "cards"],
+    "examples": [
+      "Stripe's gradient homepage uses linear-gradient with many colour stops for a prismatic effect",
+      "Apple's product pages use radial-gradient to create soft glow lighting effects",
+      "GitHub's dark theme switches colour variables using a [data-color-mode] attribute on <html>"
+    ]
+  }
+}

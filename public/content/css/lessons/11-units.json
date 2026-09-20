@@ -1,0 +1,141 @@
+{
+  "id": "11-units",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "css",
+  "technologyVersion": "CSS3",
+  "module": "css-responsive",
+  "title": "CSS Units",
+  "subtitle": "px, em, rem, %, vw, vh, clamp()",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 20,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["css/04-box-model"],
+  "skillsTaught": ["css.units", "css.viewport-units", "css.fluid-sizing"],
+  "skillsUsed": ["css.box-model", "css.typography"],
+  "relatedConcepts": ["css.media-queries", "css.responsive-design"],
+  "whyItExists": {
+    "problem": "Screens range from 320px phones to 4K monitors. Using fixed pixel sizes makes layouts that look perfect on one screen look broken on another.",
+    "solution": "CSS has relative units that scale with context — the root font size (rem), the parent element (em), the viewport (vw/vh), or a percentage of the container (%). Combined with clamp(), sizes respond smoothly across all screen widths.",
+    "whenToUse": "Use rem for font sizes and consistent spacing. Use % or fr for fluid widths. Use vw/vh for full-screen sections. Use clamp() for fluid typography that doesn't need media queries.",
+    "whenNotToUse": "Use px for borders, shadows, and thin lines that should not scale with font size."
+  },
+  "explainModes": {
+    "beginner": "px is like measuring in centimetres — always the same. rem is 'multiply the root font size by this number'. % is 'a portion of the parent'. vw is '1% of the screen width'.",
+    "simple": "px: fixed. em: relative to parent font-size. rem: relative to root font-size (always 16px by default). %: relative to parent dimension. vw/vh: 1% of viewport width/height. clamp(min, preferred, max): fluid between limits.",
+    "standard": "rem is the recommended unit for font-size and spacing — it respects user font preferences and doesn't compound like em. % is ideal for widths. vw/vh create viewport-relative sizes. clamp() eliminates many media queries by scaling sizes smoothly between a min and max.",
+    "technical": "em compounds: if an element has font-size: 1.2em inside a parent with font-size: 1.2em, the effective size is 1.44em of root. rem avoids this by always referencing the root. Viewport units have a mobile edge case: 100vh includes the browser chrome on mobile, causing overflow. Use svh (small viewport height) for mobile-safe full-height sections.",
+    "deepDive": "CSS Values Level 4 adds svh, lvh, dvh (small/large/dynamic viewport height) to address mobile browser address-bar fluctuation. The new container query units (cqw, cqh) are relative to the nearest container query context, enabling truly component-scoped responsive design. The ch unit (width of the '0' character) is ideal for readable line lengths: max-width: 65ch is a good measure for body text."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Absolute units"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "units-absolute.css",
+      "code": "/* px — screen pixels. Fixed. Never scales with font preferences */\n.border { border: 1px solid #2d3748; }  /* good use: fine lines */\n.icon   { width: 24px; height: 24px; }  /* good use: icons */\n\n/* AVOID px for font-size — it ignores user browser preferences */\n.bad  { font-size: 16px; }   /* does not scale with user settings */\n.good { font-size: 1rem; }   /* scales correctly */"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Relative units — em and rem"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "units-relative.css",
+      "code": "/* rem — relative to <html> font-size (default 16px) */\n:root { font-size: 16px; }  /* browser default — usually don't set this */\n\nh1 { font-size: 2.5rem; }   /* 40px */\nh2 { font-size: 1.75rem; }  /* 28px */\np  { font-size: 1rem; }     /* 16px */\n\n/* em — relative to the CURRENT element's font-size */\n/* Use em for padding/spacing that should scale with font-size */\n.button {\n  font-size: 1rem;\n  padding: 0.5em 1em;  /* 8px 16px — scales if font-size changes */\n}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Percentage and viewport units"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "units-viewport.css",
+      "code": "/* % — percentage of the parent element's dimension */\n.sidebar { width: 25%; }  /* quarter of parent's width */\n\n/* vw / vh — 1% of viewport width / height */\n.hero {\n  width: 100vw;     /* full viewport width */\n  min-height: 100vh; /* full viewport height */\n}\n\n/* svh — small viewport height (mobile-safe, excludes browser chrome) */\n.hero { min-height: 100svh; }\n\n/* ch — width of '0' character — ideal for line length */\narticle { max-width: 65ch; }"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "clamp() — fluid sizing without media queries"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "clamp.css",
+      "code": "/* clamp(minimum, preferred, maximum) */\n/* preferred grows with viewport — min and max cap the extremes */\n\nh1 {\n  /* Minimum 1.5rem, grows with viewport, caps at 3rem */\n  font-size: clamp(1.5rem, 4vw, 3rem);\n}\n\n.container {\n  /* Between 16px and 64px of padding, scales with viewport */\n  padding: clamp(1rem, 5vw, 4rem);\n  max-width: clamp(320px, 90%, 1200px);\n}"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Quick guide:</strong> Use <code>rem</code> for font sizes. Use <code>em</code> for padding/margin that should scale with the element's own font. Use <code>%</code> or <code>fr</code> for widths. Use <code>clamp()</code> for fluid sizes that need no media query."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "css-units-q1",
+          "question": "If the root font-size is 16px, what is 1.5rem in pixels?",
+          "type": "multiple-choice",
+          "options": ["14px", "18px", "24px", "32px"],
+          "correctAnswer": 2,
+          "explanation": "1.5rem = 1.5 × 16px = 24px. rem always multiplies the root (<html>) font-size."
+        },
+        {
+          "id": "css-units-q2",
+          "question": "What does clamp(1rem, 4vw, 3rem) do?",
+          "type": "multiple-choice",
+          "options": [
+            "Sets a fixed size of 4vw",
+            "Returns the value closest to 4vw, with 1rem minimum and 3rem maximum",
+            "Clamps the container width",
+            "Only applies on mobile viewports"
+          ],
+          "correctAnswer": 1,
+          "explanation": "clamp() returns the middle value (4vw) but clamps it between 1rem (minimum) and 3rem (maximum). On small screens 4vw is small, so 1rem applies. On large screens 4vw is large, so 3rem caps it."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Why should I avoid px for font sizes?",
+      "a": "Users can change their browser's base font size in settings (for accessibility). Fonts set in px ignore this preference. rem-based fonts respect it, making your site accessible to users who need larger text."
+    },
+    {
+      "q": "What is the difference between vw and %?",
+      "a": "% is relative to the parent element's width. vw is relative to the viewport (browser window) width. A child set to 100% fills its parent. A child set to 100vw fills the entire screen width regardless of parent."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — CSS values and units",
+      "url": "https://developer.mozilla.org/en-US/docs/Learn/CSS/Building_blocks/Values_and_units",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "MDN — clamp()",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/CSS/clamp",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["responsive typography", "fluid layouts", "full-screen heroes", "readable articles"],
+    "examples": [
+      "Tailwind CSS uses rem for all font sizes so they respect user preferences",
+      "KERNAL uses clamp() for heading sizes to eliminate font-size media queries",
+      "Wikipedia sets max-width: 60em on article text for optimal reading line length"
+    ]
+  }
+}

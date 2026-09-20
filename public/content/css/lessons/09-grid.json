@@ -1,0 +1,145 @@
+{
+  "id": "09-grid",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "css",
+  "technologyVersion": "CSS3",
+  "module": "css-layout",
+  "title": "CSS Grid",
+  "subtitle": "2D layout with rows, columns, and areas",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 25,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["css/08-flexbox"],
+  "skillsTaught": ["css.grid", "css.grid-template", "css.grid-areas"],
+  "skillsUsed": ["css.flexbox", "css.display"],
+  "relatedConcepts": ["css.responsive-design", "css.flexbox"],
+  "whyItExists": {
+    "problem": "Flexbox is one-dimensional. Page layouts need rows AND columns simultaneously — a header, sidebar, main content, and footer that all respond to screen size.",
+    "solution": "CSS Grid is a two-dimensional layout system. You define rows and columns on the container, then place items precisely into grid cells or named areas.",
+    "whenToUse": "Full-page layouts, card grids, magazine-style layouts, any layout that needs both rows and columns.",
+    "whenNotToUse": "For a single row of items (navigation, button group) flexbox is simpler. Use the right tool for each job — Grid for 2D, Flex for 1D."
+  },
+  "explainModes": {
+    "beginner": "CSS Grid turns your container into a table-like layout with rows and columns. You define the structure on the parent, and children snap into grid cells automatically.",
+    "simple": "Set display: grid, then define columns with grid-template-columns and rows with grid-template-rows. Items are placed automatically left-to-right, top-to-bottom. Use gap for spacing.",
+    "standard": "grid-template-columns accepts px, %, fr (fraction of free space), repeat(), minmax(), and auto. The fr unit distributes remaining space like flex-grow. grid-template-areas names regions for readable item placement. grid-column and grid-row span or position individual items.",
+    "technical": "Grid tracks are created by grid-template-columns/rows or implicitly by grid-auto-columns/rows when items overflow. The auto-placement algorithm fills tracks in row-dense or column-dense order. grid-area shorthand positions items: grid-area: row-start / col-start / row-end / col-end. Named lines (defined in brackets) allow semantic placement.",
+    "deepDive": "The CSS Grid Layout specification defines both explicit grids (defined tracks) and implicit grids (automatically created tracks for overflow items). subgrid (Grid Level 2) allows nested grids to participate in the parent grid's track sizing — solving long-standing alignment problems in card grids where inner content needs to align across cards. CSS masonry (experimental) extends grid for masonry layouts."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Defining columns and rows"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "grid-basics.css",
+      "code": ".grid {\n  display: grid;\n\n  /* Three equal columns */\n  grid-template-columns: 1fr 1fr 1fr;\n  grid-template-columns: repeat(3, 1fr);  /* same thing */\n\n  /* Mixed columns: sidebar + main */\n  grid-template-columns: 240px 1fr;\n\n  /* Responsive: as many 200px+ columns as fit */\n  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));\n\n  /* Rows */\n  grid-template-rows: auto 1fr auto;  /* header | content | footer */\n\n  gap: 24px;             /* space between all tracks */\n  gap: 16px 24px;        /* row-gap column-gap */\n}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Named grid areas"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "grid-areas.css",
+      "code": ".layout {\n  display: grid;\n  grid-template-areas:\n    'header  header '\n    'sidebar main   '\n    'footer  footer ';\n  grid-template-columns: 240px 1fr;\n  grid-template-rows: auto 1fr auto;\n  min-height: 100vh;\n  gap: 0;\n}\n\nheader  { grid-area: header; }\n.sidebar { grid-area: sidebar; }\nmain    { grid-area: main; }\nfooter  { grid-area: footer; }"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Spanning items across tracks"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "grid-span.css",
+      "code": "/* Span 2 columns */\n.wide { grid-column: span 2; }\n\n/* Span 2 rows */\n.tall { grid-row: span 2; }\n\n/* Explicit placement: start-line / end-line */\n.feature {\n  grid-column: 1 / 3;   /* from column line 1 to line 3 */\n  grid-row:    1 / 2;\n}"
+    },
+    {
+      "type": "tip",
+      "text": "<code>repeat(auto-fill, minmax(200px, 1fr))</code> is the most powerful one-liner in CSS — it creates as many columns as fit, each at least 200px wide, and expands them to fill the row. Zero media queries needed."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: CSS Grid",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <style>\n    *, *::before, *::after { box-sizing: border-box; }\n    body { background: #0e1116; color: #e2e8f0; font-family: sans-serif; margin: 0; padding: 16px; }\n    .grid {\n      display: grid;\n      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));\n      gap: 16px;\n    }\n    .card {\n      background: #1a1f2b;\n      border: 1px solid #2d3748;\n      border-radius: 8px;\n      padding: 20px;\n      text-align: center;\n    }\n    .card h3 { color: #4fd1c5; margin: 0 0 8px; font-size: 1rem; }\n    .card p  { color: #94a3b8; margin: 0; font-size: 0.8rem; }\n    .wide { grid-column: span 2; background: #1e3a4a; border-color: #4fd1c5; }\n  </style>\n</head>\n<body>\n  <div class=\"grid\">\n    <div class=\"card\"><h3>HTML</h3><p>Structure</p></div>\n    <div class=\"card wide\"><h3>CSS</h3><p>Styling — spans 2 columns!</p></div>\n    <div class=\"card\"><h3>JavaScript</h3><p>Behaviour</p></div>\n    <div class=\"card\"><h3>Git</h3><p>Version Control</p></div>\n    <div class=\"card\"><h3>Python</h3><p>Backend</p></div>\n  </div>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "css-grid-q1",
+          "question": "What does the fr unit represent in CSS Grid?",
+          "type": "multiple-choice",
+          "options": [
+            "font-relative unit",
+            "a fraction of the free space in the grid container",
+            "a fixed-ratio column",
+            "full-row width"
+          ],
+          "correctAnswer": 1,
+          "explanation": "fr stands for fraction. 1fr means 'one share of the remaining free space'. Three columns of 1fr each each get one-third of the available width."
+        },
+        {
+          "id": "css-grid-q2",
+          "question": "Which CSS Grid property allows you to name regions of the grid for easy item placement?",
+          "type": "multiple-choice",
+          "options": [
+            "grid-template-columns",
+            "grid-template-areas",
+            "grid-region",
+            "grid-area-names"
+          ],
+          "correctAnswer": 1,
+          "explanation": "grid-template-areas defines named regions using a string diagram. Items are placed into regions using grid-area: region-name."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "When should I use Grid vs Flexbox?",
+      "a": "Use Grid for 2D layouts where you control both rows and columns — page layouts, card grids, dashboard panels. Use Flexbox for 1D layouts — a single row of items or a column of stacked items. They are often used together: Grid for the page structure, Flexbox for components inside grid areas."
+    },
+    {
+      "q": "What is auto-fill vs auto-fit?",
+      "a": "auto-fill creates as many tracks as fit and adds empty tracks for leftover space. auto-fit collapses empty tracks to 0 width and stretches remaining items. For most card grids, auto-fill is correct."
+    },
+    {
+      "q": "What is minmax()?",
+      "a": "minmax(min, max) defines a track's minimum and maximum size. minmax(200px, 1fr) means 'at least 200px, but can grow up to 1fr of free space'."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — CSS Grid Layout",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_grid_layout",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "CSS-Tricks — A Complete Guide to CSS Grid",
+      "url": "https://css-tricks.com/snippets/css/complete-guide-grid/",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["page layouts", "card grids", "dashboards", "magazine layouts", "image galleries"],
+    "examples": [
+      "GitHub's explore page uses CSS Grid for its repository card grid",
+      "Netflix uses CSS Grid for its film tile rows",
+      "The New York Times digital edition uses CSS Grid for its complex editorial layouts"
+    ]
+  }
+}

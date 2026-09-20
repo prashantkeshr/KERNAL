@@ -1,0 +1,168 @@
+{
+  "id": "02-selectors",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "css",
+  "technologyVersion": "CSS3",
+  "module": "css-foundations",
+  "title": "Selectors",
+  "subtitle": "Target exactly the right elements",
+  "difficulty": "beginner",
+  "estimatedMinutes": 20,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["css/01-introduction"],
+  "skillsTaught": ["css.selectors", "css.pseudo-classes", "css.combinators"],
+  "skillsUsed": ["css.basics", "html.basics"],
+  "relatedConcepts": ["css.specificity", "css.pseudo-elements"],
+  "whyItExists": {
+    "problem": "A page has dozens of elements. You need to style some headings differently from others, or style links only inside the navigation, or change a button's look when the user hovers it.",
+    "solution": "CSS selectors let you target elements with surgical precision — by tag, class, ID, attribute, relationship to other elements, or interaction state.",
+    "whenToUse": "Every CSS rule starts with a selector. Use the most specific selector that correctly describes your intent.",
+    "whenNotToUse": "Avoid overly complex selectors (deep descendant chains). They are slow to read and brittle — one HTML change breaks the rule."
+  },
+  "explainModes": {
+    "beginner": "A selector is how you tell CSS which element to dress up. You can say 'all paragraphs', 'anything with the class card', or 'only the element with ID hero'.",
+    "simple": "CSS has many selector types: element (p), class (.card), ID (#hero), attribute ([type='text']), pseudo-class (:hover), and combinators (nav a). You can combine them for precision.",
+    "standard": "CSS selectors follow a specificity hierarchy: IDs beat classes, classes beat element selectors. Pseudo-classes like :hover, :focus, and :nth-child() match elements in specific states or positions. Combinators (descendant space, child >, sibling +, ~) express relationships between elements.",
+    "technical": "The Selectors Level 4 specification introduces :is(), :where(), :not() with complex arguments, and :has(). :is() and :not() inherit the specificity of their most specific argument. :where() always has zero specificity. :has() is a relational pseudo-class — it selects a parent based on its children.",
+    "deepDive": "Browser selector matching runs right-to-left for performance. In div.card p, the browser first finds all p elements, then filters those inside .card, then inside div. Writing rightmost selectors that are unique (p.lead rather than just p) reduces the match set early. The CSS Selectors Level 4 :has() pseudo-class enables parent selection, previously impossible in CSS, and is now supported in all major browsers."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Basic selectors"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "selectors.css",
+      "code": "/* Element selector — all <p> tags */\np { color: #94a3b8; }\n\n/* Class selector — anything with class=\"card\" */\n.card { border-radius: 8px; }\n\n/* ID selector — the element with id=\"hero\" */\n#hero { font-size: 3rem; }\n\n/* Universal selector — every element */\n* { box-sizing: border-box; }"
+    },
+    {
+      "type": "tip",
+      "text": "Prefer <strong>class selectors</strong> over ID selectors for styling. IDs are unique — classes are reusable and have lower specificity, making them easier to override."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Attribute selectors"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "attribute-selectors.css",
+      "code": "/* Has the attribute at all */\n[disabled] { opacity: 0.5; }\n\n/* Exact value match */\n[type=\"submit\"] { background: #4fd1c5; }\n\n/* Value contains word */\n[class~=\"active\"] { font-weight: bold; }\n\n/* Value starts with */\n[href^=\"https\"] { color: green; }\n\n/* Value ends with */\n[href$=\".pdf\"] { color: red; }"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Pseudo-classes"
+    },
+    {
+      "type": "paragraph",
+      "text": "Pseudo-classes style elements in a specific <strong>state</strong>:"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "pseudo-classes.css",
+      "code": "/* User interaction states */\na:hover  { color: #4fd1c5; }         /* mouse over */\na:focus  { outline: 2px solid #4fd1c5; } /* keyboard focus */\na:active { opacity: 0.8; }           /* being clicked */\n\n/* Form states */\ninput:disabled { opacity: 0.4; }\ninput:checked  { accent-color: #4fd1c5; }\ninput:invalid  { border-color: red; }\n\n/* Structural */\nli:first-child  { font-weight: bold; }\nli:last-child   { border-bottom: none; }\nli:nth-child(2) { color: #4fd1c5; }\np:not(.lead)    { font-size: 1rem; }"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Combinators — relationships between elements"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "combinators.css",
+      "code": "/* Descendant (space) — any a inside nav, at any depth */\nnav a { text-decoration: none; }\n\n/* Child (>) — only direct children */\nul > li { list-style: disc; }\n\n/* Adjacent sibling (+) — immediately after */\nh2 + p { margin-top: 0; }\n\n/* General sibling (~) — all following siblings */\n.active ~ li { opacity: 0.5; }"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Grouping selectors"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "grouping.css",
+      "code": "/* Apply same styles to multiple selectors — comma-separated */\nh1,\nh2,\nh3 {\n  font-family: 'Fira Code', monospace;\n  font-weight: 700;\n}\n\n/* :is() — same thing, but specificity is the highest argument */\n:is(h1, h2, h3) { font-family: 'Fira Code', monospace; }"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Selectors in action",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <style>\n    body { background: #0e1116; color: #e2e8f0; font-family: sans-serif; padding: 24px; }\n    /* Try changing these selectors */\n    h2 { color: #4fd1c5; }\n    .highlight { background: #1a1f2b; padding: 8px 12px; border-radius: 6px; }\n    a:hover { color: #4fd1c5; }\n    li:first-child { font-weight: bold; }\n  </style>\n</head>\n<body>\n  <h2>Selectors</h2>\n  <p class=\"highlight\">This paragraph has class=\"highlight\"</p>\n  <p>This one does not.</p>\n  <ul>\n    <li>First item (bold via :first-child)</li>\n    <li>Second item</li>\n    <li>Third item</li>\n  </ul>\n  <a href=\"#\">Hover over this link</a>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "css-sel-q1",
+          "question": "Which selector targets all elements with class=\"btn\"?",
+          "type": "multiple-choice",
+          "options": ["#btn", ".btn", "btn", "*btn"],
+          "correctAnswer": 1,
+          "explanation": "Class selectors use a dot prefix: .btn targets all elements with class=\"btn\"."
+        },
+        {
+          "id": "css-sel-q2",
+          "question": "Which combinator selects only DIRECT children?",
+          "type": "multiple-choice",
+          "options": ["A B (space)", "A > B", "A + B", "A ~ B"],
+          "correctAnswer": 1,
+          "explanation": "The child combinator > selects only direct children. A B (space) would match any descendant at any depth."
+        },
+        {
+          "id": "css-sel-q3",
+          "question": "The :hover pseudo-class applies styles when an element has keyboard focus.",
+          "type": "true-false",
+          "correctAnswer": "false",
+          "explanation": ":hover applies when the mouse cursor is over the element. :focus applies when the element has keyboard or click focus."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "When should I use an ID selector vs a class selector?",
+      "a": "Use IDs for JavaScript hooks or fragment links (#section). Use classes for all styling — classes are reusable and have lower specificity, making them easier to compose and override."
+    },
+    {
+      "q": "What is :nth-child() vs :nth-of-type()?",
+      "a": ":nth-child(n) counts all siblings regardless of tag. :nth-of-type(n) counts only siblings of the same tag. li:nth-child(2) targets the second child only if it is an li; li:nth-of-type(2) always targets the second li."
+    },
+    {
+      "q": "What does :not() do?",
+      "a": ":not(selector) applies styles to everything that does NOT match the selector. p:not(.lead) targets all paragraphs that don't have the lead class."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — CSS selectors",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_selectors",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "CSS-Tricks — The Difference Between :is() and :where()",
+      "url": "https://css-tricks.com/the-difference-between-is-and-where/",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every stylesheet", "component libraries", "CSS frameworks", "design systems"],
+    "examples": [
+      "Tailwind CSS generates thousands of utility class selectors like .text-blue-500",
+      "Bootstrap uses descendant combinators (.navbar .nav-link) to scope navigation styles",
+      "GitHub uses :focus-visible to show focus rings only for keyboard users"
+    ]
+  }
+}

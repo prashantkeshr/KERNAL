@@ -1,0 +1,152 @@
+{
+  "id": "13-responsive-design",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "css",
+  "technologyVersion": "CSS3",
+  "module": "css-responsive",
+  "title": "Responsive Design",
+  "subtitle": "fluid layouts, object-fit, aspect-ratio",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 18,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["css/12-media-queries"],
+  "skillsTaught": ["css.responsive", "css.object-fit", "css.aspect-ratio"],
+  "skillsUsed": ["css.media-queries", "css.grid", "css.flexbox"],
+  "relatedConcepts": ["css.grid", "css.units"],
+  "whyItExists": {
+    "problem": "Images and media overflow their containers on small screens. Fixed-width layouts break. Videos lose their aspect ratio when resized.",
+    "solution": "Responsive design combines fluid layouts, viewport meta, flexible images, and aspect-ratio control to create designs that work on every screen without JavaScript.",
+    "whenToUse": "Every project should be responsive. Over 60% of web traffic comes from mobile devices.",
+    "whenNotToUse": "Internal tools used only on desktop can sometimes prioritise desktop experience — but even then, fluid layouts are usually worth the small extra effort."
+  },
+  "explainModes": {
+    "beginner": "Responsive design means your page looks good on a phone, tablet, and desktop. You combine flexible widths, images that shrink to fit, and media queries to change layout at different screen sizes.",
+    "simple": "Key techniques: (1) Add the viewport meta tag to HTML. (2) Make images fluid with max-width: 100%. (3) Use % or fr for column widths. (4) Use media queries to change column count at breakpoints.",
+    "standard": "Responsive design is a philosophy: start mobile, use fluid units, add breakpoints only when the layout breaks. object-fit controls how images fill their box. aspect-ratio enforces consistent proportions. Container queries (modern) enable component-level responsiveness.",
+    "technical": "The viewport meta tag disables the default mobile browser zoom-out behaviour. Without it, a 1000px-wide page is shrunk to fit a 375px screen, making text tiny. max-width: 100% on img prevents overflow. object-fit: cover fills the box without distortion. The aspect-ratio property creates intrinsic ratios without the old padding-top hack.",
+    "deepDive": "Container queries (@container) are the next evolution: styles respond to a parent element's size rather than the viewport. A card component can change its layout based on its container width — making it truly reusable in sidebars, modals, or main content. Combine with the :has() pseudo-class for parent-aware conditional styling without JavaScript."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The viewport meta tag"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "filename": "index.html",
+      "code": "<!-- Required in <head> for responsive sites -->\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n\n<!-- Without this, mobile browsers zoom out to fit desktop width -->"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Fluid images and media"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "fluid-images.css",
+      "code": "/* Make all images responsive by default */\nimg, video, svg {\n  max-width: 100%;   /* never wider than the container */\n  height: auto;      /* maintain aspect ratio */\n  display: block;    /* remove inline baseline gap */\n}\n\n/* object-fit — how image fills its container */\n.card-image {\n  width: 100%;\n  height: 200px;        /* fixed container height */\n  object-fit: cover;    /* fill the box, crop if needed */\n  object-position: center top;  /* crop from top */\n}\n\n/* object-fit values:\n   cover   — fill box, crop to maintain ratio (most common)\n   contain — fit inside box, may letterbox\n   fill    — stretch to fill (distorts)\n   none    — natural size, may overflow */"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "aspect-ratio — consistent proportions"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "aspect-ratio.css",
+      "code": "/* Enforce consistent proportions */\n.video-wrapper {\n  width: 100%;\n  aspect-ratio: 16 / 9;   /* widescreen video */\n}\n\n.avatar {\n  width: 48px;\n  aspect-ratio: 1;        /* perfect square */\n  border-radius: 50%;     /* circle */\n  object-fit: cover;\n}\n\n.card-image {\n  width: 100%;\n  aspect-ratio: 4 / 3;    /* photo card */\n  object-fit: cover;\n}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Fluid layout without media queries"
+    },
+    {
+      "type": "code",
+      "lang": "css",
+      "filename": "fluid-layout.css",
+      "code": "/* Auto-responsive card grid — NO media queries needed */\n.cards {\n  display: grid;\n  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));\n  gap: 24px;\n}\n\n/* Fluid container with comfortable max-width */\n.container {\n  width: 100%;\n  max-width: 1200px;\n  margin: 0 auto;\n  padding: 0 clamp(1rem, 5vw, 4rem);  /* fluid side padding */\n}"
+    },
+    {
+      "type": "tip",
+      "text": "<code>repeat(auto-fill, minmax(280px, 1fr))</code> + <code>object-fit: cover</code> + <code>aspect-ratio</code> on images gives you a fully responsive image grid with zero media queries."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Responsive image card grid",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n  <style>\n    *, *::before, *::after { box-sizing: border-box; }\n    body { background: #0e1116; color: #e2e8f0; font-family: sans-serif; padding: 24px; }\n    .grid {\n      display: grid;\n      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));\n      gap: 20px;\n    }\n    .card { background: #1a1f2b; border-radius: 10px; overflow: hidden; }\n    .card-img {\n      width: 100%;\n      aspect-ratio: 16 / 9;\n      background: linear-gradient(135deg, #264de4, #4fd1c5);\n      object-fit: cover;\n    }\n    .card-body { padding: 16px; }\n    .card-body h3 { margin: 0 0 6px; color: #e2e8f0; font-size: 1rem; }\n    .card-body p { margin: 0; color: #94a3b8; font-size: 0.8rem; }\n  </style>\n</head>\n<body>\n  <div class=\"grid\">\n    <div class=\"card\"><div class=\"card-img\"></div><div class=\"card-body\"><h3>HTML Basics</h3><p>15 min · Beginner</p></div></div>\n    <div class=\"card\"><div class=\"card-img\" style=\"background:linear-gradient(135deg,#e34c26,#f06529)\"></div><div class=\"card-body\"><h3>CSS Selectors</h3><p>20 min · Beginner</p></div></div>\n    <div class=\"card\"><div class=\"card-img\" style=\"background:linear-gradient(135deg,#f7df1e,#e8b600)\"></div><div class=\"card-body\"><h3>JavaScript</h3><p>30 min · Intermediate</p></div></div>\n  </div>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "css-resp-q1",
+          "question": "What does object-fit: cover do?",
+          "type": "multiple-choice",
+          "options": [
+            "Stretches the image to fill the box, distorting it",
+            "Fills the box while maintaining aspect ratio, cropping the overflow",
+            "Fits the image inside the box with letterboxing",
+            "Tiles the image"
+          ],
+          "correctAnswer": 1,
+          "explanation": "object-fit: cover fills the entire box while maintaining the image's aspect ratio. Any parts that don't fit are cropped. It is the most common value for card thumbnails."
+        },
+        {
+          "id": "css-resp-q2",
+          "question": "Why is the viewport meta tag required for responsive design?",
+          "type": "multiple-choice",
+          "options": [
+            "It enables CSS media queries",
+            "It loads the page faster on mobile",
+            "It prevents mobile browsers from scaling down the page to fit the desktop width",
+            "It sets the default font size"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Without the viewport meta tag, mobile browsers assume the page is desktop-width and zoom it out to fit — making text tiny. The meta tag tells the browser the page is already mobile-optimised."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between max-width: 100% and width: 100%?",
+      "a": "width: 100% forces the element to always be exactly its container's width. max-width: 100% allows the element to be smaller but prevents it from exceeding the container — ideal for images that should never overflow but shouldn't be forced full-width."
+    },
+    {
+      "q": "What are container queries?",
+      "a": "Container queries (@container) let you apply styles based on a parent element's width rather than the viewport. A card component can change layout based on its container — so it works correctly in a sidebar (narrow) or in main content (wide)."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — Responsive design",
+      "url": "https://developer.mozilla.org/en-US/docs/Learn/CSS/CSS_layout/Responsive_Design",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "MDN — object-fit",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/CSS/object-fit",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["portfolio sites", "e-commerce", "news sites", "apps with image grids"],
+    "examples": [
+      "Instagram's image grid uses aspect-ratio: 1 with object-fit: cover for uniform square thumbnails",
+      "YouTube's video cards use aspect-ratio: 16/9 to maintain widescreen proportions at any width",
+      "GitHub's file grid on mobile stacks to a single column using auto-fill minmax"
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "id": "css",
+  "name": "CSS3",
+  "description": "Learn to style and lay out web pages with CSS. Go from raw HTML to polished, responsive, animated interfaces using modern CSS techniques.",
+  "version": "CSS3",
+  "icon": "css3",
+  "color": "#264de4",
+  "difficulty": "beginner",
+  "estimatedHours": 25,
+  "modules": [
+    "css-foundations",
+    "css-box-model",
+    "css-layout",
+    "css-responsive",
+    "css-advanced"
+  ],
+  "prerequisites": ["html"],
+  "certificationAvailable": true
+}
