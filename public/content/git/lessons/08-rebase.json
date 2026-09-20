@@ -1,0 +1,127 @@
+{
+  "id": "08-rebase",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "git",
+  "technologyVersion": "Git 2.x",
+  "module": "git-workflow",
+  "title": "Rebase",
+  "subtitle": "Replay commits on top of another branch",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 22,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["git/07-merge"],
+  "skillsTaught": ["git.rebase", "git.interactive-rebase"],
+  "skillsUsed": ["git.branches", "git.merge"],
+  "relatedConcepts": ["git.conflicts", "git.history"],
+  "whyItExists": {
+    "problem": "Your feature branch is 20 commits behind main. Merging would add a tangled history. You want a clean, linear history that's easy to read.",
+    "solution": "git rebase replays your branch's commits on top of the target branch, creating a linear history as if you had branched at the current tip.",
+    "whenToUse": "To update a feature branch with the latest main. Interactive rebase to clean up commits before a PR (squash, fix order, edit messages).",
+    "whenNotToUse": "Never rebase commits you've already pushed to a shared branch. It rewrites history — other developers' repos will diverge."
+  },
+  "explainModes": {
+    "beginner": "Rebase is like cut-and-paste for commits. It picks up your commits and replays them starting from the tip of another branch. The result looks like you did your work after all the main branch changes.",
+    "simple": "git switch feature/login → git rebase main. Git: 1) saves your commits aside, 2) resets your branch to main's tip, 3) replays your commits one by one. Result: linear history. Interactive rebase (git rebase -i HEAD~3) lets you edit, squash, reorder, or drop the last 3 commits.",
+    "standard": "Rebase changes commit hashes — each replayed commit is a new object. The content is the same but the parent chain is different. This is why rebasing shared branches is dangerous: teammates who pulled the old commits now have orphaned history. The golden rule: only rebase commits that exist only on your local branch.",
+    "technical": "git rebase works by detaching HEAD, applying patches (via cherry-pick internally) one by one, and re-attaching. --onto lets you rebase onto a different base: git rebase --onto main feature-a feature-b moves feature-b's commits (after feature-a branches off) onto main. git rebase -i (interactive) gives you full control: pick, squash, fixup, edit, drop, reword, exec.",
+    "deepDive": "Each rebase step is a cherry-pick internally. If a cherry-pick conflicts, the rebase pauses and lets you resolve it before continuing with git rebase --continue. The reflog preserves the old commits for 30 days even after a rebase — recovery with git reflog + git reset is possible. rerere (Reuse Recorded Resolution) caches conflict resolutions so you don't resolve the same conflict repeatedly during a rebase."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Basic rebase — update your branch"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "rebase.sh",
+      "code": "# Before:\n# main:    A---B---E---F\n# feature:  \\---C---D\n\n# Switch to your feature branch\ngit switch feature/login\n\n# Rebase onto main\ngit rebase main\n\n# After:\n# main:    A---B---E---F\n# feature:              C'---D'   (new hashes — replayed on top of F)\n\n# C' and D' have the same content as C and D,\n# but different hashes (because their parent changed)"
+    },
+    {
+      "type": "warning",
+      "text": "<strong>Golden rule:</strong> Never rebase commits that have been pushed to a shared branch. Rebasing rewrites history — teammates who pulled your old commits will have diverging history."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Interactive rebase — clean up your history"
+    },
+    {
+      "type": "paragraph",
+      "text": "Before opening a PR, use interactive rebase to squash WIP commits, fix typos in messages, or drop unnecessary commits."
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "interactive-rebase.sh",
+      "code": "# Interactively edit the last 3 commits\ngit rebase -i HEAD~3\n\n# An editor opens with something like:\n# pick a1b2c3 Add login form HTML\n# pick d4e5f6 WIP fix\n# pick 7a8b9c Fix typo\n#\n# Commands:\n# p, pick   = use commit as-is\n# r, reword = use commit, but edit the message\n# s, squash = combine with the previous commit\n# f, fixup  = like squash but discard this commit's message\n# d, drop   = remove the commit\n\n# Change to:\n# pick a1b2c3 Add login form HTML\n# squash d4e5f6 WIP fix\n# fixup 7a8b9c Fix typo\n\n# Result: all 3 commits become one with a combined message"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Rebase vs Merge — when to use each"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "rebase-vs-merge.sh",
+      "code": "# Scenario 1: Update feature branch with latest main\n# ✅ Use rebase — keeps feature branch linear\ngit switch feature/login\ngit rebase main\n\n# Scenario 2: Integrate feature branch into main\n# ✅ Use merge — preserves branch history\ngit switch main\ngit merge --no-ff feature/login\n\n# Scenario 3: Clean up commits before a PR\n# ✅ Use interactive rebase\ngit rebase -i HEAD~5"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Rebase vs Merge side by side",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    .grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }\n    .panel { background:#0b0e14; border:1px solid #2d3748; border-radius:8px; padding:14px; }\n    h3 { margin:0 0 8px; font-size:0.9rem; }\n    .log { font-family:monospace; font-size:0.78rem; line-height:1.7; }\n    .hash { color:#4fd1c5; } .ref { color:#f7df1e; } .merge-c { color:#ef4444; }\n    button { padding:7px 16px; background:#4fd1c5; color:#0e1116; border:none; border-radius:5px; font-weight:700; cursor:pointer; margin-bottom:16px; margin-right:8px; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">Rebase vs Merge</h2>\n  <button onclick=\"showBefore()\">Show: Before (diverged)</button>\n  <button onclick=\"showMerge()\" style=\"background:#ef4444;color:#fff\">Show: After Merge</button>\n  <button onclick=\"showRebase()\" style=\"background:#a78bfa\">Show: After Rebase</button>\n  <div class=\"grid\" id=\"panels\" style=\"display:none\">\n    <div class=\"panel\" id=\"p-left\">\n      <h3 id=\"h-left\" style=\"color:#4fd1c5\">git log --graph</h3>\n      <div class=\"log\" id=\"log-left\"></div>\n    </div>\n    <div class=\"panel\" id=\"p-right\">\n      <h3 id=\"h-right\" style=\"color:#4fd1c5\">git log --oneline</h3>\n      <div class=\"log\" id=\"log-right\"></div>\n    </div>\n  </div>\n\n  <script>\n    const panels = document.getElementById('panels');\n\n    function showBefore() {\n      panels.style.display = 'grid';\n      document.getElementById('h-left').textContent = 'Before: main branch';\n      document.getElementById('h-right').textContent = 'Before: feature branch';\n      document.getElementById('log-left').innerHTML = [\n        `<div><span class=\"hash\">* f3a1b2c</span> <span class=\"ref\">(HEAD→main)</span> Add homepage hero</div>`,\n        `<div><span class=\"hash\">* e9d8c7b</span> Update nav styles</div>`,\n        `<div><span class=\"hash\">* a1b2c3d</span> Initial commit</div>`,\n      ].join('');\n      document.getElementById('log-right').innerHTML = [\n        `<div><span class=\"hash\">* 7c6d5e4</span> <span class=\"ref\">(HEAD→feature)</span> Add login validation</div>`,\n        `<div><span class=\"hash\">* 2f3a4b5</span> Add login form</div>`,\n        `<div><span class=\"hash\">* a1b2c3d</span> Initial commit (shared base)</div>`,\n      ].join('');\n    }\n\n    function showMerge() {\n      panels.style.display = 'grid';\n      document.getElementById('h-left').textContent = 'After: git merge feature (history)';\n      document.getElementById('h-right').textContent = 'After: git log --oneline --graph';\n      document.getElementById('log-left').innerHTML = [\n        `<div><span class=\"merge-c\">*</span>&nbsp;&nbsp;<span class=\"hash merge-c\">m9a8b7c</span> <span class=\"ref\">(HEAD→main)</span> Merge feature/login</div>`,\n        `<div><span class=\"merge-c\">|\\\\</span></div>`,\n        `<div><span class=\"hash\">* |</span> f3a1b2c Add homepage hero</div>`,\n        `<div><span class=\"hash\">* |</span> e9d8c7b Update nav styles</div>`,\n        `<div><span class=\"hash\">| *</span> 7c6d5e4 Add login validation</div>`,\n        `<div><span class=\"hash\">| *</span> 2f3a4b5 Add login form</div>`,\n        `<div><span class=\"hash\">|/</span></div>`,\n        `<div><span class=\"hash\">*</span> a1b2c3d Initial commit</div>`,\n      ].join('');\n      document.getElementById('log-right').innerHTML = [\n        `<div style=\"color:#ef4444\">Preserves full branch history.</div>`,\n        `<div style=\"color:#ef4444\">Merge commit shows where branches joined.</div>`,\n        `<div style=\"color:#94a3b8;margin-top:8px\">Non-linear — harder to read at scale.</div>`,\n        `<div style=\"color:#94a3b8\">But safer — never rewrites history.</div>`,\n      ].join('');\n    }\n\n    function showRebase() {\n      panels.style.display = 'grid';\n      document.getElementById('h-left').textContent = 'After: git rebase main (history)';\n      document.getElementById('h-right').textContent = 'After: git log --oneline';\n      document.getElementById('log-left').innerHTML = [\n        `<div><span class=\"hash\" style=\"color:#a78bfa\">* 9x8y7z</span> <span class=\"ref\">(HEAD→feature)</span> Add login validation (replayed)</div>`,\n        `<div><span class=\"hash\" style=\"color:#a78bfa\">* 4x5y6z</span> Add login form (replayed)</div>`,\n        `<div><span class=\"hash\">* f3a1b2c</span> Add homepage hero</div>`,\n        `<div><span class=\"hash\">* e9d8c7b</span> Update nav styles</div>`,\n        `<div><span class=\"hash\">* a1b2c3d</span> Initial commit</div>`,\n      ].join('');\n      document.getElementById('log-right').innerHTML = [\n        `<div style=\"color:#a78bfa\">Linear history — clean and easy to read.</div>`,\n        `<div style=\"color:#a78bfa\">No merge commit.</div>`,\n        `<div style=\"color:#94a3b8;margin-top:8px\">Commit hashes changed (a1b2→9x8y).</div>`,\n        `<div style=\"color:#ef4444\">NEVER do this to pushed commits!</div>`,\n      ].join('');\n    }\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "git-rebase-q1",
+          "question": "What is the golden rule of rebasing?",
+          "type": "multiple-choice",
+          "options": [
+            "Always rebase before merging",
+            "Never rebase commits that have been pushed to a shared branch",
+            "Rebase is always better than merge",
+            "Only rebase on Fridays"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Rebasing rewrites commit hashes. If teammates have already pulled those commits, rebasing the shared branch will cause diverging histories and force-push headaches. Only rebase commits that are local to your machine."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "I rebased and now my push is rejected. What do I do?",
+      "a": "After rebasing a branch you already pushed, the remote's history and your local history have diverged. You need to force push: git push --force-with-lease (safer than --force — it checks no one else pushed). Only do this on personal feature branches, never on main."
+    },
+    {
+      "q": "What does git rebase --onto do?",
+      "a": "It's for advanced situations where you want to replay commits from one branch onto a different target. For example, if feature-b branched off feature-a, and you want feature-b on main directly: git rebase --onto main feature-a feature-b."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Git Documentation — Rebasing",
+      "url": "https://git-scm.com/book/en/v2/Git-Branching-Rebasing",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["feature branch maintenance", "PR cleanup", "open-source contributions"],
+    "examples": [
+      "GitHub's 'Rebase and merge' PR button rebases all commits then fast-forwards main",
+      "git rebase -i HEAD~5 before a PR to squash 'WIP' commits into clean logical commits",
+      "Open-source maintainers often ask contributors to rebase onto main before merging"
+    ]
+  }
+}

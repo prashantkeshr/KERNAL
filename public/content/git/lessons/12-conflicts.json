@@ -1,0 +1,118 @@
+{
+  "id": "12-conflicts",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "git",
+  "technologyVersion": "Git 2.x",
+  "module": "git-remote",
+  "title": "Merge Conflicts",
+  "subtitle": "Understand and resolve conflicting changes",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 22,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["git/11-pull-fetch"],
+  "skillsTaught": ["git.conflicts", "git.conflict-resolution"],
+  "skillsUsed": ["git.merge", "git.pull"],
+  "relatedConcepts": ["git.rebase", "git.diff"],
+  "whyItExists": {
+    "problem": "Two people edited the same lines in the same file. Git can't automatically decide which version to keep — it needs a human to decide.",
+    "solution": "Git marks the conflicting sections with special markers (<<<<, ====, >>>>) and pauses the merge. You open the file, choose what to keep, remove the markers, and continue.",
+    "whenToUse": "Every time Git says 'CONFLICT'. This is normal — don't panic.",
+    "whenNotToUse": "Don't try to resolve conflicts by force-pushing — you'll overwrite your teammate's work."
+  },
+  "explainModes": {
+    "beginner": "A merge conflict means two people changed the same lines. Git shows you both versions side by side with markers. You decide what the final version should look like, save the file, and tell Git you're done.",
+    "simple": "After git pull or git merge, Git may pause with 'CONFLICT'. Open the file — look for <<<<<<, ======, >>>>>>>. Everything between <<<< HEAD and ==== is your version. Everything between ==== and >>>> theirs. Edit the file to keep what you want (remove ALL markers), then git add <file> and git merge --continue (or git commit).",
+    "standard": "The conflict marker format: <<<<<<< HEAD (your branch's version) / ======= (separator) / >>>>>>> origin/main (incoming branch). You can keep ours, theirs, or combine both. VS Code and IntelliJ show visual diff pickers. git mergetool opens a three-panel diff editor. After resolving all conflicts: git add (all resolved files) + git commit.",
+    "technical": "Git uses a three-way merge: common ancestor (merge base), ours (current HEAD), theirs (incoming). Conflicts only occur on lines changed in BOTH branches since the merge base. Lines changed in only one branch are auto-merged. git diff --conflict or git log --merge shows only conflict-related info. git checkout --ours <file> or --theirs <file> takes one side wholesale.",
+    "deepDive": "rerere (Reuse Recorded Resolution) records conflict resolutions and replays them automatically on the same conflict in future merges/rebases — useful for long-running feature branches. git merge-file resolves three-way merge on individual files. Conflict drivers in .gitattributes can skip conflicts for auto-generated files (e.g., package-lock.json using a union strategy). During an interactive rebase, conflicts pause at the conflicting cherry-pick — resolve and git rebase --continue."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Reading conflict markers"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "conflict-output.sh",
+      "code": "$ git merge feature/login\nAuto-merging index.html\nCONFLICT (content): Merge conflict in index.html\nAutomatic merge failed; fix conflicts and then commit the result.\n\n$ git status\nYou have unmerged paths.\n  (fix conflicts and run \"git commit\")\n  (use \"git merge --abort\" to abort the merge)\n\nUnmerged paths:\n  (use \"git add <file>...\" to mark resolution)\n        both modified:   index.html"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "filename": "index.html (conflict markers)",
+      "code": "<nav>\n<<<<<<< HEAD\n  <button class=\"theme dark\">Dark Mode</button>\n=======\n  <button class=\"theme\" data-theme=\"dark\">🌙 Dark</button>\n>>>>>>> feature/login\n</nav>\n\n<!-- Everything between <<<< HEAD and ==== is YOUR version -->\n<!-- Everything between ==== and >>>> is THEIR version -->"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Resolving the conflict"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "resolve.sh",
+      "code": "# 1. Open the file and edit it\n#    Keep ours, keep theirs, or combine:\n#    REMOVE ALL CONFLICT MARKERS (<<<, ===, >>>)\n\n# 2. After editing index.html:\n<nav>\n  <button class=\"theme\" data-theme=\"dark\">🌙 Dark Mode</button>\n</nav>\n\n# 3. Stage the resolved file\ngit add index.html\n\n# 4. Complete the merge\ngit merge --continue\n# (or git commit — Git will pre-fill the merge commit message)\n\n# --- Alternative: take one side wholesale ---\ngit checkout --ours index.html   # keep your version entirely\ngit checkout --theirs index.html # keep their version entirely\ngit add index.html\ngit merge --continue\n\n# --- If you want to give up ---\ngit merge --abort"
+    },
+    {
+      "type": "tip",
+      "text": "In VS Code, conflicted files show four buttons above each conflict: <strong>Accept Current Change</strong>, <strong>Accept Incoming Change</strong>, <strong>Accept Both Changes</strong>, and <strong>Compare Changes</strong>. Click the one you want instead of editing markers manually."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Conflict resolver",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    .conflict { background:#0b0e14; border:1px solid #ef4444; border-radius:8px; padding:16px; font-family:monospace; font-size:0.82rem; margin-bottom:12px; }\n    .marker { color:#ef4444; font-weight:700; }\n    .ours { background:#0e2020; border-left:3px solid #4fd1c5; padding:8px 12px; margin:4px 0; }\n    .sep { color:#64748b; }\n    .theirs { background:#1a0e2b; border-left:3px solid #a78bfa; padding:8px 12px; margin:4px 0; }\n    .btn-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }\n    button { padding:7px 14px; border:none; border-radius:5px; font-weight:700; cursor:pointer; font-size:0.8rem; }\n    .bO { background:#4fd1c5; color:#0e1116; }\n    .bT { background:#a78bfa; color:#fff; }\n    .bB { background:#f7df1e; color:#0e1116; }\n    .bA { background:#22c55e; color:#fff; }\n    .bX { background:#2d3748; color:#94a3b8; }\n    .resolved { background:#0b1a0e; border:1px solid #22c55e; border-radius:8px; padding:16px; font-family:monospace; font-size:0.82rem; }\n    #status { font-family:monospace; font-size:0.82rem; color:#94a3b8; background:#0b0e14; padding:10px; border-radius:6px; margin-top:10px; }\n    .conf-count { color:#ef4444; font-weight:700; }\n    .res-count { color:#22c55e; font-weight:700; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">Conflict Resolver</h2>\n  <div id=\"conflicts-area\"></div>\n  <div id=\"status\">Loading conflicts...</div>\n\n  <script>\n    const conflicts = [\n      {\n        file:'index.html',\n        ours: '  &lt;button class=\"theme dark\"&gt;Dark Mode&lt;/button&gt;',\n        theirs: '  &lt;button class=\"theme\" data-theme=\"dark\"&gt;🌙 Dark&lt;/button&gt;',\n        combined: '  &lt;button class=\"theme dark\" data-theme=\"dark\"&gt;🌙 Dark Mode&lt;/button&gt;',\n      },\n      {\n        file:'style.css',\n        ours: '  --accent: #4fd1c5;',\n        theirs: '  --accent: #6ee7b7;',\n        combined: '  --accent: #4fd1c5; /* kept our teal */\n  --accent-alt: #6ee7b7;',\n      },\n    ];\n\n    let resolutions = {};\n\n    function render() {\n      const area = document.getElementById('conflicts-area');\n      area.innerHTML = conflicts.map((c,i) => {\n        const res = resolutions[i];\n        if (res) {\n          return `<div class=\"resolved\">\n            <strong style=\"color:#22c55e\">✅ ${c.file} — resolved</strong>\n            <div style=\"margin-top:8px;color:#94a3b8\">${res}</div>\n          </div>`;\n        }\n        return `<div class=\"conflict\">\n          <strong style=\"color:#ef4444\">⚠️ CONFLICT in ${c.file}</strong>\n          <div class=\"marker\"><<<<<<< HEAD (your branch)</div>\n          <div class=\"ours\">${c.ours}</div>\n          <div class=\"sep\">======= (separator)</div>\n          <div class=\"theirs\">${c.theirs}</div>\n          <div class=\"marker\">>>>>>> origin/main</div>\n          <div class=\"btn-row\" style=\"margin-top:10px\">\n            <button class=\"bO\" onclick=\"resolve(${i},'ours')\">Accept Ours</button>\n            <button class=\"bT\" onclick=\"resolve(${i},'theirs')\">Accept Theirs</button>\n            <button class=\"bB\" onclick=\"resolve(${i},'both')\">Accept Both</button>\n          </div>\n        </div>`;\n      }).join('');\n      updateStatus();\n    }\n\n    function resolve(i, choice) {\n      const c = conflicts[i];\n      if (choice==='ours') resolutions[i]=c.ours;\n      else if (choice==='theirs') resolutions[i]=c.theirs;\n      else resolutions[i]=c.combined;\n      render();\n    }\n\n    function updateStatus() {\n      const total=conflicts.length, done=Object.keys(resolutions).length;\n      const status=document.getElementById('status');\n      if(done<total){\n        status.innerHTML=`<span class=\"conf-count\">${total-done} conflict(s) remaining</span> — resolve each file, then: git add . && git commit`;\n      } else {\n        status.innerHTML=`<span class=\"res-count\">All ${total} conflicts resolved! ✅</span> Next: <code>git add .</code> then <code>git merge --continue</code>`;\n      }\n    }\n    render();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "git-conflict-q1",
+          "question": "After resolving conflict markers in a file, what do you do next?",
+          "type": "multiple-choice",
+          "options": [
+            "Run git merge --abort to cancel",
+            "Run git commit immediately",
+            "Run git add <file> to mark it resolved, then git merge --continue",
+            "Delete the file and start over"
+          ],
+          "correctAnswer": 2,
+          "explanation": "After editing the conflict markers out of the file, you must git add the file to tell Git it's resolved. Then git merge --continue (or git commit) completes the merge with a merge commit."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do I avoid conflicts?",
+      "a": "Pull frequently (git pull at the start of each session). Work in small, focused branches. Communicate with your team when editing shared files. Use git pull --rebase to keep a linear history. Conflicts are a normal part of collaboration — the goal isn't to avoid them entirely, but to resolve them quickly."
+    },
+    {
+      "q": "package-lock.json always conflicts. Is there a better way?",
+      "a": "Yes. Add `package-lock.json merge=npm-merge-driver` to .gitattributes and install npm-merge-driver as a dev dependency. It automatically resolves package-lock.json conflicts using npm's logic."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Git Documentation — Basic Merge Conflicts",
+      "url": "https://git-scm.com/book/en/v2/Git-Branching-Basic-Branching-and-Merging#_basic_merge_conflicts",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["team collaboration", "PR merging", "rebasing feature branches"],
+    "examples": [
+      "VS Code shows conflict markers as coloured diffs with Accept buttons",
+      "GitHub's web editor can resolve simple conflicts directly in the browser",
+      "IntelliJ IDEA's three-panel merge tool shows ancestor, ours, and theirs simultaneously"
+    ]
+  }
+}

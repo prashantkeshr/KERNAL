@@ -1,0 +1,10 @@
+{
+  "id": "git",
+  "name": "Git & GitHub",
+  "version": "Git 2.x",
+  "difficulty": "beginner",
+  "estimatedHours": 10,
+  "modules": ["git-foundations", "git-core", "git-workflow", "git-remote", "git-github"],
+  "prerequisites": ["javascript"],
+  "certificationAvailable": true
+}

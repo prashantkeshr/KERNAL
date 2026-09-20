@@ -1,0 +1,57 @@
+[
+  {
+    "id": "git-foundations",
+    "title": "Git Foundations",
+    "description": "What version control is and how to set Git up",
+    "order": 1,
+    "lessons": [
+      {"id": "01-what-is-git", "title": "What is Git?", "estimatedMinutes": 15},
+      {"id": "02-install-config", "title": "Install & Configure", "estimatedMinutes": 12},
+      {"id": "03-init-clone", "title": "init & clone", "estimatedMinutes": 15}
+    ]
+  },
+  {
+    "id": "git-core",
+    "title": "Core Git",
+    "description": "The daily commands every developer uses",
+    "order": 2,
+    "lessons": [
+      {"id": "04-add-commit", "title": "add & commit", "estimatedMinutes": 20},
+      {"id": "05-status-log", "title": "status & log", "estimatedMinutes": 15},
+      {"id": "06-branches", "title": "Branches", "estimatedMinutes": 20}
+    ]
+  },
+  {
+    "id": "git-workflow",
+    "title": "Git Workflow",
+    "description": "Merging, rebasing, and undoing mistakes",
+    "order": 3,
+    "lessons": [
+      {"id": "07-merge", "title": "Merge", "estimatedMinutes": 18},
+      {"id": "08-rebase", "title": "Rebase", "estimatedMinutes": 18},
+      {"id": "09-stash-reset", "title": "Stash & Reset", "estimatedMinutes": 15}
+    ]
+  },
+  {
+    "id": "git-remote",
+    "title": "Remote Repositories",
+    "description": "Working with GitHub remotes and resolving conflicts",
+    "order": 4,
+    "lessons": [
+      {"id": "10-remote-push", "title": "remote & push", "estimatedMinutes": 18},
+      {"id": "11-pull-fetch", "title": "pull & fetch", "estimatedMinutes": 15},
+      {"id": "12-conflicts", "title": "Merge Conflicts", "estimatedMinutes": 20}
+    ]
+  },
+  {
+    "id": "git-github",
+    "title": "GitHub",
+    "description": "Pull requests, forks, and GitHub Actions",
+    "order": 5,
+    "lessons": [
+      {"id": "13-github-repos", "title": "GitHub Repos & Forks", "estimatedMinutes": 18},
+      {"id": "14-pull-requests", "title": "Pull Requests", "estimatedMinutes": 20},
+      {"id": "15-github-actions", "title": "GitHub Actions Basics", "estimatedMinutes": 20}
+    ]
+  }
+]

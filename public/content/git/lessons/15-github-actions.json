@@ -1,0 +1,119 @@
+{
+  "id": "15-github-actions",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "git",
+  "technologyVersion": "Git 2.x",
+  "module": "git-github",
+  "title": "GitHub Actions",
+  "subtitle": "Automate workflows with CI/CD",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 25,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["git/14-pull-requests"],
+  "skillsTaught": ["github.actions", "github.workflows", "github.ci-cd"],
+  "skillsUsed": ["git.push", "github.pull-requests"],
+  "relatedConcepts": ["github.secrets", "github.environments"],
+  "whyItExists": {
+    "problem": "Every time code changes, someone needs to run tests, build the project, and deploy it. Doing this manually is slow, error-prone, and doesn't scale with a team.",
+    "solution": "GitHub Actions runs automated workflows in response to git events. Push a commit → tests run automatically. Merge to main → deploy automatically. All on GitHub's infrastructure.",
+    "whenToUse": "On every project. Minimum: run tests on every PR. Ideal: automated deployment to staging and production.",
+    "whenNotToUse": "Very small solo projects where the overhead isn't justified. GitHub Actions has a free tier — 2,000 minutes/month for public repos (unlimited), 2,000 for private repos."
+  },
+  "explainModes": {
+    "beginner": "GitHub Actions is like a robot that runs tasks for you automatically when you push code or open a PR. The most common tasks: run tests to make sure nothing broke, and deploy the new code to your website.",
+    "simple": "A workflow is a YAML file in .github/workflows/. It says: when (on: push), where (runs-on: ubuntu-latest), and what (steps: run npm test). GitHub runs it in a fresh virtual machine. A failing step shows a red X on the PR — you can't merge until it's green.",
+    "standard": "Workflow anatomy: on (trigger — push, pull_request, schedule, workflow_dispatch), jobs (one or more parallel/sequential jobs), steps (each job has steps — actions or shell commands). Actions are reusable steps from the marketplace (actions/checkout, actions/setup-node). Secrets are encrypted variables for API keys and tokens. Environments add deployment protection (required reviewers before production deploy).",
+    "technical": "Each job runs in an isolated runner (GitHub-hosted: ubuntu-latest, windows-latest, macos-latest) or self-hosted. Jobs can depend on each other with needs:. Artifacts (build outputs) are shared between jobs via actions/upload-artifact / actions/download-artifact. Matrix strategy runs a job across multiple configurations (Node 18/20/22, multiple OS). Caching (actions/cache) speeds up dependency installation.",
+    "deepDive": "GitHub Actions uses a Docker-based execution model. Custom actions are defined in action.yml — they can be JavaScript, Docker, or composite (shell scripts). OIDC (OpenID Connect) allows keyless authentication to cloud providers (AWS, GCP, Azure) using short-lived tokens — more secure than long-lived secrets. Reusable workflows (workflow_call trigger) centralize CI logic across repos. GitHub's hosted runners are ephemeral — each job gets a fresh machine."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Your first workflow: run tests on every PR"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": ".github/workflows/ci.yml",
+      "code": "name: CI\n\non:\n  push:\n    branches: [ main ]\n  pull_request:\n    branches: [ main ]\n\njobs:\n  test:\n    runs-on: ubuntu-latest\n\n    steps:\n      # 1. Check out the code\n      - uses: actions/checkout@v4\n\n      # 2. Set up Node.js\n      - uses: actions/setup-node@v4\n        with:\n          node-version: '20'\n          cache: 'npm'\n\n      # 3. Install dependencies\n      - run: npm ci\n\n      # 4. Run tests\n      - run: npm test\n\n      # 5. Build\n      - run: npm run build"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Deploy workflow: GitHub Pages"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": ".github/workflows/deploy.yml",
+      "code": "name: Deploy\n\non:\n  push:\n    branches: [ main ]\n\npermissions:\n  contents: read\n  pages: write\n  id-token: write\n\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-node@v4\n        with:\n          node-version: '20'\n          cache: 'npm'\n      - run: npm ci\n      - run: npm run build\n        env:\n          VITE_BASE: /\n      - uses: actions/upload-pages-artifact@v3\n        with:\n          path: ./dist\n\n  deploy:\n    needs: build\n    runs-on: ubuntu-latest\n    environment:\n      name: github-pages\n      url: ${{ steps.deployment.outputs.page_url }}\n    steps:\n      - id: deployment\n        uses: actions/deploy-pages@v4"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Using secrets"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "secrets-example.yml",
+      "code": "# Add secrets in: repo → Settings → Secrets and variables → Actions\n# Then use them as environment variables:\n\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - run: npm run deploy\n        env:\n          API_KEY: ${{ secrets.MY_API_KEY }}       # from GitHub Secrets\n          NODE_ENV: production                        # plain value\n\n# Common secrets:\n# VERCEL_TOKEN    — deploy to Vercel\n# AWS_ACCESS_KEY  — deploy to AWS\n# SLACK_WEBHOOK   — post notifications to Slack"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Workflow builder",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    .builder { display:grid; grid-template-columns:1fr 1fr; gap:16px; }\n    .options { display:flex; flex-direction:column; gap:10px; }\n    .opt { background:#1a1f2b; border:1px solid #2d3748; border-radius:8px; padding:12px; cursor:pointer; transition:border-color .2s; }\n    .opt:hover { border-color:#4fd1c5; }\n    .opt.selected { border-color:#4fd1c5; background:#0e2020; }\n    .opt h4 { margin:0 0 4px; font-size:0.85rem; color:#4fd1c5; }\n    .opt p { margin:0; font-size:0.78rem; color:#94a3b8; }\n    .output { background:#0b0e14; border:1px solid #2d3748; border-radius:8px; padding:16px; font-family:'Fira Code',monospace; font-size:0.75rem; color:#94a3b8; white-space:pre; overflow:auto; max-height:460px; }\n    .kw { color:#a78bfa; } .str { color:#4ade80; } .num { color:#f7df1e; } .cmt { color:#64748b; }\n    h3 { margin:0 0 10px; font-size:0.9rem; color:#94a3b8; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">Workflow Builder</h2>\n  <div class=\"builder\">\n    <div>\n      <h3>Choose a template:</h3>\n      <div class=\"options\" id=\"opts\"></div>\n    </div>\n    <div>\n      <h3>Generated workflow:</h3>\n      <div class=\"output\" id=\"out\"></div>\n    </div>\n  </div>\n\n  <script>\n    const templates = [\n      {label:'Node.js CI',desc:'Run tests on every push/PR',code:`<span class=\"kw\">name:</span> <span class=\"str\">CI</span>\n\n<span class=\"kw\">on:</span> [push, pull_request]\n\n<span class=\"kw\">jobs:</span>\n  <span class=\"kw\">test:</span>\n    <span class=\"kw\">runs-on:</span> <span class=\"str\">ubuntu-latest</span>\n    <span class=\"kw\">steps:</span>\n      - <span class=\"kw\">uses:</span> <span class=\"str\">actions/checkout@v4</span>\n      - <span class=\"kw\">uses:</span> <span class=\"str\">actions/setup-node@v4</span>\n        <span class=\"kw\">with:</span>\n          <span class=\"kw\">node-version:</span> <span class=\"str\">'20'</span>\n          <span class=\"kw\">cache:</span> <span class=\"str\">'npm'</span>\n      - <span class=\"kw\">run:</span> <span class=\"str\">npm ci</span>\n      - <span class=\"kw\">run:</span> <span class=\"str\">npm test</span>`},\n      {label:'Deploy to GitHub Pages',desc:'Build & deploy on push to main',code:`<span class=\"kw\">name:</span> <span class=\"str\">Deploy</span>\n\n<span class=\"kw\">on:</span>\n  <span class=\"kw\">push:</span>\n    <span class=\"kw\">branches:</span> [main]\n\n<span class=\"kw\">permissions:</span>\n  pages: write\n  id-token: write\n\n<span class=\"kw\">jobs:</span>\n  <span class=\"kw\">deploy:</span>\n    <span class=\"kw\">runs-on:</span> <span class=\"str\">ubuntu-latest</span>\n    <span class=\"kw\">environment:</span> github-pages\n    <span class=\"kw\">steps:</span>\n      - <span class=\"kw\">uses:</span> <span class=\"str\">actions/checkout@v4</span>\n      - <span class=\"kw\">run:</span> <span class=\"str\">npm ci && npm run build</span>\n      - <span class=\"kw\">uses:</span> <span class=\"str\">actions/upload-pages-artifact@v3</span>\n        <span class=\"kw\">with:</span>\n          <span class=\"kw\">path:</span> <span class=\"str\">./dist</span>\n      - <span class=\"kw\">uses:</span> <span class=\"str\">actions/deploy-pages@v4</span>`},\n      {label:'Scheduled task',desc:'Run a script every day at midnight',code:`<span class=\"kw\">name:</span> <span class=\"str\">Nightly job</span>\n\n<span class=\"kw\">on:</span>\n  <span class=\"kw\">schedule:</span>\n    - <span class=\"kw\">cron:</span> <span class=\"str\">'0 0 * * *'</span>  <span class=\"cmt\"># daily at midnight UTC</span>\n  <span class=\"kw\">workflow_dispatch:</span>  <span class=\"cmt\"># manual trigger</span>\n\n<span class=\"kw\">jobs:</span>\n  <span class=\"kw\">run:</span>\n    <span class=\"kw\">runs-on:</span> <span class=\"str\">ubuntu-latest</span>\n    <span class=\"kw\">steps:</span>\n      - <span class=\"kw\">uses:</span> <span class=\"str\">actions/checkout@v4</span>\n      - <span class=\"kw\">run:</span> <span class=\"str\">node scripts/daily-report.js</span>\n        <span class=\"kw\">env:</span>\n          <span class=\"kw\">API_KEY:</span> <span class=\"str\">${{ secrets.REPORT_API_KEY }}</span>`},\n      {label:'Matrix: test on multiple Node versions',desc:'Run tests on Node 18, 20, 22',code:`<span class=\"kw\">name:</span> <span class=\"str\">Matrix CI</span>\n\n<span class=\"kw\">on:</span> [push]\n\n<span class=\"kw\">jobs:</span>\n  <span class=\"kw\">test:</span>\n    <span class=\"kw\">runs-on:</span> <span class=\"str\">ubuntu-latest</span>\n    <span class=\"kw\">strategy:</span>\n      <span class=\"kw\">matrix:</span>\n        <span class=\"kw\">node-version:</span> [<span class=\"num\">18</span>, <span class=\"num\">20</span>, <span class=\"num\">22</span>]\n    <span class=\"kw\">steps:</span>\n      - <span class=\"kw\">uses:</span> <span class=\"str\">actions/checkout@v4</span>\n      - <span class=\"kw\">uses:</span> <span class=\"str\">actions/setup-node@v4</span>\n        <span class=\"kw\">with:</span>\n          <span class=\"kw\">node-version:</span> <span class=\"str\">${{ matrix.node-version }}</span>\n      - <span class=\"kw\">run:</span> <span class=\"str\">npm ci && npm test</span>`},\n    ];\n\n    let selected = 0;\n    const opts = document.getElementById('opts');\n    const out = document.getElementById('out');\n\n    function render() {\n      opts.innerHTML = templates.map((t,i) => `<div class=\"opt ${i===selected?'selected':''}\" onclick=\"sel(${i})\"><h4>${t.label}</h4><p>${t.desc}</p></div>`).join('');\n      out.innerHTML = templates[selected].code;\n    }\n    function sel(i) { selected=i; render(); }\n    render();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "github-actions-q1",
+          "question": "Where do GitHub Actions workflow files live?",
+          "type": "multiple-choice",
+          "options": [
+            "In a .github/workflows/ directory, as YAML files",
+            "In a special GitHub tab — you don't store them in the repo",
+            "In package.json under the 'scripts' key",
+            "In a Dockerfile"
+          ],
+          "correctAnswer": 0,
+          "explanation": "Workflows are YAML files stored in .github/workflows/ in the repo. This keeps the CI config version-controlled alongside the code — changes to the workflow are tracked in git just like any other file."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do I avoid exposing secrets in Actions logs?",
+      "a": "Use ${{ secrets.SECRET_NAME }} — GitHub automatically redacts secrets from logs. Never echo or print a secret directly. For complex secrets, use OIDC (keyless auth) instead of storing long-lived credentials at all."
+    },
+    {
+      "q": "My workflow is slow — how do I speed it up?",
+      "a": "Add caching: actions/cache or the cache: 'npm' option in actions/setup-node. Break independent jobs out so they run in parallel. Use a matrix only when you genuinely need multiple OS/version coverage."
+    }
+  ],
+  "sources": [
+    {
+      "name": "GitHub Docs — Understanding GitHub Actions",
+      "url": "https://docs.github.com/en/actions/learn-github-actions/understanding-github-actions",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["CI/CD pipelines", "automated testing", "scheduled tasks", "dependency updates", "deployments"],
+    "examples": [
+      "The KERNAL project uses GitHub Actions to deploy to GitHub Pages on every push to main",
+      "Vercel, Netlify, and Railway can be triggered via GitHub Actions for custom deploy logic",
+      "Dependabot uses GitHub Actions to auto-open version bump PRs weekly"
+    ]
+  }
+}

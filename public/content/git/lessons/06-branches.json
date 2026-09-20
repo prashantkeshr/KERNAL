@@ -1,0 +1,108 @@
+{
+  "id": "06-branches",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "git",
+  "technologyVersion": "Git 2.x",
+  "module": "git-core",
+  "title": "Branches",
+  "subtitle": "Create, switch, and manage parallel lines of work",
+  "difficulty": "beginner",
+  "estimatedMinutes": 20,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["git/05-status-log"],
+  "skillsTaught": ["git.branches", "git.checkout", "git.switch"],
+  "skillsUsed": ["git.commits", "git.log"],
+  "relatedConcepts": ["git.merge", "git.rebase", "git.remote"],
+  "whyItExists": {
+    "problem": "You're in the middle of adding a new feature when a critical bug is reported in production. You need to fix the bug without breaking your half-finished feature.",
+    "solution": "Branches let you work on different things simultaneously. Each branch is an independent line of commits. Switch between them instantly. Merge them when ready.",
+    "whenToUse": "Always. Feature branches, bug fix branches, experiment branches. The rule: never commit directly to main on a shared project.",
+    "whenNotToUse": "Tiny solo projects where you commit directly to main are fine. But even then, branches are free and lightweight — use them."
+  },
+  "explainModes": {
+    "beginner": "A branch is like a copy of your project where you can freely make changes without affecting the original. When you're done, you merge your branch back into main.",
+    "simple": "git branch — list branches. git branch feature/login — create a branch. git switch feature/login — switch to it. git switch -c feature/login — create and switch in one step. Branches are just pointers to a commit.",
+    "standard": "HEAD is a pointer to the current branch (or directly to a commit in 'detached HEAD' state). Creating a branch is instantaneous — it just writes a new file in .git/refs/heads/. Switching branches updates your working tree files to match that branch's latest commit. Use descriptive names: feature/..., fix/..., chore/...",
+    "technical": "Branches are stored as files in .git/refs/heads/ containing just the commit hash. HEAD is in .git/HEAD, containing either 'ref: refs/heads/main' (attached) or a raw hash (detached). git switch (modern) replaced git checkout for branch switching — checkout still works but does more things. Remote tracking branches (origin/main) are read-only snapshots of the remote's state, updated by fetch/pull.",
+    "deepDive": "Git's branching model is the most powerful aspect of its design — branching is O(1) (constant time, just writes a hash). Compare to SVN where branching copies the entire codebase. Trunk-based development uses one main branch and short-lived feature branches merged frequently. Gitflow uses long-lived develop/release/hotfix branches — heavier but useful for versioned software. GitHub Flow: branch → PR → merge to main → deploy."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Creating and switching branches"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "branches.sh",
+      "code": "# List all branches (* = current)\ngit branch\n# * main\n#   feature/dark-mode\n\n# Create a new branch\ngit branch feature/user-profile\n\n# Switch to it (modern command)\ngit switch feature/user-profile\n\n# Create and switch in one step\ngit switch -c feature/user-profile\n# (older equivalent: git checkout -b feature/user-profile)\n\n# See all branches including remotes\ngit branch -a\n\n# Delete a branch (after merging)\ngit branch -d feature/user-profile\n\n# Force delete (unmerged changes — be careful)\ngit branch -D feature/user-profile"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Typical feature branch workflow"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "feature-workflow.sh",
+      "code": "# 1. Start from an up-to-date main\ngit switch main\ngit pull\n\n# 2. Create feature branch\ngit switch -c feature/dark-mode\n\n# 3. Work and commit\necho '.dark { background: #000 }' >> style.css\ngit add style.css\ngit commit -m \"Add dark mode base styles\"\n\n# 4. More commits...\ngit commit -m \"Add dark mode toggle button\"\ngit commit -m \"Persist dark mode preference in localStorage\"\n\n# 5. Merge back to main (or open a Pull Request)\ngit switch main\ngit merge feature/dark-mode\n\n# 6. Push\ngit push"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Branch visualiser",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    canvas { background:#0b0e14; border-radius:8px; display:block; margin-bottom:16px; }\n    .controls { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }\n    button { padding:7px 16px; border:none; border-radius:5px; font-weight:700; cursor:pointer; font-size:0.82rem; }\n    .c1 { background:#4fd1c5; color:#0e1116; }\n    .c2 { background:#a78bfa; color:#fff; }\n    .c3 { background:#f7df1e; color:#0e1116; }\n    .cr { background:#2d3748; color:#94a3b8; }\n    #info { font-family:monospace; font-size:0.85rem; color:#94a3b8; background:#0b0e14; padding:10px 14px; border-radius:6px; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">Branch Visualiser</h2>\n  <div class=\"controls\">\n    <button class=\"c1\" onclick=\"doCommit()\">git commit</button>\n    <button class=\"c2\" onclick=\"doBranch()\">git switch -c feature/...</button>\n    <button class=\"c3\" onclick=\"doSwitch()\">git switch main</button>\n    <button class=\"cr\" onclick=\"doReset()\">Reset</button>\n  </div>\n  <canvas id=\"c\" width=\"720\" height=\"200\"></canvas>\n  <div id=\"info\">Current branch: main | Click buttons to build the history</div>\n\n  <script>\n    const canvas = document.getElementById('c');\n    const ctx = canvas.getContext('2d');\n    const W = canvas.width, H = canvas.height;\n\n    let commits = [{x:60,y:100,label:'A',branch:'main',color:'#4fd1c5'}];\n    let mainX = 60, featureX = null;\n    let currentBranch = 'main';\n    let featureY = 55, mainY = 100;\n    let commitIdx = 66; // 'A'\n\n    function draw() {\n      ctx.clearRect(0,0,W,H);\n      // Draw connections\n      for (let i=1;i<commits.length;i++) {\n        const prev = commits[i-1], curr = commits[i];\n        ctx.beginPath();\n        ctx.strokeStyle = curr.color+'88';\n        ctx.lineWidth = 2;\n        if (prev.y !== curr.y) {\n          ctx.moveTo(prev.x,prev.y);\n          ctx.lineTo(prev.x+15,curr.y);\n          ctx.lineTo(curr.x,curr.y);\n        } else {\n          ctx.moveTo(prev.x,prev.y);\n          ctx.lineTo(curr.x,curr.y);\n        }\n        ctx.stroke();\n      }\n      // Draw commits\n      commits.forEach((c,i) => {\n        ctx.beginPath();\n        ctx.arc(c.x,c.y,16,0,2*Math.PI);\n        ctx.fillStyle = c.color;\n        ctx.fill();\n        ctx.fillStyle = '#0e1116';\n        ctx.font = 'bold 13px monospace';\n        ctx.textAlign = 'center';\n        ctx.textBaseline = 'middle';\n        ctx.fillText(c.label,c.x,c.y);\n        // Branch label for last of each branch\n        const isLast = !commits.slice(i+1).some(cc=>cc.branch===c.branch);\n        if (isLast) {\n          ctx.fillStyle = c.color;\n          ctx.font = '11px sans-serif';\n          ctx.fillText(c.branch, c.x, c.y-28);\n        }\n      });\n    }\n\n    function nextLabel() { return String.fromCharCode(++commitIdx); }\n    function lastOf(branch) {\n      return commits.filter(c=>c.branch===branch).slice(-1)[0];\n    }\n\n    function doCommit() {\n      const last = commits[commits.length-1];\n      const prevBranchLast = lastOf(currentBranch);\n      const x = prevBranchLast.x + 70;\n      const y = currentBranch === 'main' ? mainY : featureY;\n      if (x > W-40) { document.getElementById('info').textContent='Canvas full — reset to continue'; return; }\n      commits.push({x,y,label:nextLabel(),branch:currentBranch,color:currentBranch==='main'?'#4fd1c5':'#a78bfa'});\n      if (currentBranch==='main') mainX=x; else featureX=x;\n      draw();\n      document.getElementById('info').textContent=`Committed \"${commits[commits.length-1].label}\" on ${currentBranch}`;\n    }\n\n    function doBranch() {\n      if (featureX !== null) { document.getElementById('info').textContent='feature branch already exists — switch to it with git switch main/feature'; return; }\n      const last = lastOf('main');\n      featureX = last.x+70;\n      commits.push({x:featureX,y:featureY,label:nextLabel(),branch:'feature/dark-mode',color:'#a78bfa'});\n      currentBranch='feature/dark-mode';\n      draw();\n      document.getElementById('info').textContent='Created & switched to feature/dark-mode';\n    }\n\n    function doSwitch() {\n      currentBranch = currentBranch==='main' ? 'feature/dark-mode' : 'main';\n      if (currentBranch==='feature/dark-mode' && featureX===null) { currentBranch='main'; document.getElementById('info').textContent='No feature branch yet'; return; }\n      draw();\n      document.getElementById('info').textContent=`Switched to ${currentBranch}`;\n    }\n\n    function doReset() {\n      commits = [{x:60,y:100,label:'A',branch:'main',color:'#4fd1c5'}];\n      mainX=60; featureX=null; currentBranch='main'; commitIdx=65;\n      draw();\n      document.getElementById('info').textContent='Reset. Current branch: main';\n    }\n\n    draw();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "git-branch-q1",
+          "question": "What does git switch -c feature/login do?",
+          "type": "multiple-choice",
+          "options": [
+            "Creates a branch and stays on the current branch",
+            "Switches to an existing branch called feature/login",
+            "Creates a new branch called feature/login AND switches to it",
+            "Copies all files to a new folder"
+          ],
+          "correctAnswer": 2,
+          "explanation": "git switch -c (or --create) creates a new branch and immediately switches to it. It's a shortcut for: git branch feature/login && git switch feature/login."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How should I name my branches?",
+      "a": "Use lowercase with hyphens. Prefix by type: feature/user-auth, fix/login-redirect, chore/upgrade-deps, docs/readme-update. Many teams use issue numbers: feature/123-user-auth. Avoid spaces, dots, or special characters."
+    },
+    {
+      "q": "What happens to my uncommitted changes when I switch branches?",
+      "a": "If the changes don't conflict with the target branch, Git carries them over (they stay in your working tree). If they conflict, Git refuses to switch — you must commit or stash them first: git stash."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Git Documentation — Branching and Merging",
+      "url": "https://git-scm.com/book/en/v2/Git-Branching-Branches-in-a-Nutshell",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every team using Git", "open-source contributions", "hotfix releases"],
+    "examples": [
+      "GitHub Flow: every change starts as a branch, gets reviewed as a PR, then merged to main",
+      "Emergency hotfix: git switch -c fix/critical-bug main → fix → PR → merge to main AND deploy",
+      "Long-running features: feature branch updated daily with git merge main to stay current"
+    ]
+  }
+}

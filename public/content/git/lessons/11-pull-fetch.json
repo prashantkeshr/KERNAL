@@ -1,0 +1,108 @@
+{
+  "id": "11-pull-fetch",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "git",
+  "technologyVersion": "Git 2.x",
+  "module": "git-remote",
+  "title": "Pull & Fetch",
+  "subtitle": "Get updates from the remote into your local repo",
+  "difficulty": "beginner",
+  "estimatedMinutes": 15,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["git/10-remote-push"],
+  "skillsTaught": ["git.pull", "git.fetch"],
+  "skillsUsed": ["git.merge", "git.remote"],
+  "relatedConcepts": ["git.conflicts", "git.rebase"],
+  "whyItExists": {
+    "problem": "Your teammates pushed new commits. Your local repo is behind. You need their changes to continue working without creating conflicts.",
+    "solution": "git fetch downloads new commits from the remote without changing your working files. git pull fetches AND merges (or rebases) — it's the most common way to update your local branch.",
+    "whenToUse": "At the start of every work session: git pull. Before creating a PR: git pull to make sure you're current. Before pushing: git fetch to check if anyone beat you to it.",
+    "whenNotToUse": "Don't pull in the middle of uncommitted work — stash first. Don't pull --rebase on main if your team uses merge commits."
+  },
+  "explainModes": {
+    "beginner": "git pull downloads teammates' commits and adds them to your branch. git fetch only downloads but doesn't change your files — you decide what to do with them after.",
+    "simple": "git pull = git fetch + git merge. Fetches new commits from origin and merges them into your current branch. git fetch downloads updates to origin/main but doesn't touch your local main — safe to inspect first.",
+    "standard": "git pull --rebase replays your local commits on top of the remote's commits (instead of creating a merge commit). Cleaner history. git fetch + git log origin/main to see what changed before merging. After fetch: git merge origin/main or git rebase origin/main manually.",
+    "technical": "git fetch updates remote tracking branches (origin/main etc.) — read-only snapshots of the remote's state. git pull <remote> <branch> fetches and then merges the remote tracking branch into your current branch. pull.rebase = true in config makes git pull use rebase by default. FETCH_HEAD stores the fetched commits temporarily.",
+    "deepDive": "git pull uses the configured remote and tracking branch for the current branch (set by -u on push). git fetch --prune removes remote tracking branches for remote branches that were deleted. git fetch --all fetches all remotes. A pull with conflicts leaves the repo in a 'merging' state — resolve the conflicts, git add, git merge --continue. shallow repos (--depth 1) can't fetch older commits without git fetch --unshallow."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "git fetch — safe download"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "fetch.sh",
+      "code": "# Download updates without changing your files\ngit fetch origin\n\n# See what's new on the remote\ngit log origin/main --oneline\n# or\ngit log HEAD..origin/main --oneline   # commits on remote but not local\n\n# After inspecting, merge manually\ngit merge origin/main\n\n# Fetch all remotes\ngit fetch --all\n\n# Fetch and prune deleted remote branches\ngit fetch --prune"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "git pull — fetch + merge"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "pull.sh",
+      "code": "# Standard pull (fetch + merge)\ngit pull\n\n# Pull from specific remote and branch\ngit pull origin main\n\n# Pull with rebase instead of merge (cleaner history)\ngit pull --rebase\n\n# Set rebase as default pull behaviour\ngit config --global pull.rebase true\n\n# Start of day workflow\ngit switch main\ngit pull\ngit switch feature/my-task\ngit rebase main   # bring in the latest main into your feature branch"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Fetch vs Pull",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    .row { display:flex; gap:12px; margin-bottom:12px; }\n    .box { flex:1; background:#0b0e14; border:1px solid #2d3748; border-radius:8px; padding:12px; }\n    h3 { margin:0 0 8px; font-size:0.8rem; text-transform:uppercase; letter-spacing:.05em; }\n    .commit { background:#1a1f2b; border-radius:4px; padding:4px 8px; margin:3px 0; font-family:monospace; font-size:0.78rem; }\n    .new { border-left:3px solid #4fd1c5; }\n    .old { border-left:3px solid #2d3748; }\n    .tracking { border-left:3px solid #a78bfa; }\n    .controls { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }\n    button { padding:7px 14px; border:none; border-radius:5px; font-weight:700; cursor:pointer; font-size:0.8rem; }\n    .b1 { background:#a78bfa; color:#fff; }\n    .b2 { background:#4fd1c5; color:#0e1116; }\n    .b3 { background:#f7df1e; color:#0e1116; }\n    .b4 { background:#2d3748; color:#94a3b8; }\n    #info { font-family:monospace; font-size:0.8rem; color:#94a3b8; background:#0b0e14; padding:10px; border-radius:6px; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">Fetch vs Pull</h2>\n  <div class=\"controls\">\n    <button class=\"b3\" onclick=\"remoteCommit()\">Teammate pushes a commit</button>\n    <button class=\"b1\" onclick=\"doFetch()\">git fetch</button>\n    <button class=\"b2\" onclick=\"doMerge()\">git merge origin/main</button>\n    <button class=\"b2\" style=\"background:#22c55e\" onclick=\"doPull()\">git pull (fetch+merge)</button>\n    <button class=\"b4\" onclick=\"reset()\">Reset</button>\n  </div>\n  <div class=\"row\">\n    <div class=\"box\">\n      <h3 style=\"color:#e2e8f0\">Your local/main</h3>\n      <div id=\"local\"></div>\n    </div>\n    <div class=\"box\">\n      <h3 style=\"color:#a78bfa\">origin/main (tracking)</h3>\n      <div id=\"tracking\"></div>\n    </div>\n    <div class=\"box\">\n      <h3 style=\"color:#f7df1e\">GitHub remote</h3>\n      <div id=\"remote\"></div>\n    </div>\n  </div>\n  <div id=\"info\">Simulate a teammate pushing, then use fetch or pull.</div>\n\n  <script>\n    let local=['Initial commit','Add nav'],tracking=['Initial commit','Add nav'],remote=['Initial commit','Add nav'];\n    let ridx=0;\n    const rmsgs=['Add dark mode (by Ana)','Fix footer bug (by Ben)','Update docs (by Carlos)','Add search (by Diana)'];\n\n    function render(){\n      const fmt=(arr,cls)=>arr.slice().reverse().map(c=>`<div class=\"commit ${cls}\">${c}</div>`).join('')||'<span style=\"color:#64748b;font-size:0.75rem\">empty</span>';\n      document.getElementById('local').innerHTML=fmt(local,'old');\n      document.getElementById('tracking').innerHTML=fmt(tracking,'tracking');\n      document.getElementById('remote').innerHTML=fmt(remote,'new');\n    }\n    const log=m=>document.getElementById('info').textContent=m;\n\n    function remoteCommit(){\n      const m=rmsgs[ridx%rmsgs.length];ridx++;\n      remote.push(m);\n      render();\n      log(`Teammate pushed \"${m}\" to GitHub. Your local and tracking are still behind.`);\n    }\n    function doFetch(){\n      const newOnes=remote.filter(c=>!tracking.includes(c));\n      if(!newOnes.length){log('Already up to date — nothing to fetch.');return;}\n      tracking=[...tracking,...newOnes];\n      render();\n      log(`git fetch → downloaded ${newOnes.length} commit(s) into origin/main (tracking). Your local main is unchanged — inspect with: git log HEAD..origin/main`);\n    }\n    function doMerge(){\n      const newOnes=tracking.filter(c=>!local.includes(c));\n      if(!newOnes.length){log('Already up to date — nothing to merge.');return;}\n      local=[...local,...newOnes];\n      render();\n      log(`git merge origin/main → integrated ${newOnes.length} commit(s) into local main.`);\n    }\n    function doPull(){\n      const newOnes=remote.filter(c=>!local.includes(c));\n      if(!newOnes.length){log('Already up to date — nothing to pull.');return;}\n      tracking=[...remote];local=[...remote];\n      render();\n      log(`git pull → fetched and merged ${newOnes.length} commit(s) in one step.`);\n    }\n    function reset(){local=['Initial commit','Add nav'];tracking=['Initial commit','Add nav'];remote=['Initial commit','Add nav'];ridx=0;render();log('Reset.')}\n    render();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "git-pull-q1",
+          "question": "What is the difference between git fetch and git pull?",
+          "type": "multiple-choice",
+          "options": [
+            "fetch is faster; pull is for large repos",
+            "fetch downloads commits but doesn't change your working files; pull fetches AND merges",
+            "fetch only works with SSH; pull works with HTTPS",
+            "They are the same"
+          ],
+          "correctAnswer": 1,
+          "explanation": "git fetch downloads new commits to the remote tracking branch (origin/main) but leaves your local branch untouched. git pull does fetch + merge in one step. Fetch lets you inspect before merging; pull is quicker for everyday use."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Should I use git pull or git fetch + git merge?",
+      "a": "Both are fine. git pull is simpler for daily use. git fetch + inspect + merge gives you more control — you can see what changed before integrating. Use git pull --rebase to get a cleaner linear history."
+    },
+    {
+      "q": "git pull failed with 'Not possible to fast-forward'. What now?",
+      "a": "Both your local branch and the remote have new commits. Either merge: git pull (creates a merge commit), or rebase: git pull --rebase (replays your commits on top). If you see many of these, consider making git pull always rebase: git config --global pull.rebase true."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Git Documentation — Fetching and Pulling",
+      "url": "https://git-scm.com/book/en/v2/Git-Branching-Remote-Branches",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["start of every work session", "before creating a PR", "CI pre-merge checks"],
+    "examples": [
+      "git pull is arguably the most-run git command in team workflows",
+      "git fetch --prune cleans up remote tracking branches for deleted remote branches",
+      "Pair programming: both devs git pull before switching who's driving"
+    ]
+  }
+}

@@ -1,0 +1,112 @@
+{
+  "id": "13-github-repos",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "git",
+  "technologyVersion": "Git 2.x",
+  "module": "git-github",
+  "title": "GitHub Repos",
+  "subtitle": "Create, fork, and navigate repositories on GitHub",
+  "difficulty": "beginner",
+  "estimatedMinutes": 15,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["git/10-remote-push"],
+  "skillsTaught": ["github.repos", "github.fork", "github.stars"],
+  "skillsUsed": ["git.remote", "git.push"],
+  "relatedConcepts": ["github.pull-requests", "git.clone"],
+  "whyItExists": {
+    "problem": "Git is a local tool. To collaborate with others, deploy code, or contribute to open-source projects, you need a shared hosting platform.",
+    "solution": "GitHub hosts Git repositories with a web UI, issue tracking, CI/CD, code review, and collaboration tools. It's where most of the world's open-source code lives.",
+    "whenToUse": "For every project you want to share, back up, or deploy. For any open-source contribution.",
+    "whenNotToUse": "Private/proprietary work may use GitHub Private or a self-hosted alternative (GitLab, Bitbucket, Gitea)."
+  },
+  "explainModes": {
+    "beginner": "GitHub is a website that stores your Git repos online. You push code up from your laptop and it appears on GitHub where others can see it, comment on it, and use it.",
+    "simple": "Create a repo on github.com/new. Add it as a remote: git remote add origin <url>. Push: git push -u origin main. Fork: copies someone else's repo to your account. Star: bookmarks a repo. Issues: track bugs and feature requests.",
+    "standard": "GitHub repos have: Code tab (files, branches, commits), Issues (bugs, features), Pull Requests (code review), Actions (CI/CD), Settings (branch protection, webhooks). Forking creates a copy of a repo under your account — you have full write access. After forking, clone your fork, make changes, then open a PR to the original repo.",
+    "technical": "GitHub's fork is a server-side clone — it shares the git objects with the upstream but has its own refs/heads. Syncing a fork: git remote add upstream <original-url>, git fetch upstream, git merge upstream/main. GitHub API (api.github.com) allows programmatic access to all repo operations. GitHub CLI (gh) brings GitHub's PR/issue workflow to the terminal.",
+    "deepDive": "GitHub's REST and GraphQL APIs power integrations, bots, and automation. Personal Access Tokens (PATs) or GitHub Apps authenticate API access. GitHub's Dependabot automatically opens PRs for dependency updates. Repository topics and keywords improve discoverability. GitHub Codespaces spins up a VS Code environment in the browser backed by the repo. GitHub Discussions is a forum-style alternative to Issues for community Q&A."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Creating a repository"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "create-repo.sh",
+      "code": "# Via GitHub CLI (recommended)\ngh repo create my-project --public\ngh repo create my-project --private\n\n# Then push an existing local repo:\ngit remote add origin https://github.com/yourname/my-project.git\ngit push -u origin main\n\n# Or clone right after creating:\ngh repo create my-project --public --clone\ncd my-project"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Forking — contributing to open source"
+    },
+    {
+      "type": "paragraph",
+      "text": "Forking copies a repo to your GitHub account so you can make changes. You then open a Pull Request to propose your changes to the original repo."
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "fork-workflow.sh",
+      "code": "# 1. Fork on GitHub (click the Fork button)\n\n# 2. Clone YOUR fork (not the original)\ngit clone https://github.com/YOUR-USERNAME/repo.git\ncd repo\n\n# 3. Add the original as 'upstream' remote\ngit remote add upstream https://github.com/ORIGINAL-OWNER/repo.git\ngit remote -v\n# origin   https://github.com/YOUR-USERNAME/repo.git (your fork)\n# upstream https://github.com/ORIGINAL-OWNER/repo.git (original)\n\n# 4. Create a branch, make changes, push to YOUR fork\ngit switch -c fix/typo-in-readme\n# ... make changes ...\ngit push origin fix/typo-in-readme\n\n# 5. Open PR on GitHub from your fork to the original\n\n# 6. Keep your fork in sync with upstream\ngit fetch upstream\ngit switch main\ngit merge upstream/main\ngit push"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: GitHub workflow explorer",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    .steps { display:flex; flex-direction:column; gap:10px; }\n    .step { background:#1a1f2b; border:1px solid #2d3748; border-radius:8px; padding:14px 16px; cursor:pointer; transition:border-color .2s; }\n    .step:hover { border-color:#4fd1c5; }\n    .step.active { border-color:#4fd1c5; background:#0e2020; }\n    .step h3 { margin:0; font-size:0.9rem; display:flex; align-items:center; gap:8px; }\n    .step-num { background:#4fd1c5; color:#0e1116; border-radius:50%; width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; }\n    .step-body { display:none; margin-top:10px; color:#94a3b8; font-size:0.85rem; line-height:1.6; }\n    .step.active .step-body { display:block; }\n    code { background:#0b0e14; border-radius:3px; padding:1px 5px; font-family:monospace; color:#4fd1c5; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">Open Source Contribution Workflow</h2>\n  <p style=\"color:#94a3b8\">Click each step to expand it:</p>\n  <div class=\"steps\" id=\"steps\"></div>\n\n  <script>\n    const steps = [\n      {num:'1',title:'Find a repo to contribute to',body:'Browse GitHub, read the CONTRIBUTING.md, and find an issue labelled <code>good first issue</code> or <code>help wanted</code>.'},\n      {num:'2',title:'Fork the repo',body:'Click <strong>Fork</strong> on the repo page. GitHub creates a copy under your account. You now have full write access to your fork.'},\n      {num:'3',title:'Clone your fork',body:'<code>git clone https://github.com/YOU/repo.git</code><br>This downloads your fork locally. Add the original as upstream: <code>git remote add upstream https://github.com/ORIGINAL/repo.git</code>'},\n      {num:'4',title:'Create a branch',body:'<code>git switch -c fix/issue-123</code><br>Never work directly on main. A descriptive branch name helps reviewers understand your intent.'},\n      {num:'5',title:'Make changes and commit',body:'Edit files, run the tests, then commit: <code>git commit -m \"Fix #123: correct typo in navbar\"</code><br>Reference the issue number so GitHub links them automatically.'},\n      {num:'6',title:'Push to your fork',body:'<code>git push origin fix/issue-123</code><br>GitHub will show a banner: \"Compare & pull request\" — click it to open a PR.'},\n      {num:'7',title:'Open a Pull Request',body:'On GitHub, fill in the PR description. Explain WHAT you changed and WHY. Link the issue. Request a reviewer if you know who maintains the area you changed.'},\n      {num:'8',title:'Respond to review comments',body:'Maintainers may request changes. Make them on the same branch and push again — the PR updates automatically.'},\n      {num:'9',title:'Merged! Keep your fork in sync',body:'After the PR is merged: <code>git fetch upstream && git merge upstream/main && git push</code><br>Delete your branch: <code>git branch -d fix/issue-123</code>'},\n    ];\n    const container = document.getElementById('steps');\n    container.innerHTML = steps.map((s,i) => `\n      <div class=\"step\" id=\"s${i}\" onclick=\"toggle(${i})\">\n        <h3><span class=\"step-num\">${s.num}</span> ${s.title}</h3>\n        <div class=\"step-body\">${s.body}</div>\n      </div>`).join('');\n\n    function toggle(i) {\n      const el = document.getElementById('s'+i);\n      const isActive = el.classList.contains('active');\n      document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));\n      if (!isActive) el.classList.add('active');\n    }\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "github-fork-q1",
+          "question": "What is a GitHub fork?",
+          "type": "multiple-choice",
+          "options": [
+            "A local copy of a repo",
+            "A server-side copy of a repo under your GitHub account",
+            "A Git branch",
+            "A type of commit"
+          ],
+          "correctAnswer": 1,
+          "explanation": "A fork is a server-side copy of a repo on GitHub. It lives under your account, you have full write access, and you can open Pull Requests from your fork to the original (upstream) repo."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between a fork and a clone?",
+      "a": "A fork happens on GitHub's servers — it creates a copy under your account. A clone happens on your machine — it downloads a repo locally. When contributing to open-source, you typically fork first, then clone your fork."
+    },
+    {
+      "q": "How do I install the GitHub CLI?",
+      "a": "macOS: brew install gh. Windows: winget install --id GitHub.cli. Ubuntu: sudo apt install gh. After installing, run gh auth login to authenticate with your GitHub account."
+    }
+  ],
+  "sources": [
+    {
+      "name": "GitHub Docs — About Forks",
+      "url": "https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/about-forks",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["open-source contributions", "team codebases", "portfolio projects"],
+    "examples": [
+      "All major open-source projects (React, Vue, Linux) accept contributions via fork + PR",
+      "GitHub Stars act as bookmarks — 1k+ stars signals a widely-used and trusted project",
+      "GitHub's Explore page (github.com/explore) surfaces trending repos by language"
+    ]
+  }
+}

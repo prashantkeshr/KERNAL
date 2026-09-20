@@ -1,0 +1,127 @@
+{
+  "id": "07-merge",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "git",
+  "technologyVersion": "Git 2.x",
+  "module": "git-workflow",
+  "title": "Merging",
+  "subtitle": "Combine branches and integrate work",
+  "difficulty": "beginner",
+  "estimatedMinutes": 20,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["git/06-branches"],
+  "skillsTaught": ["git.merge", "git.fast-forward", "git.three-way-merge"],
+  "skillsUsed": ["git.branches", "git.commits"],
+  "relatedConcepts": ["git.rebase", "git.conflicts", "git.pull-requests"],
+  "whyItExists": {
+    "problem": "You finished your feature branch. The work needs to come back into main so it can be deployed.",
+    "solution": "git merge combines two branches. It takes the commits from one branch and integrates them into another, creating a merged history.",
+    "whenToUse": "When you want to integrate a feature branch into main. Also happens automatically during git pull.",
+    "whenNotToUse": "When you want a linear history (prefer rebase). When you're collaborating on a team, merging via a Pull Request on GitHub is the standard — it documents the review."
+  },
+  "explainModes": {
+    "beginner": "Merging is how you combine branches. You switch to main, then tell Git to bring in the commits from your feature branch. Git does the work of combining the two histories.",
+    "simple": "git switch main → git merge feature/login. If the branches didn't diverge (only feature branch has new commits), Git does a fast-forward: it just moves the main pointer forward. If both branches have new commits, Git creates a merge commit that has two parents.",
+    "standard": "Two merge types: Fast-forward (main has no new commits since the branch was created — Git moves the pointer, no merge commit created). Three-way merge (both branches have commits — Git finds the common ancestor, combines changes, creates a merge commit). Use --no-ff to always create a merge commit even when fast-forward is possible.",
+    "technical": "A merge commit has two (or more) parent pointers. The merge base is found with git merge-base. Git uses a three-way diff between: common ancestor, ours (current branch HEAD), theirs (branch being merged). Conflicts occur when both sides changed the same lines. git merge --squash combines all commits into one before merging — useful for clean history.",
+    "deepDive": "Git supports octopus merges (merging more than 2 branches at once) — used by the Linux kernel. Recursive merge strategy (default) handles criss-cross merges. ort strategy (default since Git 2.34) is faster. Subtree merge lets you merge a repo as a subdirectory. Merge drivers in .gitattributes can automate conflict resolution for specific file types."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Fast-forward merge"
+    },
+    {
+      "type": "paragraph",
+      "text": "When main hasn't changed since you branched, Git simply moves the pointer forward. No merge commit is created."
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "fast-forward.sh",
+      "code": "# Situation: main has no new commits since feature branched\n# main:    A---B\n# feature:      C---D\n\ngit switch main\ngit merge feature/dark-mode\n# → Fast-forward\n# → main pointer moves to D\n\n# Result:\n# main:    A---B---C---D  (same as feature)"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Three-way merge"
+    },
+    {
+      "type": "paragraph",
+      "text": "When both branches have diverged (both have new commits), Git creates a merge commit that has two parents."
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "three-way.sh",
+      "code": "# Situation: both branches have new commits\n# main:    A---B---E\n# feature:  \\---C---D\n\ngit switch main\ngit merge feature/dark-mode\n# → Merge made by the 'ort' strategy\n# → Creates merge commit M\n\n# Result:\n# main:    A---B---E---M  (M has parents E and D)\n#           \\---C---D--/"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Common merge options"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "merge-options.sh",
+      "code": "# Merge a branch\ngit merge feature/login\n\n# Always create a merge commit (even if fast-forward is possible)\ngit merge --no-ff feature/login\n\n# Squash all commits into one (then you commit manually)\ngit merge --squash feature/login\ngit commit -m \"Add login feature\"\n\n# Abort a merge in progress (if you change your mind)\ngit merge --abort\n\n# After resolving conflicts, complete the merge\ngit add .\ngit merge --continue"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Merge visualiser",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    canvas { background:#0b0e14; border-radius:8px; display:block; }\n    .controls { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }\n    button { padding:7px 16px; border:none; border-radius:5px; font-weight:700; cursor:pointer; font-size:0.82rem; }\n    .c1 { background:#4fd1c5; color:#0e1116; }\n    .c2 { background:#a78bfa; color:#fff; }\n    .c3 { background:#f7df1e; color:#0e1116; }\n    .cr { background:#2d3748; color:#94a3b8; }\n    #info { font-family:monospace; font-size:0.82rem; color:#94a3b8; background:#0b0e14; padding:10px 14px; border-radius:6px; margin-top:10px; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">Merge Visualiser</h2>\n  <div class=\"controls\">\n    <button class=\"c2\" onclick=\"showFF()\">Fast-Forward Merge</button>\n    <button class=\"c3\" onclick=\"show3Way()\">Three-Way Merge</button>\n    <button class=\"cr\" onclick=\"reset()\">Reset</button>\n  </div>\n  <canvas id=\"c\" width=\"720\" height=\"220\"></canvas>\n  <div id=\"info\">Choose a merge type above.</div>\n\n  <script>\n    const c = document.getElementById('c');\n    const ctx = c.getContext('2d');\n    const W=720,H=220;\n\n    function clear() { ctx.clearRect(0,0,W,H); }\n\n    function node(x,y,label,color,alpha=1) {\n      ctx.globalAlpha=alpha;\n      ctx.beginPath(); ctx.arc(x,y,18,0,2*Math.PI);\n      ctx.fillStyle=color; ctx.fill();\n      ctx.fillStyle='#0e1116'; ctx.font='bold 13px monospace';\n      ctx.textAlign='center'; ctx.textBaseline='middle';\n      ctx.fillText(label,x,y);\n      ctx.globalAlpha=1;\n    }\n\n    function line(x1,y1,x2,y2,color,dash=[]) {\n      ctx.beginPath(); ctx.setLineDash(dash);\n      ctx.strokeStyle=color; ctx.lineWidth=2;\n      ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();\n      ctx.setLineDash([]);\n    }\n\n    function label(x,y,text,color='#94a3b8') {\n      ctx.fillStyle=color; ctx.font='11px sans-serif';\n      ctx.textAlign='center'; ctx.fillText(text,x,y);\n    }\n\n    function showFF() {\n      clear();\n      // Before: main A-B, feature C-D\n      label(360,18,'BEFORE: main has no new commits — Fast-Forward','#4fd1c5');\n      // Main track\n      const y1=80;\n      node(60,y1,'A','#4fd1c5'); node(160,y1,'B','#4fd1c5');\n      line(78,y1,142,y1,'#4fd1c5');\n      label(60,y1+32,'main','#4fd1c5'); label(160,y1+32,'main','#4fd1c5');\n      // Feature\n      node(260,y1,'C','#a78bfa'); node(360,y1,'D','#a78bfa');\n      line(178,y1,242,y1,'#a78bfa'); line(278,y1,342,y1,'#a78bfa');\n      label(260,y1+32,'feature','#a78bfa'); label(360,y1+32,'feature','#a78bfa');\n\n      // Arrow\n      ctx.fillStyle='#f7df1e';\n      ctx.font='bold 22px sans-serif'; ctx.textAlign='center';\n      ctx.fillText('→',440,y1);\n      label(440,y1+32,'git merge','#f7df1e');\n\n      // After\n      label(620,18,'AFTER','#4fd1c5');\n      const y2=80;\n      node(500,y2,'A','#4fd1c5'); node(560,y2,'B','#4fd1c5');\n      node(620,y2,'C','#4fd1c5'); node(680,y2,'D','#4fd1c5');\n      line(518,y2,542,y2,'#4fd1c5'); line(578,y2,602,y2,'#4fd1c5'); line(638,y2,662,y2,'#4fd1c5');\n      label(680,y2+32,'main','#4fd1c5');\n\n      label(360,170,'Fast-forward: main pointer moved forward. No merge commit created.','#94a3b8');\n      document.getElementById('info').textContent='git merge feature/dark-mode → Fast-forward: main now points to the same commit as feature.';\n    }\n\n    function show3Way() {\n      clear();\n      label(360,18,'BEFORE: both branches diverged — Three-Way Merge','#f7df1e');\n      // main A-B-E\n      const ym=80, yf=150;\n      node(60,ym,'A','#4fd1c5'); node(160,ym,'B','#4fd1c5'); node(260,ym,'E','#4fd1c5');\n      line(78,ym,142,ym,'#4fd1c5'); line(178,ym,242,ym,'#4fd1c5');\n      label(260,ym-28,'main','#4fd1c5');\n      // feature C-D (branched from B)\n      node(260,yf,'C','#a78bfa'); node(360,yf,'D','#a78bfa');\n      line(160+8,ym+8,260-8,yf-8,'#a78bfa'); line(278,yf,342,yf,'#a78bfa');\n      label(360,yf+28,'feature','#a78bfa');\n\n      // Arrow\n      ctx.fillStyle='#f7df1e'; ctx.font='bold 22px sans-serif'; ctx.textAlign='center';\n      ctx.fillText('→',430,100);\n      label(430,125,'git merge','#f7df1e');\n\n      // After\n      node(480,ym,'A','#4fd1c5'); node(540,ym,'B','#4fd1c5'); node(600,ym,'E','#4fd1c5');\n      node(600,yf,'D','#a78bfa');\n      node(680,110,'M','#f7df1e');\n      line(498,ym,522,ym,'#4fd1c5'); line(558,ym,582,ym,'#4fd1c5');\n      line(540+8,ym+8,600-8,yf-8,'#a78bfa88');\n      line(618,ym,668,110-8,'#4fd1c5');\n      line(616,yf,668,110+8,'#a78bfa');\n      label(680,84,'main','#f7df1e'); label(680,138,'M has 2 parents','#94a3b8');\n      label(380,190,'Three-way merge: new merge commit M with parents E and D.','#94a3b8');\n      document.getElementById('info').textContent='git merge feature/dark-mode → Merge commit M created with two parents: E (main) and D (feature).';\n    }\n\n    function reset() {\n      clear();\n      document.getElementById('info').textContent='Choose a merge type above.';\n    }\n\n    clear();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "git-merge-q1",
+          "question": "When does a fast-forward merge happen?",
+          "type": "multiple-choice",
+          "options": [
+            "When there are no conflicts",
+            "When the target branch (main) has no new commits since the feature branch was created",
+            "When you use git merge --fast",
+            "When both branches have the same number of commits"
+          ],
+          "correctAnswer": 1,
+          "explanation": "A fast-forward merge happens when main (the branch you're merging into) hasn't diverged — it has no new commits since the feature branch was created. Git just moves the pointer forward."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Should I use merge or rebase?",
+      "a": "Use merge for integrating feature branches into main — it preserves the full history. Use rebase to update a feature branch with the latest main (keeping a linear history). Never rebase shared branches."
+    },
+    {
+      "q": "What is --no-ff and when do I need it?",
+      "a": "--no-ff (no fast-forward) forces Git to always create a merge commit even when a fast-forward is possible. This preserves the branch history so you can see that a feature branch existed. Many teams require this for main."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Git Documentation — Basic Merging",
+      "url": "https://git-scm.com/book/en/v2/Git-Branching-Basic-Branching-and-Merging",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["completing feature branches", "release preparation", "hotfix integration"],
+    "examples": [
+      "GitHub's 'Merge pull request' button does a --no-ff merge by default",
+      "git pull is git fetch + git merge (or rebase if configured)",
+      "Hotfix workflow: branch from main, fix, merge back to main AND develop"
+    ]
+  }
+}

@@ -1,0 +1,144 @@
+{
+  "id": "04-add-commit",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "git",
+  "technologyVersion": "Git 2.x",
+  "module": "git-core",
+  "title": "add & commit",
+  "subtitle": "Stage changes and save snapshots",
+  "difficulty": "beginner",
+  "estimatedMinutes": 20,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["git/03-init-clone"],
+  "skillsTaught": ["git.add", "git.commit", "git.staging"],
+  "skillsUsed": ["git.init"],
+  "relatedConcepts": ["git.status", "git.log", "git.diff"],
+  "whyItExists": {
+    "problem": "Not every change in your working folder should go into the next commit. You might fix two unrelated bugs — they deserve separate commits with separate messages.",
+    "solution": "Git has a two-step save: first you stage changes (git add) to select exactly what goes into the next commit, then you commit (git commit) to permanently save that snapshot with a message.",
+    "whenToUse": "Every time you reach a logical checkpoint — a working feature, a bug fix, a refactor. Commit often, with clear messages.",
+    "whenNotToUse": "Don't commit broken code to a shared branch. Don't commit secrets (.env files, API keys, passwords)."
+  },
+  "explainModes": {
+    "beginner": "git add picks which changes to include in your next save. git commit does the actual saving with a message describing what you did. Think of add as putting things in a box, and commit as sealing the box and labelling it.",
+    "simple": "git add file.html — stages one file. git add . — stages everything. git commit -m 'message' — saves staged changes as a commit. git add -p — interactive, choose which lines to stage (advanced but very useful).",
+    "standard": "The three-tree model: working tree (your files), index/staging area (what will go into the next commit), HEAD (last commit). git add moves changes from working tree to index. git commit creates a new commit from the index and advances HEAD. git diff shows working-tree vs index. git diff --staged shows index vs HEAD.",
+    "technical": "git add stages file content (blobs) and records them in the index. git commit creates a tree object from the index, then a commit object pointing to that tree and the parent commit. The commit hash is a SHA-1 of the commit's content — deterministic and tamper-evident. git commit --amend replaces the last commit (rewrites history — safe only if not yet pushed).",
+    "deepDive": "The index (staging area) lives in .git/index — a binary file mapping filenames to blob hashes. git add -N (intent-to-add) stages a file with empty content, making it visible in git diff. Sparse checkout (git sparse-checkout) lets you partially check out a monorepo, only materialising the files you need. git commit -S signs commits with a GPG/SSH key — required by some teams for verified authorship."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The staging area"
+    },
+    {
+      "type": "paragraph",
+      "text": "Git has three zones: your working files, the staging area (index), and the committed history. git add moves changes to the staging area. git commit saves the staging area as a permanent snapshot."
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "add-commit.sh",
+      "code": "# See which files have changed\ngit status\n\n# Stage specific file\ngit add index.html\n\n# Stage all changes in current directory\ngit add .\n\n# Stage part of a file interactively (pick specific lines)\ngit add -p index.html\n\n# Commit with a message\ngit commit -m \"Add navigation menu to homepage\"\n\n# Stage and commit tracked files in one step (skips untracked files)\ngit commit -am \"Fix typo in footer\""
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Writing good commit messages"
+    },
+    {
+      "type": "paragraph",
+      "text": "A commit message should complete the sentence: 'If applied, this commit will...' Use the imperative mood. Keep the first line under 72 characters. Reference issue numbers when relevant."
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "commit-messages.sh",
+      "code": "# ✅ Good commit messages\ngit commit -m \"Add dark mode toggle to settings page\"\ngit commit -m \"Fix login redirect loop on mobile Safari\"\ngit commit -m \"Remove deprecated getUserInfo() function\"\ngit commit -m \"Bump React from 18.2 to 18.3\"\n\n# ❌ Bad commit messages\ngit commit -m \"fix\"\ngit commit -m \"changes\"\ngit commit -m \"WIP\"\ngit commit -m \"asdfgh\"\n\n# Multi-line commit message (opens your editor)\ngit commit\n# First line: short summary (under 72 chars)\n# Blank line\n# Body: explain WHY this change was made, not what"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Unstaging and undoing"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "unstage.sh",
+      "code": "# Unstage a file (keep the change in working tree)\ngit restore --staged index.html\n\n# Discard changes in working tree (WARNING: unrecoverable!)\ngit restore index.html\n\n# Amend the last commit message (before pushing)\ngit commit --amend -m \"Better message\"\n\n# Amend to add a forgotten file (before pushing)\ngit add forgotten.js\ngit commit --amend --no-edit"
+    },
+    {
+      "type": "warning",
+      "text": "Never commit <code>.env</code> files, API keys, passwords, or secrets. Add them to <code>.gitignore</code> immediately. If you accidentally commit a secret, treat it as compromised and rotate it — git history is permanent."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Stage and commit simulator",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    .zones { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:16px; }\n    .zone { background:#1a1f2b; border:1px solid #2d3748; border-radius:8px; padding:12px; min-height:120px; }\n    .zone h3 { margin:0 0 8px; font-size:0.8rem; text-transform:uppercase; letter-spacing:.05em; }\n    .wt h3 { color:#f7df1e; } .idx h3 { color:#4fd1c5; } .hist h3 { color:#a78bfa; }\n    .file-item { background:#0b0e14; border-radius:4px; padding:4px 8px; margin:3px 0; font-family:monospace; font-size:0.8rem; cursor:default; }\n    .wt .file-item { border-left:3px solid #f7df1e; }\n    .idx .file-item { border-left:3px solid #4fd1c5; }\n    .hist .file-item { border-left:3px solid #a78bfa; color:#94a3b8; }\n    .controls { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }\n    button { padding:6px 14px; border:none; border-radius:5px; font-weight:700; cursor:pointer; font-size:0.8rem; }\n    .btn-add { background:#4fd1c5; color:#0e1116; }\n    .btn-commit { background:#a78bfa; color:#fff; }\n    .btn-new { background:#f7df1e; color:#0e1116; }\n    .btn-reset { background:#2d3748; color:#94a3b8; }\n    #log { font-family:monospace; font-size:0.8rem; color:#94a3b8; background:#0b0e14; padding:10px; border-radius:6px; min-height:40px; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">The Three Zones</h2>\n  <div class=\"zones\">\n    <div class=\"zone wt\"><h3>Working Tree</h3><div id=\"wt\"></div></div>\n    <div class=\"zone idx\"><h3>Staging Area</h3><div id=\"idx\"></div></div>\n    <div class=\"zone hist\"><h3>History</h3><div id=\"hist\"></div></div>\n  </div>\n  <div class=\"controls\">\n    <button class=\"btn-new\" onclick=\"newFile()\">Edit a file</button>\n    <button class=\"btn-add\" onclick=\"stageAll()\">git add .</button>\n    <button class=\"btn-commit\" onclick=\"doCommit()\">git commit -m '...'</button>\n    <button class=\"btn-reset\" onclick=\"resetAll()\">Reset</button>\n  </div>\n  <div id=\"log\">Start by editing a file.</div>\n\n  <script>\n    const files = ['index.html','style.css','app.js','README.md'];\n    let wt = [], idx = [], hist = [], fidx = 0, cidx = 0;\n    const msgs = ['Add homepage structure','Fix nav menu','Update styles','Improve README','Add dark mode','Fix mobile layout'];\n\n    const render = () => {\n      ['wt','idx','hist'].forEach(z => {\n        const el = document.getElementById(z);\n        const data = z === 'wt' ? wt : z === 'idx' ? idx : hist;\n        el.innerHTML = data.length ? data.map(f => `<div class=\"file-item\">${f}</div>`).join('') : '<span style=\"color:#64748b;font-size:0.75rem\">empty</span>';\n      });\n    };\n\n    const log = m => { document.getElementById('log').textContent = m; };\n\n    function newFile() {\n      const f = files[fidx % files.length]; fidx++;\n      if (!wt.includes(f)) wt.push(f);\n      render(); log(`Modified: ${f} → now in working tree (unstaged)`);\n    }\n\n    function stageAll() {\n      if (!wt.length) { log('Nothing to stage — edit a file first.'); return; }\n      wt.forEach(f => { if (!idx.includes(f)) idx.push(f); });\n      wt = []; render(); log(`git add . → ${idx.length} file(s) staged`);\n    }\n\n    function doCommit() {\n      if (!idx.length) { log('Nothing staged — run git add first.'); return; }\n      const msg = msgs[cidx % msgs.length]; cidx++;\n      hist.unshift(`\"${msg}\"`);\n      idx = []; render(); log(`git commit -m '${msg}' → saved to history ✅`);\n    }\n\n    function resetAll() { wt = []; idx = []; hist = []; fidx = 0; cidx = 0; render(); log('Reset.'); }\n    render();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "git-add-q1",
+          "question": "What does git add . do?",
+          "type": "multiple-choice",
+          "options": [
+            "Commits all changes immediately",
+            "Stages all changed files in the current directory for the next commit",
+            "Adds a new remote",
+            "Creates a new branch"
+          ],
+          "correctAnswer": 1,
+          "explanation": "git add . stages all new and modified files in the current directory (and subdirectories). It does NOT commit — that's a separate step with git commit."
+        },
+        {
+          "id": "git-add-q2",
+          "question": "Why does Git have a staging area instead of committing directly?",
+          "type": "multiple-choice",
+          "options": [
+            "It's a legacy from old Git versions",
+            "To let you choose exactly which changes go into each commit",
+            "To make Git slower and more careful",
+            "Because GitHub requires it"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The staging area lets you craft precise commits. You might change 5 files but only want to commit 2 of them together. git add -p even lets you stage specific lines within a file."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What should I put in .gitignore?",
+      "a": "node_modules/, .env files, build output (dist/, build/), OS files (.DS_Store, Thumbs.db), editor files (.vscode/, .idea/), compiled binaries. GitHub provides starter .gitignore templates for every language at github.com/github/gitignore."
+    },
+    {
+      "q": "Can I unstage something after git add?",
+      "a": "Yes. git restore --staged <file> removes a file from the staging area without touching your working copy. The change stays in your working tree — it just won't be in the next commit."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Git Documentation — Recording Changes",
+      "url": "https://git-scm.com/book/en/v2/Git-Basics-Recording-Changes-to-the-Repository",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every day of a developer's work", "CI/CD pipelines", "code reviews"],
+    "examples": [
+      "Conventional Commits spec: feat:, fix:, docs:, chore: prefixes enable automated changelogs",
+      "git commit --amend fixes the last commit message before pushing to a PR",
+      "git add -p is used to split a large change into multiple focused commits"
+    ]
+  }
+}

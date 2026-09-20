@@ -1,0 +1,141 @@
+{
+  "id": "03-init-clone",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "git",
+  "technologyVersion": "Git 2.x",
+  "module": "git-foundations",
+  "title": "init & clone",
+  "subtitle": "Start a new repo or copy an existing one",
+  "difficulty": "beginner",
+  "estimatedMinutes": 15,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["git/02-install-config"],
+  "skillsTaught": ["git.init", "git.clone", "git.repository"],
+  "skillsUsed": ["git.config"],
+  "relatedConcepts": ["git.commits", "git.remote"],
+  "whyItExists": {
+    "problem": "You either start a new project from scratch or join an existing one. In both cases, you need a local Git repository to start tracking changes.",
+    "solution": "git init creates a new empty repo in any folder. git clone downloads a copy of an existing remote repo (from GitHub or anywhere).",
+    "whenToUse": "init for brand new projects. clone for any existing GitHub repo — open-source projects, team repos, or your own repos on a new machine.",
+    "whenNotToUse": "Don't run git init inside an existing Git repo (nested repos create complex situations). Check with git status first."
+  },
+  "explainModes": {
+    "beginner": "git init tells Git to start watching a folder. git clone downloads a project from GitHub to your computer so you can work on it locally.",
+    "simple": "git init — creates a .git hidden folder in your current directory, making it a Git repo. git clone <url> — downloads a full copy of a remote repo including all history. Both give you a local repo to work in.",
+    "standard": "git init sets up a local repo from scratch. git clone does three things: fetches the remote, sets up tracking branches, and checks out the default branch. After cloning, origin is automatically set as the remote name for the source URL.",
+    "technical": "git init creates the .git directory with HEAD, config, description, hooks/, info/, objects/, and refs/. git clone --bare creates a repo without a working tree — used for server-side repos. git clone --depth 1 creates a shallow clone with only the most recent commit — faster for CI but lacks history.",
+    "deepDive": "The .git directory is the entire repository — delete it and you lose all history. git init --separate-git-dir moves .git to another location, useful for tracking dotfiles. git clone supports multiple transport protocols: https://, git://, ssh://, and file://. SSH cloning is more secure for private repos. The git bundle command creates a single-file transportable repo snapshot for airgapped environments."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "git init — start tracking a folder"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "init.sh",
+      "code": "# Navigate to your project folder\ncd my-project\n\n# Initialise a Git repository\ngit init\n# → Initialized empty Git repository in /path/to/my-project/.git/\n\n# OR create a new folder and init in one step\ngit init my-new-project\ncd my-new-project\n\n# See the hidden .git folder (use -a to show hidden files)\nls -a\n# → .  ..  .git"
+    },
+    {
+      "type": "paragraph",
+      "text": "The .git folder is Git's database — it stores your entire history. Don't delete or edit it manually."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "git clone — download an existing repo"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "clone.sh",
+      "code": "# Clone from GitHub (HTTPS — easier for beginners)\ngit clone https://github.com/prashantkeshr/KERNAL.git\n\n# Clone from GitHub (SSH — more secure, no password prompts)\ngit clone git@github.com:prashantkeshr/KERNAL.git\n\n# Clone into a specific folder name\ngit clone https://github.com/user/repo.git my-folder\n\n# Shallow clone — only last 1 commit (faster for large repos)\ngit clone --depth 1 https://github.com/user/repo.git\n\n# After cloning:\ncd KERNAL\ngit remote -v    # shows the 'origin' remote was set up automatically"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The typical new-project workflow"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "new-project.sh",
+      "code": "# 1. Create folder and init\nmkdir my-website && cd my-website\ngit init\n\n# 2. Create your first file\necho '# My Website' > README.md\n\n# 3. Stage and commit (covered next lesson)\ngit add README.md\ngit commit -m \"Initial commit\"\n\n# 4. Create a repo on GitHub, then add it as remote\ngit remote add origin https://github.com/yourname/my-website.git\n\n# 5. Push\ngit push -u origin main"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Simulate git init and clone",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    .term { background:#0b0e14; border:1px solid #2d3748; border-radius:8px; padding:16px; font-family:'Fira Code',monospace; font-size:0.85rem; min-height:120px; margin-bottom:16px; }\n    .prompt { color:#4fd1c5; } .cmd { color:#e2e8f0; } .out { color:#94a3b8; display:block; margin-top:2px; }\n    button { background:#4fd1c5; color:#0e1116; border:none; padding:8px 18px; border-radius:6px; font-weight:700; cursor:pointer; margin:4px; font-size:0.85rem; }\n    .file-tree { background:#1a1f2b; border:1px solid #2d3748; border-radius:6px; padding:12px; font-family:monospace; font-size:0.85rem; color:#94a3b8; }\n    .folder { color:#4fd1c5; } .hidden { color:#64748b; } .file { color:#e2e8f0; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">git init vs git clone</h2>\n  <button onclick=\"runInit()\">git init my-project</button>\n  <button onclick=\"runClone()\">git clone from GitHub</button>\n  <button onclick=\"clearAll()\">Clear</button>\n  <div class=\"term\" id=\"term\"><span style=\"color:#64748b\">(click a button)</span></div>\n  <p id=\"tree-label\" style=\"color:#94a3b8;font-size:0.85rem;display:none\">Resulting folder structure:</p>\n  <div class=\"file-tree\" id=\"tree\" style=\"display:none\"></div>\n\n  <script>\n    const term = document.getElementById('term');\n    const tree = document.getElementById('tree');\n    const treeLabel = document.getElementById('tree-label');\n\n    function log(prompt, cmd, outs) {\n      const lines = [`<div><span class=\"prompt\">${prompt}</span> <span class=\"cmd\">${cmd}</span></div>`];\n      outs.forEach(o => lines.push(`<span class=\"out\">${o}</span>`));\n      term.innerHTML += lines.join('');\n    }\n\n    function clearAll() {\n      term.innerHTML = '';\n      tree.style.display = 'none';\n      treeLabel.style.display = 'none';\n    }\n\n    function runInit() {\n      clearAll();\n      log('$', 'mkdir my-project && cd my-project', []);\n      log('$', 'git init', ['→ Initialized empty Git repository in my-project/.git/']);\n      log('$', 'ls -a', ['.  ..  .git']);\n      treeLabel.style.display = 'block';\n      tree.style.display = 'block';\n      tree.innerHTML = [\n        '<span class=\"folder\">my-project/</span>',\n        '<br>&nbsp;&nbsp;<span class=\"hidden\">.git/</span> &nbsp;<span style=\"color:#64748b;font-size:0.75rem\">(Git database — don\\'t touch!)</span>',\n        '<br>&nbsp;&nbsp;&nbsp;&nbsp;<span class=\"hidden\">HEAD</span>',\n        '<br>&nbsp;&nbsp;&nbsp;&nbsp;<span class=\"hidden\">config</span>',\n        '<br>&nbsp;&nbsp;&nbsp;&nbsp;<span class=\"hidden\">objects/</span>',\n        '<br>&nbsp;&nbsp;&nbsp;&nbsp;<span class=\"hidden\">refs/</span>',\n        '<br><span style=\"color:#94a3b8;font-size:0.75rem;margin-top:8px;display:block\">(No files yet — make your first commit next!)</span>',\n      ].join('');\n    }\n\n    function runClone() {\n      clearAll();\n      log('$', 'git clone https://github.com/prashantkeshr/KERNAL.git', [\n        'Cloning into \\'KERNAL\\'...',\n        'remote: Enumerating objects: 342, done.',\n        'remote: Counting objects: 100% (342/342), done.',\n        'remote: Total 342 (delta 0), reused 0 (delta 0)',\n        'Receiving objects: 100% (342/342), 1.24 MiB | 2.1 MiB/s, done.',\n        '✅ Done. Now run: cd KERNAL',\n      ]);\n      log('$', 'cd KERNAL && git remote -v', [\n        'origin  https://github.com/prashantkeshr/KERNAL.git (fetch)',\n        'origin  https://github.com/prashantkeshr/KERNAL.git (push)',\n      ]);\n      treeLabel.style.display = 'block';\n      tree.style.display = 'block';\n      tree.innerHTML = [\n        '<span class=\"folder\">KERNAL/</span>',\n        '<br>&nbsp;&nbsp;<span class=\"hidden\">.git/</span> &nbsp;<span style=\"color:#64748b;font-size:0.75rem\">(full history downloaded)</span>',\n        '<br>&nbsp;&nbsp;<span class=\"file\">public/</span>',\n        '<br>&nbsp;&nbsp;<span class=\"file\">src/</span>',\n        '<br>&nbsp;&nbsp;<span class=\"file\">package.json</span>',\n        '<br>&nbsp;&nbsp;<span class=\"file\">README.md</span>',\n        '<br><span style=\"color:#94a3b8;font-size:0.75rem;margin-top:8px;display:block\">(origin remote set up automatically)</span>',\n      ].join('');\n    }\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "git-init-q1",
+          "question": "What does git clone do?",
+          "type": "multiple-choice",
+          "options": [
+            "Creates a new empty repository",
+            "Downloads a full copy of a remote repository including all history",
+            "Copies files from one folder to another",
+            "Creates a new branch"
+          ],
+          "correctAnswer": 1,
+          "explanation": "git clone downloads the entire repository (all commits, all branches) from a remote URL to your local machine, and automatically sets 'origin' as the remote name."
+        },
+        {
+          "id": "git-init-q2",
+          "question": "Where does Git store the repository's data?",
+          "type": "multiple-choice",
+          "options": [
+            "In a file called git.db",
+            "In the hidden .git folder",
+            "On GitHub only",
+            "In your home directory"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The .git hidden folder in your project root contains the entire repository database — all commits, branches, config, and objects. Deleting it removes all history."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between HTTPS and SSH cloning?",
+      "a": "HTTPS (https://github.com/...) is simpler — use your GitHub username and a personal access token as the password. SSH (git@github.com:...) uses a key pair stored on your machine — more secure and no password prompts once set up. SSH is recommended for developers who push often."
+    },
+    {
+      "q": "Can I accidentally overwrite an existing repo with git init?",
+      "a": "Running git init in an already-tracked folder is safe — it just re-initializes. It won't delete history. But avoid running it inside another repo's subfolder unless you intentionally want a submodule."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Git Documentation — git init",
+      "url": "https://git-scm.com/docs/git-init",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "Git Documentation — git clone",
+      "url": "https://git-scm.com/docs/git-clone",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["starting any new project", "onboarding to a team codebase", "contributing to open-source"],
+    "examples": [
+      "Your first day at a new job: git clone https://github.com/company/main-app.git",
+      "Contributing to open-source: fork on GitHub, then git clone your fork",
+      "Backing up a local project: git init, then push to a new GitHub repo"
+    ]
+  }
+}

@@ -1,0 +1,119 @@
+{
+  "id": "14-pull-requests",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "git",
+  "technologyVersion": "Git 2.x",
+  "module": "git-github",
+  "title": "Pull Requests",
+  "subtitle": "Propose, review, and merge changes on GitHub",
+  "difficulty": "beginner",
+  "estimatedMinutes": 18,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["git/13-github-repos"],
+  "skillsTaught": ["github.pull-requests", "github.code-review"],
+  "skillsUsed": ["git.branches", "git.push"],
+  "relatedConcepts": ["github.actions", "git.merge"],
+  "whyItExists": {
+    "problem": "On a shared codebase, anyone pushing directly to main can break things for everyone. You need a process to propose, review, and approve changes before they land.",
+    "solution": "A Pull Request is a proposal to merge one branch into another. It shows the diff, collects reviewer comments, runs CI checks, and records the decision — all before any merge happens.",
+    "whenToUse": "For any change to a shared branch. Even solo projects benefit: PRs force you to review your own changes before merging.",
+    "whenNotToUse": "Tiny solo projects where you're the only contributor can skip PRs. But on any team project, PRs are non-negotiable."
+  },
+  "explainModes": {
+    "beginner": "A Pull Request is how you say 'I'd like to add these changes to the main codebase. Can someone review it first?' Reviewers look at the diff, leave comments, and approve or request changes. Once approved, it gets merged.",
+    "simple": "Create a branch → push it → click 'Compare & pull request' on GitHub → fill in description → assign reviewers → wait for review → address comments → approved → merge. The PR shows exactly which commits and lines changed.",
+    "standard": "A PR has: title, description, commits, diff (Files changed tab), reviewers, labels, milestone, linked issues. Review states: Comment (feedback only), Approve, Request changes. Required reviews and status checks can block merging. Merge strategies: merge commit, squash and merge, rebase and merge.",
+    "technical": "GitHub's PR system uses refs: refs/pull/<number>/head (the PR branch) and refs/pull/<number>/merge (the merge preview). Draft PRs signal WIP. CODEOWNERS file routes reviews to the right team. Protected branches enforce rules: minimum approvals, dismiss stale reviews, require status checks. GitHub Actions can auto-label PRs, run linters, post coverage reports as PR comments.",
+    "deepDive": "GitHub's review system creates review threads per diff hunk. Suggestion blocks (```suggestion) let reviewers propose exact code changes the author can apply with one click. Co-authored commits (Co-authored-by:) give credit to pair reviewers. Auto-merge (git merge when all checks pass) speeds up high-trust workflows. Merge queues (GitHub Enterprise) serialize concurrent PRs to prevent integration failures."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Creating a Pull Request"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "create-pr.sh",
+      "code": "# 1. Create and push a feature branch\ngit switch -c feature/user-profile\n# ... make changes ...\ngit add .\ngit commit -m \"Add user profile page\"\ngit push -u origin feature/user-profile\n\n# GitHub shows a banner: 'Compare & pull request'\n# Click it, or use the GitHub CLI:\n\ngh pr create \\\n  --title \"Add user profile page\" \\\n  --body \"Closes #42. Adds profile page with avatar, bio, and stats.\" \\\n  --reviewer teammate-username\n\n# See your open PRs\ngh pr list\n\n# Check out a teammate's PR locally to test it\ngh pr checkout 42"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Writing a good PR description"
+    },
+    {
+      "type": "code",
+      "lang": "markdown",
+      "filename": "pr-description.md",
+      "code": "## What changed\n- Added `/profile` route with UserProfile component\n- Avatar upload using existing S3 integration\n- Bio field limited to 160 characters (Twitter-style)\n\n## Why\nCloses #42 — users requested the ability to customise their public profile.\n\n## How to test\n1. Log in, click your avatar → 'Edit profile'\n2. Upload a photo — check it appears in the header\n3. Edit bio, save — confirm it persists on reload\n\n## Screenshots\n[Attach before/after screenshots here]\n\n## Checklist\n- [x] Tests added\n- [x] Mobile-responsive\n- [x] Accessibility: form labels, ARIA"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Reviewing a PR"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "review-pr.sh",
+      "code": "# Check out the PR locally\ngh pr checkout 42\n\n# Run it, test it\nnpm run dev\n\n# Leave a review via CLI\ngh pr review 42 --approve --body \"Looks great! Tested locally.\"\ngh pr review 42 --request-changes --body \"Please add error handling for network failure\"\n\n# After approval — merge\ngh pr merge 42 --squash --delete-branch\n# Options: --merge (merge commit), --squash (one commit), --rebase"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: PR lifecycle",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    .pr-card { background:#1a1f2b; border:1px solid #2d3748; border-radius:10px; padding:18px; max-width:600px; }\n    .pr-header { display:flex; align-items:center; gap:10px; margin-bottom:12px; }\n    .pr-status { padding:3px 10px; border-radius:12px; font-size:0.75rem; font-weight:700; }\n    .open { background:#22c55e22; color:#22c55e; border:1px solid #22c55e44; }\n    .review { background:#f7df1e22; color:#f7df1e; border:1px solid #f7df1e44; }\n    .approved { background:#4fd1c522; color:#4fd1c5; border:1px solid #4fd1c544; }\n    .merged { background:#a78bfa22; color:#a78bfa; border:1px solid #a78bfa44; }\n    .pr-meta { font-size:0.78rem; color:#94a3b8; margin-bottom:12px; }\n    .checks { margin:10px 0; }\n    .check { display:flex; align-items:center; gap:8px; font-size:0.8rem; padding:4px 0; }\n    .check-ok { color:#22c55e; } .check-fail { color:#ef4444; } .check-pending { color:#f7df1e; }\n    .review-box { background:#0b0e14; border-radius:6px; padding:10px 12px; margin:8px 0; font-size:0.82rem; }\n    .controls { display:flex; flex-wrap:wrap; gap:6px; margin-top:14px; }\n    button { padding:6px 14px; border:none; border-radius:5px; font-weight:700; cursor:pointer; font-size:0.78rem; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">PR Lifecycle Simulator</h2>\n  <div class=\"pr-card\" id=\"card\">\n    <div class=\"pr-header\">\n      <span style=\"color:#4fd1c5;font-size:1.1rem\">⬆</span>\n      <strong>#42 Add user profile page</strong>\n      <span class=\"pr-status\" id=\"status-badge\">Open</span>\n    </div>\n    <div class=\"pr-meta\" id=\"meta\">feature/user-profile → main · 3 commits · by Prashant</div>\n    <div class=\"checks\" id=\"checks\"></div>\n    <div id=\"reviews\"></div>\n    <div class=\"controls\" id=\"controls\"></div>\n  </div>\n\n  <script>\n    let stage = 0;\n    const stages = [\n      {\n        badge:'Open', badgeCls:'open',\n        checks:[{icon:'⏳',cls:'check-pending',text:'CI: Tests running...'}],\n        reviews:[],\n        buttons:[{label:'CI passes ✅',action:1}],\n      },\n      {\n        badge:'In review', badgeCls:'review',\n        checks:[{icon:'✅',cls:'check-ok',text:'CI: All 42 tests passed'}],\n        reviews:[],\n        buttons:[{label:'Reviewer: Request changes',action:2},{label:'Reviewer: Approve',action:3}],\n      },\n      {\n        badge:'Changes requested', badgeCls:'review',\n        checks:[{icon:'✅',cls:'check-ok',text:'CI: All 42 tests passed'}],\n        reviews:[{author:'Ana',type:'request-changes',text:'Please add error state for the avatar upload.'}],\n        buttons:[{label:'Author: Push fix',action:3}],\n      },\n      {\n        badge:'Approved ✅', badgeCls:'approved',\n        checks:[{icon:'✅',cls:'check-ok',text:'CI: All 43 tests passed'},{icon:'✅',cls:'check-ok',text:'Coverage: 87% (above threshold)'}],\n        reviews:[{author:'Ana',type:'approved',text:'LGTM! Great error handling.'}],\n        buttons:[{label:'Merge PR',action:4}],\n      },\n      {\n        badge:'Merged', badgeCls:'merged',\n        checks:[{icon:'✅',cls:'check-ok',text:'CI: All 43 tests passed'},{icon:'✅',cls:'check-ok',text:'Deployed to production ✅'}],\n        reviews:[{author:'Ana',type:'approved',text:'LGTM! Great error handling.'}],\n        buttons:[{label:'Start over',action:0}],\n      },\n    ];\n\n    function render() {\n      const s = stages[stage];\n      document.getElementById('status-badge').textContent = s.badge;\n      document.getElementById('status-badge').className = 'pr-status ' + s.badgeCls;\n      document.getElementById('checks').innerHTML = s.checks.map(c=>`<div class=\"check\"><span class=\"${c.cls}\">${c.icon}</span>${c.text}</div>`).join('');\n      document.getElementById('reviews').innerHTML = s.reviews.map(r=>{\n        const col = r.type==='approved'?'#22c55e':'#f7df1e';\n        return `<div class=\"review-box\"><strong style=\"color:${col}\">${r.author} ${r.type==='approved'?'approved':'requested changes'}:</strong> ${r.text}</div>`;\n      }).join('');\n      document.getElementById('controls').innerHTML = s.buttons.map(b=>`<button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"go(${b.action})\">${b.label}</button>`).join('');\n    }\n\n    function go(s) { stage=s; render(); }\n    render();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "github-pr-q1",
+          "question": "What is the purpose of a Pull Request?",
+          "type": "multiple-choice",
+          "options": [
+            "To pull changes from a remote",
+            "To propose merging a branch, show the diff, and enable code review before merging",
+            "To delete a branch from GitHub",
+            "To run tests automatically"
+          ],
+          "correctAnswer": 1,
+          "explanation": "A PR proposes merging one branch into another. It shows the diff, allows comments and reviews, runs CI checks, and records who approved it — all before the merge happens. The name 'pull request' means 'please pull my changes into your branch'."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Should I squash, merge, or rebase merge a PR?",
+      "a": "Squash (all PR commits → one commit on main) — clean history, best for most PRs. Merge commit (preserves all commits + adds a merge commit) — useful when branch history matters. Rebase and merge (replays each commit onto main linearly, no merge commit) — clean but rewrites hashes. Most teams pick one strategy and stick to it."
+    },
+    {
+      "q": "What does 'Closes #42' in a PR description do?",
+      "a": "GitHub automatically links the PR to issue #42 and closes the issue when the PR is merged. Also works with: Fixes #42, Resolves #42."
+    }
+  ],
+  "sources": [
+    {
+      "name": "GitHub Docs — About Pull Requests",
+      "url": "https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every professional team using GitHub", "open-source contributions", "solo developer self-review"],
+    "examples": [
+      "GitHub's own codebase has thousands of open PRs — all merged via PR, including by core engineers",
+      "Draft PRs ('WIP: ...') signal to teammates that review isn't needed yet",
+      "CODEOWNERS auto-assigns reviewers based on which files were changed"
+    ]
+  }
+}

@@ -55,7 +55,7 @@
     "order": 4,
     "stage": 4,
     "playground": "terminal",
-    "enabled": false,
+    "enabled": true,
     "description": "Version control and collaboration",
     "estimatedHours": 10
   },

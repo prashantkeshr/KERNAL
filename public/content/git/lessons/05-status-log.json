@@ -1,0 +1,125 @@
+{
+  "id": "05-status-log",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "git",
+  "technologyVersion": "Git 2.x",
+  "module": "git-core",
+  "title": "status & log",
+  "subtitle": "Inspect your repo state and history",
+  "difficulty": "beginner",
+  "estimatedMinutes": 15,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["git/04-add-commit"],
+  "skillsTaught": ["git.status", "git.log", "git.diff", "git.show"],
+  "skillsUsed": ["git.add", "git.commit"],
+  "relatedConcepts": ["git.branches", "git.remote"],
+  "whyItExists": {
+    "problem": "After working for an hour, you need to know: what files did I change? What did I commit? Did I already stage that fix? Without inspection commands, you're flying blind.",
+    "solution": "git status shows the current state of your working tree and staging area. git log shows the commit history. git diff shows exactly what changed line by line.",
+    "whenToUse": "Before every commit (git status). Before pushing (git log). When reviewing what changed (git diff). Constantly.",
+    "whenNotToUse": "These are read-only commands — safe to run anytime."
+  },
+  "explainModes": {
+    "beginner": "git status tells you what's changed and what's staged. git log shows the list of commits like a timeline. git diff shows the actual lines that changed — additions in green, deletions in red.",
+    "simple": "git status — shows modified, staged, and untracked files. git log --oneline -- compact history. git diff -- working tree vs staging. git diff --staged -- staging vs last commit. git show <hash> -- shows a specific commit.",
+    "standard": "git status --short (-s) shows a compact two-column format: left column = staging area, right = working tree. git log has powerful formatting: --graph (branch diagram), --all (all branches), --author, --since, --grep. git log -p shows the diff for each commit. git diff HEAD compares working tree to last commit.",
+    "technical": "git log follows the parent chain from HEAD backward. The reflog (git reflog) records every change to HEAD, including resets and rebases — a safety net for recovering deleted commits. git bisect uses binary search over the commit history to find which commit introduced a bug. git blame <file> shows the last commit for every line of a file.",
+    "deepDive": "git log --format accepts printf-style format strings: %H (full hash), %h (short), %an (author name), %ae (author email), %s (subject), %cd (commit date). Git notes (git notes) attach metadata to commits without changing their hash. Git's diff algorithm can be configured: myers (default), histogram (better for code), patience (better for long files). git log --follow tracks a file across renames."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "git status"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "status.sh",
+      "code": "$ git status\nOn branch main\nYour branch is up to date with 'origin/main'.\n\nChanges to be committed:\n  (use \"git restore --staged <file>...\" to unstage)\n        modified:   src/index.html        ← STAGED\n\nChanges not staged for commit:\n  (use \"git add <file>...\" to update what will be committed)\n        modified:   src/style.css         ← MODIFIED\n\nUntracked files:\n  (use \"git add <file>...\" to include in what will be committed)\n        src/new-page.html                 ← NEW"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "status-short.sh",
+      "code": "# Short format — compact view\n$ git status -s\nM  src/index.html   ← staged (green M)\n M src/style.css    ← unstaged (red M)\n?? src/new-page.html  ← untracked"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "git log — view history"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "log.sh",
+      "code": "# Full log\ngit log\n\n# Compact one-line per commit\ngit log --oneline\n# a3f2c1d (HEAD -> main) Add dark mode toggle\n# 8b9e4f2 Fix login button on mobile\n# 2c1a5e8 Add user profile page\n\n# With branch graph (great for visualising merges)\ngit log --oneline --graph --all\n\n# Filter by author\ngit log --author=\"Prashant\"\n\n# Filter by date\ngit log --since=\"2 weeks ago\"\ngit log --after=\"2026-09-01\"\n\n# Search commit messages\ngit log --grep=\"fix\"\n\n# Show what changed in each commit (patches)\ngit log -p"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "git diff — see what changed"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "diff.sh",
+      "code": "# Unstaged changes (working tree vs staging area)\ngit diff\n\n# Staged changes (staging area vs last commit)\ngit diff --staged\n\n# All changes (working tree vs last commit)\ngit diff HEAD\n\n# Compare two commits\ngit diff a3f2c1d 8b9e4f2\n\n# See what a specific commit changed\ngit show a3f2c1d\n\n# See diff for one file only\ngit diff HEAD -- src/index.html"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Explore git log",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    .term { background:#0b0e14; border:1px solid #2d3748; border-radius:8px; padding:16px; font-family:'Fira Code',monospace; font-size:0.8rem; margin-bottom:12px; }\n    .hash { color:#4fd1c5; } .ref { color:#f7df1e; } .date { color:#94a3b8; } .author { color:#a78bfa; }\n    .add { color:#4ade80; } .del { color:#ef4444; }\n    button { background:#1a1f2b; border:1px solid #2d3748; color:#e2e8f0; padding:6px 14px; border-radius:5px; cursor:pointer; margin:3px; font-size:0.8rem; }\n    button:hover { border-color:#4fd1c5; color:#4fd1c5; }\n    button.active { border-color:#4fd1c5; color:#4fd1c5; background:#0e2020; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">git log Explorer</h2>\n  <div style=\"margin-bottom:12px\">\n    <button onclick=\"show('oneline')\" id=\"btn-oneline\" class=\"active\">--oneline</button>\n    <button onclick=\"show('graph')\" id=\"btn-graph\">--graph --all</button>\n    <button onclick=\"show('full')\" id=\"btn-full\">Full log</button>\n    <button onclick=\"show('diff')\" id=\"btn-diff\">git diff HEAD</button>\n  </div>\n  <div class=\"term\" id=\"output\"></div>\n\n  <script>\n    const commits = [\n      {hash:'a3f2c1d',full:'a3f2c1d8e9f1b2c3',msg:'Add dark mode toggle',author:'Prashant',date:'2026-09-20',branch:'HEAD → main'},\n      {hash:'8b9e4f2',full:'8b9e4f2a1c3d5e6f',msg:'Fix login redirect on mobile',author:'Prashant',date:'2026-09-19'},\n      {hash:'2c1a5e8',full:'2c1a5e8b9d0f1a2b',msg:'Add user profile page',author:'Ana',date:'2026-09-18'},\n      {hash:'d7f3b91',full:'d7f3b910c2d4e5f6',msg:'Style navigation with flexbox',author:'Ben',date:'2026-09-17'},\n      {hash:'f1e2a3b',full:'f1e2a3b4c5d6e7f8',msg:'Initial commit',author:'Prashant',date:'2026-09-15'},\n    ];\n\n    function setActive(id) {\n      document.querySelectorAll('button').forEach(b => b.classList.remove('active'));\n      document.getElementById(id).classList.add('active');\n    }\n\n    function show(mode) {\n      setActive('btn-'+mode);\n      const out = document.getElementById('output');\n      if (mode === 'oneline') {\n        out.innerHTML = commits.map(c =>\n          `<div><span class=\"hash\">${c.hash}</span> ${c.branch ? `<span class=\"ref\">(${c.branch})</span> ` : ''}${c.msg}</div>`\n        ).join('');\n      } else if (mode === 'graph') {\n        out.innerHTML = commits.map((c,i) =>\n          `<div><span class=\"ref\">*</span> <span class=\"hash\">${c.hash}</span> ${c.branch ? `<span class=\"ref\">(${c.branch})</span> ` : ''}${c.msg}</div>`\n        ).join('').replace('*','*').replace(commits[1].hash, `| <span class=\"hash\">${commits[1].hash}</span>`);\n        // simplified graph\n        out.innerHTML = [\n          `<div><span style=\"color:#4fd1c5\">*</span> <span class=\"hash\">a3f2c1d</span> <span class=\"ref\">(HEAD→main)</span> Add dark mode toggle</div>`,\n          `<div><span style=\"color:#4fd1c5\">*</span> <span class=\"hash\">8b9e4f2</span> Fix login redirect on mobile</div>`,\n          `<div><span style=\"color:#a78bfa\">|\\\\</span></div>`,\n          `<div><span style=\"color:#4fd1c5\">*</span> <span style=\"color:#a78bfa\">|</span> <span class=\"hash\">2c1a5e8</span> Add user profile page</div>`,\n          `<div><span style=\"color:#a78bfa\">| *</span> <span class=\"hash\">f9e2d1c</span> <span class=\"ref\">(feature/auth)</span> Add OAuth login</div>`,\n          `<div><span style=\"color:#4fd1c5\">*</span> <span style=\"color:#a78bfa\">|</span> <span class=\"hash\">d7f3b91</span> Style navigation</div>`,\n          `<div><span style=\"color:#4fd1c5\">*</span> <span style=\"color:#a78bfa\">/</span></div>`,\n          `<div><span style=\"color:#4fd1c5\">*</span> <span class=\"hash\">f1e2a3b</span> Initial commit</div>`,\n        ].join('');\n      } else if (mode === 'full') {\n        out.innerHTML = commits.map(c => [\n          `<div style=\"margin-bottom:12px\">`,\n          `<div><strong>commit</strong> <span class=\"hash\">${c.full}</span>${c.branch ? ` <span class=\"ref\">(${c.branch})</span>` : ''}</div>`,\n          `<div><span class=\"author\">Author: ${c.author} &lt;${c.author.toLowerCase()}@example.com&gt;</span></div>`,\n          `<div><span class=\"date\">Date:   ${c.date}</span></div>`,\n          `<div style=\"margin-top:6px;padding-left:8px\">${c.msg}</div>`,\n          `</div>`,\n        ].join('')).join('<hr style=\"border-color:#2d3748\">');\n      } else {\n        out.innerHTML = [\n          `<div style=\"color:#94a3b8\">diff --git a/src/index.html b/src/index.html</div>`,\n          `<div style=\"color:#94a3b8\">index 83db48f..bf268d4 100644</div>`,\n          `<div style=\"color:#94a3b8\">--- a/src/index.html</div>`,\n          `<div style=\"color:#94a3b8\">+++ b/src/index.html</div>`,\n          `<div style=\"color:#94a3b8\">@@ -12,7 +12,7 @@</div>`,\n          `<div>&nbsp;&nbsp;&lt;header class=\"nav\"&gt;</div>`,\n          `<div class=\"del\">-  &lt;button class=\"theme\"&gt;Light&lt;/button&gt;</div>`,\n          `<div class=\"add\">+  &lt;button class=\"theme\" data-theme=\"dark\"&gt;🌙 Dark&lt;/button&gt;</div>`,\n          `<div>&nbsp;&nbsp;&lt;/header&gt;</div>`,\n        ].join('');\n      }\n    }\n    show('oneline');\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "git-log-q1",
+          "question": "What does git log --oneline show?",
+          "type": "multiple-choice",
+          "options": [
+            "Only the most recent commit",
+            "All commits, one per line with short hash and message",
+            "Only commits from today",
+            "The staged changes"
+          ],
+          "correctAnswer": 1,
+          "explanation": "--oneline shows all commits in the current branch's history, one per line: short hash + commit message. Add --all to include all branches."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do I search for a commit that introduced a bug?",
+      "a": "Use git bisect — it binary-searches your history to find the bad commit. Start with git bisect start, mark the current commit as bad with git bisect bad, mark a known-good commit with git bisect good <hash>, then Git checks out the midpoint for you to test."
+    },
+    {
+      "q": "How do I see who last changed a line?",
+      "a": "git blame <filename> shows each line with the commit hash, author, and date of the last change. In VS Code, the GitLens extension shows blame inline while you code."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Git Documentation — Viewing the Commit History",
+      "url": "https://git-scm.com/book/en/v2/Git-Basics-Viewing-the-Commit-History",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["code reviews", "debugging (who wrote this?)", "release notes generation", "audit trails"],
+    "examples": [
+      "git log --oneline --since='last month' --author='Prashant' — shows your contributions this month",
+      "git bisect automate — find a regression across hundreds of commits in minutes",
+      "git blame lets you track down the context behind any line of code"
+    ]
+  }
+}

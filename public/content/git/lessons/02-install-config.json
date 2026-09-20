@@ -1,0 +1,126 @@
+{
+  "id": "02-install-config",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "git",
+  "technologyVersion": "Git 2.x",
+  "module": "git-foundations",
+  "title": "Install & Configure",
+  "subtitle": "Set up Git on your machine for the first time",
+  "difficulty": "beginner",
+  "estimatedMinutes": 12,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["git/01-what-is-git"],
+  "skillsTaught": ["git.install", "git.config"],
+  "skillsUsed": [],
+  "relatedConcepts": ["git.commits", "git.remote"],
+  "whyItExists": {
+    "problem": "Before you can use Git, it needs to know who you are — your name and email are embedded in every commit you make. A one-time setup prevents anonymous or mis-attributed commits.",
+    "solution": "Install Git for your OS, then run two global config commands to set your identity. This is done once and applies to all your repos.",
+    "whenToUse": "On any new machine before using Git for the first time.",
+    "whenNotToUse": "If you're using a shared machine or CI environment, prefer per-repo config or environment variables over global config."
+  },
+  "explainModes": {
+    "beginner": "Installing Git is like installing any program. After that, you tell Git your name and email with two commands. Done — you're set up for life on this machine.",
+    "simple": "Install Git (git-scm.com or your package manager). Then: git config --global user.name 'Your Name' and git config --global user.email 'you@example.com'. Check with git config --list.",
+    "standard": "--global stores config in ~/.gitconfig (your home directory). It applies to all repos. --local stores in the repo's .git/config and overrides global. --system applies to all users on the machine. The most useful settings: user.name, user.email, core.editor, init.defaultBranch.",
+    "technical": "Git config is a cascading system: system → global → local → worktree. Later levels override earlier ones. git config --list --show-origin shows all settings and which file each comes from. Conditional includes ([includeIf 'gitdir:~/work/']) let you use different identities for different directories — useful for personal vs work repos on the same machine.",
+    "deepDive": "The gitconfig format is INI-style. Values are parsed as string, bool, int, path, or color depending on the key. git config --type=bool core.bare returns 'true'/'false'. Credential helpers (credential.helper) store HTTPS credentials — macOS uses Keychain, Windows uses the Windows Credential Manager, Linux uses gnome-libsecret or a plaintext store. SSH keys (ed25519 recommended over RSA) are the more secure alternative to HTTPS passwords for authentication."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Installing Git"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "install.sh",
+      "code": "# macOS (via Homebrew)\nbrew install git\n\n# Ubuntu / Debian\nsudo apt update && sudo apt install git\n\n# Windows\n# Download from https://git-scm.com/download/win\n# Or via winget:\nwinget install --id Git.Git\n\n# Verify installation\ngit --version\n# → git version 2.45.0"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "First-time configuration"
+    },
+    {
+      "type": "paragraph",
+      "text": "These two commands are the only required setup. Run them once on each machine you use Git on."
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "config.sh",
+      "code": "# Set your identity — embedded in every commit\ngit config --global user.name \"Prashant Kumar\"\ngit config --global user.email \"prashant@example.com\"\n\n# Set default branch name to 'main' (modern standard)\ngit config --global init.defaultBranch main\n\n# Set your preferred editor for commit messages\ngit config --global core.editor \"code --wait\"   # VS Code\n# git config --global core.editor \"nano\"          # Nano (simpler)\n# git config --global core.editor \"vim\"           # Vim\n\n# Verify all settings\ngit config --list"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Useful optional settings"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "optional-config.sh",
+      "code": "# Colorised output (usually on by default)\ngit config --global color.ui auto\n\n# Better diff output\ngit config --global diff.algorithm histogram\n\n# Rebase instead of merge when pulling (cleaner history)\ngit config --global pull.rebase true\n\n# Show shortcuts — list all aliases\ngit config --global alias.st status\ngit config --global alias.co checkout\ngit config --global alias.lg \"log --oneline --graph --all\"\n\n# Where global config is stored\ncat ~/.gitconfig"
+    },
+    {
+      "type": "tip",
+      "text": "Use <code>git config --list --show-origin</code> to see every setting and which file it came from. Helpful for debugging unexpected behaviour."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Simulate git config",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    .term { background:#0b0e14; border:1px solid #2d3748; border-radius:8px; padding:16px; font-family:'Fira Code',monospace; font-size:0.85rem; margin-bottom:16px; }\n    .prompt { color:#4fd1c5; } .out { color:#94a3b8; margin-top:4px; }\n    input { background:#1a1f2b; color:#e2e8f0; border:1px solid #2d3748; border-radius:4px; padding:8px 12px; width:260px; font-family:monospace; }\n    label { color:#94a3b8; font-size:0.85rem; display:block; margin-bottom:4px; }\n    button { background:#4fd1c5; color:#0e1116; border:none; padding:8px 20px; border-radius:6px; font-weight:700; cursor:pointer; margin-top:8px; }\n    .config-file { background:#0b0e14; border:1px solid #2d3748; border-radius:6px; padding:12px; font-family:monospace; font-size:0.8rem; color:#94a3b8; }\n    .section { color:#4fd1c5; } .key { color:#e2e8f0; } .val { color:#f7df1e; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">Git Config Simulator</h2>\n  <label>Your name:</label>\n  <input id=\"name\" placeholder=\"Prashant Kumar\" value=\"Prashant Kumar\" /><br/><br/>\n  <label>Your email:</label>\n  <input id=\"email\" placeholder=\"prashant@example.com\" value=\"prashant@example.com\" /><br/><br/>\n  <button onclick=\"runConfig()\">Run git config --global</button>\n\n  <div class=\"term\" id=\"commands\" style=\"display:none\"></div>\n\n  <div id=\"file-section\" style=\"display:none\">\n    <p style=\"color:#94a3b8;font-size:0.85rem;margin-bottom:8px\">Contents of <code style='color:#4fd1c5'>~/.gitconfig</code>:</p>\n    <div class=\"config-file\" id=\"gitconfig\"></div>\n  </div>\n\n  <script>\n    function runConfig() {\n      const name = document.getElementById('name').value.trim() || 'Your Name';\n      const email = document.getElementById('email').value.trim() || 'you@example.com';\n\n      const cmds = document.getElementById('commands');\n      cmds.style.display = 'block';\n      cmds.innerHTML = [\n        `<div><span class=\"prompt\">$</span> git config --global user.name \"${name}\"</div>`,\n        `<div><span class=\"prompt\">$</span> git config --global user.email \"${email}\"</div>`,\n        `<div><span class=\"prompt\">$</span> git config --global init.defaultBranch main</div>`,\n        `<div class=\"out\">✅ Configuration saved to ~/.gitconfig</div>`,\n      ].join('');\n\n      document.getElementById('file-section').style.display = 'block';\n      document.getElementById('gitconfig').innerHTML = [\n        `<div><span class=\"section\">[user]</span></div>`,\n        `<div>&nbsp;&nbsp;<span class=\"key\">name</span> = <span class=\"val\">${name}</span></div>`,\n        `<div>&nbsp;&nbsp;<span class=\"key\">email</span> = <span class=\"val\">${email}</span></div>`,\n        `<div><span class=\"section\">[init]</span></div>`,\n        `<div>&nbsp;&nbsp;<span class=\"key\">defaultBranch</span> = <span class=\"val\">main</span></div>`,\n      ].join('');\n    }\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "git-cfg-q1",
+          "question": "What does the --global flag do in git config --global?",
+          "type": "multiple-choice",
+          "options": [
+            "Applies the setting to all users on the system",
+            "Applies the setting to the current repo only",
+            "Applies the setting to all repos for your user account",
+            "Uploads the setting to GitHub"
+          ],
+          "correctAnswer": 2,
+          "explanation": "--global saves the setting to ~/.gitconfig (your home directory) and applies to all repos you use under your account. --local applies only to the current repo. --system applies to all users on the machine."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Can I use different emails for work and personal projects?",
+      "a": "Yes. Set your global config to your personal email. In each work repo, run git config --local user.email 'you@company.com' to override it for that repo only. Git's [includeIf] in .gitconfig can automate this by directory."
+    },
+    {
+      "q": "What editor should I choose?",
+      "a": "VS Code (code --wait) is the most user-friendly. Nano is simple and terminal-based. Vim is powerful but has a steep learning curve. If you skip this setting, Git uses the system default (often vi on macOS/Linux)."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Git Documentation — First-Time Git Setup",
+      "url": "https://git-scm.com/book/en/v2/Getting-Started-First-Time-Git-Setup",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every machine a developer works on", "CI/CD pipelines", "Docker containers"],
+    "examples": [
+      "GitHub Actions sets GIT_AUTHOR_NAME and GIT_AUTHOR_EMAIL env vars for automated commits",
+      "Companies use per-directory includeIf to enforce work email on work repos"
+    ]
+  }
+}

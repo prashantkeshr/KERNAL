@@ -1,0 +1,123 @@
+{
+  "id": "09-stash-reset",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "git",
+  "technologyVersion": "Git 2.x",
+  "module": "git-workflow",
+  "title": "Stash & Reset",
+  "subtitle": "Save work temporarily and undo changes",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 20,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["git/08-rebase"],
+  "skillsTaught": ["git.stash", "git.reset", "git.restore"],
+  "skillsUsed": ["git.commits", "git.branches"],
+  "relatedConcepts": ["git.reflog", "git.checkout"],
+  "whyItExists": {
+    "problem": "You have half-finished work when an urgent bug arrives. Or you committed something wrong and need to undo it. You need ways to save work-in-progress and reverse mistakes.",
+    "solution": "git stash saves your uncommitted changes aside. git reset moves the branch pointer backward to undo commits. git restore discards changes in individual files.",
+    "whenToUse": "Stash when switching contexts mid-work. Reset to undo recent commits (locally). Restore to discard file changes.",
+    "whenNotToUse": "Don't reset commits you've already pushed to a shared branch. Use git revert instead — it adds a new commit that undoes the change."
+  },
+  "explainModes": {
+    "beginner": "git stash is like a clipboard for your uncommitted changes — save them now, come back later. git reset lets you undo commits by moving the branch back in time. git restore throws away changes to a specific file.",
+    "simple": "git stash — saves staged and unstaged changes. git stash pop — restores them. git reset --soft HEAD~1 — undoes last commit but keeps changes staged. git reset --hard HEAD~1 — undoes last commit and DISCARDS changes. git restore file.html — discards file's changes (unrecoverable).",
+    "standard": "Reset modes: --soft moves HEAD only (changes stay staged). --mixed (default) moves HEAD and clears staging (changes stay in working tree). --hard moves HEAD and clears both staging and working tree — changes are gone. Stash saves to a stack — git stash list shows all entries. git stash apply leaves the stash entry; git stash pop removes it.",
+    "technical": "git stash creates two commits: one for the index and one for the working tree, referenced as stash@{0}. git stash --include-untracked stashes new untracked files too. git stash branch feature/name creates a new branch from the stash. git reset moves HEAD (and the branch ref it points to) — it does NOT move the stash. git reflog lets you recover from accidental --hard resets by finding the old HEAD hash.",
+    "deepDive": "git reset --hard is recoverable for about 30 days via git reflog, because Git's garbage collector doesn't immediately delete unreachable objects. git clean -fd removes untracked files (irreversible, not stashed). git restore --source=HEAD~2 file.txt restores a file to its state 2 commits ago without resetting the branch. git revert <hash> is the safe alternative to reset for pushed commits — it creates a new commit that undoes the changes."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "git stash — save work aside"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "stash.sh",
+      "code": "# You have uncommitted changes but need to switch branches\ngit stash\n# → Saved working directory and index state\n\n# Give your stash a name (recommended)\ngit stash push -m \"half-finished login form\"\n\n# List all stashed items\ngit stash list\n# → stash@{0}: On feature: half-finished login form\n# → stash@{1}: WIP on main: a3b2c1d Update footer\n\n# Restore most recent stash (and remove from stack)\ngit stash pop\n\n# Restore a specific stash entry (keep in stack)\ngit stash apply stash@{1}\n\n# Drop a specific entry\ngit stash drop stash@{1}\n\n# Include new untracked files in the stash\ngit stash --include-untracked"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "git reset — undo commits"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "reset.sh",
+      "code": "# --soft: undo commit, keep changes STAGED\ngit reset --soft HEAD~1\n# Useful: fix the commit message or add a forgotten file\n\n# --mixed (default): undo commit, keep changes in working tree (unstaged)\ngit reset HEAD~1\n# Useful: split a commit into smaller ones\n\n# --hard: undo commit AND discard all changes (DESTRUCTIVE!)\ngit reset --hard HEAD~1\n# ⚠️ Changes are gone. Only safe if you haven't pushed.\n\n# Recover from --hard with reflog\ngit reflog\n# → a3b2c1d HEAD@{1}: commit: Add login form  ← find this hash\ngit reset --hard a3b2c1d   # go back to it"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "git restore — discard file changes"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "restore.sh",
+      "code": "# Discard unstaged changes in a file (UNRECOVERABLE)\ngit restore index.html\n\n# Unstage a file (keep changes in working tree)\ngit restore --staged index.html\n\n# Restore a file to its state 2 commits ago\ngit restore --source=HEAD~2 index.html\n\n# For pushed commits — use revert instead of reset!\ngit revert HEAD        # creates a new commit undoing the last one\ngit revert a3b2c1d     # reverts a specific commit"
+    },
+    {
+      "type": "warning",
+      "text": "<code>git reset --hard</code> and <code>git restore</code> can permanently discard work. Always check <code>git status</code> before using them. For pushed commits, use <code>git revert</code> instead — it's reversible."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Stash and reset simulator",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    .row { display:flex; gap:12px; margin-bottom:12px; }\n    .box { flex:1; background:#1a1f2b; border:1px solid #2d3748; border-radius:8px; padding:12px; }\n    .box h3 { margin:0 0 8px; font-size:0.8rem; text-transform:uppercase; letter-spacing:.05em; color:#94a3b8; }\n    .item { background:#0b0e14; border-radius:4px; padding:4px 8px; margin:3px 0; font-family:monospace; font-size:0.78rem; }\n    .controls { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }\n    button { padding:6px 12px; border:none; border-radius:5px; font-size:0.78rem; font-weight:700; cursor:pointer; }\n    #term { font-family:monospace; font-size:0.8rem; color:#94a3b8; background:#0b0e14; padding:10px; border-radius:6px; min-height:36px; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">Stash Simulator</h2>\n  <div class=\"controls\">\n    <button style=\"background:#f7df1e;color:#0e1116\" onclick=\"doEdit()\">Edit a file</button>\n    <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"doStash()\">git stash</button>\n    <button style=\"background:#a78bfa;color:#fff\" onclick=\"doPop()\">git stash pop</button>\n    <button style=\"background:#ef4444;color:#fff\" onclick=\"doReset()\">git reset --hard HEAD~1</button>\n    <button style=\"background:#2d3748;color:#94a3b8\" onclick=\"doCommit()\">git commit</button>\n    <button style=\"background:#2d3748;color:#94a3b8\" onclick=\"clearAll()\">Clear</button>\n  </div>\n  <div class=\"row\">\n    <div class=\"box\"><h3 style=\"color:#f7df1e\">Working Tree</h3><div id=\"wt\"><span style=\"color:#64748b;font-size:0.75rem\">clean</span></div></div>\n    <div class=\"box\"><h3 style=\"color:#4fd1c5\">Stash Stack</h3><div id=\"stash\"><span style=\"color:#64748b;font-size:0.75rem\">empty</span></div></div>\n    <div class=\"box\"><h3 style=\"color:#a78bfa\">Commit History</h3><div id=\"hist\"></div></div>\n  </div>\n  <div id=\"term\">Click buttons to simulate stash and reset.</div>\n\n  <script>\n    let wt=[],stash=[],hist=['Initial commit','Add nav','Add footer'],fidx=0,cidx=0;\n    const files=['login.html','style.css','app.js','README.md'];\n    const msgs=['Add login form','Fix validation','Update styles','Add dark mode'];\n\n    function render() {\n      document.getElementById('wt').innerHTML=wt.length?wt.map(f=>`<div class=\"item\" style=\"border-left:3px solid #f7df1e\">${f}</div>`).join(''):'<span style=\"color:#64748b;font-size:0.75rem\">clean</span>';\n      document.getElementById('stash').innerHTML=stash.length?stash.map((s,i)=>`<div class=\"item\" style=\"border-left:3px solid #4fd1c5\">stash@{${i}}: ${s}</div>`).join(''):'<span style=\"color:#64748b;font-size:0.75rem\">empty</span>';\n      document.getElementById('hist').innerHTML=hist.slice().reverse().map((h,i)=>`<div class=\"item\" style=\"border-left:3px solid #a78bfa${i===0?';opacity:1':';opacity:0.5'}\">${h}</div>`).join('');\n    }\n\n    const log=m=>document.getElementById('term').textContent=m;\n\n    function doEdit(){const f=files[fidx%files.length];fidx++;if(!wt.includes(f))wt.push(f);render();log(`Modified ${f} — now in working tree (unstaged)`)}\n    function doStash(){if(!wt.length){log('Nothing to stash — edit a file first');return;}stash.unshift(`WIP: ${wt.join(', ')}`);wt=[];render();log(`Stashed ${stash[0]}`)}\n    function doPop(){if(!stash.length){log('Stash is empty — nothing to pop');return;}const s=stash.shift();wt=s.replace('WIP: ','').split(', ');render();log(`Restored: ${s}`);}\n    function doReset(){if(!hist.length){log('No commits to reset');return;}const removed=hist.pop();wt=[];render();log(`git reset --hard HEAD~1 → removed commit: \"${removed}\" ⚠️ Changes discarded!`);}\n    function doCommit(){if(!wt.length){log('Nothing to commit — edit a file first');return;}const msg=msgs[cidx%msgs.length];cidx++;hist.push(msg);wt=[];render();log(`Committed: \"${msg}\"`)}\n    function clearAll(){wt=[];stash=[];hist=['Initial commit','Add nav','Add footer'];fidx=0;cidx=0;render();log('Reset simulator.')}\n    render();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "git-stash-q1",
+          "question": "What is the difference between git stash pop and git stash apply?",
+          "type": "multiple-choice",
+          "options": [
+            "pop is faster; apply is safer",
+            "pop restores and removes the stash entry; apply restores but keeps it in the stack",
+            "apply only works for staged files; pop works for everything",
+            "They are identical"
+          ],
+          "correctAnswer": 1,
+          "explanation": "git stash pop restores the stash and removes it from the stack (like 'pop' in a stack data structure). git stash apply restores the stash but leaves the entry in the stack so you can apply it again or to another branch."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "I did git reset --hard and lost changes. Can I recover them?",
+      "a": "Maybe. Run git reflog to find the SHA of the commit before the reset. Then git reset --hard <that-sha> to go back. This works as long as Git's garbage collector hasn't run (usually 30+ days). git fsck --lost-found can also find dangling objects."
+    },
+    {
+      "q": "What is git revert and when should I use it instead of reset?",
+      "a": "git revert <hash> creates a new commit that undoes the changes of the specified commit — it does NOT rewrite history. Use it whenever the commit you want to undo has been pushed to a shared branch. Reset is for local-only history; revert is for shared history."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Git Documentation — Stashing and Cleaning",
+      "url": "https://git-scm.com/book/en/v2/Git-Tools-Stashing-and-Cleaning",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["context switching during work", "fixing wrong-branch commits", "emergency hotfixes"],
+    "examples": [
+      "git stash → git switch main → fix bug → git switch feature → git stash pop",
+      "git reset --soft HEAD~1 to re-commit with a better message before pushing",
+      "git revert HEAD on main after discovering a broken deployment"
+    ]
+  }
+}

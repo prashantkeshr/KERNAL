@@ -1,0 +1,166 @@
+{
+  "id": "01-what-is-git",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "git",
+  "technologyVersion": "Git 2.x",
+  "module": "git-foundations",
+  "title": "What is Git?",
+  "subtitle": "Version control, history, and why every dev uses it",
+  "difficulty": "beginner",
+  "estimatedMinutes": 15,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": [],
+  "skillsTaught": ["git.concepts", "git.version-control"],
+  "skillsUsed": [],
+  "relatedConcepts": ["git.commits", "git.branches"],
+  "whyItExists": {
+    "problem": "Without version control, one mistake can destroy hours of work with no way to go back. Collaboration becomes chaos — who has the latest version? Whose change broke the app?",
+    "solution": "Git is a version control system that records every change to your code as a snapshot (commit). You can go back to any point in history, work on features in parallel branches, and merge changes from many contributors safely.",
+    "whenToUse": "Every software project, always. Even solo projects. Even small scripts. Even this week.",
+    "whenNotToUse": "Git isn't ideal for large binary files (videos, game assets) — use Git LFS or dedicated asset storage instead."
+  },
+  "explainModes": {
+    "beginner": "Git is like a save system for your code — except you can have unlimited save slots, label each one, and go back to any save at any time. It also lets multiple people edit the same project without overwriting each other's work.",
+    "simple": "Git tracks changes to files over time. Each saved state is called a commit. Commits form a history. You can branch off to try something new, then merge it back. You push your history to GitHub so others can see and collaborate.",
+    "standard": "Git is a distributed version control system (DVCS). Every developer has the full history on their machine (not just a diff from a server). The three areas are: working directory (your files), staging area (changes ready to commit), and repository (the committed history). Remote repos (like GitHub) are just another copy of the history.",
+    "technical": "Git stores content as a directed acyclic graph (DAG) of objects: blobs (file contents), trees (directories), commits (pointers to a tree + parent commits + metadata), and tags. Objects are addressed by SHA-1 hash of their content — making the history tamper-evident. Branches and tags are just named pointers to commits.",
+    "deepDive": "Git's object model is content-addressed storage. git cat-file -p <hash> reveals any object's content. The packfile format (git pack-objects) delta-compresses similar objects for efficient storage and transfer. The reflog records every change to HEAD and branch tips — a safety net for recovering 'lost' commits. Shallow clones (--depth N) download only N commits of history, used in CI for speed."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The problem Git solves"
+    },
+    {
+      "type": "paragraph",
+      "text": "Imagine you're building a website. It works perfectly. You start adding a new feature. Three hours later — it's broken, and you can't remember what you changed. Without Git, you're stuck. With Git, you run one command and you're instantly back to the working version."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Core concepts"
+    },
+    {
+      "type": "definition",
+      "term": "Repository (repo)",
+      "definition": "A folder that Git is tracking. Contains your files + a hidden .git folder with the entire history."
+    },
+    {
+      "type": "definition",
+      "term": "Commit",
+      "definition": "A snapshot of your files at a point in time. Every commit has a unique ID (hash), a message, an author, and a timestamp."
+    },
+    {
+      "type": "definition",
+      "term": "Branch",
+      "definition": "A parallel line of development. The default branch is called main (or master in older repos). Branches let you work on features without affecting the main codebase."
+    },
+    {
+      "type": "definition",
+      "term": "Remote",
+      "definition": "A copy of the repository stored elsewhere (e.g. on GitHub). You push your commits to share them, and pull others' commits to receive them."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Git vs GitHub"
+    },
+    {
+      "type": "paragraph",
+      "text": "Git and GitHub are different things. Git is the tool — it runs on your machine and tracks history. GitHub is a website that hosts Git repositories in the cloud so teams can collaborate. Think of Git as the engine and GitHub as the parking garage."
+    },
+    {
+      "type": "tip",
+      "text": "Other hosting services exist — GitLab, Bitbucket, Gitea — but GitHub is the most popular and where most open-source code lives."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "What a Git history looks like"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "git-log-example.txt",
+      "code": "$ git log --oneline\na3f2c1d  (HEAD -> main) Add dark mode toggle\n8b9e4f2  Fix login button on mobile\n2c1a5e8  Add user profile page\nd7f3b91  Initial commit — basic HTML structure"
+    },
+    {
+      "type": "paragraph",
+      "text": "Each line is a commit. The leftmost 7 characters are the start of the commit's unique ID. You can go back to any of these with one command."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: What does a Git history look like?",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    .terminal { background:#0b0e14; border:1px solid #2d3748; border-radius:8px; padding:16px; font-family:'Fira Code',monospace; font-size:0.875rem; }\n    .commit { display:flex; gap:12px; margin-bottom:8px; align-items:flex-start; }\n    .hash { color:#4fd1c5; min-width:80px; }\n    .msg { color:#e2e8f0; }\n    .branch { background:#4fd1c5; color:#0e1116; padding:1px 8px; border-radius:3px; font-size:0.75rem; font-weight:700; margin-left:8px; }\n    .tag { background:#f7df1e; color:#0e1116; padding:1px 8px; border-radius:3px; font-size:0.75rem; font-weight:700; margin-left:4px; }\n    button { background:#4fd1c5; color:#0e1116; border:none; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer; margin:4px 4px 16px 0; font-size:0.85rem; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">Interactive Git History</h2>\n  <button onclick=\"addCommit()\">Make a commit</button>\n  <button onclick=\"reset()\">Reset</button>\n  <div class=\"terminal\" id=\"log\"></div>\n\n  <script>\n    const messages = [\n      'Initial commit',\n      'Add homepage HTML',\n      'Style navigation bar',\n      'Add contact form',\n      'Fix form validation bug',\n      'Add dark mode',\n      'Improve mobile layout',\n      'Add loading spinner',\n      'Optimise images',\n      'Deploy to production',\n    ];\n    let commits = [];\n    let idx = 0;\n\n    function hash() {\n      return Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0').slice(0,7);\n    }\n\n    function render() {\n      const log = document.getElementById('log');\n      if (!commits.length) { log.innerHTML = '<span style=\"color:#64748b\">(no commits yet — click \"Make a commit\")</span>'; return; }\n      log.innerHTML = commits.slice().reverse().map((c,i) => {\n        const isHead = i === 0;\n        return `<div class=\"commit\">\n          <span class=\"hash\">${c.hash}</span>\n          <span class=\"msg\">${c.msg}${isHead ? '<span class=\"branch\">HEAD → main</span>' : ''}</span>\n        </div>`;\n      }).join('');\n    }\n\n    function addCommit() {\n      if (idx >= messages.length) { idx = 0; commits = []; }\n      commits.push({ hash: hash(), msg: messages[idx++] });\n      render();\n    }\n\n    function reset() { commits = []; idx = 0; render(); }\n    render();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "git-intro-q1",
+          "question": "What is the difference between Git and GitHub?",
+          "type": "multiple-choice",
+          "options": [
+            "They are the same thing",
+            "Git is the version control tool; GitHub is a cloud hosting service for Git repos",
+            "GitHub is the tool; Git is the website",
+            "Git is only for open-source; GitHub is for private code"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Git is a local tool that runs on your machine and tracks history. GitHub is a website where you can store and share Git repositories online. You can use Git without GitHub."
+        },
+        {
+          "id": "git-intro-q2",
+          "question": "What is a commit in Git?",
+          "type": "multiple-choice",
+          "options": [
+            "A message sent to a teammate",
+            "A snapshot of your files at a point in time",
+            "The act of uploading to GitHub",
+            "A new branch"
+          ],
+          "correctAnswer": 1,
+          "explanation": "A commit is a saved snapshot of your project at a specific moment. Each commit has a unique ID, a message describing the change, and a link to the previous commit."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Do I need to know the command line to use Git?",
+      "a": "Basic Git requires a few terminal commands (git add, git commit, git push). Visual tools like GitHub Desktop, VS Code's built-in Git, and GitKraken exist — but learning the commands gives you a deeper understanding and works everywhere."
+    },
+    {
+      "q": "Is Git only for code?",
+      "a": "Git works for any text files — code, markdown docs, config files, writing. It's less suited for binary files (images, videos, compiled binaries) since it can't show diffs meaningfully."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Git Documentation — Getting Started",
+      "url": "https://git-scm.com/book/en/v2/Getting-Started-About-Version-Control",
+      "verified": "2026-09-20"
+    },
+    {
+      "name": "GitHub Docs — About Git",
+      "url": "https://docs.github.com/en/get-started/using-git/about-git",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every software team on the planet", "open-source projects", "solo projects", "documentation sites"],
+    "examples": [
+      "Linux kernel has 1M+ commits tracked in Git since 2005",
+      "VS Code, React, Node.js, and virtually every open-source project lives on GitHub",
+      "KERNAL itself is tracked in Git — every lesson you read was committed"
+    ]
+  }
+}

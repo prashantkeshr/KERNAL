@@ -1,0 +1,119 @@
+{
+  "id": "10-remote-push",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "git",
+  "technologyVersion": "Git 2.x",
+  "module": "git-remote",
+  "title": "Remotes & Push",
+  "subtitle": "Connect your repo to GitHub and share your work",
+  "difficulty": "beginner",
+  "estimatedMinutes": 18,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-20",
+  "updatedAt": "2026-09-20",
+  "lastVerified": "2026-09-20",
+  "prerequisites": ["git/06-branches"],
+  "skillsTaught": ["git.remote", "git.push"],
+  "skillsUsed": ["git.commits", "git.branches"],
+  "relatedConcepts": ["git.pull", "git.fetch", "git.clone"],
+  "whyItExists": {
+    "problem": "Your commits exist only on your machine. If your laptop dies, the work is gone. Your teammates can't see your code. You can't deploy.",
+    "solution": "A remote is a copy of your repo hosted elsewhere (GitHub, GitLab, etc.). git push uploads your commits to the remote so they're backed up and shared.",
+    "whenToUse": "Push frequently — at least daily. Push before stepping away. Push before submitting a PR.",
+    "whenNotToUse": "Don't push broken code to main. Don't force-push shared branches without team agreement."
+  },
+  "explainModes": {
+    "beginner": "A remote is your repo on GitHub. git push sends your commits up to GitHub. Think of it as saving to the cloud. git remote add origin <url> is how you connect a new local repo to GitHub.",
+    "simple": "git remote add origin <url> — links your repo to GitHub. git push origin main — sends commits to GitHub. git push -u origin main — same, but also sets 'origin/main' as the default so future pushes are just git push. git remote -v — shows your remotes.",
+    "standard": "A remote is just a URL with a name (usually 'origin'). You can have multiple remotes. git push <remote> <branch> uploads local branch commits to the remote. The -u flag sets upstream tracking — subsequent git push/pull know where to go without specifying. git push --force-with-lease is safer than --force (won't overwrite if someone else pushed).",
+    "technical": "Remote tracking branches (origin/main) are local references that mirror the remote's state at the last fetch/pull. git push updates the remote and advances the remote tracking branch. HTTPS authentication now uses personal access tokens (PATs) or credential helpers. SSH uses ed25519 key pairs — faster and no token expiry. git remote set-url origin <new-url> changes an existing remote's URL.",
+    "deepDive": "Git's push protocol negotiates which objects the remote needs (missing commits, trees, blobs), then sends a packfile. The receive-pack hook on the server validates and integrates the push. Protected branches on GitHub use server-side hooks to enforce rules (required reviews, status checks). git push --tags pushes annotated tags (lightweight tags aren't pushed by default). Git LFS (Large File Storage) is a git push extension for pushing large binary files."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Connecting to a remote"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "remote.sh",
+      "code": "# See existing remotes\ngit remote -v\n# origin  https://github.com/prashantkeshr/KERNAL.git (fetch)\n# origin  https://github.com/prashantkeshr/KERNAL.git (push)\n\n# Add a remote (for a fresh git init repo)\ngit remote add origin https://github.com/yourname/my-project.git\n\n# Change a remote URL (e.g., after repo rename)\ngit remote set-url origin https://github.com/yourname/new-name.git\n\n# Remove a remote\ngit remote remove origin\n\n# Add a second remote (e.g., for deploying to a different host)\ngit remote add deploy https://git.heroku.com/my-app.git"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "git push"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "push.sh",
+      "code": "# First push — set upstream tracking with -u\ngit push -u origin main\n# From now on, just:\ngit push\n\n# Push a specific branch\ngit push origin feature/login\n\n# Push all branches\ngit push origin --all\n\n# Push tags\ngit push origin --tags\n\n# Delete a remote branch\ngit push origin --delete feature/old-branch\n\n# Safe force push (fails if remote has new commits you haven't seen)\ngit push --force-with-lease"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The full new-project workflow"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "new-project-push.sh",
+      "code": "# 1. Create repo on GitHub (via github.com UI)\n\n# 2. Init local project\nmkdir my-project && cd my-project\ngit init\ngit switch -c main   # or: git config init.defaultBranch main\n\n# 3. Add files and commit\necho '# My Project' > README.md\ngit add README.md\ngit commit -m \"Initial commit\"\n\n# 4. Connect to GitHub\ngit remote add origin https://github.com/yourname/my-project.git\n\n# 5. Push\ngit push -u origin main"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Remote push simulator",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body { background:#0e1116; color:#e2e8f0; font-family:sans-serif; padding:24px; }\n    .layout { display:grid; grid-template-columns:1fr auto 1fr; gap:16px; align-items:start; }\n    .panel { background:#0b0e14; border:1px solid #2d3748; border-radius:8px; padding:14px; }\n    .panel h3 { margin:0 0 8px; font-size:0.85rem; }\n    .commit { background:#1a1f2b; border-radius:4px; padding:4px 8px; margin:3px 0; font-family:monospace; font-size:0.78rem; }\n    .arrow-col { display:flex; flex-direction:column; align-items:center; justify-content:center; padding-top:30px; }\n    button { padding:7px 14px; border:none; border-radius:5px; font-weight:700; cursor:pointer; font-size:0.8rem; margin:4px 0; display:block; width:100%; }\n    .b1 { background:#f7df1e; color:#0e1116; }\n    .b2 { background:#4fd1c5; color:#0e1116; }\n    .b3 { background:#2d3748; color:#94a3b8; }\n    #term { font-family:monospace; font-size:0.8rem; color:#94a3b8; background:#0b0e14; padding:10px; border-radius:6px; margin-top:12px; }\n    .pushed { border-left:3px solid #4fd1c5; }\n    .local-only { border-left:3px solid #f7df1e; }\n    .empty { color:#64748b; font-size:0.75rem; }\n  </style>\n</head>\n<body>\n  <h2 style=\"color:#4fd1c5\">Remote Push Simulator</h2>\n  <div class=\"layout\">\n    <div class=\"panel\">\n      <h3 style=\"color:#f7df1e\">Local (your machine)</h3>\n      <div id=\"local\"></div>\n    </div>\n    <div class=\"arrow-col\">\n      <button class=\"b2\" onclick=\"doPush()\">git push →</button>\n      <button class=\"b1\" onclick=\"doCommit()\">git commit</button>\n      <button class=\"b3\" onclick=\"clearAll()\">Reset</button>\n    </div>\n    <div class=\"panel\">\n      <h3 style=\"color:#4fd1c5\">GitHub (origin)</h3>\n      <div id=\"remote\"></div>\n    </div>\n  </div>\n  <div id=\"term\">Add commits locally, then push to GitHub.</div>\n\n  <script>\n    let local=['Initial commit'],remote=['Initial commit'],cidx=0;\n    const msgs=['Add homepage','Fix nav','Style footer','Add dark mode','Fix mobile layout'];\n\n    function render() {\n      const lEl=document.getElementById('local');\n      const rEl=document.getElementById('remote');\n      const pushed=new Set(remote);\n      lEl.innerHTML=local.slice().reverse().map(c=>{\n        const cls=pushed.has(c)?'pushed':'local-only';\n        return `<div class=\"commit ${cls}\">${c}${pushed.has(c)?' ✅':' ⬆️'}</div>`;\n      }).join('');\n      rEl.innerHTML=remote.length?remote.slice().reverse().map(c=>`<div class=\"commit pushed\">${c} ✅</div>`).join(''):'<span class=\"empty\">empty</span>';\n    }\n\n    const log=m=>document.getElementById('term').textContent=m;\n\n    function doCommit(){const m=msgs[cidx%msgs.length];cidx++;local.push(m);render();log(`Committed: \"${m}\" — local only, not on GitHub yet (⬆️)`)}\n    function doPush(){\n      const unpushed=local.filter(c=>!remote.includes(c));\n      if(!unpushed.length){log('Already up to date — nothing to push.');return;}\n      remote=[...remote,...unpushed];render();\n      log(`git push → sent ${unpushed.length} commit(s) to origin/main ✅`);\n    }\n    function clearAll(){local=['Initial commit'];remote=['Initial commit'];cidx=0;render();log('Reset.')}\n    render();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "git-push-q1",
+          "question": "What does git push -u origin main do differently from git push?",
+          "type": "multiple-choice",
+          "options": [
+            "It pushes all branches",
+            "It sets origin/main as the upstream so future git push/pull commands work without arguments",
+            "It is faster",
+            "It also pushes tags"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The -u (or --set-upstream) flag tracks the remote branch. After git push -u origin main, you can just type git push (no remote or branch name needed) and Git knows where to push."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Why is my push rejected with 'Updates were rejected'?",
+      "a": "The remote has commits you don't have locally. Someone else pushed first, or you pushed from another machine. Run git pull (or git fetch + git merge) to bring those commits in, then push again."
+    },
+    {
+      "q": "HTTPS vs SSH — which should I use?",
+      "a": "HTTPS is easier to set up. Use a personal access token (PAT) as the password. SSH requires generating an ed25519 key pair and adding the public key to GitHub settings — but once done, it's seamless: no password prompts, no token rotation."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Git Documentation — Working with Remotes",
+      "url": "https://git-scm.com/book/en/v2/Git-Basics-Working-with-Remotes",
+      "verified": "2026-09-20"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["daily developer workflow", "CI/CD triggers", "team collaboration", "deployment pipelines"],
+    "examples": [
+      "Push triggers GitHub Actions CI — tests run automatically on every push",
+      "Deploy branch: pushing to 'main' triggers production deployment via Vercel/Netlify",
+      "git push origin --delete feature/done — clean up remote after PR merged"
+    ]
+  }
+}
