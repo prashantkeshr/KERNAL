@@ -1,0 +1,99 @@
+{
+  "id": "05-usestate",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "react",
+  "technologyVersion": "React 18",
+  "module": "react-state",
+  "title": "useState",
+  "subtitle": "Adding interactivity — state, re-renders, functional updates, and derived values",
+  "difficulty": "beginner",
+  "estimatedMinutes": 22,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["react/04-props"],
+  "skillsTaught": ["react.useState", "react.re-renders", "react.state-updates", "react.functional-updates", "react.derived-state"],
+  "skillsUsed": ["js.destructuring", "js.arrow-functions", "react.components"],
+  "relatedConcepts": ["react.events", "react.lifting-state", "react.useReducer"],
+  "whyItExists": {
+    "problem": "Components need to remember data between renders — a counter's current value, whether a modal is open, the current text in an input. Plain variables reset on every re-render; they don't trigger the UI to update.",
+    "solution": "useState is a React hook that creates a persistent value (state) and a setter function. When you call the setter, React schedules a re-render and calls the component function again with the new state value. The UI always reflects the current state.",
+    "whenToUse": "Any UI data that changes over time and should cause a re-render: toggle (open/closed), counter, input value, selected item, loading/error flags.",
+    "whenNotToUse": "Data that doesn't change (use a constant). Data derived from other state (compute it during render, don't store in state — it causes sync bugs). Data that shouldn't cause a re-render (use useRef)."
+  },
+  "explainModes": {
+    "beginner": "useState lets a component 'remember' a value. const [count, setCount] = useState(0) gives you count (the current value, starts at 0) and setCount (a function to change it). Every time you call setCount(newValue), React updates the display — the component re-runs and shows the new count.",
+    "simple": "const [value, setValue] = useState(initialValue). setValue(newValue) triggers a re-render with newValue. Functional update: setValue(prev => prev + 1) — safe for updates that depend on previous state. useState with objects: don't mutate — spread to create a new object: setUser({...user, name: 'Bob'}). Multiple state variables: multiple useState calls. useState(fn) — lazy initializer, only runs once.",
+    "standard": "State is local to a component instance — two Counter components have independent counts. State updates are async — don't read the updated state immediately after calling setter; it takes effect on the next render. Batching: React 18 batches multiple setState calls in event handlers, timeouts, and async functions. Lifting state: when two components need the same state, move it to their nearest common ancestor and pass down as props + callback.",
+    "technical": "React hooks use a linked list per component instance to maintain hook state order. This is why hooks must be called in the same order every render (no conditional hooks). The setter function identity is stable — you can safely pass it in dependencies or to child components without useCallback. useState is O(1) for state access. State updates from event handlers are batched and applied in a single re-render (React 18 automatic batching). flushSync() forces synchronous updates when needed (rare).",
+    "deepDive": "State as snapshot: each render captures the state values at that point in time. An async operation started in render N will 'see' the state from render N, not from a later render. This is why closures over state can produce stale values in timeouts/promises — use the functional update form or useRef for mutable values. Zustand, Jotai, Recoil: external state libraries that store state outside React components, solving the stale closure problem and enabling state sharing without prop drilling."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "useState basics"
+    },
+    {
+      "type": "code",
+      "lang": "jsx",
+      "filename": "counter.jsx",
+      "code": "function Counter() {\n    const [count, setCount] = useState(0);  // initial value: 0\n\n    return (\n        <div style={{ fontFamily: 'sans-serif', padding: '8px' }}>\n            <h2>Count: {count}</h2>\n            <div style={{ display: 'flex', gap: '8px' }}>\n                <button onClick={() => setCount(count + 1)}>+1</button>\n                <button onClick={() => setCount(count - 1)}>−1</button>\n                <button onClick={() => setCount(0)}>Reset</button>\n            </div>\n        </div>\n    );\n}\n\n// State is LOCAL — two Counters are independent\nfunction App() {\n    return (\n        <>\n            <Counter />\n            <Counter />\n        </>\n    );\n}"
+    },
+    {
+      "type": "code",
+      "lang": "jsx",
+      "filename": "state_patterns.jsx",
+      "code": "// Toggle state\nfunction Toggle() {\n    const [isOn, setIsOn] = useState(false);\n    return (\n        <button\n            onClick={() => setIsOn(prev => !prev)}  // functional update\n            style={{ background: isOn ? '#4fd1c5' : '#e2e8f0', padding: '8px 16px', border: 'none', borderRadius: '20px', cursor: 'pointer' }}\n        >\n            {isOn ? 'ON ✓' : 'OFF'}\n        </button>\n    );\n}\n\n// Object state — spread to avoid mutation\nfunction ProfileForm() {\n    const [user, setUser] = useState({ name: '', email: '', age: '' });\n\n    const updateField = (field, value) => {\n        setUser(prev => ({ ...prev, [field]: value }));  // spread + update one field\n    };\n\n    return (\n        <div style={{ fontFamily: 'sans-serif', padding: '8px', display: 'flex', flexDirection: 'column', gap: '8px', maxWidth: '300px' }}>\n            <input placeholder=\"Name\" value={user.name} onChange={e => updateField('name', e.target.value)} style={{ padding: '6px', borderRadius: '4px', border: '1px solid #d1d5db' }} />\n            <input placeholder=\"Email\" value={user.email} onChange={e => updateField('email', e.target.value)} style={{ padding: '6px', borderRadius: '4px', border: '1px solid #d1d5db' }} />\n            <pre style={{ background: '#f3f4f6', padding: '8px', borderRadius: '4px', fontSize: '0.8rem' }}>{JSON.stringify(user, null, 2)}</pre>\n        </div>\n    );\n}\n\nfunction App() {\n    return (\n        <div style={{ padding: '8px', display: 'flex', flexDirection: 'column', gap: '12px' }}>\n            <Toggle />\n            <ProfileForm />\n        </div>\n    );\n}"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: useState playground",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0}\n    .layout{display:grid;grid-template-rows:auto 1fr;gap:10px;height:calc(100vh - 32px)}\n    .top{display:flex;flex-direction:column;gap:8px}\n    .editor-row{display:flex;gap:8px;align-items:flex-start}\n    textarea{flex:1;background:#0b0e14;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;padding:10px;font-family:monospace;font-size:0.82rem;resize:vertical;min-height:160px}\n    .btns{display:flex;flex-direction:column;gap:6px}\n    button{padding:8px 14px;border:none;border-radius:5px;font-weight:700;cursor:pointer;font-size:0.8rem;white-space:nowrap}\n    .chips{display:flex;flex-wrap:wrap;gap:6px}\n    .chip{background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:3px 10px;font-family:monospace;font-size:0.72rem;cursor:pointer;color:#94a3b8}\n    .chip:hover{border-color:#4fd1c5;color:#4fd1c5}\n    .panels{display:grid;grid-template-columns:1fr 1fr;gap:8px}\n    .panel{border-radius:6px;overflow:auto;padding:10px;font-size:0.78rem}\n    .panel-label{font-size:0.7rem;color:#4fd1c5;margin-bottom:6px;font-family:monospace}\n    #preview{background:#fff;color:#111;border-radius:6px;padding:16px;min-height:120px}\n    #console{background:#0b0e14;font-family:monospace}\n    .log{color:#4fd1c5;margin:2px 0}.err{color:#ef4444;margin:2px 0}\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"code\" spellcheck=\"false\">function App() {\n  const [count, setCount] = useState(0);\n  const [name, setName] = useState('');\n\n  // Derived value — computed from state, not stored separately\n  const doubled = count * 2;\n\n  return (\n    <div style={{fontFamily:'sans-serif',padding:'8px'}}>\n      <h2>Counter: {count} (×2 = {doubled})</h2>\n      <div style={{display:'flex',gap:'8px',marginBottom:'12px'}}>\n        <button onClick={() => setCount(c => c + 1)} style={{padding:'6px 12px'}}>+1</button>\n        <button onClick={() => setCount(c => c - 1)} style={{padding:'6px 12px'}}>−1</button>\n        <button onClick={() => setCount(0)} style={{padding:'6px 12px',color:'red'}}>Reset</button>\n      </div>\n      <input\n        placeholder=\"Type your name\"\n        value={name}\n        onChange={e => setName(e.target.value)}\n        style={{padding:'6px',borderRadius:'4px',border:'1px solid #d1d5db',width:'200px'}}\n      />\n      {name && <p>Hello, <strong>{name}</strong>!</p>}\n    </div>\n  );\n}</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runReact()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setCode('function App() {\\n  const [items, setItems] = useState([\\'React\\',\\'Vue\\']);\\n  const [input, setInput] = useState(\\'\\');\\n  const add = () => {\\n    if (input.trim()) {\\n      setItems(prev => [...prev, input.trim()]);\\n      setInput(\\'\\');\\n    }\\n  };\\n  return (\\n    <div style={{fontFamily:\\'sans-serif\\',padding:\\'8px\\'}}>\\n      <div style={{display:\\'flex\\',gap:\\'8px\\',marginBottom:\\'8px\\'}}>\\n        <input value={input} onChange={e=>setInput(e.target.value)} placeholder=\\'Add item...\\' style={{padding:\\'6px\\'}} />\\n        <button onClick={add}>Add</button>\\n      </div>\\n      <ul>{items.map((it,i)=><li key={i}>{it}</li>)}</ul>\\n    </div>\\n  );\\n}')\">array state</span>\n        <span class=\"chip\" onclick=\"setCode('function App() {\\n  const [tab, setTab] = useState(\\'home\\');\\n  const content = { home: \\'🏠 Welcome home!\\', about: \\'ℹ️ About us\\', contact: \\'📧 Contact us\\'  };\\n  return (\\n    <div style={{fontFamily:\\'sans-serif\\',padding:\\'8px\\'}}>\\n      <div style={{display:\\'flex\\',gap:\\'4px\\',marginBottom:\\'12px\\'}}>\\n        {Object.keys(content).map(key=>(\\n          <button key={key} onClick={()=>setTab(key)}\\n            style={{padding:\\'6px 12px\\',background:tab===key?\\'#4fd1c5\\':\\'#e2e8f0\\'}}\\n          >{key}</button>\\n        ))}\\n      </div>\\n      <p>{content[tab]}</p>\\n    </div>\\n  );\\n}')\">tab state</span>\n        <span class=\"chip\" onclick=\"setCode('function App() {\\n  const [show, setShow] = useState(false);\\n  return (\\n    <div style={{fontFamily:\\'sans-serif\\',padding:\\'8px\\'}}>\\n      <button onClick={()=>setShow(s=>!s)}>Toggle Modal</button>\\n      {show && (\\n        <div style={{position:\\'fixed\\',inset:0,background:\\'rgba(0,0,0,0.5)\\',display:\\'flex\\',alignItems:\\'center\\',justifyContent:\\'center\\'}}>\\n          <div style={{background:\\'#fff\\',padding:\\'24px\\',borderRadius:\\'8px\\'}} onClick={e=>e.stopPropagation()}>\\n            <h3>Modal!</h3>\\n            <button onClick={()=>setShow(false)}>Close</button>\\n          </div>\\n        </div>\\n      )}\\n    </div>\\n  );\\n}')\">modal toggle</span>\n      </div>\n    </div>\n    <div class=\"panels\">\n      <div class=\"panel\" id=\"preview\"><div style=\"color:#9ca3af;font-style:italic\">Click ▶ Run</div></div>\n      <div class=\"panel\" id=\"console\"><div class=\"panel-label\">CONSOLE</div><div style=\"color:#64748b;font-size:0.75rem\">No output</div></div>\n    </div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.5/babel.min.js\"></script>\n  <script>\n    let _root=null;\n    function setCode(c){document.getElementById('code').value=c;runReact();}\n    function runReact(){\n      const src=document.getElementById('code').value;\n      const logs=[];\n      const oL=console.log,oE=console.error,oW=console.warn;\n      console.log=(...a)=>logs.push({t:'log',m:a.map(x=>typeof x==='object'?JSON.stringify(x):String(x)).join(' ')});\n      console.error=(...a)=>logs.push({t:'err',m:a.map(String).join(' ')});\n      console.warn=(...a)=>logs.push({t:'log',m:'[warn] '+a.map(String).join(' ')});\n      const preview=document.getElementById('preview');\n      try{\n        const wrapped=`const {useState,useEffect,useRef,useReducer,useContext,createContext,useMemo,useCallback,Fragment}=React;\\n${src}`;\n        const transformed=Babel.transform(wrapped,{presets:['react'],filename:'app.jsx'}).code;\n        const full=transformed+'\\n__s__.App=typeof App!==\"undefined\"?App:null;';\n        const scope={};\n        new Function('React','__s__',full)(React,scope);\n        preview.innerHTML='';\n        _root=ReactDOM.createRoot(preview);\n        if(scope.App)_root.render(React.createElement(scope.App));\n        else _root.render(React.createElement('p',{style:{color:'#888',fontStyle:'italic'}},'Define function App() { return <JSX />; }'));\n      }catch(e){\n        logs.push({t:'err',m:e.message});\n        preview.innerHTML=`<pre style=\"color:red;font-size:0.78rem;white-space:pre-wrap\">${e.message.replace(/</g,'&lt;')}</pre>`;\n      }finally{\n        console.log=oL;console.error=oE;console.warn=oW;\n      }\n      const cd=document.getElementById('console');\n      cd.innerHTML='<div class=\"panel-label\">CONSOLE</div>'+(logs.length?logs.map(l=>`<div class=\"${l.t==='err'?'err':'log'}\">${l.m.replace(/</g,'&lt;')}</div>`).join(''):'<div style=\"color:#64748b;font-size:0.75rem\">No output</div>');\n    }\n    document.getElementById('code').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runReact();}});\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "react-state-q1",
+          "question": "Why is `setCount(prev => prev + 1)` safer than `setCount(count + 1)` for rapid increments?",
+          "type": "multiple-choice",
+          "options": [
+            "It's not safer — both forms are identical",
+            "The functional form uses the latest state value; the direct form closes over the count from when the handler was created, which may be stale if React batches multiple updates",
+            "The functional form is faster",
+            "You must use the functional form for numbers; the direct form only works for strings"
+          ],
+          "correctAnswer": 1,
+          "explanation": "When multiple state updates are batched (e.g., calling setCount three times quickly), using setCount(count + 1) all three times reads the same stale count from the closure — you'd only get +1 total. The functional form setCount(prev => prev + 1) receives the most recent state value from React, so three calls correctly give +3. Always use functional updates when the new state depends on the previous state."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Why can't I mutate state directly? (e.g., `count++` or `user.name = 'Bob'`)",
+      "a": "Direct mutation doesn't trigger a re-render — React doesn't know the value changed. You must call the setter: setCount(count + 1) or setUser({...user, name: 'Bob'}). For objects and arrays, always create a new copy (spread operator or map/filter) rather than mutating the existing value. React compares references — if the reference hasn't changed (mutation), it sees 'no change' and skips re-rendering."
+    }
+  ],
+  "sources": [
+    {
+      "name": "React Docs — State: A Component's Memory",
+      "url": "https://react.dev/learn/state-a-components-memory",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every interactive React component"],
+    "examples": [
+      "const [isOpen, setIsOpen] = useState(false) — modal/dropdown toggle",
+      "const [user, setUser] = useState<User | null>(null) — authenticated user",
+      "const [items, setItems] = useState<Item[]>([]) — dynamic list"
+    ]
+  }
+}

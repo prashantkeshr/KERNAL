@@ -1,0 +1,99 @@
+{
+  "id": "09-useeffect",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "react",
+  "technologyVersion": "React 18",
+  "module": "react-rendering",
+  "title": "useEffect",
+  "subtitle": "Side effects — data fetching, subscriptions, timers, and cleanup",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 25,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["react/08-lists-keys"],
+  "skillsTaught": ["react.useEffect", "react.cleanup", "react.data-fetching", "react.dependency-array"],
+  "skillsUsed": ["js.promises", "js.async-await", "js.closures", "react.useState"],
+  "relatedConcepts": ["react.useRef", "react.custom-hooks", "react.suspense"],
+  "whyItExists": {
+    "problem": "React components should be pure functions (same input → same output, no side effects). But real apps need side effects: fetch data from an API, set up a WebSocket, start a timer, update the page title.",
+    "solution": "useEffect lets you run side effects after render. React calls your effect after the DOM is updated. You can specify when to re-run via the dependency array, and return a cleanup function that React calls before re-running or when the component unmounts.",
+    "whenToUse": "Data fetching on mount or when dependencies change. DOM manipulation that can't be done via JSX. Subscriptions (WebSocket, event bus). Timers (setInterval, setTimeout). Syncing React state with an external system.",
+    "whenNotToUse": "Transforming data for rendering — do it during render (not in an effect). Handling user events — use event handlers. Initializing state from props — do it in the initial value of useState."
+  },
+  "explainModes": {
+    "beginner": "useEffect runs some code after the component renders. You give it a function (the effect) and a list of values to watch (the dependency array). If you pass an empty array [], the effect runs once when the component first appears. If you pass [userId], the effect re-runs whenever userId changes.",
+    "simple": "Three forms: useEffect(fn) — runs after every render. useEffect(fn, []) — runs once on mount. useEffect(fn, [dep1, dep2]) — runs when deps change. Return a cleanup function to cancel work: return () => clearInterval(id). Dependencies: anything from the component scope used inside the effect must be in the array. Async: don't make the effect function async — define an async function inside and call it.",
+    "standard": "The cleanup function runs: (1) before the effect re-runs (when deps change), and (2) when the component unmounts. This prevents leaks: cancel fetches, clear timers, remove event listeners. React 18 StrictMode runs effects twice in development to expose missing cleanups — this is intentional and means your cleanup must be correct. Data fetching pattern: inside effect, create an 'ignore' flag to cancel stale responses when the effect re-runs.",
+    "technical": "Effect timing: useEffect fires after the browser has painted. If you need to run synchronously after DOM changes (before paint), use useLayoutEffect — but this is rare and can cause visual jitter. Dependency lint rule: react-hooks/exhaustive-deps (from eslint-plugin-react-hooks) warns when deps are missing. Missing deps cause stale closure bugs. Extra deps cause the effect to re-run too often. AbortController: the modern way to cancel fetch requests. Create an AbortController in the effect, pass its signal to fetch, and call controller.abort() in cleanup.",
+    "deepDive": "The 'rules of hooks' apply to useEffect: same call order every render, no conditionals. Multiple useEffects per component are allowed and encouraged — separate concerns into separate effects. Event loop ordering: React batches DOM updates and calls effects asynchronously in a microtask (React 18) — effects run after the paint, so they never block the first render. Concurrent features: in concurrent mode, React may abort and restart renders. Effects only run after a render is committed to the DOM — they're guaranteed to see a consistent DOM state. Comparison to lifecycle methods: componentDidMount ≈ useEffect(fn, []), componentDidUpdate ≈ useEffect(fn, [deps]), componentWillUnmount ≈ the cleanup function."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "useEffect patterns"
+    },
+    {
+      "type": "code",
+      "lang": "jsx",
+      "filename": "useeffect_patterns.jsx",
+      "code": "// Pattern 1: Run once on mount (empty dependency array)\nfunction DocumentTitle({ title }) {\n    useEffect(() => {\n        document.title = title;           // side effect: update browser tab title\n        return () => { document.title = 'App'; };  // cleanup: reset on unmount\n    }, [title]);  // re-run when title changes\n\n    return <h1>{title}</h1>;\n}\n\n// Pattern 2: Data fetching\nfunction UserProfile({ userId }) {\n    const [user, setUser] = useState(null);\n    const [loading, setLoading] = useState(true);\n    const [error, setError] = useState(null);\n\n    useEffect(() => {\n        let ignore = false;  // prevent stale state updates if effect re-runs\n\n        setLoading(true);\n        setError(null);\n\n        fetch(`https://jsonplaceholder.typicode.com/users/${userId}`)\n            .then(res => res.json())\n            .then(data => { if (!ignore) { setUser(data); setLoading(false); } })\n            .catch(err => { if (!ignore) { setError(err.message); setLoading(false); } });\n\n        return () => { ignore = true; };  // cleanup: ignore response if component re-renders\n    }, [userId]);  // re-run when userId changes\n\n    if (loading) return <p>Loading user {userId}...</p>;\n    if (error)   return <p style={{ color: 'red' }}>Error: {error}</p>;\n    return (\n        <div>\n            <h3>{user?.name}</h3>\n            <p>{user?.email}</p>\n        </div>\n    );\n}"
+    },
+    {
+      "type": "code",
+      "lang": "jsx",
+      "filename": "useeffect_timer.jsx",
+      "code": "// Pattern 3: Timer with cleanup\nfunction Stopwatch() {\n    const [running, setRunning] = useState(false);\n    const [ms, setMs] = useState(0);\n\n    useEffect(() => {\n        if (!running) return;  // don't start if paused\n\n        const id = setInterval(() => {\n            setMs(prev => prev + 10);\n        }, 10);\n\n        return () => clearInterval(id);  // CLEANUP: stop the timer\n        // Without cleanup, the interval keeps running even after component unmounts!\n    }, [running]);  // re-run when running changes\n\n    const fmt = (ms) => {\n        const s = Math.floor(ms / 1000);\n        const m = String(ms % 1000).padStart(3, '0');\n        return `${s}.${m}s`;\n    };\n\n    return (\n        <div style={{ fontFamily: 'monospace', padding: '8px' }}>\n            <h2 style={{ fontSize: '2rem' }}>{fmt(ms)}</h2>\n            <div style={{ display: 'flex', gap: '8px' }}>\n                <button onClick={() => setRunning(r => !r)}>{running ? 'Pause' : 'Start'}</button>\n                <button onClick={() => { setRunning(false); setMs(0); }}>Reset</button>\n            </div>\n        </div>\n    );\n}\n\nfunction App() {\n    return <Stopwatch />;\n}"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: useEffect playground",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0}\n    .layout{display:grid;grid-template-rows:auto 1fr;gap:10px;height:calc(100vh - 32px)}\n    .top{display:flex;flex-direction:column;gap:8px}\n    .editor-row{display:flex;gap:8px;align-items:flex-start}\n    textarea{flex:1;background:#0b0e14;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;padding:10px;font-family:monospace;font-size:0.82rem;resize:vertical;min-height:160px}\n    .btns{display:flex;flex-direction:column;gap:6px}\n    button{padding:8px 14px;border:none;border-radius:5px;font-weight:700;cursor:pointer;font-size:0.8rem;white-space:nowrap}\n    .chips{display:flex;flex-wrap:wrap;gap:6px}\n    .chip{background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:3px 10px;font-family:monospace;font-size:0.72rem;cursor:pointer;color:#94a3b8}\n    .chip:hover{border-color:#4fd1c5;color:#4fd1c5}\n    .panels{display:grid;grid-template-columns:1fr 1fr;gap:8px}\n    .panel{border-radius:6px;overflow:auto;padding:10px;font-size:0.78rem}\n    .panel-label{font-size:0.7rem;color:#4fd1c5;margin-bottom:6px;font-family:monospace}\n    #preview{background:#fff;color:#111;border-radius:6px;padding:16px;min-height:120px}\n    #console{background:#0b0e14;font-family:monospace}\n    .log{color:#4fd1c5;margin:2px 0}.err{color:#ef4444;margin:2px 0}\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"code\" spellcheck=\"false\">function App() {\n  const [userId, setUserId] = useState(1);\n  const [user, setUser]     = useState(null);\n  const [loading, setLoading] = useState(false);\n\n  useEffect(() => {\n    let ignore = false;\n    setLoading(true);\n    setUser(null);\n\n    fetch(`https://jsonplaceholder.typicode.com/users/${userId}`)\n      .then(r => r.json())\n      .then(data => { if (!ignore) { setUser(data); setLoading(false); } })\n      .catch(() => { if (!ignore) setLoading(false); });\n\n    return () => { ignore = true; };\n  }, [userId]);\n\n  return (\n    <div style={{fontFamily:'sans-serif',padding:'8px'}}>\n      <div style={{display:'flex',gap:'6px',marginBottom:'12px',flexWrap:'wrap'}}>\n        {[1,2,3,4,5].map(id => (\n          <button key={id} onClick={() => setUserId(id)}\n            style={{background: userId===id ? '#4fd1c5' : '#e2e8f0',\n                   color: userId===id ? '#0e1116' : '#374151'}}>\n            User {id}\n          </button>\n        ))}\n      </div>\n      {loading && <p>Loading...</p>}\n      {user && !loading && (\n        <div>\n          <h3 style={{margin:'0 0 4px'}}>{user.name}</h3>\n          <p style={{margin:'0 0 2px',color:'#6b7280'}}>{user.email}</p>\n          <p style={{margin:0,color:'#6b7280'}}>{user.phone}</p>\n        </div>\n      )}\n    </div>\n  );\n}</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runReact()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setCode('function App() {\\n  const [count, setCount] = useState(0);\\n  const [renderLog, setRenderLog] = useState([]);\\n\\n  useEffect(() => {\\n    setRenderLog(prev => [...prev, `Effect ran, count=${count}`].slice(-5));\\n  }, [count]);\\n\\n  return (\\n    <div style={{fontFamily:\\'sans-serif\\',padding:\\'8px\\'}}>\\n      <button onClick={() => setCount(c => c+1)}>Count: {count}</button>\\n      <ul style={{fontSize:\\'0.8rem\\'}}>{renderLog.map((l,i) => <li key={i}>{l}</li>)}</ul>\\n    </div>\\n  );\\n}')\">effect log</span>\n        <span class=\"chip\" onclick=\"setCode('function Clock() {\\n  const [time, setTime] = useState(new Date().toLocaleTimeString());\\n  useEffect(() => {\\n    const id = setInterval(() => setTime(new Date().toLocaleTimeString()), 1000);\\n    return () => clearInterval(id);\\n  }, []);\\n  return <p style={{fontFamily:\\'monospace\\',fontSize:\\'1.5rem\\'}}>{time}</p>;\\n}\\nfunction App() { return <Clock />; }')\">clock</span>\n        <span class=\"chip\" onclick=\"setCode('function App() {\\n  const [query, setQuery] = useState(\\'react\\');\\n  const [results, setResults] = useState([]);\\n\\n  useEffect(() => {\\n    if (!query) { setResults([]); return; }\\n    const id = setTimeout(() => {\\n      fetch(`https://jsonplaceholder.typicode.com/posts?q=${query}&_limit=3`)\\n        .then(r => r.json()).then(setResults);\\n    }, 400);\\n    return () => clearTimeout(id);\\n  }, [query]);\\n\\n  return (\\n    <div style={{fontFamily:\\'sans-serif\\',padding:\\'8px\\'}}>\\n      <input value={query} onChange={e=>setQuery(e.target.value)} placeholder=\\'Search posts...\\' style={{padding:\\'6px\\',width:\\'200px\\'}} />\\n      <ul style={{fontSize:\\'0.85rem\\'}}>\\n        {results.map(r => <li key={r.id}>{r.title}</li>)}\\n      </ul>\\n    </div>\\n  );\\n}')\">debounce search</span>\n      </div>\n    </div>\n    <div class=\"panels\">\n      <div class=\"panel\" id=\"preview\"><div style=\"color:#9ca3af;font-style:italic\">Click ▶ Run</div></div>\n      <div class=\"panel\" id=\"console\"><div class=\"panel-label\">CONSOLE</div><div style=\"color:#64748b;font-size:0.75rem\">No output</div></div>\n    </div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.5/babel.min.js\"></script>\n  <script>\n    let _root=null;\n    function setCode(c){document.getElementById('code').value=c;runReact();}\n    function runReact(){\n      const src=document.getElementById('code').value;\n      const logs=[];\n      const oL=console.log,oE=console.error,oW=console.warn;\n      console.log=(...a)=>logs.push({t:'log',m:a.map(x=>typeof x==='object'?JSON.stringify(x):String(x)).join(' ')});\n      console.error=(...a)=>logs.push({t:'err',m:a.map(String).join(' ')});\n      console.warn=(...a)=>logs.push({t:'log',m:'[warn] '+a.map(String).join(' ')});\n      const preview=document.getElementById('preview');\n      try{\n        const wrapped=`const {useState,useEffect,useRef,useReducer,useContext,createContext,useMemo,useCallback,Fragment}=React;\\n${src}`;\n        const transformed=Babel.transform(wrapped,{presets:['react'],filename:'app.jsx'}).code;\n        const full=transformed+'\\n__s__.App=typeof App!==\"undefined\"?App:null;';\n        const scope={};\n        new Function('React','__s__',full)(React,scope);\n        preview.innerHTML='';\n        _root=ReactDOM.createRoot(preview);\n        if(scope.App)_root.render(React.createElement(scope.App));\n        else _root.render(React.createElement('p',{style:{color:'#888',fontStyle:'italic'}},'Define function App() { return <JSX />; }'));\n      }catch(e){\n        logs.push({t:'err',m:e.message});\n        preview.innerHTML=`<pre style=\"color:red;font-size:0.78rem;white-space:pre-wrap\">${e.message.replace(/</g,'&lt;')}</pre>`;\n      }finally{\n        console.log=oL;console.error=oE;console.warn=oW;\n      }\n      const cd=document.getElementById('console');\n      cd.innerHTML='<div class=\"panel-label\">CONSOLE</div>'+(logs.length?logs.map(l=>`<div class=\"${l.t==='err'?'err':'log'}\">${l.m.replace(/</g,'&lt;')}</div>`).join(''):'<div style=\"color:#64748b;font-size:0.75rem\">No output</div>');\n    }\n    document.getElementById('code').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runReact();}});\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "react-effect-q1",
+          "question": "Why should you return a cleanup function from useEffect when using setInterval?",
+          "type": "multiple-choice",
+          "options": [
+            "Cleanup functions are required by React for all effects — they're not optional",
+            "Without cleanup, the interval continues running even after the component unmounts, leaking memory and potentially calling setState on an unmounted component",
+            "The cleanup function is what starts the interval on the next render",
+            "Cleanup functions only matter for performance, not correctness"
+          ],
+          "correctAnswer": 1,
+          "explanation": "setInterval schedules a recurring callback. If the component unmounts (e.g., user navigates away) without clearing the interval, it keeps firing — calling setCount or other state setters on an unmounted component causes a React warning (possible memory leak) and may cause bugs. The cleanup function (return () => clearInterval(id)) tells React to cancel the interval when the effect re-runs or the component unmounts."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Why can't I make useEffect's callback async?",
+      "a": "useEffect's callback must either return a cleanup function or nothing. An async function returns a Promise — React would receive a Promise as the 'cleanup', which it doesn't know how to call. The fix: define an async function inside the effect and call it: useEffect(() => { async function load() { ... } load(); }, [])."
+    }
+  ],
+  "sources": [
+    {
+      "name": "React Docs — Synchronizing with Effects",
+      "url": "https://react.dev/learn/synchronizing-with-effects",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["data fetching on page load", "real-time subscriptions", "analytics events"],
+    "examples": [
+      "useEffect(() => { fetchUser(userId).then(setUser); }, [userId]) — refetch on ID change",
+      "useEffect(() => { const sub = socket.subscribe(topic, handler); return () => sub.unsubscribe(); }, [topic])",
+      "useEffect(() => { const id = setTimeout(() => search(query), 400); return () => clearTimeout(id); }, [query]) — debounce"
+    ]
+  }
+}

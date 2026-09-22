@@ -1,0 +1,103 @@
+{
+  "id": "02-jsx",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "react",
+  "technologyVersion": "React 18",
+  "module": "react-foundations",
+  "title": "JSX",
+  "subtitle": "JavaScript XML — expressions, attributes, fragments, and the rules of JSX",
+  "difficulty": "beginner",
+  "estimatedMinutes": 18,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["react/01-introduction"],
+  "skillsTaught": ["react.jsx-syntax", "react.expressions", "react.attributes", "react.fragments", "react.jsx-rules"],
+  "skillsUsed": ["js.template-literals", "js.expressions", "js.ternary"],
+  "relatedConcepts": ["react.components", "react.props"],
+  "whyItExists": {
+    "problem": "Writing UIs with React.createElement('div', null, React.createElement('h1', null, 'Hello')) is verbose and hard to read.",
+    "solution": "JSX is syntactic sugar that lets you write HTML-like syntax inside JavaScript. Babel (or the TypeScript compiler) transforms JSX to React.createElement calls. JSX is not HTML — it has stricter rules and allows embedding any JavaScript expression.",
+    "whenToUse": "Every React component. JSX is the standard way to write React UI. The .jsx (or .tsx for TypeScript) file extension signals that a file contains JSX.",
+    "whenNotToUse": "Environments without a build step. In that case, use React.createElement directly. But in 99% of React projects you have Babel or TypeScript, so you always use JSX."
+  },
+  "explainModes": {
+    "beginner": "JSX looks like HTML but lives inside JavaScript. You can put any JavaScript expression inside curly braces {}. Rules: every tag must be closed (`<br />` not `<br>`), use `className` not `class`, and adjacent elements need a wrapper.",
+    "simple": "JSX is compiled by Babel: <h1>Hello</h1> → React.createElement('h1', null, 'Hello'). Expressions in {}: {2 + 2}, {name}, {condition ? 'A' : 'B'}. No statements in {} (no if, for — use ternary or array.map). Attributes use camelCase: onClick, className, htmlFor, tabIndex. style takes an object: style={{color:'red'}}. Fragment: <> </> or <React.Fragment>. Must return one root element.",
+    "standard": "Spread attributes: <Component {...props} />. Key rule: adjacent JSX elements need a wrapper or Fragment — this is because JSX compiles to a function call which can only return one value. JSX children: text, expressions, other components, and arrays are all valid children. Null, undefined, false, and true render nothing — useful for conditional rendering. JSX is an expression — you can assign it to a variable: const el = <h1>Hello</h1>.",
+    "technical": "JSX compilation target: with the new JSX transform (React 17+, react/jsx-runtime), imports are automatic — no need to import React in every file. Older projects needed import React from 'react' in every JSX file. The pragma: @jsx tells Babel what function to use (default: React.createElement). Custom pragma: @jsx h for Preact. JSX is not HTML — it maps to JavaScript, so properties that conflict with JS reserved words are renamed: class→className, for→htmlFor. Event attributes take functions, not strings: onClick={handler} not onclick='handler()'.",
+    "deepDive": "JSX has a one-root rule because function calls return one value — React.createElement calls can only return one element. Fragment solves this by wrapping in React.Fragment which renders nothing to the DOM. Key-based rendering: JSX arrays must have keys to allow stable reconciliation. The key doesn't need to be globally unique — just unique among siblings. Don't use array index as key when the list can be reordered (it confuses the reconciler). Computed expressions in JSX: {items.map(item => <Item key={item.id} {...item} />)} — map returns an array of elements, which React renders as siblings."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "JSX rules and expressions"
+    },
+    {
+      "type": "code",
+      "lang": "jsx",
+      "filename": "jsx_basics.jsx",
+      "code": "// JSX looks like HTML but compiles to JavaScript\n// Rule 1: one root element (or use a Fragment)\nfunction App() {\n    const name = 'Alice';\n    const score = 95;\n    const isAdmin = true;\n\n    return (\n        <>  {/* Fragment — renders nothing to the DOM */}\n            <h1>Hello, {name}!</h1>         {/* expression: JS variable */}\n            <p>Score: {score * 2}</p>       {/* expression: computation */}\n            <p>Role: {isAdmin ? 'Admin' : 'User'}</p>  {/* ternary */}\n\n            {/* Render based on condition — false/null/undefined renders nothing */}\n            {isAdmin && <span>⭐ Admin badge</span>}\n        </>\n    );\n}"
+    },
+    {
+      "type": "code",
+      "lang": "jsx",
+      "filename": "jsx_attributes.jsx",
+      "code": "// Rule 2: HTML attributes use camelCase in JSX\nfunction StyledCard({ title, active }) {\n    return (\n        <div\n            className={active ? 'card card-active' : 'card'}  {/* class → className */}\n            style={{ padding: '16px', borderRadius: '8px', background: active ? '#dbeafe' : '#f3f4f6' }}\n            // style takes an OBJECT, not a string\n        >\n            <h2>{title}</h2>\n            <button onClick={() => console.log('clicked!')}>  {/* camelCase event */}\n                Click me\n            </button>\n            <label htmlFor=\"name-input\">Name:</label>  {/* for → htmlFor */}\n            <input id=\"name-input\" type=\"text\" />\n        </div>\n    );\n}\n\n// Rule 3: all tags must be self-closed or closed\n// <br> is wrong — use <br /> or <br></br>\n// <input> is wrong — use <input />\n\nfunction App() {\n    return (\n        <>\n            <StyledCard title=\"Active\" active={true} />\n            <StyledCard title=\"Inactive\" active={false} />\n        </>\n    );\n}"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: JSX playground",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0}\n    .layout{display:grid;grid-template-rows:auto 1fr;gap:10px;height:calc(100vh - 32px)}\n    .top{display:flex;flex-direction:column;gap:8px}\n    .editor-row{display:flex;gap:8px;align-items:flex-start}\n    textarea{flex:1;background:#0b0e14;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;padding:10px;font-family:monospace;font-size:0.82rem;resize:vertical;min-height:160px}\n    .btns{display:flex;flex-direction:column;gap:6px}\n    button{padding:8px 14px;border:none;border-radius:5px;font-weight:700;cursor:pointer;font-size:0.8rem;white-space:nowrap}\n    .chips{display:flex;flex-wrap:wrap;gap:6px}\n    .chip{background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:3px 10px;font-family:monospace;font-size:0.72rem;cursor:pointer;color:#94a3b8}\n    .chip:hover{border-color:#4fd1c5;color:#4fd1c5}\n    .panels{display:grid;grid-template-columns:1fr 1fr;gap:8px}\n    .panel{border-radius:6px;overflow:auto;padding:10px;font-size:0.78rem}\n    .panel-label{font-size:0.7rem;color:#4fd1c5;margin-bottom:6px;font-family:monospace}\n    #preview{background:#fff;color:#111;border-radius:6px;padding:16px;min-height:120px}\n    #console{background:#0b0e14;font-family:monospace}\n    .log{color:#4fd1c5;margin:2px 0}.err{color:#ef4444;margin:2px 0}\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"code\" spellcheck=\"false\">function App() {\n  const user = 'Alice';\n  const score = 95;\n  const isPassing = score >= 60;\n\n  return (\n    <div style={{fontFamily:'sans-serif',padding:'8px'}}>\n      <h2>JSX Expressions</h2>\n      <p>Student: <strong>{user}</strong></p>\n      <p>Score: {score}/100</p>\n      <p>Status: {isPassing ? '✅ Pass' : '❌ Fail'}</p>\n      {score === 100 && <p>🏆 Perfect score!</p>}\n    </div>\n  );\n}</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runReact()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setCode('function App() {\\n  return (\\n    <>\\n      <h1>Fragment wrapper</h1>\\n      <p>Multiple root elements</p>\\n      <p>using Fragment &lt;&gt;&lt;/&gt;</p>\\n    </>\\n  );\\n}')\">fragment</span>\n        <span class=\"chip\" onclick=\"setCode('function App() {\\n  const items = [\\'React\\',\\'Vue\\',\\'Svelte\\'];\\n  return (\\n    <ul>\\n      {items.map((item,i) => (\\n        <li key={i} style={{padding:\\'4px\\'}}>{item}</li>\\n      ))}\\n    </ul>\\n  );\\n}')\">map in JSX</span>\n        <span class=\"chip\" onclick=\"setCode('function App() {\\n  const color = \\'#4fd1c5\\';\\n  return (\\n    <div\\n      style={{\\n        background: color,\\n        padding: \\'16px\\',\\n        borderRadius: \\'8px\\'\\n      }}\\n    >\\n      <p style={{color:\\'#0e1116\\',fontWeight:\\'bold\\'}}>\\n        Style as object!\\n      </p>\\n    </div>\\n  );\\n}')\">style object</span>\n      </div>\n    </div>\n    <div class=\"panels\">\n      <div class=\"panel\" id=\"preview\"><div style=\"color:#9ca3af;font-style:italic\">Click ▶ Run</div></div>\n      <div class=\"panel\" id=\"console\"><div class=\"panel-label\">CONSOLE</div><div style=\"color:#64748b;font-size:0.75rem\">No output</div></div>\n    </div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.5/babel.min.js\"></script>\n  <script>\n    let _root=null;\n    function setCode(c){document.getElementById('code').value=c;runReact();}\n    function runReact(){\n      const src=document.getElementById('code').value;\n      const logs=[];\n      const oL=console.log,oE=console.error,oW=console.warn;\n      console.log=(...a)=>logs.push({t:'log',m:a.map(x=>typeof x==='object'?JSON.stringify(x):String(x)).join(' ')});\n      console.error=(...a)=>logs.push({t:'err',m:a.map(String).join(' ')});\n      console.warn=(...a)=>logs.push({t:'log',m:'[warn] '+a.map(String).join(' ')});\n      const preview=document.getElementById('preview');\n      try{\n        const wrapped=`const {useState,useEffect,useRef,useReducer,useContext,createContext,useMemo,useCallback,Fragment}=React;\\n${src}`;\n        const transformed=Babel.transform(wrapped,{presets:['react'],filename:'app.jsx'}).code;\n        const full=transformed+'\\n__s__.App=typeof App!==\"undefined\"?App:null;';\n        const scope={};\n        new Function('React','__s__',full)(React,scope);\n        preview.innerHTML='';\n        _root=ReactDOM.createRoot(preview);\n        if(scope.App)_root.render(React.createElement(scope.App));\n        else _root.render(React.createElement('p',{style:{color:'#888',fontStyle:'italic'}},'Define function App() { return <JSX />; }'));\n      }catch(e){\n        logs.push({t:'err',m:e.message});\n        preview.innerHTML=`<pre style=\"color:red;font-size:0.78rem;white-space:pre-wrap\">${e.message.replace(/</g,'&lt;')}</pre>`;\n      }finally{\n        console.log=oL;console.error=oE;console.warn=oW;\n      }\n      const cd=document.getElementById('console');\n      cd.innerHTML='<div class=\"panel-label\">CONSOLE</div>'+(logs.length?logs.map(l=>`<div class=\"${l.t==='err'?'err':'log'}\">${l.m.replace(/</g,'&lt;')}</div>`).join(''):'<div style=\"color:#64748b;font-size:0.75rem\">No output</div>');\n    }\n    document.getElementById('code').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runReact();}});\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "warning",
+      "text": "JSX pitfalls: use `className` not `class`, `htmlFor` not `for`, and `style={{color:'red'}}` (object) not `style=\"color:red\"` (string). All tags must be closed — `<input />` not `<input>`."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "react-jsx-q1",
+          "question": "Why does JSX use `className` instead of `class`?",
+          "type": "multiple-choice",
+          "options": [
+            "React invented className — it doesn't exist in HTML",
+            "class is a reserved keyword in JavaScript, so JSX uses className to avoid conflicts",
+            "className is faster than class at runtime",
+            "You can use either class or className in JSX — they both work"
+          ],
+          "correctAnswer": 1,
+          "explanation": "JSX compiles to JavaScript, and class is a reserved keyword in JavaScript (used for defining classes). Using class as an attribute name in JSX would conflict with the JavaScript parser. So React uses className (which maps to the DOM element's className property). Similarly, for → htmlFor (for is a JS loop keyword)."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Can I write if/else inside JSX?",
+      "a": "Not directly — JSX only accepts expressions, not statements. Instead use: ternary (condition ? A : B), short-circuit (&& for 'render if true'), or move the logic above the return statement. You can also extract complex conditionals into a helper function that returns JSX."
+    }
+  ],
+  "sources": [
+    {
+      "name": "React Docs — Writing Markup with JSX",
+      "url": "https://react.dev/learn/writing-markup-with-jsx",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every React component file"],
+    "examples": [
+      "{isLoggedIn ? <Dashboard /> : <Login />} — conditional rendering",
+      "{items.map(item => <Item key={item.id} {...item} />)} — list rendering",
+      "<input type='text' value={value} onChange={e => setValue(e.target.value)} /> — controlled input"
+    ]
+  }
+}

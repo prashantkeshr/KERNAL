@@ -1,0 +1,103 @@
+{
+  "id": "01-introduction",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "react",
+  "technologyVersion": "React 18",
+  "module": "react-foundations",
+  "title": "Introduction to React",
+  "subtitle": "Component-based UI — why React, how it works, your first element",
+  "difficulty": "beginner",
+  "estimatedMinutes": 18,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["javascript/15-modern-js"],
+  "skillsTaught": ["react.components", "react.virtual-dom", "react.render", "react.elements"],
+  "skillsUsed": ["js.functions", "js.arrow-functions", "js.modules"],
+  "relatedConcepts": ["react.jsx", "react.props"],
+  "whyItExists": {
+    "problem": "Building complex UIs with raw DOM manipulation (document.getElementById, innerHTML) becomes a maintenance nightmare. State synchronization — keeping the UI in sync with data — requires error-prone manual updates.",
+    "solution": "React introduces a component model: UI = function(state). You describe what the UI should look like for a given state, and React handles the DOM updates. When state changes, React re-computes the UI and efficiently updates only the parts that changed (the virtual DOM diff).",
+    "whenToUse": "Any UI where the page content changes based on user actions or data — dashboards, forms, SPAs, admin panels. React is the industry-standard choice for web UIs at scale.",
+    "whenNotToUse": "Static content sites with minimal interactivity (use plain HTML + CSS). Server-rendered pages where SEO matters and JavaScript is minimal (use a framework like Next.js that builds on React, or plain HTML)."
+  },
+  "explainModes": {
+    "beginner": "React is a library for building user interfaces. Instead of writing code to manually update the page ('find this element, change its text, add this class'), you write components — functions that describe what the UI should look like. When data changes, React automatically updates the page for you.",
+    "simple": "React components are functions that return JSX. ReactDOM.createRoot() mounts your app. React.createElement('div', props, children) creates an element — JSX is syntactic sugar for this. Components compose: one component can render others. State lives in components and drives the UI.",
+    "standard": "The virtual DOM: React maintains an in-memory tree of UI elements. When state changes, React re-renders the component (calls the function), gets a new virtual DOM tree, diffs it against the previous tree, and applies only the minimal set of real DOM changes (reconciliation). This is what makes React fast — DOM updates are batched and minimized. React 18 introduces concurrent features (transitions, Suspense) for better perceived performance.",
+    "technical": "React.createElement(type, props, ...children) is the primitive. JSX compiles to these calls. Fiber: React 18's reconciler is Fiber — a linked list of 'work units' that can be paused, resumed, and prioritized. React.StrictMode runs components twice in development to catch side effects. createRoot replaces render in React 18; createRoot enables concurrent features. Hydration: SSR apps use hydrateRoot to attach React to server-rendered HTML without replacing it.",
+    "deepDive": "The reconciliation algorithm: React uses a heuristic O(n) algorithm rather than the theoretically optimal O(n³) tree diffing. Key assumptions: elements of different types produce different trees (short-circuit — don't try to reconcile them); the key prop identifies stable elements across renders (without keys, React uses position-based matching which can lose state). The Fiber scheduler prioritizes updates: user interactions get higher priority than data fetching; background work can be interrupted. Transitions (startTransition) mark updates as non-urgent so urgent updates (typing) aren't blocked."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Your first React component"
+    },
+    {
+      "type": "code",
+      "lang": "jsx",
+      "filename": "App.jsx",
+      "code": "// React 18 — function component\nfunction App() {\n    return (\n        <div>\n            <h1>Hello, React!</h1>\n            <p>This is a React component.</p>\n        </div>\n    );\n}\n\n// Mount the app\nconst root = ReactDOM.createRoot(document.getElementById('root'));\nroot.render(<App />);"
+    },
+    {
+      "type": "code",
+      "lang": "jsx",
+      "filename": "components.jsx",
+      "code": "// Components are just functions that return JSX\nfunction Greeting({ name }) {\n    return <h2>Hello, {name}!</h2>;\n}\n\nfunction Card({ title, body }) {\n    return (\n        <div style={{ border: '1px solid #ccc', padding: '12px', borderRadius: '8px' }}>\n            <h3>{title}</h3>\n            <p>{body}</p>\n        </div>\n    );\n}\n\n// Compose components inside other components\nfunction App() {\n    return (\n        <div>\n            <Greeting name=\"Alice\" />\n            <Greeting name=\"Bob\" />\n            <Card\n                title=\"React 18\"\n                body=\"Build UIs with components.\"\n            />\n        </div>\n    );\n}"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Your first React components",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0}\n    .layout{display:grid;grid-template-rows:auto 1fr;gap:10px;height:calc(100vh - 32px)}\n    .top{display:flex;flex-direction:column;gap:8px}\n    .editor-row{display:flex;gap:8px;align-items:flex-start}\n    textarea{flex:1;background:#0b0e14;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;padding:10px;font-family:monospace;font-size:0.82rem;resize:vertical;min-height:160px}\n    .btns{display:flex;flex-direction:column;gap:6px}\n    button{padding:8px 14px;border:none;border-radius:5px;font-weight:700;cursor:pointer;font-size:0.8rem;white-space:nowrap}\n    .chips{display:flex;flex-wrap:wrap;gap:6px}\n    .chip{background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:3px 10px;font-family:monospace;font-size:0.72rem;cursor:pointer;color:#94a3b8}\n    .chip:hover{border-color:#4fd1c5;color:#4fd1c5}\n    .panels{display:grid;grid-template-columns:1fr 1fr;gap:8px}\n    .panel{border-radius:6px;overflow:auto;padding:10px;font-size:0.78rem}\n    .panel-label{font-size:0.7rem;color:#4fd1c5;margin-bottom:6px;font-family:monospace}\n    #preview{background:#fff;color:#111;border-radius:6px;padding:16px;min-height:120px}\n    #preview *{box-sizing:border-box}\n    #console{background:#0b0e14;font-family:monospace}\n    .log{color:#4fd1c5;margin:2px 0}.err{color:#ef4444;margin:2px 0}\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"code\" spellcheck=\"false\">function Greeting({ name }) {\n  return <h2 style={{color:'#2563eb'}}>Hello, {name}! 👋</h2>;\n}\n\nfunction App() {\n  return (\n    <div style={{fontFamily:'sans-serif',padding:'8px'}}>\n      <h1>My First React App</h1>\n      <Greeting name=\"Alice\" />\n      <Greeting name=\"Bob\" />\n      <p>React renders components as real HTML.</p>\n    </div>\n  );\n}</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runReact()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setCode('function App() {\\n  return (\\n    <div style={{fontFamily:\\'sans-serif\\',padding:\\'8px\\'}}>\\n      <h1>Hello World</h1>\\n      <p>My first React component!</p>\\n    </div>\\n  );\\n}')\">hello world</span>\n        <span class=\"chip\" onclick=\"setCode('function Card({ title, text }) {\\n  return (\\n    <div style={{border:\\'1px solid #e2e8f0\\',borderRadius:\\'8px\\',padding:\\'12px\\',marginBottom:\\'8px\\'}}>\\n      <h3 style={{margin:\\'0 0 6px\\'}}>{title}</h3>\\n      <p style={{margin:0,color:\\'#555\\'}}>{text}</p>\\n    </div>\\n  );\\n}\\nfunction App() {\\n  return (\\n    <div>\\n      <Card title=\\'React\\' text=\\'Component-based UI\\' />\\n      <Card title=\\'Fast\\' text=\\'Virtual DOM diffing\\' />\\n    </div>\\n  );\\n}')\">card component</span>\n        <span class=\"chip\" onclick=\"setCode('function App() {\\n  const items = [\\'Apples\\', \\'Bananas\\', \\'Cherries\\'];\\n  return (\\n    <ul>\\n      {items.map((item, i) => <li key={i}>{item}</li>)}\\n    </ul>\\n  );\\n}')\">list rendering</span>\n      </div>\n    </div>\n    <div class=\"panels\">\n      <div class=\"panel\" id=\"preview\"><div style=\"color:#9ca3af;font-style:italic\">Click ▶ Run</div></div>\n      <div class=\"panel\" id=\"console\"><div class=\"panel-label\">CONSOLE</div><div style=\"color:#64748b;font-size:0.75rem\">No output</div></div>\n    </div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.5/babel.min.js\"></script>\n  <script>\n    let _root=null;\n    function setCode(c){document.getElementById('code').value=c;runReact();}\n    function runReact(){\n      const src=document.getElementById('code').value;\n      const logs=[];\n      const oL=console.log,oE=console.error,oW=console.warn;\n      console.log=(...a)=>logs.push({t:'log',m:a.map(x=>typeof x==='object'?JSON.stringify(x):String(x)).join(' ')});\n      console.error=(...a)=>logs.push({t:'err',m:a.map(String).join(' ')});\n      console.warn=(...a)=>logs.push({t:'log',m:'[warn] '+a.map(String).join(' ')});\n      const preview=document.getElementById('preview');\n      try{\n        const wrapped=`const {useState,useEffect,useRef,useReducer,useContext,createContext,useMemo,useCallback,Fragment}=React;\\n${src}`;\n        const transformed=Babel.transform(wrapped,{presets:['react'],filename:'app.jsx'}).code;\n        const full=transformed+'\\n__s__.App=typeof App!==\"undefined\"?App:null;';\n        const scope={};\n        new Function('React','__s__',full)(React,scope);\n        preview.innerHTML='';\n        _root=ReactDOM.createRoot(preview);\n        if(scope.App)_root.render(React.createElement(scope.App));\n        else _root.render(React.createElement('p',{style:{color:'#888',fontStyle:'italic'}},'Define function App() { return <JSX />; }'));\n      }catch(e){\n        logs.push({t:'err',m:e.message});\n        preview.innerHTML=`<pre style=\"color:red;font-size:0.78rem;white-space:pre-wrap\">${e.message.replace(/</g,'&lt;')}</pre>`;\n      }finally{\n        console.log=oL;console.error=oE;console.warn=oW;\n      }\n      const cd=document.getElementById('console');\n      cd.innerHTML='<div class=\"panel-label\">CONSOLE</div>'+(logs.length?logs.map(l=>`<div class=\"${l.t==='err'?'err':'log'}\">${l.m.replace(/</g,'&lt;')}</div>`).join(''):'<div style=\"color:#64748b;font-size:0.75rem\">No output</div>');\n    }\n    document.getElementById('code').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runReact();}});\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "tip",
+      "text": "React component names MUST start with a capital letter. `<greeting />` is treated as an HTML tag; `<Greeting />` is treated as a React component."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "react-intro-q1",
+          "question": "What does React's virtual DOM do?",
+          "type": "multiple-choice",
+          "options": [
+            "It stores a backup copy of the HTML for disaster recovery",
+            "It keeps an in-memory representation of the UI, diffs it on state changes, and applies only the minimal real DOM updates",
+            "It replaces the real DOM entirely — React never touches actual HTML elements",
+            "It is an alternative to CSS for styling components"
+          ],
+          "correctAnswer": 1,
+          "explanation": "React maintains a virtual DOM — a lightweight JavaScript representation of the UI tree. When state changes, React re-renders the component (calls the function), produces a new virtual DOM tree, compares (diffs) it with the previous tree, and applies only the specific DOM changes needed. This batching and minimization of real DOM updates is what makes React efficient."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Does React replace HTML and CSS?",
+      "a": "No. React renders HTML elements and you still write CSS. JSX looks like HTML but compiles to JavaScript. React adds a component model and state management on top of the same HTML/CSS you already know. You can use plain CSS files, CSS modules, or CSS-in-JS libraries alongside React."
+    }
+  ],
+  "sources": [
+    {
+      "name": "React Docs — Describing the UI",
+      "url": "https://react.dev/learn/describing-the-ui",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["Facebook/Instagram", "Airbnb", "Netflix", "VS Code web", "Notion"],
+    "examples": [
+      "function Button({ onClick, children }) { return <button onClick={onClick}>{children}</button> }",
+      "Over 40% of all web projects use React (State of JS 2024)",
+      "React Native extends the same model to iOS and Android mobile apps"
+    ]
+  }
+}

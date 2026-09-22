@@ -1,0 +1,10 @@
+{
+  "id": "react",
+  "name": "React",
+  "version": "React 18",
+  "difficulty": "intermediate",
+  "estimatedHours": 30,
+  "modules": ["react-foundations", "react-state", "react-rendering", "react-advanced", "react-practical"],
+  "prerequisites": ["javascript", "typescript"],
+  "certificationAvailable": true
+}

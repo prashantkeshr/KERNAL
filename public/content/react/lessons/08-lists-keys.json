@@ -1,0 +1,94 @@
+{
+  "id": "08-lists-keys",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "react",
+  "technologyVersion": "React 18",
+  "module": "react-rendering",
+  "title": "Lists and Keys",
+  "subtitle": "Rendering arrays with .map(), the key prop, filtering, and sorting",
+  "difficulty": "beginner",
+  "estimatedMinutes": 16,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["react/07-conditional-rendering"],
+  "skillsTaught": ["react.list-rendering", "react.key-prop", "react.array-map", "react.list-filtering"],
+  "skillsUsed": ["js.array-map", "js.array-filter", "js.array-sort", "react.useState"],
+  "relatedConcepts": ["react.reconciliation", "react.conditional-rendering"],
+  "whyItExists": {
+    "problem": "UIs commonly display collections of similar items — product lists, user feeds, search results. Hard-coding each item isn't scalable.",
+    "solution": "JSX can render arrays of elements. Use Array.map() to transform a data array into an array of JSX elements. Each element needs a unique key prop so React can identify which items changed, were added, or were removed during reconciliation.",
+    "whenToUse": "Any time you display a collection: lists, tables, grids, card feeds, dropdown options, navigation items.",
+    "whenNotToUse": "When you render a fixed, known set of elements that never changes (just write them out). Don't over-abstract static lists."
+  },
+  "explainModes": {
+    "beginner": "To render a list, use .map() inside JSX: {items.map(item => <li key={item.id}>{item.name}</li>)}. The key prop is required — it's a unique identifier React uses to track which items changed. Use the item's ID, not the array index.",
+    "simple": "Array.map in JSX: each call must return a single JSX element with a unique key. Key rules: unique among siblings (not globally), stable (doesn't change between renders), preferably the data's own ID. Filter: {items.filter(item => item.active).map(item => <Item key={item.id} {...item} />)}. Sort: [...items].sort(compareFn).map(...) — spread first to avoid mutating state.",
+    "standard": "Why keys matter: without keys, React uses position for reconciliation. If you insert at the beginning of a list, React sees 'item at position 0 changed' and updates all elements instead of inserting one — O(n) work. With stable keys, React sees 'new item with key X was inserted' — O(1) insert. Keys must be stable: don't use Math.random() as a key — it changes every render and remounts components. Using index as key is OK for static lists that never reorder or filter.",
+    "technical": "React.Children: children can be an array — React.Children.map, React.Children.forEach, React.Children.count manipulate the children prop. Windowing/virtualization: rendering thousands of list items at once is slow (thousands of DOM nodes). Libraries like react-virtual or react-window render only the visible items (a 'window' of the list) and swap items in/out as the user scrolls. Fragment with key: <Fragment key={id}> for wrapping multiple elements in a keyed list without a div.",
+    "technical2": "",
+    "deepDive": "The key reconciliation algorithm in depth: React builds a map of key→fiber for the existing children. For each new child, it looks up the key in the map. If found, it reuses the fiber (cheap update). If not found, it creates a new fiber (mount). Remaining keys in the map are unmounted. This is why stable IDs from the server are critical — they let React correctly match items even after filtering, reordering, or data refetch. Mutation warning: don't mutate the items array before passing to map — React may see the same reference and skip re-rendering. Always create a new array: [...items].sort(...)."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Rendering lists with .map()"
+    },
+    {
+      "type": "code",
+      "lang": "jsx",
+      "filename": "lists.jsx",
+      "code": "const PRODUCTS = [\n    { id: 1, name: 'React Handbook', category: 'Books',       price: 499, inStock: true  },\n    { id: 2, name: 'TypeScript Pro', category: 'Books',       price: 599, inStock: false },\n    { id: 3, name: 'USB-C Hub',      category: 'Electronics', price: 999, inStock: true  },\n    { id: 4, name: 'Desk Lamp',      category: 'Accessories', price: 349, inStock: true  },\n];\n\nfunction ProductItem({ id, name, category, price, inStock }) {\n    return (\n        <li style={{\n            padding: '10px', borderBottom: '1px solid #e5e7eb',\n            display: 'flex', justifyContent: 'space-between', alignItems: 'center',\n            opacity: inStock ? 1 : 0.5\n        }}>\n            <div>\n                <strong>{name}</strong>\n                <span style={{ marginLeft: '8px', fontSize: '0.78rem', color: '#6b7280' }}>{category}</span>\n            </div>\n            <div style={{ textAlign: 'right' }}>\n                <div>₹{price}</div>\n                {!inStock && <small style={{ color: '#ef4444' }}>Out of stock</small>}\n            </div>\n        </li>\n    );\n}\n\nfunction App() {\n    const [filter, setFilter] = useState('all');\n\n    // Filter — create new array, don't mutate PRODUCTS\n    const visible = filter === 'inStock'\n        ? PRODUCTS.filter(p => p.inStock)\n        : PRODUCTS;\n\n    return (\n        <div style={{ fontFamily: 'sans-serif', padding: '8px', maxWidth: '420px' }}>\n            <div style={{ marginBottom: '8px', display: 'flex', gap: '8px' }}>\n                <button onClick={() => setFilter('all')}     style={{ fontWeight: filter === 'all'     ? 'bold' : 'normal' }}>All</button>\n                <button onClick={() => setFilter('inStock')} style={{ fontWeight: filter === 'inStock' ? 'bold' : 'normal' }}>In Stock</button>\n            </div>\n\n            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>\n                {visible.map(product => (\n                    <ProductItem key={product.id} {...product} />   /* key must be here, on the outermost element */\n                ))}\n            </ul>\n\n            <p style={{ fontSize: '0.8rem', color: '#6b7280' }}>{visible.length} items</p>\n        </div>\n    );\n}"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Lists with filter and sort",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0}\n    .layout{display:grid;grid-template-rows:auto 1fr;gap:10px;height:calc(100vh - 32px)}\n    .top{display:flex;flex-direction:column;gap:8px}\n    .editor-row{display:flex;gap:8px;align-items:flex-start}\n    textarea{flex:1;background:#0b0e14;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;padding:10px;font-family:monospace;font-size:0.82rem;resize:vertical;min-height:160px}\n    .btns{display:flex;flex-direction:column;gap:6px}\n    button{padding:8px 14px;border:none;border-radius:5px;font-weight:700;cursor:pointer;font-size:0.8rem;white-space:nowrap}\n    .chips{display:flex;flex-wrap:wrap;gap:6px}\n    .chip{background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:3px 10px;font-family:monospace;font-size:0.72rem;cursor:pointer;color:#94a3b8}\n    .chip:hover{border-color:#4fd1c5;color:#4fd1c5}\n    .panels{display:grid;grid-template-columns:1fr 1fr;gap:8px}\n    .panel{border-radius:6px;overflow:auto;padding:10px;font-size:0.78rem}\n    .panel-label{font-size:0.7rem;color:#4fd1c5;margin-bottom:6px;font-family:monospace}\n    #preview{background:#fff;color:#111;border-radius:6px;padding:16px;min-height:120px}\n    #console{background:#0b0e14;font-family:monospace}\n    .log{color:#4fd1c5;margin:2px 0}.err{color:#ef4444;margin:2px 0}\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"code\" spellcheck=\"false\">const PEOPLE = [\n  { id: 1, name: 'Alice', dept: 'Engineering', level: 'Senior' },\n  { id: 2, name: 'Bob',   dept: 'Design',      level: 'Mid'    },\n  { id: 3, name: 'Carol', dept: 'Engineering', level: 'Junior' },\n  { id: 4, name: 'Dan',   dept: 'Design',      level: 'Senior' },\n  { id: 5, name: 'Eve',   dept: 'Product',     level: 'Mid'    },\n];\n\nfunction App() {\n  const [search, setSearch] = useState('');\n  const [dept, setDept]     = useState('All');\n\n  const depts = ['All', ...new Set(PEOPLE.map(p => p.dept))];\n\n  const filtered = PEOPLE\n    .filter(p => dept === 'All' || p.dept === dept)\n    .filter(p => p.name.toLowerCase().includes(search.toLowerCase()));\n\n  return (\n    <div style={{fontFamily:'sans-serif',padding:'8px'}}>\n      <div style={{display:'flex',gap:'8px',marginBottom:'8px',flexWrap:'wrap'}}>\n        <input\n          placeholder=\"Search name...\"\n          value={search}\n          onChange={e => setSearch(e.target.value)}\n          style={{padding:'5px',borderRadius:'4px',border:'1px solid #d1d5db'}}\n        />\n        <select value={dept} onChange={e => setDept(e.target.value)} style={{padding:'5px'}}>\n          {depts.map(d => <option key={d}>{d}</option>)}\n        </select>\n      </div>\n      {filtered.length === 0 && <p style={{color:'#9ca3af'}}>No matches</p>}\n      <ul style={{padding:0,listStyle:'none',margin:0}}>\n        {filtered.map(person => (\n          <li key={person.id} style={{padding:'8px',borderBottom:'1px solid #e5e7eb',display:'flex',justifyContent:'space-between'}}>\n            <strong>{person.name}</strong>\n            <span style={{color:'#6b7280',fontSize:'0.85rem'}}>{person.dept} · {person.level}</span>\n          </li>\n        ))}\n      </ul>\n      <p style={{fontSize:'0.8rem',color:'#9ca3af'}}>{filtered.length} / {PEOPLE.length} people</p>\n    </div>\n  );\n}</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runReact()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setCode('function App() {\\n  const [items, setItems] = useState([\\'React\\',\\'TypeScript\\',\\'CSS\\']);\\n  const [input, setInput] = useState(\\'\\');\\n  const add = () => { if(input.trim()){setItems(p=>[...p,input.trim()]);setInput(\\'\\');} };\\n  const remove = (idx) => setItems(p => p.filter((_,i) => i !== idx));\\n  return (\\n    <div style={{fontFamily:\\'sans-serif\\',padding:\\'8px\\'}}>\\n      <div style={{display:\\'flex\\',gap:\\'6px\\',marginBottom:\\'8px\\'}}>\\n        <input value={input} onChange={e=>setInput(e.target.value)} placeholder=\\'Add skill...\\' style={{padding:\\'5px\\'}} />\\n        <button onClick={add}>Add</button>\\n      </div>\\n      <ul style={{padding:0,listStyle:\\'none\\',margin:0}}>\\n        {items.map((item,i) => (\\n          <li key={i} style={{display:\\'flex\\',justifyContent:\\'space-between\\',padding:\\'6px\\',borderBottom:\\'1px solid #e5e7eb\\'}}>\\n            {item}\\n            <button onClick={() => remove(i)} style={{background:\\'#fee2e2\\',border:\\'none\\',borderRadius:\\'4px\\',cursor:\\'pointer\\'}}>✕</button>\\n          </li>\\n        ))}\\n      </ul>\\n    </div>\\n  );\\n}')\">dynamic list</span>\n        <span class=\"chip\" onclick=\"setCode('const TASKS = [{id:1,title:\\'Write tests\\',done:false},{id:2,title:\\'Review PR\\',done:true},{id:3,title:\\'Deploy\\',done:false}];\\nfunction App() {\\n  const [tasks, setTasks] = useState(TASKS);\\n  const toggle = (id) => setTasks(p => p.map(t => t.id===id ? {...t,done:!t.done} : t));\\n  return (\\n    <ul style={{fontFamily:\\'sans-serif\\',padding:\\'8px\\',listStyle:\\'none\\',margin:0}}>\\n      {tasks.map(task => (\\n        <li key={task.id} onClick={()=>toggle(task.id)}\\n          style={{padding:\\'8px\\',cursor:\\'pointer\\',textDecoration:task.done?\\'line-through\\':\\'none\\',color:task.done?\\'#9ca3af\\':\\'inherit\\'}}\\n        >\\n          {task.done ? \\'☑\\' : \\'☐\\'} {task.title}\\n        </li>\\n      ))}\\n    </ul>\\n  );\\n}')\">todo list</span>\n      </div>\n    </div>\n    <div class=\"panels\">\n      <div class=\"panel\" id=\"preview\"><div style=\"color:#9ca3af;font-style:italic\">Click ▶ Run</div></div>\n      <div class=\"panel\" id=\"console\"><div class=\"panel-label\">CONSOLE</div><div style=\"color:#64748b;font-size:0.75rem\">No output</div></div>\n    </div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.5/babel.min.js\"></script>\n  <script>\n    let _root=null;\n    function setCode(c){document.getElementById('code').value=c;runReact();}\n    function runReact(){\n      const src=document.getElementById('code').value;\n      const logs=[];\n      const oL=console.log,oE=console.error,oW=console.warn;\n      console.log=(...a)=>logs.push({t:'log',m:a.map(x=>typeof x==='object'?JSON.stringify(x):String(x)).join(' ')});\n      console.error=(...a)=>logs.push({t:'err',m:a.map(String).join(' ')});\n      console.warn=(...a)=>logs.push({t:'log',m:'[warn] '+a.map(String).join(' ')});\n      const preview=document.getElementById('preview');\n      try{\n        const wrapped=`const {useState,useEffect,useRef,useReducer,useContext,createContext,useMemo,useCallback,Fragment}=React;\\n${src}`;\n        const transformed=Babel.transform(wrapped,{presets:['react'],filename:'app.jsx'}).code;\n        const full=transformed+'\\n__s__.App=typeof App!==\"undefined\"?App:null;';\n        const scope={};\n        new Function('React','__s__',full)(React,scope);\n        preview.innerHTML='';\n        _root=ReactDOM.createRoot(preview);\n        if(scope.App)_root.render(React.createElement(scope.App));\n        else _root.render(React.createElement('p',{style:{color:'#888',fontStyle:'italic'}},'Define function App() { return <JSX />; }'));\n      }catch(e){\n        logs.push({t:'err',m:e.message});\n        preview.innerHTML=`<pre style=\"color:red;font-size:0.78rem;white-space:pre-wrap\">${e.message.replace(/</g,'&lt;')}</pre>`;\n      }finally{\n        console.log=oL;console.error=oE;console.warn=oW;\n      }\n      const cd=document.getElementById('console');\n      cd.innerHTML='<div class=\"panel-label\">CONSOLE</div>'+(logs.length?logs.map(l=>`<div class=\"${l.t==='err'?'err':'log'}\">${l.m.replace(/</g,'&lt;')}</div>`).join(''):'<div style=\"color:#64748b;font-size:0.75rem\">No output</div>');\n    }\n    document.getElementById('code').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runReact();}});\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "react-lists-q1",
+          "question": "Why is using array index as a key problematic for reorderable lists?",
+          "type": "multiple-choice",
+          "options": [
+            "Indexes are not allowed as keys in React",
+            "When the list is reordered or filtered, the key (index) stays the same but the content changes — React thinks the same item is at position 0 and won't remount it correctly, potentially mixing up component state",
+            "Indexes cause React to re-render the entire list on every update",
+            "Indexes only work for arrays with fewer than 10 items"
+          ],
+          "correctAnswer": 1,
+          "explanation": "React uses the key to match elements between renders. If you use the index as a key, and then reorder the list (e.g., move item from position 2 to position 0), the item that's now at position 0 still has key=0 — React thinks it's the same item as before and reuses its state, producing incorrect behavior. Use a stable, unique ID from your data instead."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Can I use the array index as a key?",
+      "a": "Yes, but only if: (1) the list is static and never reordered or filtered, and (2) no list item has local state that needs to persist. For all other cases — dynamic lists, filtered lists, drag-to-reorder — use a stable unique ID from the data."
+    }
+  ],
+  "sources": [
+    {
+      "name": "React Docs — Rendering Lists",
+      "url": "https://react.dev/learn/rendering-lists",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["product listings", "user feeds", "data tables", "navigation menus"],
+    "examples": [
+      "{users.map(user => <UserRow key={user.id} {...user} />)}",
+      "{tabs.map(tab => <Tab key={tab.id} active={tab.id === activeTab} onClick={() => setActiveTab(tab.id)} label={tab.label} />)}",
+      "{messages.filter(m => !m.deleted).map(m => <Message key={m.id} {...m} />)}"
+    ]
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "id": "13-custom-hooks",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "react",
+  "technologyVersion": "React 18",
+  "module": "react-practical",
+  "title": "Custom Hooks",
+  "subtitle": "Extracting and reusing stateful logic with custom hooks",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 20,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["react/12-usecontext"],
+  "skillsTaught": ["react.custom-hooks", "react.hook-rules", "react.useFetch", "react.useLocalStorage"],
+  "skillsUsed": ["react.useState", "react.useEffect", "react.useRef"],
+  "relatedConcepts": ["react.useReducer", "react.context"],
+  "whyItExists": {
+    "problem": "The same stateful logic pattern appears in multiple components — fetch data from an API, sync a value to localStorage, debounce an input. Copy-pasting useState + useEffect between components violates DRY and is hard to maintain.",
+    "solution": "Custom hooks are plain JavaScript functions whose names start with 'use' and that call other hooks inside. They let you extract stateful logic into a reusable function that can be shared across components.",
+    "whenToUse": "When the same useState + useEffect combination appears in two or more components. When a component is doing too much because of repeated boilerplate. When you want to test state logic independently.",
+    "whenNotToUse": "Don't extract a hook that would be used only once — it's premature abstraction. The hook should encapsulate logic, not just rename useState."
+  },
+  "explainModes": {
+    "beginner": "A custom hook is just a function that starts with 'use' and uses React hooks inside. You call it from a component exactly like useState or useEffect. The magic is that each component that calls your hook gets its own independent state — hooks are not shared between components.",
+    "simple": "Name must start with use (enforced by the linter). Can call any other hooks inside. Returns whatever the caller needs (values, setters, actions). Each component that uses the hook gets its own state instance — not shared. Extract: useWindowSize(), useFetch(url), useLocalStorage(key, initial), useDebounce(value, ms), useToggle(initial).",
+    "standard": "The rules of hooks apply to custom hooks too: no conditionals, no loops. Custom hooks don't need to return JSX — they're about logic, not UI. A custom hook can use other custom hooks. Testing: test the hook in isolation with renderHook from @testing-library/react. Sharing hooks: publish as an npm package or use a hooks library like react-use.",
+    "technical": "Each call to a custom hook creates an independent closure — two components calling useCounter() have independent counts. The hook's internal useState calls are stored in the component's fiber (not in the hook function itself). This is why you can call the same hook multiple times in one component and each call is independent. Type-safe hooks in TypeScript: function useFetch<T>(url: string): { data: T | null, loading: boolean, error: string | null }.",
+    "deepDive": "Composition: combine custom hooks: useFetch uses useEffect, useRef (for the ignore flag), and useState. usePaginatedFetch uses useFetch + useState for the page number. Hook libraries: react-use (100+ hooks), @tanstack/react-query (server state + caching), swr (stale-while-revalidate). These are custom hooks refined into production-quality libraries. The ecosystem: React's hooks model makes it easy to share logic as hooks — any npm package that exports a useX function is usable directly in your components."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Building custom hooks"
+    },
+    {
+      "type": "code",
+      "lang": "jsx",
+      "filename": "custom_hooks.jsx",
+      "code": "// Custom hook: useFetch — reusable data fetching with loading/error states\nfunction useFetch(url) {\n    const [data, setData]       = useState(null);\n    const [loading, setLoading] = useState(true);\n    const [error, setError]     = useState(null);\n\n    useEffect(() => {\n        let ignore = false;\n        setLoading(true);\n        setData(null);\n        setError(null);\n\n        fetch(url)\n            .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json(); })\n            .then(json => { if (!ignore) { setData(json); setLoading(false); } })\n            .catch(err => { if (!ignore) { setError(err.message); setLoading(false); } });\n\n        return () => { ignore = true; };\n    }, [url]);\n\n    return { data, loading, error };\n}\n\n// Custom hook: useLocalStorage — persist state in localStorage\nfunction useLocalStorage(key, initialValue) {\n    const [value, setValue] = useState(() => {\n        try {\n            const stored = localStorage.getItem(key);\n            return stored ? JSON.parse(stored) : initialValue;\n        } catch { return initialValue; }\n    });\n\n    const set = (newValue) => {\n        setValue(newValue);\n        try { localStorage.setItem(key, JSON.stringify(newValue)); } catch {}\n    };\n\n    return [value, set];\n}\n\n// Custom hook: useToggle\nfunction useToggle(initial = false) {\n    const [state, setState] = useState(initial);\n    const toggle = () => setState(s => !s);\n    return [state, toggle];\n}\n\n// Use all three in one component\nfunction App() {\n    const { data: post, loading, error } = useFetch('https://jsonplaceholder.typicode.com/posts/1');\n    const [name, setName] = useLocalStorage('kernal-name', '');\n    const [isExpanded, toggleExpanded] = useToggle(false);\n\n    return (\n        <div style={{ fontFamily: 'sans-serif', padding: '8px', maxWidth: '400px' }}>\n            <div style={{ marginBottom: '12px' }}>\n                <input value={name} onChange={e => setName(e.target.value)} placeholder=\"Saved name (localStorage)\" style={{ padding: '6px', width: '100%', boxSizing: 'border-box' }} />\n                {name && <p>Hello, {name}! (persisted across page loads)</p>}\n            </div>\n\n            {loading && <p>Loading post...</p>}\n            {error && <p style={{ color: 'red' }}>Error: {error}</p>}\n            {post && (\n                <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px' }}>\n                    <h3 style={{ margin: '0 0 8px' }}>{post.title}</h3>\n                    <button onClick={toggleExpanded}>{isExpanded ? 'Collapse' : 'Expand'}</button>\n                    {isExpanded && <p style={{ marginTop: '8px' }}>{post.body}</p>}\n                </div>\n            )}\n        </div>\n    );\n}"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Custom hooks playground",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0}\n    .layout{display:grid;grid-template-rows:auto 1fr;gap:10px;height:calc(100vh - 32px)}\n    .top{display:flex;flex-direction:column;gap:8px}\n    .editor-row{display:flex;gap:8px;align-items:flex-start}\n    textarea{flex:1;background:#0b0e14;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;padding:10px;font-family:monospace;font-size:0.82rem;resize:vertical;min-height:160px}\n    .btns{display:flex;flex-direction:column;gap:6px}\n    button{padding:8px 14px;border:none;border-radius:5px;font-weight:700;cursor:pointer;font-size:0.8rem;white-space:nowrap}\n    .chips{display:flex;flex-wrap:wrap;gap:6px}\n    .chip{background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:3px 10px;font-family:monospace;font-size:0.72rem;cursor:pointer;color:#94a3b8}\n    .chip:hover{border-color:#4fd1c5;color:#4fd1c5}\n    .panels{display:grid;grid-template-columns:1fr 1fr;gap:8px}\n    .panel{border-radius:6px;overflow:auto;padding:10px;font-size:0.78rem}\n    .panel-label{font-size:0.7rem;color:#4fd1c5;margin-bottom:6px;font-family:monospace}\n    #preview{background:#fff;color:#111;border-radius:6px;padding:16px;min-height:120px}\n    #console{background:#0b0e14;font-family:monospace}\n    .log{color:#4fd1c5;margin:2px 0}.err{color:#ef4444;margin:2px 0}\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"code\" spellcheck=\"false\">// useDebounce — delays updating a value until user stops typing\nfunction useDebounce(value, delay) {\n  const [debounced, setDebounced] = useState(value);\n  useEffect(() => {\n    const id = setTimeout(() => setDebounced(value), delay);\n    return () => clearTimeout(id);\n  }, [value, delay]);\n  return debounced;\n}\n\n// useCounter — counter with min/max bounds\nfunction useCounter(initial = 0, { min = -Infinity, max = Infinity } = {}) {\n  const [count, setCount] = useState(initial);\n  const increment = () => setCount(c => Math.min(c + 1, max));\n  const decrement = () => setCount(c => Math.max(c - 1, min));\n  const reset     = () => setCount(initial);\n  return { count, increment, decrement, reset };\n}\n\nfunction App() {\n  const [search, setSearch] = useState('');\n  const debounced = useDebounce(search, 400);\n  const qty = useCounter(1, { min: 1, max: 10 });\n\n  return (\n    <div style={{fontFamily:'sans-serif',padding:'8px'}}>\n      <h3>useDebounce</h3>\n      <input value={search} onChange={e=>setSearch(e.target.value)} placeholder=\"Type fast...\" style={{padding:'6px',border:'1px solid #d1d5db',borderRadius:'4px',width:'200px'}} />\n      <p style={{fontSize:'0.85rem'}}>Live: \"{search}\" | Debounced: \"{debounced}\"</p>\n\n      <h3>useCounter (1–10)</h3>\n      <div style={{display:'flex',gap:'8px',alignItems:'center'}}>\n        <button onClick={qty.decrement} disabled={qty.count<=1}>−</button>\n        <span style={{minWidth:'24px',textAlign:'center'}}>{qty.count}</span>\n        <button onClick={qty.increment} disabled={qty.count>=10}>+</button>\n        <button onClick={qty.reset}>Reset</button>\n      </div>\n    </div>\n  );\n}</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runReact()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setCode('function useWindowSize() {\\n  const [size, setSize] = useState({ w: window.innerWidth, h: window.innerHeight });\\n  useEffect(() => {\\n    const handler = () => setSize({ w: window.innerWidth, h: window.innerHeight });\\n    window.addEventListener(\\'resize\\', handler);\\n    return () => window.removeEventListener(\\'resize\\', handler);\\n  }, []);\\n  return size;\\n}\\nfunction App() {\\n  const { w, h } = useWindowSize();\\n  return (\\n    <div style={{fontFamily:\\'sans-serif\\',padding:\\'8px\\'}}>\\n      <p>Window: {w} × {h} px</p>\\n      <p>{w < 600 ? \\'Mobile\\'  : \\'Desktop\\'} layout</p>\\n    </div>\\n  );\\n}')\">useWindowSize</span>\n        <span class=\"chip\" onclick=\"setCode('function useOnlineStatus() {\\n  const [online, setOnline] = useState(navigator.onLine);\\n  useEffect(() => {\\n    const on  = () => setOnline(true);\\n    const off = () => setOnline(false);\\n    window.addEventListener(\\'online\\', on);\\n    window.addEventListener(\\'offline\\', off);\\n    return () => { window.removeEventListener(\\'online\\',on); window.removeEventListener(\\'offline\\',off); };\\n  }, []);\\n  return online;\\n}\\nfunction App() {\\n  const online = useOnlineStatus();\\n  return <p style={{fontFamily:\\'sans-serif\\',padding:\\'8px\\'}}>{online ? \\'🟢 Online\\' : \\'🔴 Offline\\'}</p>;\\n}')\">useOnlineStatus</span>\n      </div>\n    </div>\n    <div class=\"panels\">\n      <div class=\"panel\" id=\"preview\"><div style=\"color:#9ca3af;font-style:italic\">Click ▶ Run</div></div>\n      <div class=\"panel\" id=\"console\"><div class=\"panel-label\">CONSOLE</div><div style=\"color:#64748b;font-size:0.75rem\">No output</div></div>\n    </div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.5/babel.min.js\"></script>\n  <script>\n    let _root=null;\n    function setCode(c){document.getElementById('code').value=c;runReact();}\n    function runReact(){\n      const src=document.getElementById('code').value;\n      const logs=[];\n      const oL=console.log,oE=console.error,oW=console.warn;\n      console.log=(...a)=>logs.push({t:'log',m:a.map(x=>typeof x==='object'?JSON.stringify(x):String(x)).join(' ')});\n      console.error=(...a)=>logs.push({t:'err',m:a.map(String).join(' ')});\n      console.warn=(...a)=>logs.push({t:'log',m:'[warn] '+a.map(String).join(' ')});\n      const preview=document.getElementById('preview');\n      try{\n        const wrapped=`const {useState,useEffect,useRef,useReducer,useContext,createContext,useMemo,useCallback,Fragment}=React;\\n${src}`;\n        const transformed=Babel.transform(wrapped,{presets:['react'],filename:'app.jsx'}).code;\n        const full=transformed+'\\n__s__.App=typeof App!==\"undefined\"?App:null;';\n        const scope={};\n        new Function('React','__s__',full)(React,scope);\n        preview.innerHTML='';\n        _root=ReactDOM.createRoot(preview);\n        if(scope.App)_root.render(React.createElement(scope.App));\n        else _root.render(React.createElement('p',{style:{color:'#888',fontStyle:'italic'}},'Define function App() { return <JSX />; }'));\n      }catch(e){\n        logs.push({t:'err',m:e.message});\n        preview.innerHTML=`<pre style=\"color:red;font-size:0.78rem;white-space:pre-wrap\">${e.message.replace(/</g,'&lt;')}</pre>`;\n      }finally{\n        console.log=oL;console.error=oE;console.warn=oW;\n      }\n      const cd=document.getElementById('console');\n      cd.innerHTML='<div class=\"panel-label\">CONSOLE</div>'+(logs.length?logs.map(l=>`<div class=\"${l.t==='err'?'err':'log'}\">${l.m.replace(/</g,'&lt;')}</div>`).join(''):'<div style=\"color:#64748b;font-size:0.75rem\">No output</div>');\n    }\n    document.getElementById('code').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runReact();}});\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "react-hooks-q1",
+          "question": "Two components both call `useCounter()`. Do they share the same counter state?",
+          "type": "multiple-choice",
+          "options": [
+            "Yes — custom hooks share state between all components that call them",
+            "No — each component that calls a custom hook gets its own independent state instance",
+            "It depends on whether the hook uses useState or useRef internally",
+            "Yes, unless you wrap the hook in React.memo"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Custom hooks do NOT share state — they share LOGIC. When two components each call useCounter(), React creates independent useState calls for each component instance. The hook function runs once per component per render, producing independent state. To share state between components, you need Context or an external store."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Why must custom hook names start with 'use'?",
+      "a": "This is enforced by the react-hooks ESLint plugin. It's how React (and the linter) knows to apply the rules of hooks to your function: no conditional calls, always called in the same order. A function named 'fetchData' (without 'use') won't be checked — you could accidentally call it conditionally and violate hook rules silently."
+    }
+  ],
+  "sources": [
+    {
+      "name": "React Docs — Reusing Logic with Custom Hooks",
+      "url": "https://react.dev/learn/reusing-logic-with-custom-hooks",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["shared data fetching", "form handling", "browser APIs", "animations"],
+    "examples": [
+      "useSWR(url) from the SWR library — data fetching with caching and revalidation",
+      "useQuery(key, fn) from React Query — server state management",
+      "useForm(schema) from react-hook-form — form state and validation"
+    ]
+  }
+}

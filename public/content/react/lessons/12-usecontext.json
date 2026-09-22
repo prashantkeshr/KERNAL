@@ -1,0 +1,93 @@
+{
+  "id": "12-usecontext",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "react",
+  "technologyVersion": "React 18",
+  "module": "react-advanced",
+  "title": "useContext",
+  "subtitle": "Sharing state across the component tree without prop drilling",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 20,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["react/11-usereducer"],
+  "skillsTaught": ["react.createContext", "react.useContext", "react.context-provider", "react.context-pattern"],
+  "skillsUsed": ["react.useState", "react.useReducer", "react.components"],
+  "relatedConcepts": ["react.custom-hooks", "react.zustand"],
+  "whyItExists": {
+    "problem": "Prop drilling: passing data through many layers of components that don't use it themselves — only to reach a deep descendant. <App> has the theme, <Page> gets it as a prop, <Section> passes it, <Card> passes it, <Badge> finally uses it. Middle components become cluttered with props they don't need.",
+    "solution": "Context creates a 'shared channel' in the component tree. A Provider wraps the subtree and provides the value. Any descendant can call useContext to read it — without any props being passed through intermediate components.",
+    "whenToUse": "Global or semi-global values: current user, theme (light/dark), locale/language, authentication state, a dispatch function. Values that many components at different levels need.",
+    "whenNotToUse": "Data that only a few adjacent components share — use props. Frequently-changing values (e.g., a value that updates every keystroke) — all consumers re-render on every change, which is expensive. For high-frequency state, use Zustand, Jotai, or Recoil which support fine-grained subscriptions."
+  },
+  "explainModes": {
+    "beginner": "Context is like a global variable for a section of your component tree. You create it, wrap your components in a Provider, and any component inside can read the value with useContext — without passing props through every level.",
+    "simple": "Three steps: (1) const ThemeContext = createContext(defaultValue). (2) Wrap: <ThemeContext.Provider value={theme}><App /></ThemeContext.Provider>. (3) Consume anywhere: const theme = useContext(ThemeContext). When the Provider's value changes, all consumers re-render. Default value is used when a component uses the context but is not inside any Provider.",
+    "standard": "Context + useState pattern: put state in a parent, pass both the value and the setter through context. Context + useReducer: pass state and dispatch — components can dispatch actions without knowing where the state lives. Custom hook pattern: function useTheme() { return useContext(ThemeContext); } — hides the context details and makes consumption easier.",
+    "technical": "Context re-renders: ALL consumers re-render when the Provider's value reference changes — even if the part of the value they care about didn't change. Optimization: split contexts (ThemeContext, UserContext, DispatchContext) so changes in one don't re-render consumers of others. Or use useMemo to stabilize the value object: const value = useMemo(() => ({ state, dispatch }), [state]). React.memo on consumers won't help — context bypasses memo.",
+    "deepDive": "Context vs external stores: Context is React's built-in solution. It works by re-rendering the consumer subtree on every value change. External stores (Zustand, Jotai) maintain state outside React and use subscriptions — consumers only re-render when the specific slice they subscribe to changes. For large apps, external stores win on performance. Context shines for true globals (theme, locale) that change rarely. Multiple providers: you can stack providers — the closest ancestor provider wins. This enables theme overrides and testing (wrap in a test provider with mock values)."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Context: sharing state across the tree"
+    },
+    {
+      "type": "code",
+      "lang": "jsx",
+      "filename": "theme_context.jsx",
+      "code": "// Step 1: Create the context\nconst ThemeContext = createContext('light');  // default value if no Provider above\n\n// Step 2: Create a Provider component (good pattern: keep state + context together)\nfunction ThemeProvider({ children }) {\n    const [theme, setTheme] = useState('light');\n    return (\n        <ThemeContext.Provider value={{ theme, setTheme }}>\n            {children}\n        </ThemeContext.Provider>\n    );\n}\n\n// Custom hook for convenience\nfunction useTheme() {\n    return useContext(ThemeContext);\n}\n\n// Step 3: Consume anywhere in the tree — no props needed!\nfunction ThemeToggle() {\n    const { theme, setTheme } = useTheme();\n    return (\n        <button onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')}>\n            {theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}\n        </button>\n    );\n}\n\nfunction Page() {\n    const { theme } = useTheme();\n    const isDark = theme === 'dark';\n    return (\n        <div style={{\n            background: isDark ? '#0e1116' : '#fff',\n            color: isDark ? '#e2e8f0' : '#111',\n            padding: '16px', borderRadius: '8px', transition: 'all 0.3s'\n        }}>\n            <h2>Theme: {theme}</h2>\n            <p>This page reads the theme from context.</p>\n            <ThemeToggle />\n        </div>\n    );\n}\n\nfunction App() {\n    return (\n        <ThemeProvider>\n            <Page />  {/* Page and all its children can access ThemeContext */}\n        </ThemeProvider>\n    );\n}"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Context playground",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0}\n    .layout{display:grid;grid-template-rows:auto 1fr;gap:10px;height:calc(100vh - 32px)}\n    .top{display:flex;flex-direction:column;gap:8px}\n    .editor-row{display:flex;gap:8px;align-items:flex-start}\n    textarea{flex:1;background:#0b0e14;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;padding:10px;font-family:monospace;font-size:0.82rem;resize:vertical;min-height:160px}\n    .btns{display:flex;flex-direction:column;gap:6px}\n    button{padding:8px 14px;border:none;border-radius:5px;font-weight:700;cursor:pointer;font-size:0.8rem;white-space:nowrap}\n    .chips{display:flex;flex-wrap:wrap;gap:6px}\n    .chip{background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:3px 10px;font-family:monospace;font-size:0.72rem;cursor:pointer;color:#94a3b8}\n    .chip:hover{border-color:#4fd1c5;color:#4fd1c5}\n    .panels{display:grid;grid-template-columns:1fr 1fr;gap:8px}\n    .panel{border-radius:6px;overflow:auto;padding:10px;font-size:0.78rem}\n    .panel-label{font-size:0.7rem;color:#4fd1c5;margin-bottom:6px;font-family:monospace}\n    #preview{background:#fff;color:#111;border-radius:6px;padding:16px;min-height:120px}\n    #console{background:#0b0e14;font-family:monospace}\n    .log{color:#4fd1c5;margin:2px 0}.err{color:#ef4444;margin:2px 0}\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"code\" spellcheck=\"false\">// Auth context — logged-in user available everywhere\nconst AuthContext = createContext(null);\n\nfunction AuthProvider({ children }) {\n  const [user, setUser] = useState(null);\n  const login  = (name) => setUser({ name, role: 'user' });\n  const logout = () => setUser(null);\n  return (\n    <AuthContext.Provider value={{ user, login, logout }}>\n      {children}\n    </AuthContext.Provider>\n  );\n}\n\nconst useAuth = () => useContext(AuthContext);\n\nfunction Navbar() {\n  const { user, logout } = useAuth();\n  return (\n    <nav style={{background:'#1a1f2b',color:'#e2e8f0',padding:'8px 12px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>\n      <strong>MyApp</strong>\n      {user ? (\n        <div style={{display:'flex',gap:'8px',alignItems:'center'}}>\n          <span style={{fontSize:'0.85rem'}}>Hi, {user.name}!</span>\n          <button onClick={logout} style={{padding:'4px 10px'}}>Logout</button>\n        </div>\n      ) : <span style={{fontSize:'0.85rem',color:'#94a3b8'}}>Not logged in</span>}\n    </nav>\n  );\n}\n\nfunction LoginForm() {\n  const { user, login } = useAuth();\n  const [name, setName] = useState('');\n  if (user) return <p style={{padding:'12px'}}>Welcome, <strong>{user.name}</strong>! You are logged in.</p>;\n  return (\n    <div style={{padding:'12px',display:'flex',gap:'8px'}}>\n      <input value={name} onChange={e=>setName(e.target.value)} placeholder=\"Enter your name\" style={{padding:'6px',flex:1}} />\n      <button onClick={() => login(name)} disabled={!name.trim()}>Login</button>\n    </div>\n  );\n}\n\nfunction App() {\n  return (\n    <AuthProvider>\n      <Navbar />\n      <LoginForm />\n    </AuthProvider>\n  );\n}</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runReact()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setCode('const LangCtx = createContext(\\'en\\');\\nconst LABELS = { en: { greeting:\\'Hello\\', bye:\\'Goodbye\\' }, hi: { greeting:\\'नमस्ते\\', bye:\\'अलविदा\\' } };\\nfunction LangProvider({ children }) {\\n  const [lang, setLang] = useState(\\'en\\');\\n  return <LangCtx.Provider value={{lang, setLang}}>{children}</LangCtx.Provider>;\\n}\\nfunction Greeting() {\\n  const { lang } = useContext(LangCtx);\\n  return <h2>{LABELS[lang].greeting}!</h2>;\\n}\\nfunction LanguagePicker() {\\n  const { lang, setLang } = useContext(LangCtx);\\n  return (\\n    <div style={{display:\\'flex\\',gap:\\'8px\\'}}>\\n      {Object.keys(LABELS).map(l => (\\n        <button key={l} onClick={()=>setLang(l)} style={{fontWeight:lang===l?\\'bold\\':\\'normal\\'}}>{l}</button>\\n      ))}\\n    </div>\\n  );\\n}\\nfunction App() {\\n  return <LangProvider><LanguagePicker /><Greeting /></LangProvider>;\\n}')\">i18n context</span>\n      </div>\n    </div>\n    <div class=\"panels\">\n      <div class=\"panel\" id=\"preview\"><div style=\"color:#9ca3af;font-style:italic\">Click ▶ Run</div></div>\n      <div class=\"panel\" id=\"console\"><div class=\"panel-label\">CONSOLE</div><div style=\"color:#64748b;font-size:0.75rem\">No output</div></div>\n    </div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.5/babel.min.js\"></script>\n  <script>\n    let _root=null;\n    function setCode(c){document.getElementById('code').value=c;runReact();}\n    function runReact(){\n      const src=document.getElementById('code').value;\n      const logs=[];\n      const oL=console.log,oE=console.error,oW=console.warn;\n      console.log=(...a)=>logs.push({t:'log',m:a.map(x=>typeof x==='object'?JSON.stringify(x):String(x)).join(' ')});\n      console.error=(...a)=>logs.push({t:'err',m:a.map(String).join(' ')});\n      console.warn=(...a)=>logs.push({t:'log',m:'[warn] '+a.map(String).join(' ')});\n      const preview=document.getElementById('preview');\n      try{\n        const wrapped=`const {useState,useEffect,useRef,useReducer,useContext,createContext,useMemo,useCallback,Fragment}=React;\\n${src}`;\n        const transformed=Babel.transform(wrapped,{presets:['react'],filename:'app.jsx'}).code;\n        const full=transformed+'\\n__s__.App=typeof App!==\"undefined\"?App:null;';\n        const scope={};\n        new Function('React','__s__',full)(React,scope);\n        preview.innerHTML='';\n        _root=ReactDOM.createRoot(preview);\n        if(scope.App)_root.render(React.createElement(scope.App));\n        else _root.render(React.createElement('p',{style:{color:'#888',fontStyle:'italic'}},'Define function App() { return <JSX />; }'));\n      }catch(e){\n        logs.push({t:'err',m:e.message});\n        preview.innerHTML=`<pre style=\"color:red;font-size:0.78rem;white-space:pre-wrap\">${e.message.replace(/</g,'&lt;')}</pre>`;\n      }finally{\n        console.log=oL;console.error=oE;console.warn=oW;\n      }\n      const cd=document.getElementById('console');\n      cd.innerHTML='<div class=\"panel-label\">CONSOLE</div>'+(logs.length?logs.map(l=>`<div class=\"${l.t==='err'?'err':'log'}\">${l.m.replace(/</g,'&lt;')}</div>`).join(''):'<div style=\"color:#64748b;font-size:0.75rem\">No output</div>');\n    }\n    document.getElementById('code').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runReact();}});\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "react-ctx-q1",
+          "question": "What happens to all context consumers when the Provider's value changes?",
+          "type": "multiple-choice",
+          "options": [
+            "Only the consumers that are direct children of the Provider re-render",
+            "Only consumers that destructure the specific field that changed re-render",
+            "All consumers re-render, regardless of which part of the value they use",
+            "No consumers re-render — they only re-read the value on their next render"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Context does not have fine-grained subscriptions — when the Provider value changes, ALL consumers re-render, even if the specific part of the value they use hasn't changed. This is why you should split unrelated state into separate contexts, and why frequently-changing values (like mouse position) should not go into context."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is Context a replacement for Redux?",
+      "a": "For small-to-medium apps, yes — Context + useReducer can handle most global state needs without the Redux boilerplate. For large apps with many independent state slices, high-frequency updates, or needs like time-travel debugging, Redux (or Zustand) has better performance characteristics. Context re-renders all consumers on every change; external stores allow selective subscriptions."
+    }
+  ],
+  "sources": [
+    {
+      "name": "React Docs — Passing Data Deeply with Context",
+      "url": "https://react.dev/learn/passing-data-deeply-with-context",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["auth state", "theme/dark mode", "locale/i18n", "feature flags"],
+    "examples": [
+      "const { user } = useContext(AuthContext) — read logged-in user anywhere",
+      "const { theme, toggleTheme } = useContext(ThemeContext) — dark/light mode",
+      "const { locale, t } = useContext(I18nContext) — internationalization"
+    ]
+  }
+}

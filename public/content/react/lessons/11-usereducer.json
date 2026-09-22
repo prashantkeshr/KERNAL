@@ -1,0 +1,93 @@
+{
+  "id": "11-usereducer",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "react",
+  "technologyVersion": "React 18",
+  "module": "react-advanced",
+  "title": "useReducer",
+  "subtitle": "Managing complex state with actions and a reducer function",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 20,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["react/10-useref"],
+  "skillsTaught": ["react.useReducer", "react.reducer-pattern", "react.dispatch", "react.action-types"],
+  "skillsUsed": ["js.switch-case", "js.spread", "react.useState"],
+  "relatedConcepts": ["react.useContext", "react.custom-hooks"],
+  "whyItExists": {
+    "problem": "useState works well for independent, simple values. When state is a complex object with many inter-related fields, or when the next state depends on multiple current fields, useState leads to many separate setters and difficult-to-follow update logic scattered across event handlers.",
+    "solution": "useReducer centralizes all state update logic in one pure function (the reducer). Event handlers dispatch action objects; the reducer decides how state changes. This makes state transitions explicit, testable, and auditable.",
+    "whenToUse": "When state is an object with multiple related fields. When different events cause complex state updates. When the next state depends on multiple current fields. When you want to test state logic independently from the component.",
+    "whenNotToUse": "Simple independent values — use useState. When state is very simple (a single boolean or count). Don't over-engineer — useState + a helper function is often enough."
+  },
+  "explainModes": {
+    "beginner": "useReducer is like useState but with a different structure. Instead of calling setCount(5) directly, you dispatch an action: dispatch({ type: 'increment' }). A separate function called the reducer decides what the new state should be based on the current state and the action.",
+    "simple": "const [state, dispatch] = useReducer(reducer, initialState). reducer(state, action) → newState. dispatch({ type: 'ACTION_NAME', payload: data }). Reducer must be a pure function — same state + action → same result. Never mutate state — return a new object: return { ...state, count: state.count + 1 }. Action types: use string constants or a discriminated union (TypeScript).",
+    "standard": "The reducer pattern comes from Redux but useReducer is built into React. Key insight: all state transitions are described in one place (the reducer) and are easy to review. Combining with useContext: export const dispatch = createContext(null); wrap the tree with the dispatch context — any nested component can dispatch actions without prop drilling. This is the lightweight alternative to Redux for medium-scale apps.",
+    "technical": "Reducer requirements: pure function (no API calls, no side effects, no mutations). The state argument is the current state snapshot. Returns the next state. TypeScript: define a union type for actions: type Action = { type: 'increment' } | { type: 'set'; payload: number } — the switch is exhaustive. useReducer(reducer, initialState, init): third argument is a lazy initializer function called once with initialState to compute the actual initial state — useful for expensive initial calculations.",
+    "deepDive": "Redux vs useReducer: useReducer is local to one component tree. Redux is global, has devtools (time-travel debugging), middleware (thunks, sagas), and a normalized store. For app-wide state in a large app, Redux or Zustand is better. For component-local complex state, useReducer is the right tool. Immer: a library that lets you 'mutate' state safely by using a Proxy to record mutations and produce a new immutable state. Works with useReducer: dispatch({ type: 'edit', recipe: draft => { draft.title = 'New' } }). This eliminates the ...spread boilerplate for deeply nested updates."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "useReducer pattern"
+    },
+    {
+      "type": "code",
+      "lang": "jsx",
+      "filename": "reducer.jsx",
+      "code": "// Counter with useReducer — actions describe WHAT happened, reducer decides HOW state changes\n\nconst initialState = { count: 0, step: 1, history: [] };\n\nfunction reducer(state, action) {\n    switch (action.type) {\n        case 'increment':\n            return { ...state, count: state.count + state.step, history: [...state.history, `+${state.step}`] };\n        case 'decrement':\n            return { ...state, count: state.count - state.step, history: [...state.history, `-${state.step}`] };\n        case 'reset':\n            return { ...initialState };\n        case 'setStep':\n            return { ...state, step: action.payload };\n        default:\n            return state;  // unknown actions return current state unchanged\n    }\n}\n\nfunction Counter() {\n    const [state, dispatch] = useReducer(reducer, initialState);\n\n    return (\n        <div style={{ fontFamily: 'sans-serif', padding: '8px' }}>\n            <h2>Count: {state.count}</h2>\n            <p>Step: {state.step}</p>\n\n            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>\n                <button onClick={() => dispatch({ type: 'increment' })}>+{state.step}</button>\n                <button onClick={() => dispatch({ type: 'decrement' })}>-{state.step}</button>\n                <button onClick={() => dispatch({ type: 'reset' })}>Reset</button>\n            </div>\n\n            <label>\n                Step: <input\n                    type=\"number\" min=\"1\" max=\"10\" value={state.step}\n                    onChange={e => dispatch({ type: 'setStep', payload: Number(e.target.value) })}\n                    style={{ width: '50px', padding: '4px' }}\n                />\n            </label>\n\n            <p style={{ fontSize: '0.8rem', color: '#6b7280' }}>History: {state.history.join(', ') || '—'}</p>\n        </div>\n    );\n}\n\nfunction App() {\n    return <Counter />;\n}"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: useReducer playground",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0}\n    .layout{display:grid;grid-template-rows:auto 1fr;gap:10px;height:calc(100vh - 32px)}\n    .top{display:flex;flex-direction:column;gap:8px}\n    .editor-row{display:flex;gap:8px;align-items:flex-start}\n    textarea{flex:1;background:#0b0e14;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;padding:10px;font-family:monospace;font-size:0.82rem;resize:vertical;min-height:160px}\n    .btns{display:flex;flex-direction:column;gap:6px}\n    button{padding:8px 14px;border:none;border-radius:5px;font-weight:700;cursor:pointer;font-size:0.8rem;white-space:nowrap}\n    .chips{display:flex;flex-wrap:wrap;gap:6px}\n    .chip{background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:3px 10px;font-family:monospace;font-size:0.72rem;cursor:pointer;color:#94a3b8}\n    .chip:hover{border-color:#4fd1c5;color:#4fd1c5}\n    .panels{display:grid;grid-template-columns:1fr 1fr;gap:8px}\n    .panel{border-radius:6px;overflow:auto;padding:10px;font-size:0.78rem}\n    .panel-label{font-size:0.7rem;color:#4fd1c5;margin-bottom:6px;font-family:monospace}\n    #preview{background:#fff;color:#111;border-radius:6px;padding:16px;min-height:120px}\n    #console{background:#0b0e14;font-family:monospace}\n    .log{color:#4fd1c5;margin:2px 0}.err{color:#ef4444;margin:2px 0}\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"code\" spellcheck=\"false\">// Shopping cart with useReducer\nconst initialCart = { items: [], total: 0 };\n\nfunction cartReducer(state, action) {\n  switch (action.type) {\n    case 'add': {\n      const existing = state.items.find(i => i.id === action.item.id);\n      const items = existing\n        ? state.items.map(i => i.id === action.item.id ? {...i, qty: i.qty+1} : i)\n        : [...state.items, {...action.item, qty: 1}];\n      return { items, total: items.reduce((s,i) => s + i.price*i.qty, 0) };\n    }\n    case 'remove':\n      const items = state.items.filter(i => i.id !== action.id);\n      return { items, total: items.reduce((s,i) => s + i.price*i.qty, 0) };\n    case 'clear':\n      return initialCart;\n    default:\n      return state;\n  }\n}\n\nconst PRODUCTS = [\n  { id: 1, name: 'React Handbook', price: 499 },\n  { id: 2, name: 'USB-C Hub',      price: 999 },\n  { id: 3, name: 'Desk Lamp',      price: 349 },\n];\n\nfunction App() {\n  const [cart, dispatch] = useReducer(cartReducer, initialCart);\n  return (\n    <div style={{fontFamily:'sans-serif',padding:'8px'}}>\n      <h3>Products</h3>\n      {PRODUCTS.map(p => (\n        <div key={p.id} style={{display:'flex',justifyContent:'space-between',padding:'6px',borderBottom:'1px solid #e5e7eb'}}>\n          <span>{p.name} — ₹{p.price}</span>\n          <button onClick={() => dispatch({type:'add',item:p})} style={{padding:'2px 8px'}}>Add</button>\n        </div>\n      ))}\n      <h3>Cart ({cart.items.length})</h3>\n      {cart.items.map(i => (\n        <div key={i.id} style={{display:'flex',justifyContent:'space-between',padding:'4px'}}>\n          <span>{i.name} ×{i.qty}</span>\n          <button onClick={() => dispatch({type:'remove',id:i.id})} style={{padding:'2px 8px',background:'#fee2e2',border:'none',borderRadius:'4px',cursor:'pointer'}}>✕</button>\n        </div>\n      ))}\n      {cart.items.length>0 && <><p><strong>Total: ₹{cart.total}</strong></p><button onClick={() => dispatch({type:'clear'})}>Clear Cart</button></>}\n    </div>\n  );\n}</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runReact()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setCode('const init = { status:\\'idle\\', data: null, error: null };\\nfunction fetchReducer(state, action) {\\n  switch(action.type) {\\n    case \\'fetch\\': return { ...init, status:\\'loading\\' };\\n    case \\'success\\': return { status:\\'success\\', data: action.data, error: null };\\n    case \\'error\\': return { status:\\'error\\', data: null, error: action.error };\\n    default: return state;\\n  }\\n}\\nfunction App() {\\n  const [state, dispatch] = useReducer(fetchReducer, init);\\n  const load = () => {\\n    dispatch({ type:\\'fetch\\' });\\n    fetch(\\'https://jsonplaceholder.typicode.com/posts/1\\')\\n      .then(r => r.json())\\n      .then(data => dispatch({ type:\\'success\\', data }))\\n      .catch(e => dispatch({ type:\\'error\\', error: e.message }));\\n  };\\n  return (\\n    <div style={{fontFamily:\\'sans-serif\\',padding:\\'8px\\'}}>\\n      <button onClick={load}>Load Post</button>\\n      {state.status===\\'loading\\' && <p>Loading...</p>}\\n      {state.status===\\'error\\' && <p style={{color:\\'red\\'}}>Error: {state.error}</p>}\\n      {state.status===\\'success\\' && <div><h3>{state.data.title}</h3><p>{state.data.body}</p></div>}\\n    </div>\\n  );\\n}')\">async state machine</span>\n      </div>\n    </div>\n    <div class=\"panels\">\n      <div class=\"panel\" id=\"preview\"><div style=\"color:#9ca3af;font-style:italic\">Click ▶ Run</div></div>\n      <div class=\"panel\" id=\"console\"><div class=\"panel-label\">CONSOLE</div><div style=\"color:#64748b;font-size:0.75rem\">No output</div></div>\n    </div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.5/babel.min.js\"></script>\n  <script>\n    let _root=null;\n    function setCode(c){document.getElementById('code').value=c;runReact();}\n    function runReact(){\n      const src=document.getElementById('code').value;\n      const logs=[];\n      const oL=console.log,oE=console.error,oW=console.warn;\n      console.log=(...a)=>logs.push({t:'log',m:a.map(x=>typeof x==='object'?JSON.stringify(x):String(x)).join(' ')});\n      console.error=(...a)=>logs.push({t:'err',m:a.map(String).join(' ')});\n      console.warn=(...a)=>logs.push({t:'log',m:'[warn] '+a.map(String).join(' ')});\n      const preview=document.getElementById('preview');\n      try{\n        const wrapped=`const {useState,useEffect,useRef,useReducer,useContext,createContext,useMemo,useCallback,Fragment}=React;\\n${src}`;\n        const transformed=Babel.transform(wrapped,{presets:['react'],filename:'app.jsx'}).code;\n        const full=transformed+'\\n__s__.App=typeof App!==\"undefined\"?App:null;';\n        const scope={};\n        new Function('React','__s__',full)(React,scope);\n        preview.innerHTML='';\n        _root=ReactDOM.createRoot(preview);\n        if(scope.App)_root.render(React.createElement(scope.App));\n        else _root.render(React.createElement('p',{style:{color:'#888',fontStyle:'italic'}},'Define function App() { return <JSX />; }'));\n      }catch(e){\n        logs.push({t:'err',m:e.message});\n        preview.innerHTML=`<pre style=\"color:red;font-size:0.78rem;white-space:pre-wrap\">${e.message.replace(/</g,'&lt;')}</pre>`;\n      }finally{\n        console.log=oL;console.error=oE;console.warn=oW;\n      }\n      const cd=document.getElementById('console');\n      cd.innerHTML='<div class=\"panel-label\">CONSOLE</div>'+(logs.length?logs.map(l=>`<div class=\"${l.t==='err'?'err':'log'}\">${l.m.replace(/</g,'&lt;')}</div>`).join(''):'<div style=\"color:#64748b;font-size:0.75rem\">No output</div>');\n    }\n    document.getElementById('code').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runReact();}});\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "react-reducer-q1",
+          "question": "What must a reducer function always do?",
+          "type": "multiple-choice",
+          "options": [
+            "Call dispatch at least once with the new state",
+            "Be a pure function: given the same state and action, always return the same new state, with no side effects",
+            "Call useState internally to persist the updated values",
+            "Handle every possible action type or throw an error for unknown ones"
+          ],
+          "correctAnswer": 1,
+          "explanation": "A reducer must be a pure function: same state + same action → same result. No API calls, no mutations, no random numbers, no Date.now(). The default case should return the current state unchanged (not throw), so unknown actions are silently ignored — this lets multiple reducers coexist without conflicts."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "When should I use useReducer instead of useState?",
+      "a": "Three indicators: (1) You have multiple setX calls in a single event handler that update related state together — these belong in one reducer action. (2) The new state depends on multiple current state fields. (3) You want the state update logic to be testable without mounting a component (just call reducer(state, action) in a test)."
+    }
+  ],
+  "sources": [
+    {
+      "name": "React Docs — Extracting State Logic into a Reducer",
+      "url": "https://react.dev/learn/extracting-state-logic-into-a-reducer",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["shopping carts", "multi-step forms", "async fetch state machines", "undo/redo history"],
+    "examples": [
+      "dispatch({ type: 'ADD_TO_CART', payload: product }) — e-commerce cart",
+      "dispatch({ type: 'FETCH_SUCCESS', data: users }) — API state machine",
+      "dispatch({ type: 'UNDO' }) — document editor with undo history"
+    ]
+  }
+}

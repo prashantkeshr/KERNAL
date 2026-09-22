@@ -1,0 +1,97 @@
+{
+  "id": "07-conditional-rendering",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "react",
+  "technologyVersion": "React 18",
+  "module": "react-rendering",
+  "title": "Conditional Rendering",
+  "subtitle": "&&, ternary, early return, and null — showing UI based on state",
+  "difficulty": "beginner",
+  "estimatedMinutes": 16,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["react/06-events"],
+  "skillsTaught": ["react.conditional-render", "react.short-circuit", "react.ternary-jsx", "react.early-return"],
+  "skillsUsed": ["js.ternary", "js.logical-and", "react.useState"],
+  "relatedConcepts": ["react.lists-keys", "react.loading-states"],
+  "whyItExists": {
+    "problem": "UIs have many states — loading, empty, error, authenticated/unauthenticated. Rendering different UI for different states requires conditional logic.",
+    "solution": "React's JSX is JavaScript, so you can use all of JavaScript's conditional tools. The key insight: JSX can only hold expressions (not statements like if/else), but expressions are enough — ternary, &&, and early return cover every case.",
+    "whenToUse": "Any time the UI should look different based on state: loading spinners, error messages, empty states, authenticated content, feature flags.",
+    "whenNotToUse": "Avoid deeply nested ternaries (A ? B ? C : D : E) — they're hard to read. Extract into a variable or a separate function. If you have more than two states, use an object/map pattern or a switch statement before the JSX."
+  },
+  "explainModes": {
+    "beginner": "To show something only when a condition is true, use && in JSX: {isLoggedIn && <UserMenu />}. To show one of two things, use a ternary: {isLoggedIn ? <LogoutButton /> : <LoginButton />}. To show nothing at all, return null from a component.",
+    "simple": "Three patterns: (1) && — show only if true: {count > 0 && <p>Items: {count}</p>}. (2) ternary — show one of two: {isLoading ? <Spinner /> : <Content />}. (3) early return — return null or a fallback early in the function. Gotcha: {0 && <X />} renders 0, not nothing — use {count > 0 && <X />}. false, null, undefined render nothing; 0 and '' render.",
+    "standard": "Storing JSX in a variable: const content = condition ? <A /> : <B />; return <div>{content}</div>. Extracting render functions: const renderStatus = () => { if (loading) return <Spinner />; if (error) return <Error msg={error} />; return <Data />; }. Null component pattern: function Guard({ canView, children }) { if (!canView) return null; return children; }.",
+    "technical": "React's reconciler treats null, undefined, false, and true as 'render nothing' — they produce no DOM nodes. This is by design, enabling the && pattern. Note: 0 is a falsy JS value but React renders it as the text '0' — it's not null/undefined/boolean, it's a number. Type-safe conditional: TypeScript + discriminated unions let the compiler ensure you handle every state. Loading/error/success is a classic union type.",
+    "deepDive": "Suspense: a modern alternative to manual loading states. Wrap components that may suspend with <Suspense fallback={<Spinner />}>. The child component (or data library) calls a special 'suspend' mechanism when data isn't ready — React shows the fallback. This composes: nested Suspense boundaries show the nearest fallback. React 18 Suspense supports server-side rendering and streaming. Error boundaries (class components that implement componentDidCatch) catch rendering errors in their subtree — they're the 'catch' of conditional rendering for exceptions."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Conditional rendering patterns"
+    },
+    {
+      "type": "code",
+      "lang": "jsx",
+      "filename": "conditional.jsx",
+      "code": "// Three main patterns for conditional rendering\n\nfunction UserStatus({ user, isLoading, error }) {\n    // Pattern 3: Early return for guard conditions\n    if (isLoading) return <p>Loading...</p>;\n    if (error)     return <p style={{ color: 'red' }}>Error: {error}</p>;\n    if (!user)     return null;  // renders nothing\n\n    return (\n        <div>\n            {/* Pattern 1: && — only render if true */}\n            {user.isAdmin && <span>⭐ Admin</span>}\n\n            <h2>{user.name}</h2>\n            <p>{user.email}</p>\n\n            {/* Pattern 2: ternary — one of two options */}\n            {user.verified\n                ? <span style={{ color: 'green' }}>✓ Verified</span>\n                : <span style={{ color: 'orange' }}>⚠ Not verified</span>\n            }\n        </div>\n    );\n}\n\nfunction App() {\n    return (\n        <div style={{ fontFamily: 'sans-serif', padding: '8px', display: 'flex', flexDirection: 'column', gap: '12px' }}>\n            <UserStatus isLoading={true} />\n            <UserStatus error=\"Network timeout\" />\n            <UserStatus user={null} />\n            <UserStatus user={{ name: 'Alice', email: 'alice@example.com', isAdmin: true, verified: true }} />\n            <UserStatus user={{ name: 'Bob', email: 'bob@example.com', isAdmin: false, verified: false }} />\n        </div>\n    );\n}"
+    },
+    {
+      "type": "warning",
+      "text": "Pitfall: `{count && <p>Items</p>}` renders `0` when count is 0 — because 0 is falsy but React renders numbers. Write `{count > 0 && <p>Items</p>}` or `{!!count && <p>Items</p>}` to be safe."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Conditional rendering",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0}\n    .layout{display:grid;grid-template-rows:auto 1fr;gap:10px;height:calc(100vh - 32px)}\n    .top{display:flex;flex-direction:column;gap:8px}\n    .editor-row{display:flex;gap:8px;align-items:flex-start}\n    textarea{flex:1;background:#0b0e14;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;padding:10px;font-family:monospace;font-size:0.82rem;resize:vertical;min-height:160px}\n    .btns{display:flex;flex-direction:column;gap:6px}\n    button{padding:8px 14px;border:none;border-radius:5px;font-weight:700;cursor:pointer;font-size:0.8rem;white-space:nowrap}\n    .chips{display:flex;flex-wrap:wrap;gap:6px}\n    .chip{background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:3px 10px;font-family:monospace;font-size:0.72rem;cursor:pointer;color:#94a3b8}\n    .chip:hover{border-color:#4fd1c5;color:#4fd1c5}\n    .panels{display:grid;grid-template-columns:1fr 1fr;gap:8px}\n    .panel{border-radius:6px;overflow:auto;padding:10px;font-size:0.78rem}\n    .panel-label{font-size:0.7rem;color:#4fd1c5;margin-bottom:6px;font-family:monospace}\n    #preview{background:#fff;color:#111;border-radius:6px;padding:16px;min-height:120px}\n    #console{background:#0b0e14;font-family:monospace}\n    .log{color:#4fd1c5;margin:2px 0}.err{color:#ef4444;margin:2px 0}\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"code\" spellcheck=\"false\">function App() {\n  const [status, setStatus] = useState('idle'); // idle | loading | success | error\n  const [data, setData] = useState(null);\n\n  const simulate = (newStatus) => {\n    setStatus('loading');\n    setTimeout(() => {\n      setStatus(newStatus);\n      if (newStatus === 'success') setData({ name: 'Alice', score: 98 });\n    }, 800);\n  };\n\n  return (\n    <div style={{fontFamily:'sans-serif',padding:'8px'}}>\n      <div style={{display:'flex',gap:'8px',marginBottom:'12px'}}>\n        <button onClick={() => simulate('success')}>Load Success</button>\n        <button onClick={() => simulate('error')}>Simulate Error</button>\n        <button onClick={() => { setStatus('idle'); setData(null); }}>Reset</button>\n      </div>\n\n      {status === 'idle'    && <p style={{color:'#6b7280'}}>Click a button above</p>}\n      {status === 'loading' && <p>⏳ Loading...</p>}\n      {status === 'error'   && <p style={{color:'red'}}>❌ Failed to load</p>}\n      {status === 'success' && data && (\n        <div style={{background:'#dcfce7',padding:'12px',borderRadius:'8px'}}>\n          ✅ {data.name} — Score: {data.score}\n        </div>\n      )}\n    </div>\n  );\n}</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runReact()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setCode('function App() {\\n  const [show, setShow] = useState(false);\\n  const [agreed, setAgreed] = useState(false);\\n  return (\\n    <div style={{fontFamily:\\'sans-serif\\',padding:\\'8px\\'}}>\\n      <button onClick={() => setShow(s => !s)}>\\n        {show ? \\'Hide Terms\\' : \\'Show Terms\\'}\\n      </button>\\n      {show && (\\n        <div style={{border:\\'1px solid #e2e8f0\\',borderRadius:\\'8px\\',padding:\\'12px\\',marginTop:\\'8px\\'}}>\\n          <p>You agree to the terms...</p>\\n          <label>\\n            <input type=\\'checkbox\\' checked={agreed} onChange={e=>setAgreed(e.target.checked)} />\\n            {\\' \\'}I agree\\n          </label>\\n        </div>\\n      )}\\n      {agreed && <p style={{color:\\'green\\'}}>✓ You accepted the terms!</p>}\\n    </div>\\n  );\\n}')\">show/hide</span>\n        <span class=\"chip\" onclick=\"setCode('function Empty({ items }) {\\n  if (items.length === 0) {\\n    return (\\n      <div style={{textAlign:\\'center\\',padding:\\'24px\\',color:\\'#9ca3af\\'}}>\\n        <p>No items yet</p>\\n        <p style={{fontSize:\\'0.85rem\\'}}>Add your first item to get started</p>\\n      </div>\\n    );\\n  }\\n  return <ul>{items.map((it,i) => <li key={i}>{it}</li>)}</ul>;\\n}\\nfunction App() {\\n  const [items, setItems] = useState([]);\\n  return (\\n    <div style={{fontFamily:\\'sans-serif\\',padding:\\'8px\\'}}>\\n      <button onClick={() => setItems(p => [...p, `Item ${p.length+1}`])}>Add</button>\\n      <button onClick={() => setItems([])}>Clear</button>\\n      <Empty items={items} />\\n    </div>\\n  );\\n}')\">empty state</span>\n      </div>\n    </div>\n    <div class=\"panels\">\n      <div class=\"panel\" id=\"preview\"><div style=\"color:#9ca3af;font-style:italic\">Click ▶ Run</div></div>\n      <div class=\"panel\" id=\"console\"><div class=\"panel-label\">CONSOLE</div><div style=\"color:#64748b;font-size:0.75rem\">No output</div></div>\n    </div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.5/babel.min.js\"></script>\n  <script>\n    let _root=null;\n    function setCode(c){document.getElementById('code').value=c;runReact();}\n    function runReact(){\n      const src=document.getElementById('code').value;\n      const logs=[];\n      const oL=console.log,oE=console.error,oW=console.warn;\n      console.log=(...a)=>logs.push({t:'log',m:a.map(x=>typeof x==='object'?JSON.stringify(x):String(x)).join(' ')});\n      console.error=(...a)=>logs.push({t:'err',m:a.map(String).join(' ')});\n      console.warn=(...a)=>logs.push({t:'log',m:'[warn] '+a.map(String).join(' ')});\n      const preview=document.getElementById('preview');\n      try{\n        const wrapped=`const {useState,useEffect,useRef,useReducer,useContext,createContext,useMemo,useCallback,Fragment}=React;\\n${src}`;\n        const transformed=Babel.transform(wrapped,{presets:['react'],filename:'app.jsx'}).code;\n        const full=transformed+'\\n__s__.App=typeof App!==\"undefined\"?App:null;';\n        const scope={};\n        new Function('React','__s__',full)(React,scope);\n        preview.innerHTML='';\n        _root=ReactDOM.createRoot(preview);\n        if(scope.App)_root.render(React.createElement(scope.App));\n        else _root.render(React.createElement('p',{style:{color:'#888',fontStyle:'italic'}},'Define function App() { return <JSX />; }'));\n      }catch(e){\n        logs.push({t:'err',m:e.message});\n        preview.innerHTML=`<pre style=\"color:red;font-size:0.78rem;white-space:pre-wrap\">${e.message.replace(/</g,'&lt;')}</pre>`;\n      }finally{\n        console.log=oL;console.error=oE;console.warn=oW;\n      }\n      const cd=document.getElementById('console');\n      cd.innerHTML='<div class=\"panel-label\">CONSOLE</div>'+(logs.length?logs.map(l=>`<div class=\"${l.t==='err'?'err':'log'}\">${l.m.replace(/</g,'&lt;')}</div>`).join(''):'<div style=\"color:#64748b;font-size:0.75rem\">No output</div>');\n    }\n    document.getElementById('code').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runReact();}});\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "react-cond-q1",
+          "question": "Which values render nothing in React JSX?",
+          "type": "multiple-choice",
+          "options": [
+            "false, null, undefined, 0, and empty string ''",
+            "false, null, and undefined only",
+            "false, null, undefined, and true",
+            "Only null and undefined"
+          ],
+          "correctAnswer": 2,
+          "explanation": "false, null, undefined, and true all render nothing in JSX. 0 and '' (empty string) DO render — 0 shows as the text '0', and '' shows nothing visually but is still a valid string. This is why {count && <X />} is dangerous when count can be 0: it renders '0' instead of nothing. Use {count > 0 && <X />} to be safe."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "When should I use ternary vs &&?",
+      "a": "Use && when you want to show something only if true, and show nothing otherwise. Use ternary when you have two alternatives (show A or show B). For more than two states, extract a variable or a function before the return statement rather than nesting ternaries."
+    }
+  ],
+  "sources": [
+    {
+      "name": "React Docs — Conditional Rendering",
+      "url": "https://react.dev/learn/conditional-rendering",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["authentication gates", "loading states", "empty states", "feature flags"],
+    "examples": [
+      "{isAuthenticated ? <Dashboard /> : <Navigate to='/login' />}",
+      "{isLoading ? <Skeleton /> : <Content data={data} />}",
+      "{items.length === 0 && <EmptyState message='No results found' />}"
+    ]
+  }
+}

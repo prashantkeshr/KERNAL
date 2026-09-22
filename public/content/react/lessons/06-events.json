@@ -1,0 +1,99 @@
+{
+  "id": "06-events",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "react",
+  "technologyVersion": "React 18",
+  "module": "react-state",
+  "title": "Event Handling",
+  "subtitle": "onClick, onChange, synthetic events, preventing defaults, and bubbling",
+  "difficulty": "beginner",
+  "estimatedMinutes": 18,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["react/05-usestate"],
+  "skillsTaught": ["react.event-handlers", "react.synthetic-events", "react.event-propagation", "react.controlled-inputs"],
+  "skillsUsed": ["js.arrow-functions", "js.event-objects", "react.useState"],
+  "relatedConcepts": ["react.forms", "react.controlled-components"],
+  "whyItExists": {
+    "problem": "UIs need to respond to user actions — clicks, keyboard input, form submissions, hover. Plain DOM event listeners (addEventListener) are managed outside React's lifecycle, leading to stale references and memory leaks.",
+    "solution": "React uses a synthetic event system: you attach handlers as props (onClick, onChange) and React handles delegation — one listener at the root, dispatching to the right handler. Synthetic events normalize cross-browser differences and clean up automatically.",
+    "whenToUse": "Any user interaction: button clicks, form input changes, form submission, keyboard shortcuts, drag events.",
+    "whenNotToUse": "Global events (window resize, document keydown) need useEffect + addEventListener because React's synthetic events only cover DOM elements rendered by React."
+  },
+  "explainModes": {
+    "beginner": "To respond to a click, add onClick to a button: <button onClick={handleClick}>. The handler is a JavaScript function. For text inputs, onChange fires on every keystroke: <input onChange={e => setValue(e.target.value)}>. The e object gives you information about the event.",
+    "simple": "onClick, onChange, onSubmit, onKeyDown, onFocus, onBlur — all camelCase. Handler receives a synthetic event object: e.target (the element), e.target.value (input value), e.preventDefault() (stop form submit/link navigation), e.stopPropagation() (stop event bubbling). Don't call the function: onClick={handleClick} not onClick={handleClick()}.",
+    "standard": "Synthetic events are pooled in older React (reused for performance) — don't access them asynchronously in pre-React 17. React 17+ switched to native events, but the interface is the same. Event delegation: React attaches a single listener to the root container, not to each element. This is efficient and avoids listener leaks. Pass data to handlers: <button onClick={() => handleDelete(item.id)}>.",
+    "technical": "React's synthetic event wraps the native event but has the same interface (target, currentTarget, preventDefault, stopPropagation, nativeEvent). Bubbling: events bubble through the React tree (not the DOM tree, which matters for portals). Capture phase: use onClickCapture for capture-phase handling. useCallback stabilizes event handlers so React.memo children don't unnecessarily re-render when parent re-renders.",
+    "deepDive": "Event pooling history: React 16 and earlier reused SyntheticEvent objects (pooled) — accessing event.target asynchronously gave null. e.persist() was needed. React 17+ removed pooling — events are not reused. The switch also moved event delegation from document to the React root, enabling multiple React roots on the same page without cross-root event conflicts. Portals and event bubbling: a portal's events bubble through the React component tree, not the DOM tree — a click inside a portal modal will trigger onClick handlers on its React ancestors even though the DOM ancestors are different."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Handling events in React"
+    },
+    {
+      "type": "code",
+      "lang": "jsx",
+      "filename": "events.jsx",
+      "code": "function ClickDemo() {\n    const [msg, setMsg] = useState('Click a button');\n\n    function handleSimpleClick() {\n        setMsg('Simple click!');\n    }\n\n    const handleWithData = (label) => {\n        setMsg(`Clicked: ${label}`);\n    };\n\n    return (\n        <div style={{ fontFamily: 'sans-serif', padding: '8px' }}>\n            <p>{msg}</p>\n\n            {/* Pass function reference — don't call it */}\n            <button onClick={handleSimpleClick}>Simple</button>\n\n            {/* Inline arrow function — use when you need to pass data */}\n            <button onClick={() => handleWithData('Alpha')}>Alpha</button>\n            <button onClick={() => handleWithData('Beta')}>Beta</button>\n        </div>\n    );\n}\n\nfunction InputDemo() {\n    const [value, setValue] = useState('');\n    const [submitted, setSubmitted] = useState('');\n\n    const handleSubmit = (e) => {\n        e.preventDefault();          // prevent page reload\n        setSubmitted(value);\n        setValue('');\n    };\n\n    return (\n        <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '8px' }}>\n            <input\n                value={value}\n                onChange={e => setValue(e.target.value)}  // e.target.value = current input\n                placeholder=\"Type something...\"\n                style={{ padding: '6px', borderRadius: '4px', border: '1px solid #d1d5db' }}\n            />\n            <button type=\"submit\">Submit</button>\n            {submitted && <span>You sent: <strong>{submitted}</strong></span>}\n        </form>\n    );\n}\n\nfunction App() {\n    return (\n        <div style={{ fontFamily: 'sans-serif', padding: '8px', display: 'flex', flexDirection: 'column', gap: '12px' }}>\n            <ClickDemo />\n            <InputDemo />\n        </div>\n    );\n}"
+    },
+    {
+      "type": "code",
+      "lang": "jsx",
+      "filename": "event_propagation.jsx",
+      "code": "// Event bubbling — child events bubble to parent\nfunction BubblingDemo() {\n    const [log, setLog] = useState([]);\n    const addLog = (msg) => setLog(prev => [...prev, msg]);\n\n    return (\n        <div\n            onClick={() => addLog('Outer div clicked')}\n            style={{ padding: '16px', border: '2px solid #4fd1c5', cursor: 'pointer' }}\n        >\n            Outer (click here too)\n            <div\n                onClick={() => addLog('Middle div clicked')}\n                style={{ margin: '8px', padding: '12px', border: '2px solid #f97316', cursor: 'pointer' }}\n            >\n                Middle\n                <button\n                    onClick={(e) => {\n                        e.stopPropagation();   // stops bubble — only button logs\n                        addLog('Button clicked (stopped)');\n                    }}\n                    style={{ display: 'block', margin: '8px 0' }}\n                >\n                    Button (stops propagation)\n                </button>\n            </div>\n            <ul style={{ fontSize: '0.8rem' }}>\n                {log.map((l, i) => <li key={i}>{l}</li>)}\n            </ul>\n            <button onClick={() => setLog([])} style={{ marginTop: '4px' }}>Clear</button>\n        </div>\n    );\n}\n\nfunction App() {\n    return <BubblingDemo />;\n}"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Events playground",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0}\n    .layout{display:grid;grid-template-rows:auto 1fr;gap:10px;height:calc(100vh - 32px)}\n    .top{display:flex;flex-direction:column;gap:8px}\n    .editor-row{display:flex;gap:8px;align-items:flex-start}\n    textarea{flex:1;background:#0b0e14;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;padding:10px;font-family:monospace;font-size:0.82rem;resize:vertical;min-height:160px}\n    .btns{display:flex;flex-direction:column;gap:6px}\n    button{padding:8px 14px;border:none;border-radius:5px;font-weight:700;cursor:pointer;font-size:0.8rem;white-space:nowrap}\n    .chips{display:flex;flex-wrap:wrap;gap:6px}\n    .chip{background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:3px 10px;font-family:monospace;font-size:0.72rem;cursor:pointer;color:#94a3b8}\n    .chip:hover{border-color:#4fd1c5;color:#4fd1c5}\n    .panels{display:grid;grid-template-columns:1fr 1fr;gap:8px}\n    .panel{border-radius:6px;overflow:auto;padding:10px;font-size:0.78rem}\n    .panel-label{font-size:0.7rem;color:#4fd1c5;margin-bottom:6px;font-family:monospace}\n    #preview{background:#fff;color:#111;border-radius:6px;padding:16px;min-height:120px}\n    #console{background:#0b0e14;font-family:monospace}\n    .log{color:#4fd1c5;margin:2px 0}.err{color:#ef4444;margin:2px 0}\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"code\" spellcheck=\"false\">function App() {\n  const [log, setLog] = useState([]);\n  const [inputVal, setInputVal] = useState('');\n\n  const addLog = (msg) => setLog(prev => [msg, ...prev].slice(0, 8));\n\n  return (\n    <div style={{fontFamily:'sans-serif',padding:'8px'}}>\n      <h3>Event Log</h3>\n      <div style={{display:'flex',gap:'8px',flexWrap:'wrap',marginBottom:'8px'}}>\n        <button onClick={() => addLog('Button clicked!')}>Click me</button>\n        <button\n          onMouseEnter={() => addLog('Mouse entered')}\n          onMouseLeave={() => addLog('Mouse left')}\n          style={{background:'#dbeafe'}}\n        >Hover me</button>\n      </div>\n      <input\n        value={inputVal}\n        onChange={e => { setInputVal(e.target.value); addLog(`Typed: ${e.target.value}`); }}\n        onKeyDown={e => e.key === 'Enter' && addLog('Enter pressed!')}\n        placeholder=\"Type and press Enter...\"\n        style={{padding:'6px',borderRadius:'4px',border:'1px solid #d1d5db',width:'220px'}}\n      />\n      <ul style={{marginTop:'8px',fontSize:'0.85rem'}}>\n        {log.map((l,i) => <li key={i}>{l}</li>)}\n      </ul>\n    </div>\n  );\n}</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runReact()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setCode('function App() {\\n  const handleSubmit = (e) => {\\n    e.preventDefault();\\n    const data = new FormData(e.target);\\n    console.log(\\'Name:\\', data.get(\\'name\\'));\\n    console.log(\\'Email:\\', data.get(\\'email\\'));\\n    e.target.reset();\\n  };\\n  return (\\n    <form onSubmit={handleSubmit} style={{fontFamily:\\'sans-serif\\',display:\\'flex\\',flexDirection:\\'column\\',gap:\\'8px\\',maxWidth:\\'280px\\'}}>\\n      <input name=\\'name\\' placeholder=\\'Name\\' required style={{padding:\\'6px\\'}} />\\n      <input name=\\'email\\' type=\\'email\\' placeholder=\\'Email\\' required style={{padding:\\'6px\\'}} />\\n      <button type=\\'submit\\'>Submit</button>\\n    </form>\\n  );\\n}')\">form submit</span>\n        <span class=\"chip\" onclick=\"setCode('function App() {\\n  const [pos, setPos] = useState({x:0,y:0});\\n  return (\\n    <div\\n      onMouseMove={e => setPos({x:e.clientX,y:e.clientY})}\\n      style={{fontFamily:\\'sans-serif\\',padding:\\'16px\\',border:\\'1px solid #e2e8f0\\',minHeight:\\'120px\\',cursor:\\'crosshair\\'}}\\n    >\\n      Move your mouse here\\n      <p>x: {pos.x}, y: {pos.y}</p>\\n    </div>\\n  );\\n}')\">mouse pos</span>\n      </div>\n    </div>\n    <div class=\"panels\">\n      <div class=\"panel\" id=\"preview\"><div style=\"color:#9ca3af;font-style:italic\">Click ▶ Run</div></div>\n      <div class=\"panel\" id=\"console\"><div class=\"panel-label\">CONSOLE</div><div style=\"color:#64748b;font-size:0.75rem\">No output</div></div>\n    </div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.5/babel.min.js\"></script>\n  <script>\n    let _root=null;\n    function setCode(c){document.getElementById('code').value=c;runReact();}\n    function runReact(){\n      const src=document.getElementById('code').value;\n      const logs=[];\n      const oL=console.log,oE=console.error,oW=console.warn;\n      console.log=(...a)=>logs.push({t:'log',m:a.map(x=>typeof x==='object'?JSON.stringify(x):String(x)).join(' ')});\n      console.error=(...a)=>logs.push({t:'err',m:a.map(String).join(' ')});\n      console.warn=(...a)=>logs.push({t:'log',m:'[warn] '+a.map(String).join(' ')});\n      const preview=document.getElementById('preview');\n      try{\n        const wrapped=`const {useState,useEffect,useRef,useReducer,useContext,createContext,useMemo,useCallback,Fragment}=React;\\n${src}`;\n        const transformed=Babel.transform(wrapped,{presets:['react'],filename:'app.jsx'}).code;\n        const full=transformed+'\\n__s__.App=typeof App!==\"undefined\"?App:null;';\n        const scope={};\n        new Function('React','__s__',full)(React,scope);\n        preview.innerHTML='';\n        _root=ReactDOM.createRoot(preview);\n        if(scope.App)_root.render(React.createElement(scope.App));\n        else _root.render(React.createElement('p',{style:{color:'#888',fontStyle:'italic'}},'Define function App() { return <JSX />; }'));\n      }catch(e){\n        logs.push({t:'err',m:e.message});\n        preview.innerHTML=`<pre style=\"color:red;font-size:0.78rem;white-space:pre-wrap\">${e.message.replace(/</g,'&lt;')}</pre>`;\n      }finally{\n        console.log=oL;console.error=oE;console.warn=oW;\n      }\n      const cd=document.getElementById('console');\n      cd.innerHTML='<div class=\"panel-label\">CONSOLE</div>'+(logs.length?logs.map(l=>`<div class=\"${l.t==='err'?'err':'log'}\">${l.m.replace(/</g,'&lt;')}</div>`).join(''):'<div style=\"color:#64748b;font-size:0.75rem\">No output</div>');\n    }\n    document.getElementById('code').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runReact();}});\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "react-events-q1",
+          "question": "What is the difference between `onClick={handleClick}` and `onClick={handleClick()}`?",
+          "type": "multiple-choice",
+          "options": [
+            "There is no difference — both work the same way",
+            "onClick={handleClick} passes the function to be called on click; onClick={handleClick()} calls the function immediately during render and passes its return value",
+            "onClick={handleClick()} is the correct syntax for event handlers",
+            "onClick={handleClick} only works for button elements"
+          ],
+          "correctAnswer": 1,
+          "explanation": "onClick={handleClick} gives React a reference to the function — React will call it when the button is clicked. onClick={handleClick()} calls handleClick immediately when the component renders (before any click), and passes the return value (probably undefined) as the event handler. This is a very common React mistake. Always pass the function reference, not its result."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do I access the input value in an onChange handler?",
+      "a": "Use e.target.value: <input onChange={e => setValue(e.target.value)} />. For checkboxes, it's e.target.checked. For select elements, it's also e.target.value (the value of the selected option). In TypeScript: (e: React.ChangeEvent<HTMLInputElement>) => e.target.value."
+    }
+  ],
+  "sources": [
+    {
+      "name": "React Docs — Responding to Events",
+      "url": "https://react.dev/learn/responding-to-events",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every interactive form and button in React apps"],
+    "examples": [
+      "<form onSubmit={e => { e.preventDefault(); submitForm(formData); }}>",
+      "<input onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && search()} />",
+      "<div onClick={() => selectItem(id)} onKeyDown={e => e.key === 'Enter' && selectItem(id)} tabIndex={0}>"
+    ]
+  }
+}

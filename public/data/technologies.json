@@ -103,7 +103,7 @@
     "order": 8,
     "stage": 8,
     "playground": "react",
-    "enabled": false,
+    "enabled": true,
     "description": "Component-based UI library",
     "estimatedHours": 30
   },

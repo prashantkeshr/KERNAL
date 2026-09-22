@@ -1,0 +1,99 @@
+{
+  "id": "10-useref",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "react",
+  "technologyVersion": "React 18",
+  "module": "react-advanced",
+  "title": "useRef",
+  "subtitle": "DOM access and mutable values that don't trigger re-renders",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 18,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["react/09-useeffect"],
+  "skillsTaught": ["react.useRef", "react.dom-refs", "react.mutable-refs", "react.forwardRef"],
+  "skillsUsed": ["js.dom-api", "react.useEffect"],
+  "relatedConcepts": ["react.controlled-inputs", "react.custom-hooks"],
+  "whyItExists": {
+    "problem": "Two needs: (1) Imperatively accessing a DOM element (focus an input, measure an element's size, play a video) without React controlling it through state. (2) Storing a value that persists across renders but doesn't need to cause a re-render when it changes (a timer ID, a previous value, an instance variable).",
+    "solution": "useRef returns a mutable object { current: initialValue }. React doesn't watch .current — changing it never triggers a re-render. Attach a ref to a DOM element with the ref prop and React will set .current to the DOM node after render.",
+    "whenToUse": "Focus management, scroll into view, measure element dimensions, integrate third-party libraries that need a DOM node. Storing mutable values like timer IDs, previous state, or flags without causing re-renders.",
+    "whenNotToUse": "Don't use refs to store state that should drive the UI — use useState for that. Don't read or write a ref during render (it can cause inconsistency with React's model). Don't use refs to work around missing useEffect dependencies."
+  },
+  "explainModes": {
+    "beginner": "useRef gives you a 'box' you can put any value in. When you attach it to a DOM element with ref={myRef}, React fills the box with the actual DOM element. You can then call myRef.current.focus() or myRef.current.scrollIntoView(). Changing the box's value doesn't re-render the component.",
+    "simple": "const ref = useRef(initialValue). ref.current is the stored value. For DOM refs: <input ref={ref} /> — after mount, ref.current is the input element. Changing ref.current never triggers a re-render. Common uses: focus on mount (useEffect(() => { ref.current?.focus(); }, [])), previous value (store previous state in a ref, update in useEffect after render), cancel tokens (store interval/timeout IDs).",
+    "standard": "Ref vs state: both persist across renders. State change → re-render. Ref change → no re-render. Use state for values that should update the UI; use ref for values that should not. callback refs: instead of useRef, pass a function as the ref prop: ref={node => { if (node) node.focus(); }}. This is called each time the element is added/removed. React.forwardRef: lets a component receive a ref from its parent — essential for custom input components.",
+    "technical": "useRef(null) vs useRef<HTMLInputElement>(null) in TypeScript: the generic specifies the type of the DOM element, giving you type-safe .current properties (focus, value, etc.). The ref object identity is stable — it's the same object every render. This is why it's safe to include in useEffect without causing extra re-runs. useImperativeHandle: used with forwardRef to expose a limited API from a component, rather than the full DOM node.",
+    "deepDive": "Ref forwarding pattern: <TextInput ref={inputRef} /> — the parent holds the ref, the TextInput implementation decides which DOM node to expose. Without forwardRef, ref would be swallowed. The pattern: const TextInput = React.forwardRef((props, ref) => <input {...props} ref={ref} />). React 19 simplifies this: ref becomes a regular prop, so forwardRef wrapping won't be needed. Ref as escape hatch: refs are for escaping React's declarative model for imperative code. They're useful for focus, animation (third-party), video/audio control, and canvas operations. Overusing refs is a smell — most problems are solvable declaratively."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "useRef for DOM access"
+    },
+    {
+      "type": "code",
+      "lang": "jsx",
+      "filename": "dom_ref.jsx",
+      "code": "// Use case 1: Focus management\nfunction SearchBox() {\n    const inputRef = useRef(null);\n\n    useEffect(() => {\n        inputRef.current?.focus();  // focus the input on mount\n    }, []);\n\n    const handleClear = () => {\n        inputRef.current.value = '';\n        inputRef.current.focus();\n    };\n\n    return (\n        <div style={{ display: 'flex', gap: '8px' }}>\n            <input\n                ref={inputRef}  // React sets inputRef.current = this DOM node\n                type=\"text\"\n                placeholder=\"Search...\"\n                style={{ padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', flex: 1 }}\n            />\n            <button onClick={handleClear}>Clear & Focus</button>\n        </div>\n    );\n}\n\n// Use case 2: Scroll into view\nfunction ScrollDemo() {\n    const bottomRef = useRef(null);\n\n    const scrollDown = () => {\n        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });\n    };\n\n    return (\n        <div style={{ height: '120px', overflow: 'auto', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px' }}>\n            <button onClick={scrollDown}>Scroll to bottom</button>\n            {Array.from({ length: 10 }, (_, i) => <p key={i}>Line {i + 1}</p>)}\n            <div ref={bottomRef}>↑ Bottom reached</div>\n        </div>\n    );\n}\n\nfunction App() {\n    return (\n        <div style={{ fontFamily: 'sans-serif', padding: '8px', display: 'flex', flexDirection: 'column', gap: '12px' }}>\n            <SearchBox />\n            <ScrollDemo />\n        </div>\n    );\n}"
+    },
+    {
+      "type": "code",
+      "lang": "jsx",
+      "filename": "mutable_ref.jsx",
+      "code": "// Use case 3: Store interval ID without causing re-renders\nfunction Interval() {\n    const [count, setCount] = useState(0);\n    const [running, setRunning] = useState(false);\n    const intervalRef = useRef(null);  // store interval ID — NOT in state\n\n    const start = () => {\n        if (running) return;\n        setRunning(true);\n        intervalRef.current = setInterval(() => {\n            setCount(c => c + 1);\n        }, 500);\n    };\n\n    const stop = () => {\n        clearInterval(intervalRef.current);\n        setRunning(false);\n    };\n\n    return (\n        <div style={{ fontFamily: 'sans-serif', padding: '8px' }}>\n            <h2>Count: {count}</h2>\n            <button onClick={start} disabled={running}>Start</button>\n            <button onClick={stop}  disabled={!running}>Stop</button>\n        </div>\n    );\n}\n\n// Use case 4: Track previous value\nfunction usePrevious(value) {\n    const ref = useRef(undefined);\n    useEffect(() => { ref.current = value; });  // update AFTER render\n    return ref.current;  // returns value from PREVIOUS render\n}\n\nfunction PreviousDemo() {\n    const [count, setCount] = useState(0);\n    const prev = usePrevious(count);\n    return (\n        <div style={{ fontFamily: 'sans-serif', padding: '8px' }}>\n            <p>Current: {count} | Previous: {prev ?? 'none'}</p>\n            <button onClick={() => setCount(c => c + 1)}>+1</button>\n        </div>\n    );\n}\n\nfunction App() {\n    return (\n        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>\n            <Interval />\n            <PreviousDemo />\n        </div>\n    );\n}"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: useRef playground",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0}\n    .layout{display:grid;grid-template-rows:auto 1fr;gap:10px;height:calc(100vh - 32px)}\n    .top{display:flex;flex-direction:column;gap:8px}\n    .editor-row{display:flex;gap:8px;align-items:flex-start}\n    textarea{flex:1;background:#0b0e14;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;padding:10px;font-family:monospace;font-size:0.82rem;resize:vertical;min-height:160px}\n    .btns{display:flex;flex-direction:column;gap:6px}\n    button{padding:8px 14px;border:none;border-radius:5px;font-weight:700;cursor:pointer;font-size:0.8rem;white-space:nowrap}\n    .chips{display:flex;flex-wrap:wrap;gap:6px}\n    .chip{background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:3px 10px;font-family:monospace;font-size:0.72rem;cursor:pointer;color:#94a3b8}\n    .chip:hover{border-color:#4fd1c5;color:#4fd1c5}\n    .panels{display:grid;grid-template-columns:1fr 1fr;gap:8px}\n    .panel{border-radius:6px;overflow:auto;padding:10px;font-size:0.78rem}\n    .panel-label{font-size:0.7rem;color:#4fd1c5;margin-bottom:6px;font-family:monospace}\n    #preview{background:#fff;color:#111;border-radius:6px;padding:16px;min-height:120px}\n    #console{background:#0b0e14;font-family:monospace}\n    .log{color:#4fd1c5;margin:2px 0}.err{color:#ef4444;margin:2px 0}\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"code\" spellcheck=\"false\">function AutoFocusInput() {\n  const inputRef = useRef(null);\n\n  useEffect(() => {\n    inputRef.current?.focus();\n  }, []);\n\n  return (\n    <div style={{fontFamily:'sans-serif',padding:'8px'}}>\n      <p>This input gets focused automatically:</p>\n      <input\n        ref={inputRef}\n        placeholder=\"Auto-focused on mount\"\n        style={{padding:'8px',border:'2px solid #4fd1c5',borderRadius:'6px',width:'220px'}}\n      />\n      <br/><br/>\n      <button onClick={() => inputRef.current?.select()}>Select All Text</button>\n    </div>\n  );\n}\n\nfunction App() { return <AutoFocusInput />; }</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runReact()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setCode('function App() {\\n  const divRef = useRef(null);\\n  const [size, setSize] = useState({w:0,h:0});\\n\\n  const measure = () => {\\n    if (divRef.current) {\\n      const r = divRef.current.getBoundingClientRect();\\n      setSize({w: Math.round(r.width), h: Math.round(r.height)});\\n    }\\n  };\\n\\n  return (\\n    <div style={{fontFamily:\\'sans-serif\\',padding:\\'8px\\'}}>\\n      <div ref={divRef}\\n        style={{resize:\\'both\\',overflow:\\'auto\\',border:\\'2px dashed #4fd1c5\\',\\n               padding:\\'16px\\',minWidth:\\'100px\\',minHeight:\\'60px\\'}}\\n      >\\n        Resize me!\\n      </div>\\n      <button onClick={measure} style={{marginTop:\\'8px\\'}}>Measure</button>\\n      <p>{size.w}×{size.h}px</p>\\n    </div>\\n  );\\n}')\">measure element</span>\n        <span class=\"chip\" onclick=\"setCode('function App() {\\n  const [renderCount, setRenderCount] = useState(0);\\n  const refCount = useRef(0);\\n\\n  refCount.current++;  // this does NOT re-render\\n\\n  return (\\n    <div style={{fontFamily:\\'sans-serif\\',padding:\\'8px\\'}}>\\n      <p>Renders (state): {renderCount}</p>\\n      <p>Ref value (updates silently): {refCount.current}</p>\\n      <button onClick={() => setRenderCount(c => c+1)}>Trigger Re-render</button>\\n      <p style={{fontSize:\\'0.8rem\\',color:\\'#6b7280\\'}}>Ref increments on every render but display only updates on re-render</p>\\n    </div>\\n  );\\n}')\">ref vs state</span>\n      </div>\n    </div>\n    <div class=\"panels\">\n      <div class=\"panel\" id=\"preview\"><div style=\"color:#9ca3af;font-style:italic\">Click ▶ Run</div></div>\n      <div class=\"panel\" id=\"console\"><div class=\"panel-label\">CONSOLE</div><div style=\"color:#64748b;font-size:0.75rem\">No output</div></div>\n    </div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.5/babel.min.js\"></script>\n  <script>\n    let _root=null;\n    function setCode(c){document.getElementById('code').value=c;runReact();}\n    function runReact(){\n      const src=document.getElementById('code').value;\n      const logs=[];\n      const oL=console.log,oE=console.error,oW=console.warn;\n      console.log=(...a)=>logs.push({t:'log',m:a.map(x=>typeof x==='object'?JSON.stringify(x):String(x)).join(' ')});\n      console.error=(...a)=>logs.push({t:'err',m:a.map(String).join(' ')});\n      console.warn=(...a)=>logs.push({t:'log',m:'[warn] '+a.map(String).join(' ')});\n      const preview=document.getElementById('preview');\n      try{\n        const wrapped=`const {useState,useEffect,useRef,useReducer,useContext,createContext,useMemo,useCallback,Fragment}=React;\\n${src}`;\n        const transformed=Babel.transform(wrapped,{presets:['react'],filename:'app.jsx'}).code;\n        const full=transformed+'\\n__s__.App=typeof App!==\"undefined\"?App:null;';\n        const scope={};\n        new Function('React','__s__',full)(React,scope);\n        preview.innerHTML='';\n        _root=ReactDOM.createRoot(preview);\n        if(scope.App)_root.render(React.createElement(scope.App));\n        else _root.render(React.createElement('p',{style:{color:'#888',fontStyle:'italic'}},'Define function App() { return <JSX />; }'));\n      }catch(e){\n        logs.push({t:'err',m:e.message});\n        preview.innerHTML=`<pre style=\"color:red;font-size:0.78rem;white-space:pre-wrap\">${e.message.replace(/</g,'&lt;')}</pre>`;\n      }finally{\n        console.log=oL;console.error=oE;console.warn=oW;\n      }\n      const cd=document.getElementById('console');\n      cd.innerHTML='<div class=\"panel-label\">CONSOLE</div>'+(logs.length?logs.map(l=>`<div class=\"${l.t==='err'?'err':'log'}\">${l.m.replace(/</g,'&lt;')}</div>`).join(''):'<div style=\"color:#64748b;font-size:0.75rem\">No output</div>');\n    }\n    document.getElementById('code').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runReact();}});\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "react-ref-q1",
+          "question": "When you change `ref.current`, does React re-render the component?",
+          "type": "multiple-choice",
+          "options": [
+            "Yes — React watches all ref values and re-renders when they change",
+            "No — changing ref.current is silent; React is unaware of the change and will NOT re-render",
+            "Only if the ref is attached to a DOM element",
+            "Yes, but only in development mode"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Refs are intentionally 'outside' React's reactive system. Changing ref.current does not notify React and does not trigger a re-render. This is what makes refs useful for storing values like timer IDs — you can update them without causing unnecessary renders. For values that should update the UI, use state instead."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "When should I use useRef vs useState?",
+      "a": "Use useState when the value should cause the UI to update when it changes. Use useRef when the value should persist across renders but NOT cause a re-render: timer IDs, DOM nodes, previous values, flags. Rule of thumb: if you'd ever display the value in JSX, it's state. If it's purely for internal bookkeeping or DOM access, it's a ref."
+    }
+  ],
+  "sources": [
+    {
+      "name": "React Docs — Referencing Values with Refs",
+      "url": "https://react.dev/learn/referencing-values-with-refs",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["form focus management", "media players", "infinite scroll", "canvas drawing"],
+    "examples": [
+      "const videoRef = useRef(null); <video ref={videoRef} /> — then videoRef.current.play()",
+      "const timerRef = useRef(null); timerRef.current = setTimeout(fn, delay); clearTimeout(timerRef.current)",
+      "const scrollRef = useRef(null); scrollRef.current?.scrollIntoView({behavior:'smooth'})"
+    ]
+  }
+}

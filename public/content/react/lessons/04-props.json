@@ -1,0 +1,99 @@
+{
+  "id": "04-props",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "react",
+  "technologyVersion": "React 18",
+  "module": "react-state",
+  "title": "Props",
+  "subtitle": "Passing data to components — required, optional, defaults, and spread",
+  "difficulty": "beginner",
+  "estimatedMinutes": 18,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["react/03-components"],
+  "skillsTaught": ["react.props-passing", "react.prop-defaults", "react.prop-spread", "react.props-immutable"],
+  "skillsUsed": ["js.destructuring", "js.default-params", "js.spread"],
+  "relatedConcepts": ["react.state", "react.lifting-state"],
+  "whyItExists": {
+    "problem": "Components need to display different data in different contexts. Without props, components would be static — a Button component could only say 'Save', never 'Cancel' or 'Delete'.",
+    "solution": "Props are arguments passed to components — like function parameters. They flow one direction: parent to child. A parent controls what data a child component receives. The child renders based on those props but cannot modify them.",
+    "whenToUse": "Every time a component needs external data — its content, appearance, or behavior should be configurable from outside.",
+    "whenNotToUse": "Props shouldn't carry data that the component owns and manages itself (that's state). Also, passing props through many layers of components that don't use them (prop drilling) is a code smell — use Context for that."
+  },
+  "explainModes": {
+    "beginner": "Props are the inputs to a component. Like a function parameter, you pass values to a component using JSX attributes: <Button label='Save' color='blue' />. Inside the Button component, you receive these as an object — usually destructured: function Button({ label, color }).",
+    "simple": "Props are read-only — a component cannot modify its own props. Destructuring: function Card({ title, body, color = 'gray' }). Default values in destructuring: color = 'gray'. Spread: <input {...inputProps} />. Passing functions as props (callbacks): <Button onClick={handleClick} />. Passing JSX as props (render slots): <Dialog title={<h2>Hello</h2>}>. All JS values can be props: strings, numbers, booleans, arrays, objects, functions, JSX.",
+    "standard": "Props flow down the component tree (one-way data flow). This is intentional — it makes the flow of data easy to trace. A child component communicates UP by calling a callback function received as a prop. Boolean props: <Button disabled /> is the same as <Button disabled={true} />. Omitting a prop gives it the value undefined. Prop spreading lets you forward unknown props: function Input({ label, ...inputProps }) { return <><label>{label}</label><input {...inputProps} /></>; }.",
+    "technical": "TypeScript props: interface ButtonProps { label: string; onClick: () => void; variant?: 'primary' | 'secondary' }. Props are frozen in React 18 strict mode — mutating them throws in development. React.memo wraps a component so it only re-renders when props change (shallow comparison). useCallback stabilizes function props across renders so React.memo works correctly: if parent re-renders and creates a new function reference, the child sees new props and re-renders.",
+    "deepDive": "Structural prop patterns: (1) variant pattern — type Variant = 'primary' | 'secondary' | 'danger', map variant to styles. (2) polymorphic 'as' prop — <Text as='h1'> renders an h1, <Text as='p'> renders a p. (3) compound components — <Select> and <Select.Option> share implicit state via Context. (4) render props — pass a function that returns JSX: <DataFetcher render={data => <Table data={data} />} />. Props are how all these patterns communicate."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Passing and receiving props"
+    },
+    {
+      "type": "code",
+      "lang": "jsx",
+      "filename": "props.jsx",
+      "code": "// Props are passed as JSX attributes, received as an object\n\n// Destructuring props — the standard approach\nfunction Button({ label, variant = 'primary', disabled = false, onClick }) {\n    const styles = {\n        primary:   { background: '#4fd1c5', color: '#0e1116' },\n        secondary: { background: '#e2e8f0', color: '#374151' },\n        danger:    { background: '#ef4444', color: '#fff' },\n    };\n    return (\n        <button\n            disabled={disabled}\n            onClick={onClick}\n            style={{\n                ...styles[variant],\n                padding: '8px 16px', border: 'none',\n                borderRadius: '6px', cursor: disabled ? 'not-allowed' : 'pointer',\n                opacity: disabled ? 0.5 : 1, fontWeight: 'bold'\n            }}\n        >\n            {label}\n        </button>\n    );\n}\n\nfunction App() {\n    return (\n        <div style={{ fontFamily: 'sans-serif', padding: '8px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>\n            <Button label=\"Save\" variant=\"primary\" onClick={() => console.log('Saved!')} />\n            <Button label=\"Cancel\" variant=\"secondary\" onClick={() => console.log('Cancelled')} />\n            <Button label=\"Delete\" variant=\"danger\" onClick={() => console.log('Deleted')} />\n            <Button label=\"Processing...\" disabled />\n        </div>\n    );\n}"
+    },
+    {
+      "type": "code",
+      "lang": "jsx",
+      "filename": "prop_spread.jsx",
+      "code": "// Prop spreading — forward HTML attributes naturally\nfunction Input({ label, id, error, ...inputProps }) {\n    // ...inputProps captures all remaining props (type, value, onChange, placeholder, etc.)\n    return (\n        <div style={{ marginBottom: '12px' }}>\n            <label\n                htmlFor={id}\n                style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', fontWeight: '500' }}\n            >\n                {label}\n            </label>\n            <input\n                id={id}\n                {...inputProps}  /* spread: type, value, onChange, placeholder, maxLength... */\n                style={{\n                    width: '100%', padding: '8px', border: `1px solid ${error ? '#ef4444' : '#d1d5db'}`,\n                    borderRadius: '6px', fontSize: '0.9rem', boxSizing: 'border-box'\n                }}\n            />\n            {error && <p style={{ color: '#ef4444', fontSize: '0.78rem', margin: '4px 0 0' }}>{error}</p>}\n        </div>\n    );\n}\n\nfunction App() {\n    return (\n        <div style={{ fontFamily: 'sans-serif', padding: '8px', maxWidth: '300px' }}>\n            <Input label=\"Email\" id=\"email\" type=\"email\" placeholder=\"you@example.com\" />\n            <Input label=\"Age\" id=\"age\" type=\"number\" min={0} max={120} error=\"Must be 18+\" />\n        </div>\n    );\n}"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Props in action",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0}\n    .layout{display:grid;grid-template-rows:auto 1fr;gap:10px;height:calc(100vh - 32px)}\n    .top{display:flex;flex-direction:column;gap:8px}\n    .editor-row{display:flex;gap:8px;align-items:flex-start}\n    textarea{flex:1;background:#0b0e14;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;padding:10px;font-family:monospace;font-size:0.82rem;resize:vertical;min-height:160px}\n    .btns{display:flex;flex-direction:column;gap:6px}\n    button{padding:8px 14px;border:none;border-radius:5px;font-weight:700;cursor:pointer;font-size:0.8rem;white-space:nowrap}\n    .chips{display:flex;flex-wrap:wrap;gap:6px}\n    .chip{background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:3px 10px;font-family:monospace;font-size:0.72rem;cursor:pointer;color:#94a3b8}\n    .chip:hover{border-color:#4fd1c5;color:#4fd1c5}\n    .panels{display:grid;grid-template-columns:1fr 1fr;gap:8px}\n    .panel{border-radius:6px;overflow:auto;padding:10px;font-size:0.78rem}\n    .panel-label{font-size:0.7rem;color:#4fd1c5;margin-bottom:6px;font-family:monospace}\n    #preview{background:#fff;color:#111;border-radius:6px;padding:16px;min-height:120px}\n    #console{background:#0b0e14;font-family:monospace}\n    .log{color:#4fd1c5;margin:2px 0}.err{color:#ef4444;margin:2px 0}\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"code\" spellcheck=\"false\">function Alert({ type = 'info', title, message }) {\n  const styles = {\n    info:    { bg: '#dbeafe', border: '#93c5fd', icon: 'ℹ️' },\n    success: { bg: '#dcfce7', border: '#86efac', icon: '✅' },\n    warning: { bg: '#fef9c3', border: '#fde047', icon: '⚠️' },\n    error:   { bg: '#fee2e2', border: '#fca5a5', icon: '❌' },\n  };\n  const s = styles[type] || styles.info;\n  return (\n    <div style={{\n      background: s.bg, border: `1px solid ${s.border}`,\n      borderRadius: '8px', padding: '12px', marginBottom: '8px'\n    }}>\n      <strong>{s.icon} {title}</strong>\n      {message && <p style={{margin:'4px 0 0',fontSize:'0.9rem'}}>{message}</p>}\n    </div>\n  );\n}\n\nfunction App() {\n  return (\n    <div style={{fontFamily:'sans-serif',padding:'8px',maxWidth:'360px'}}>\n      <Alert type=\"success\" title=\"Saved!\" message=\"Your changes have been saved.\" />\n      <Alert type=\"warning\" title=\"Low Stock\" message=\"Only 3 units remaining.\" />\n      <Alert type=\"error\" title=\"Failed\" message=\"Could not connect to server.\" />\n      <Alert title=\"Note\" message=\"No type prop — defaults to info.\" />\n    </div>\n  );\n}</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runReact()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setCode('function Stat({ label, value, unit = \\'\\' }) {\\n  return (\\n    <div style={{textAlign:\\'center\\',padding:\\'12px\\',border:\\'1px solid #e2e8f0\\',borderRadius:\\'8px\\'}}>\\n      <div style={{fontSize:\\'2rem\\',fontWeight:\\'bold\\',color:\\'#2563eb\\'}}>{value}{unit}</div>\\n      <div style={{fontSize:\\'0.8rem\\',color:\\'#6b7280\\'}}>{label}</div>\\n    </div>\\n  );\\n}\\nfunction App() {\\n  return (\\n    <div style={{display:\\'grid\\',gridTemplateColumns:\\'repeat(3,1fr)\\',gap:\\'8px\\',fontFamily:\\'sans-serif\\',padding:\\'8px\\'}}>\\n      <Stat label=\\'Lessons\\' value={45} />\\n      <Stat label=\\'Completion\\' value={78} unit=\\'%\\' />\\n      <Stat label=\\'Hours\\' value={12.5} unit=\\'h\\' />\\n    </div>\\n  );\\n}')\">stat cards</span>\n        <span class=\"chip\" onclick=\"setCode('function Tag({ label, onRemove }) {\\n  return (\\n    <span style={{\\n      display:\\'inline-flex\\',alignItems:\\'center\\',gap:\\'4px\\',\\n      background:\\'#e0f2fe\\',color:\\'#0369a1\\',\\n      padding:\\'2px 8px\\',borderRadius:\\'12px\\',fontSize:\\'0.8rem\\'\\n    }}>\\n      {label}\\n      <button onClick={onRemove} style={{background:\\'none\\',border:\\'none\\',cursor:\\'pointer\\',color:\\'inherit\\'}}> ✕ </button>\\n    </span>\\n  );\\n}\\nfunction App() {\\n  return (\\n    <div style={{fontFamily:\\'sans-serif\\',padding:\\'8px\\',display:\\'flex\\',gap:\\'6px\\',flexWrap:\\'wrap\\'}}>\\n      <Tag label=\\'React\\' onRemove={()=>console.log(\\'remove React\\')} />\\n      <Tag label=\\'TypeScript\\' onRemove={()=>console.log(\\'remove TS\\')} />\\n    </div>\\n  );\\n}')\">callback prop</span>\n      </div>\n    </div>\n    <div class=\"panels\">\n      <div class=\"panel\" id=\"preview\"><div style=\"color:#9ca3af;font-style:italic\">Click ▶ Run</div></div>\n      <div class=\"panel\" id=\"console\"><div class=\"panel-label\">CONSOLE</div><div style=\"color:#64748b;font-size:0.75rem\">No output</div></div>\n    </div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.5/babel.min.js\"></script>\n  <script>\n    let _root=null;\n    function setCode(c){document.getElementById('code').value=c;runReact();}\n    function runReact(){\n      const src=document.getElementById('code').value;\n      const logs=[];\n      const oL=console.log,oE=console.error,oW=console.warn;\n      console.log=(...a)=>logs.push({t:'log',m:a.map(x=>typeof x==='object'?JSON.stringify(x):String(x)).join(' ')});\n      console.error=(...a)=>logs.push({t:'err',m:a.map(String).join(' ')});\n      console.warn=(...a)=>logs.push({t:'log',m:'[warn] '+a.map(String).join(' ')});\n      const preview=document.getElementById('preview');\n      try{\n        const wrapped=`const {useState,useEffect,useRef,useReducer,useContext,createContext,useMemo,useCallback,Fragment}=React;\\n${src}`;\n        const transformed=Babel.transform(wrapped,{presets:['react'],filename:'app.jsx'}).code;\n        const full=transformed+'\\n__s__.App=typeof App!==\"undefined\"?App:null;';\n        const scope={};\n        new Function('React','__s__',full)(React,scope);\n        preview.innerHTML='';\n        _root=ReactDOM.createRoot(preview);\n        if(scope.App)_root.render(React.createElement(scope.App));\n        else _root.render(React.createElement('p',{style:{color:'#888',fontStyle:'italic'}},'Define function App() { return <JSX />; }'));\n      }catch(e){\n        logs.push({t:'err',m:e.message});\n        preview.innerHTML=`<pre style=\"color:red;font-size:0.78rem;white-space:pre-wrap\">${e.message.replace(/</g,'&lt;')}</pre>`;\n      }finally{\n        console.log=oL;console.error=oE;console.warn=oW;\n      }\n      const cd=document.getElementById('console');\n      cd.innerHTML='<div class=\"panel-label\">CONSOLE</div>'+(logs.length?logs.map(l=>`<div class=\"${l.t==='err'?'err':'log'}\">${l.m.replace(/</g,'&lt;')}</div>`).join(''):'<div style=\"color:#64748b;font-size:0.75rem\">No output</div>');\n    }\n    document.getElementById('code').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runReact();}});\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "react-props-q1",
+          "question": "Can a component modify its own props?",
+          "type": "multiple-choice",
+          "options": [
+            "Yes — components can update their props at any time",
+            "No — props are read-only; a component cannot modify the values passed to it",
+            "Only if the prop is an object or array",
+            "Yes, but only inside event handlers"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Props are read-only — a component must never modify its own props. React enforces one-way data flow: data passes from parent to child via props. The child can communicate back to the parent only by calling a callback function that was passed as a prop. If a component needs to manage its own data, that's what state (useState) is for."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What's the difference between props and state?",
+      "a": "Props are external data passed into a component from its parent — the component can't change them. State is internal data owned by a component — the component controls it and can change it with setState. Rule of thumb: if data comes from outside the component, it's a prop; if data is managed inside the component, it's state."
+    }
+  ],
+  "sources": [
+    {
+      "name": "React Docs — Passing Props to a Component",
+      "url": "https://react.dev/learn/passing-props-to-a-component",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every React component"],
+    "examples": [
+      "<Button variant='primary' size='lg' onClick={handleSubmit}>Submit</Button>",
+      "<Avatar src={user.photoURL} name={user.displayName} size={48} />",
+      "<DataTable data={rows} columns={cols} onRowClick={row => navigate(`/item/${row.id}`)} />"
+    ]
+  }
+}

@@ -1,0 +1,37 @@
+[
+  {
+    "id": "react-foundations",
+    "title": "React Foundations",
+    "description": "What React is, JSX syntax, and writing your first components",
+    "lessons": ["01-introduction", "02-jsx", "03-components"],
+    "order": 0
+  },
+  {
+    "id": "react-state",
+    "title": "Props & State",
+    "description": "Passing data with props, managing state with useState, and handling events",
+    "lessons": ["04-props", "05-usestate", "06-events"],
+    "order": 1
+  },
+  {
+    "id": "react-rendering",
+    "title": "Rendering Patterns",
+    "description": "Conditional rendering, rendering lists with keys, and data fetching with useEffect",
+    "lessons": ["07-conditional-rendering", "08-lists-keys", "09-useeffect"],
+    "order": 2
+  },
+  {
+    "id": "react-advanced",
+    "title": "Advanced Hooks",
+    "description": "useRef, useReducer, useContext, and the rules of hooks",
+    "lessons": ["10-useref", "11-usereducer", "12-usecontext"],
+    "order": 3
+  },
+  {
+    "id": "react-practical",
+    "title": "React in Practice",
+    "description": "Custom hooks, controlled forms, and React Router v6",
+    "lessons": ["13-custom-hooks", "14-forms", "15-react-router"],
+    "order": 4
+  }
+]

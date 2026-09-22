@@ -1,0 +1,97 @@
+{
+  "id": "15-react-router",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "react",
+  "technologyVersion": "React 18",
+  "module": "react-practical",
+  "title": "React Router v6",
+  "subtitle": "Client-side routing — Route, Link, useNavigate, useParams, and nested routes",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 25,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["react/14-forms"],
+  "skillsTaught": ["react.client-routing", "react.react-router-v6", "react.useNavigate", "react.useParams", "react.nested-routes"],
+  "skillsUsed": ["react.components", "react.useState", "react.useEffect"],
+  "relatedConcepts": ["react.lazy-loading", "react.code-splitting"],
+  "whyItExists": {
+    "problem": "React SPAs render everything client-side, but users expect URL-based navigation — back/forward buttons, shareable links, bookmarks. Without a router, the URL doesn't change when you navigate between sections.",
+    "solution": "React Router v6 is the standard routing library. It maps URL patterns to components and provides hooks for navigation. The browser's History API updates the URL without a full page load.",
+    "whenToUse": "Any multi-page React app — dashboards, e-commerce, documentation sites, social apps.",
+    "whenNotToUse": "Single-page apps with no navigation (a widget, a modal, a single screen). For frameworks like Next.js or Remix, use their built-in routing instead of React Router."
+  },
+  "explainModes": {
+    "beginner": "React Router lets you show different components for different URLs — like tabs but the URL changes too. Wrap your app in <BrowserRouter>. Use <Route path='/about' element={<About />} /> to map a URL to a component. Use <Link to='/about'> instead of <a href='/about'> to navigate without a page reload.",
+    "simple": "Setup: <BrowserRouter><Routes><Route path='/' element={<Home />} /><Route path='/about' element={<About />} /></Routes></BrowserRouter>. Navigation: <Link to='/about'>. Programmatic: const nav = useNavigate(); nav('/dashboard'). URL params: <Route path='/users/:id' /> → const { id } = useParams(). Nested routes: <Route path='/dashboard' element={<Dashboard />}><Route index element={<Overview />} /><Route path='stats' element={<Stats />} /></Route> — Dashboard renders <Outlet /> where children appear.",
+    "standard": "Route matching: v6 uses relative paths and is smarter — no need for exact prop. Index routes: the default child route. Outlet: renders the matched child route inside a parent layout. Layout routes: a Route with element={<Layout />} but no path — wraps children in the layout. useNavigate options: nav(-1) goes back, nav('/path', { replace: true }) replaces history (no back button). NavLink: like Link but adds an active class when the route matches.",
+    "technical": "BrowserRouter vs HashRouter: BrowserRouter uses HTML5 History API (clean URLs: /about). HashRouter uses URL hash (#/about) — works without server configuration. For a SPA deployed on GitHub Pages, use HashRouter or configure the server to serve index.html for all paths. useLocation: returns the current location object ({ pathname, search, hash, state }). useSearchParams: reads and sets URL query string params (?q=react). Lazy loading routes: React.lazy + Suspense defer loading route components until they're navigated to — reduces initial bundle size.",
+    "deepDive": "React Router v6 architecture: Routes component uses a Fibonacci score to rank matching routes — more specific paths score higher. * catches all unmatched paths (404 page). Data loading: React Router v6.4+ (with createBrowserRouter instead of BrowserRouter) adds data loading with loader functions — each route can define a loader that fetches data before rendering the component. This is the same pattern used in Remix (React Router's framework mode). Nested layouts: deeply nested routes share ancestor layouts — each level of nesting adds a parent layout component that renders its children via Outlet. This is how most dashboards are structured: a root layout with Navbar, a section layout with Sidebar, and individual page components."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "React Router v6 — in-browser simulation"
+    },
+    {
+      "type": "tip",
+      "text": "The playground below simulates React Router using MemoryRouter (no actual URL changes) so it works in the iframe. In a real app, use BrowserRouter or HashRouter — the component API is identical."
+    },
+    {
+      "type": "code",
+      "lang": "jsx",
+      "filename": "router.jsx",
+      "code": "// Real-app setup (outside playground)\nimport { BrowserRouter, Routes, Route, Link, useNavigate, useParams, NavLink, Outlet } from 'react-router-dom';\n\n// Pages\nfunction Home() {\n    return <h2>🏠 Home</h2>;\n}\n\nfunction About() {\n    return <h2>ℹ️ About Us</h2>;\n}\n\nfunction UserList() {\n    const navigate = useNavigate();  // programmatic navigation\n    const users = [{ id: 1, name: 'Alice' }, { id: 2, name: 'Bob' }];\n    return (\n        <div>\n            <h2>👥 Users</h2>\n            {users.map(u => (\n                <button key={u.id} onClick={() => navigate(`/users/${u.id}`)}>{u.name}</button>\n            ))}\n        </div>\n    );\n}\n\nfunction UserDetail() {\n    const { id } = useParams();  // reads :id from the URL\n    return <h2>User #{id} detail page</h2>;\n}\n\nfunction NotFound() {\n    return <h2>404 — Not Found</h2>;\n}\n\n// Layout with shared Navbar\nfunction Layout() {\n    return (\n        <>\n            <nav style={{ display: 'flex', gap: '12px', padding: '8px', background: '#1a1f2b' }}>\n                <NavLink to='/'      style={({ isActive }) => ({ color: isActive ? '#4fd1c5' : '#fff' })}>Home</NavLink>\n                <NavLink to='/about' style={({ isActive }) => ({ color: isActive ? '#4fd1c5' : '#fff' })}>About</NavLink>\n                <NavLink to='/users' style={({ isActive }) => ({ color: isActive ? '#4fd1c5' : '#fff' })}>Users</NavLink>\n            </nav>\n            <main style={{ padding: '12px' }}>\n                <Outlet />  {/* matched child route renders here */}\n            </main>\n        </>\n    );\n}\n\n// App with nested routes\nfunction App() {\n    return (\n        <BrowserRouter>\n            <Routes>\n                <Route path='/' element={<Layout />}>\n                    <Route index element={<Home />} />\n                    <Route path='about' element={<About />} />\n                    <Route path='users' element={<UserList />} />\n                    <Route path='users/:id' element={<UserDetail />} />\n                    <Route path='*' element={<NotFound />} />\n                </Route>\n            </Routes>\n        </BrowserRouter>\n    );\n}"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Router simulation (MemoryRouter)",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0}\n    .layout{display:grid;grid-template-rows:auto 1fr;gap:10px;height:calc(100vh - 32px)}\n    .top{display:flex;flex-direction:column;gap:8px}\n    .editor-row{display:flex;gap:8px;align-items:flex-start}\n    textarea{flex:1;background:#0b0e14;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;padding:10px;font-family:monospace;font-size:0.82rem;resize:vertical;min-height:160px}\n    .btns{display:flex;flex-direction:column;gap:6px}\n    button{padding:8px 14px;border:none;border-radius:5px;font-weight:700;cursor:pointer;font-size:0.8rem;white-space:nowrap}\n    .chips{display:flex;flex-wrap:wrap;gap:6px}\n    .chip{background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:3px 10px;font-family:monospace;font-size:0.72rem;cursor:pointer;color:#94a3b8}\n    .chip:hover{border-color:#4fd1c5;color:#4fd1c5}\n    .panels{display:grid;grid-template-columns:1fr 1fr;gap:8px}\n    .panel{border-radius:6px;overflow:auto;padding:10px;font-size:0.78rem}\n    .panel-label{font-size:0.7rem;color:#4fd1c5;margin-bottom:6px;font-family:monospace}\n    #preview{background:#fff;color:#111;border-radius:6px;padding:0;min-height:120px;overflow:hidden}\n    #console{background:#0b0e14;font-family:monospace}\n    .log{color:#4fd1c5;margin:2px 0}.err{color:#ef4444;margin:2px 0}\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"code\" spellcheck=\"false\">// Uses ReactRouterDOM (MemoryRouter) — routes work in the iframe!\nconst { MemoryRouter, Routes, Route, Link, NavLink, useParams, useNavigate, Outlet } = ReactRouterDOM;\n\nconst POSTS = [\n  { id: 1, title: 'React Hooks', body: 'useState and useEffect are the most common hooks.' },\n  { id: 2, title: 'JSX Tips',   body: 'Always close self-closing tags: <br />' },\n  { id: 3, title: 'Performance', body: 'Use React.memo and useMemo wisely.' },\n];\n\nfunction Nav() {\n  const style = ({ isActive }) => ({\n    textDecoration: 'none', fontWeight: isActive ? 'bold' : 'normal',\n    color: isActive ? '#2563eb' : '#374151', padding: '4px 8px'\n  });\n  return (\n    <nav style={{borderBottom:'1px solid #e5e7eb',padding:'8px',display:'flex',gap:'4px'}}>\n      <NavLink to='/' end style={style}>Home</NavLink>\n      <NavLink to='/posts' style={style}>Posts</NavLink>\n      <NavLink to='/about' style={style}>About</NavLink>\n    </nav>\n  );\n}\n\nfunction Home() { return <div style={{padding:'16px'}}><h2>Welcome!</h2><p>Navigate using the links above.</p></div>; }\n\nfunction PostList() {\n  return (\n    <div style={{padding:'16px'}}>\n      <h2>Posts</h2>\n      <ul style={{padding:0,listStyle:'none'}}>\n        {POSTS.map(p => (\n          <li key={p.id} style={{marginBottom:'8px'}}>\n            <Link to={`/posts/${p.id}`} style={{color:'#2563eb'}}>{p.title}</Link>\n          </li>\n        ))}\n      </ul>\n    </div>\n  );\n}\n\nfunction PostDetail() {\n  const { id } = useParams();\n  const nav = useNavigate();\n  const post = POSTS.find(p => p.id === Number(id));\n  if (!post) return <div style={{padding:'16px',color:'red'}}>Post not found</div>;\n  return (\n    <div style={{padding:'16px'}}>\n      <button onClick={() => nav(-1)} style={{marginBottom:'12px',fontSize:'0.85rem'}}>← Back</button>\n      <h2>{post.title}</h2>\n      <p>{post.body}</p>\n    </div>\n  );\n}\n\nfunction About() { return <div style={{padding:'16px'}}><h2>About</h2><p>React Router v6 demo.</p></div>; }\n\nfunction App() {\n  return (\n    <MemoryRouter initialEntries={['/']}>\n      <div style={{fontFamily:'sans-serif',minHeight:'200px'}}>\n        <Nav />\n        <Routes>\n          <Route path='/' element={<Home />} />\n          <Route path='/posts' element={<PostList />} />\n          <Route path='/posts/:id' element={<PostDetail />} />\n          <Route path='/about' element={<About />} />\n        </Routes>\n      </div>\n    </MemoryRouter>\n  );\n}</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runReact()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span style=\"background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:3px 10px;font-size:0.72rem;color:#94a3b8;font-family:monospace\">ReactRouterDOM available in this playground</span>\n      </div>\n    </div>\n    <div class=\"panels\">\n      <div class=\"panel\" id=\"preview\"><div style=\"color:#9ca3af;font-style:italic;padding:16px\">Click ▶ Run</div></div>\n      <div class=\"panel\" id=\"console\"><div class=\"panel-label\">CONSOLE</div><div style=\"color:#64748b;font-size:0.75rem\">No output</div></div>\n    </div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.5/babel.min.js\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/react-router-dom@6.21.1/dist/umd/react-router-dom.development.js\"></script>\n  <script>\n    let _root=null;\n    function runReact(){\n      const src=document.getElementById('code').value;\n      const logs=[];\n      const oL=console.log,oE=console.error,oW=console.warn;\n      console.log=(...a)=>logs.push({t:'log',m:a.map(x=>typeof x==='object'?JSON.stringify(x):String(x)).join(' ')});\n      console.error=(...a)=>logs.push({t:'err',m:a.map(String).join(' ')});\n      console.warn=(...a)=>logs.push({t:'log',m:'[warn] '+a.map(String).join(' ')});\n      const preview=document.getElementById('preview');\n      try{\n        const wrapped=`const {useState,useEffect,useRef,useReducer,useContext,createContext,useMemo,useCallback,Fragment}=React;\\n${src}`;\n        const transformed=Babel.transform(wrapped,{presets:['react'],filename:'app.jsx'}).code;\n        const full=transformed+'\\n__s__.App=typeof App!==\"undefined\"?App:null;';\n        const scope={};\n        new Function('React','ReactRouterDOM','__s__',full)(React,ReactRouterDOM,scope);\n        preview.innerHTML='';\n        _root=ReactDOM.createRoot(preview);\n        if(scope.App)_root.render(React.createElement(scope.App));\n        else _root.render(React.createElement('p',{style:{color:'#888',fontStyle:'italic',padding:'16px'}},'Define function App() { return <JSX />; }'));\n      }catch(e){\n        logs.push({t:'err',m:e.message});\n        preview.innerHTML=`<pre style=\"color:red;font-size:0.78rem;white-space:pre-wrap;padding:16px\">${e.message.replace(/</g,'&lt;')}</pre>`;\n      }finally{\n        console.log=oL;console.error=oE;console.warn=oW;\n      }\n      const cd=document.getElementById('console');\n      cd.innerHTML='<div class=\"panel-label\">CONSOLE</div>'+(logs.length?logs.map(l=>`<div class=\"${l.t==='err'?'err':'log'}\">${l.m.replace(/</g,'&lt;')}</div>`).join(''):'<div style=\"color:#64748b;font-size:0.75rem\">No output</div>');\n    }\n    document.getElementById('code').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runReact();}});\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "react-router-q1",
+          "question": "What is the difference between `<Link to='/about'>` and `<a href='/about'>`?",
+          "type": "multiple-choice",
+          "options": [
+            "There is no difference — they work the same way in React",
+            "Link navigates client-side (no page reload, no new HTTP request); a tag causes a full page reload, losing all React state",
+            "Link only works inside a BrowserRouter; a tag works everywhere",
+            "a tag is faster because it uses the browser's native navigation"
+          ],
+          "correctAnswer": 1,
+          "explanation": "React Router's <Link> uses the History API to update the URL and re-render the matched components — no HTTP request, no page reload, React state is preserved. A plain <a href> triggers a full page reload: all React state is lost, the app re-initializes from scratch, and a network request is made. Always use Link (or NavLink for active-class support) for internal navigation in a React Router app."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "When do I use useNavigate vs Link?",
+      "a": "Use Link (or NavLink) for clickable navigation elements in JSX — menus, buttons, text links. Use useNavigate for programmatic navigation triggered by events — after a form submits successfully, after an async operation completes, or when a condition is met. useNavigate gives you the navigate function: call navigate('/dashboard') or navigate(-1) to go back."
+    }
+  ],
+  "sources": [
+    {
+      "name": "React Router v6 Documentation",
+      "url": "https://reactrouter.com/en/main",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["SPAs", "dashboards", "e-commerce apps", "documentation sites"],
+    "examples": [
+      "<Route path='/products/:id' element={<ProductDetail />} /> + const { id } = useParams()",
+      "navigate('/login', { state: { from: location.pathname } }) — redirect with return URL",
+      "<NavLink to='/settings' style={({ isActive }) => isActive ? activeStyle : {}}>Settings</NavLink>"
+    ]
+  }
+}

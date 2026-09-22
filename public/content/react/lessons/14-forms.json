@@ -1,0 +1,93 @@
+{
+  "id": "14-forms",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "react",
+  "technologyVersion": "React 18",
+  "module": "react-practical",
+  "title": "Controlled Forms",
+  "subtitle": "Controlled inputs, form state, validation, and submission",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 22,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["react/13-custom-hooks"],
+  "skillsTaught": ["react.controlled-inputs", "react.form-state", "react.form-validation", "react.form-submission"],
+  "skillsUsed": ["react.useState", "react.events", "react.conditional-render"],
+  "relatedConcepts": ["react.useRef", "react.custom-hooks"],
+  "whyItExists": {
+    "problem": "HTML forms manage their own internal state (input.value). React's model is: state drives the UI. If the input has its own state that React can't see, React can't validate it, react to changes, or programmatically set its value.",
+    "solution": "Controlled inputs: the input's value is driven by React state (value={state}) and React state is updated by onChange (onChange={e => setState(e.target.value)}). React is the single source of truth for the input's value.",
+    "whenToUse": "Any form where you need to validate, clear, prefill, or react to input changes as they happen. The default choice in React apps.",
+    "whenNotToUse": "Uncontrolled inputs (ref-based) are OK for very simple cases where you only need the value at submit time (use useRef + FormData), or when integrating with non-React libraries."
+  },
+  "explainModes": {
+    "beginner": "A controlled input has two things: value={someState} which shows the current state, and onChange={e => setSomeState(e.target.value)} which updates it when the user types. This means React knows the input's value at all times — unlike a plain HTML input that manages its own value.",
+    "simple": "Controlled: value + onChange pair. value without onChange = read-only (warning in console). Different inputs: text/number/email: e.target.value. Checkbox: e.target.checked. Select: e.target.value (of selected option). Form submission: onSubmit handler + e.preventDefault(). Validation: check state before allowing submit; show error messages based on state.",
+    "standard": "Form state pattern: one object for all fields: const [form, setForm] = useState({ name: '', email: '', age: '' }). Update one field: setForm(prev => ({ ...prev, [field]: value })). Validation state: const [errors, setErrors] = useState({}). Validate on blur (onBlur) or on submit. Touched fields: track which fields have been interacted with to avoid showing errors before the user touches a field.",
+    "technical": "react-hook-form: the industry-standard library for forms in React. It uses uncontrolled inputs internally (refs) for performance (no re-render on every keystroke), but exposes a controlled-like API: register() attaches the ref, handleSubmit wraps the submit handler, formState.errors gives validation errors. Zod or Yup: schema validation libraries that work with react-hook-form. TypeScript + react-hook-form: useForm<FormData>() is fully type-safe — form.register('name') knows 'name' is a key of FormData.",
+    "deepDive": "Performance: controlled forms re-render on every keystroke (every onChange). For complex forms with expensive renders, this matters. Solutions: (1) useReducer to batch updates, (2) react-hook-form with ref-based inputs (no re-render per keystroke), (3) split the form into components with React.memo. FormData API: the browser's native FormData reads all form inputs at submit time — useful for simple forms: onSubmit={e => { e.preventDefault(); const data = Object.fromEntries(new FormData(e.target)); }}. No state needed — but you can't validate as the user types."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Controlled form with validation"
+    },
+    {
+      "type": "code",
+      "lang": "jsx",
+      "filename": "controlled_form.jsx",
+      "code": "function RegisterForm() {\n    const [form, setForm] = useState({ name: '', email: '', password: '', age: '' });\n    const [errors, setErrors] = useState({});\n    const [submitted, setSubmitted] = useState(false);\n\n    const update = (field, value) => {\n        setForm(prev => ({ ...prev, [field]: value }));\n        if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));\n    };\n\n    const validate = () => {\n        const errs = {};\n        if (!form.name.trim())             errs.name = 'Name is required';\n        if (!/^[^@]+@[^@]+\\.[^@]+$/.test(form.email)) errs.email = 'Valid email required';\n        if (form.password.length < 8)      errs.password = 'At least 8 characters';\n        if (Number(form.age) < 18)         errs.age = 'Must be 18 or older';\n        return errs;\n    };\n\n    const handleSubmit = (e) => {\n        e.preventDefault();\n        const errs = validate();\n        if (Object.keys(errs).length > 0) { setErrors(errs); return; }\n        setSubmitted(true);\n    };\n\n    if (submitted) {\n        return (\n            <div style={{ fontFamily: 'sans-serif', padding: '12px', background: '#dcfce7', borderRadius: '8px' }}>\n                <h3>✅ Registered successfully!</h3>\n                <p>Welcome, {form.name}!</p>\n                <button onClick={() => { setForm({ name:'', email:'', password:'', age:'' }); setSubmitted(false); }}>Register Another</button>\n            </div>\n        );\n    }\n\n    const Field = ({ name, label, type = 'text', ...rest }) => (\n        <div style={{ marginBottom: '10px' }}>\n            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', marginBottom: '4px' }}>{label}</label>\n            <input\n                type={type}\n                value={form[name]}\n                onChange={e => update(name, e.target.value)}\n                style={{ width: '100%', padding: '8px', border: `1px solid ${errors[name] ? '#ef4444' : '#d1d5db'}`, borderRadius: '6px', boxSizing: 'border-box' }}\n                {...rest}\n            />\n            {errors[name] && <p style={{ color: '#ef4444', fontSize: '0.78rem', margin: '4px 0 0' }}>{errors[name]}</p>}\n        </div>\n    );\n\n    return (\n        <form onSubmit={handleSubmit} style={{ fontFamily: 'sans-serif', padding: '8px', maxWidth: '320px' }}>\n            <h2>Create Account</h2>\n            <Field name=\"name\"     label=\"Full Name\" placeholder=\"Alice Singh\" />\n            <Field name=\"email\"    label=\"Email\"     type=\"email\" placeholder=\"alice@example.com\" />\n            <Field name=\"password\" label=\"Password\"  type=\"password\" placeholder=\"Min 8 chars\" />\n            <Field name=\"age\"      label=\"Age\"        type=\"number\" min={0} />\n            <button type=\"submit\" style={{ width: '100%', padding: '10px', background: '#4fd1c5', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Register</button>\n        </form>\n    );\n}\n\nfunction App() {\n    return <RegisterForm />;\n}"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Forms playground",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0}\n    .layout{display:grid;grid-template-rows:auto 1fr;gap:10px;height:calc(100vh - 32px)}\n    .top{display:flex;flex-direction:column;gap:8px}\n    .editor-row{display:flex;gap:8px;align-items:flex-start}\n    textarea{flex:1;background:#0b0e14;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;padding:10px;font-family:monospace;font-size:0.82rem;resize:vertical;min-height:160px}\n    .btns{display:flex;flex-direction:column;gap:6px}\n    button{padding:8px 14px;border:none;border-radius:5px;font-weight:700;cursor:pointer;font-size:0.8rem;white-space:nowrap}\n    .chips{display:flex;flex-wrap:wrap;gap:6px}\n    .chip{background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:3px 10px;font-family:monospace;font-size:0.72rem;cursor:pointer;color:#94a3b8}\n    .chip:hover{border-color:#4fd1c5;color:#4fd1c5}\n    .panels{display:grid;grid-template-columns:1fr 1fr;gap:8px}\n    .panel{border-radius:6px;overflow:auto;padding:10px;font-size:0.78rem}\n    .panel-label{font-size:0.7rem;color:#4fd1c5;margin-bottom:6px;font-family:monospace}\n    #preview{background:#fff;color:#111;border-radius:6px;padding:16px;min-height:120px}\n    #console{background:#0b0e14;font-family:monospace}\n    .log{color:#4fd1c5;margin:2px 0}.err{color:#ef4444;margin:2px 0}\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"code\" spellcheck=\"false\">function App() {\n  const [form, setForm] = useState({ name: '', skills: [], level: 'junior', remote: false, bio: '' });\n\n  const update = (field, val) => setForm(p => ({...p, [field]: val}));\n\n  const toggleSkill = (skill) => setForm(p => ({\n    ...p,\n    skills: p.skills.includes(skill)\n      ? p.skills.filter(s => s !== skill)\n      : [...p.skills, skill]\n  }));\n\n  const SKILLS = ['React','TypeScript','Node.js','CSS','SQL'];\n\n  return (\n    <div style={{fontFamily:'sans-serif',padding:'8px',maxWidth:'340px'}}>\n      <h3>Profile</h3>\n\n      <label style={{display:'block',marginBottom:'4px',fontSize:'0.85rem'}}>Name</label>\n      <input value={form.name} onChange={e=>update('name',e.target.value)}\n        style={{width:'100%',padding:'6px',marginBottom:'8px',boxSizing:'border-box'}} />\n\n      <label style={{display:'block',marginBottom:'4px',fontSize:'0.85rem'}}>Level</label>\n      <select value={form.level} onChange={e=>update('level',e.target.value)}\n        style={{width:'100%',padding:'6px',marginBottom:'8px'}}>\n        <option value='junior'>Junior</option>\n        <option value='mid'>Mid</option>\n        <option value='senior'>Senior</option>\n      </select>\n\n      <p style={{margin:'0 0 4px',fontSize:'0.85rem'}}>Skills</p>\n      <div style={{display:'flex',flexWrap:'wrap',gap:'4px',marginBottom:'8px'}}>\n        {SKILLS.map(s => (\n          <label key={s} style={{display:'flex',alignItems:'center',gap:'4px',cursor:'pointer'}}>\n            <input type='checkbox' checked={form.skills.includes(s)} onChange={()=>toggleSkill(s)} />{s}\n          </label>\n        ))}\n      </div>\n\n      <label style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'8px'}}>\n        <input type='checkbox' checked={form.remote} onChange={e=>update('remote',e.target.checked)} />\n        Open to remote\n      </label>\n\n      <pre style={{background:'#f3f4f6',padding:'8px',borderRadius:'4px',fontSize:'0.75rem',overflow:'auto'}}>\n        {JSON.stringify(form, null, 2)}\n      </pre>\n    </div>\n  );\n}</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runReact()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setCode('function useForm(initial, validators = {}) {\\n  const [values, setValues] = useState(initial);\\n  const [errors, setErrors] = useState({});\\n  const setValue = (k, v) => { setValues(p=>({...p,[k]:v})); setErrors(p=>({...p,[k]:\\'\\'})); };\\n  const validate = () => {\\n    const errs = Object.entries(validators).reduce((acc,[k,fn]) => { const e=fn(values[k]); if(e) acc[k]=e; return acc; }, {});\\n    setErrors(errs);\\n    return Object.keys(errs).length === 0;\\n  };\\n  return { values, errors, setValue, validate };\\n}\\nfunction App() {\\n  const { values, errors, setValue, validate } = useForm(\\n    { email: \\'\\', password: \\'\\' },\\n    { email: v => !v.includes(\\'@\\') && \\'Invalid email\\', password: v => v.length<6 && \\'Min 6 chars\\' }\\n  );\\n  const submit = (e) => { e.preventDefault(); if(validate()) console.log(\\'Submitted!\\', values); };\\n  return (\\n    <form onSubmit={submit} style={{fontFamily:\\'sans-serif\\',padding:\\'8px\\',maxWidth:\\'280px\\'}}>\\n      <input value={values.email} onChange={e=>setValue(\\'email\\',e.target.value)} placeholder=\\'Email\\' style={{width:\\'100%\\',padding:\\'6px\\',marginBottom:\\'4px\\',boxSizing:\\'border-box\\'}} />\\n      {errors.email && <p style={{color:\\'red\\',fontSize:\\'0.78rem\\',margin:\\'0 0 8px\\'}}>{errors.email}</p>}\\n      <input type=\\'password\\' value={values.password} onChange={e=>setValue(\\'password\\',e.target.value)} placeholder=\\'Password\\' style={{width:\\'100%\\',padding:\\'6px\\',marginBottom:\\'4px\\',boxSizing:\\'border-box\\'}} />\\n      {errors.password && <p style={{color:\\'red\\',fontSize:\\'0.78rem\\',margin:\\'0 0 8px\\'}}>{errors.password}</p>}\\n      <button type=\\'submit\\' style={{width:\\'100%\\',padding:\\'8px\\'}}>Login</button>\\n    </form>\\n  );\\n}')\">useForm hook</span>\n      </div>\n    </div>\n    <div class=\"panels\">\n      <div class=\"panel\" id=\"preview\"><div style=\"color:#9ca3af;font-style:italic\">Click ▶ Run</div></div>\n      <div class=\"panel\" id=\"console\"><div class=\"panel-label\">CONSOLE</div><div style=\"color:#64748b;font-size:0.75rem\">No output</div></div>\n    </div>\n  </div>\n  <script src=\"https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.5/babel.min.js\"></script>\n  <script>\n    let _root=null;\n    function setCode(c){document.getElementById('code').value=c;runReact();}\n    function runReact(){\n      const src=document.getElementById('code').value;\n      const logs=[];\n      const oL=console.log,oE=console.error,oW=console.warn;\n      console.log=(...a)=>logs.push({t:'log',m:a.map(x=>typeof x==='object'?JSON.stringify(x):String(x)).join(' ')});\n      console.error=(...a)=>logs.push({t:'err',m:a.map(String).join(' ')});\n      console.warn=(...a)=>logs.push({t:'log',m:'[warn] '+a.map(String).join(' ')});\n      const preview=document.getElementById('preview');\n      try{\n        const wrapped=`const {useState,useEffect,useRef,useReducer,useContext,createContext,useMemo,useCallback,Fragment}=React;\\n${src}`;\n        const transformed=Babel.transform(wrapped,{presets:['react'],filename:'app.jsx'}).code;\n        const full=transformed+'\\n__s__.App=typeof App!==\"undefined\"?App:null;';\n        const scope={};\n        new Function('React','__s__',full)(React,scope);\n        preview.innerHTML='';\n        _root=ReactDOM.createRoot(preview);\n        if(scope.App)_root.render(React.createElement(scope.App));\n        else _root.render(React.createElement('p',{style:{color:'#888',fontStyle:'italic'}},'Define function App() { return <JSX />; }'));\n      }catch(e){\n        logs.push({t:'err',m:e.message});\n        preview.innerHTML=`<pre style=\"color:red;font-size:0.78rem;white-space:pre-wrap\">${e.message.replace(/</g,'&lt;')}</pre>`;\n      }finally{\n        console.log=oL;console.error=oE;console.warn=oW;\n      }\n      const cd=document.getElementById('console');\n      cd.innerHTML='<div class=\"panel-label\">CONSOLE</div>'+(logs.length?logs.map(l=>`<div class=\"${l.t==='err'?'err':'log'}\">${l.m.replace(/</g,'&lt;')}</div>`).join(''):'<div style=\"color:#64748b;font-size:0.75rem\">No output</div>');\n    }\n    document.getElementById('code').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runReact();}});\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "react-forms-q1",
+          "question": "What makes an input 'controlled' in React?",
+          "type": "multiple-choice",
+          "options": [
+            "Adding the controlled={true} attribute to the input element",
+            "Using an input inside a <form> element",
+            "Providing both value={state} and onChange={handler} — React state is the source of truth for the input's value",
+            "Wrapping the input in React.memo"
+          ],
+          "correctAnswer": 2,
+          "explanation": "A controlled input has its value driven by React state (value={someState}) and updates that state via onChange (onChange={e => setSomeState(e.target.value)}). React owns the value — you can't type into the input unless the onChange handler updates the state. An uncontrolled input has no value prop and manages its own value internally; you access it via a ref."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Should I use a library like react-hook-form?",
+      "a": "For production apps with many forms, yes — react-hook-form dramatically reduces boilerplate, is performant (no re-render per keystroke), and integrates with validation schemas (Zod, Yup). For learning React or simple single-field scenarios, manual controlled inputs are fine and educational. Knowing how controlled inputs work helps you understand what libraries like react-hook-form are doing under the hood."
+    }
+  ],
+  "sources": [
+    {
+      "name": "React Docs — Reacting to Input with State",
+      "url": "https://react.dev/learn/reacting-to-input-with-state",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["login/signup forms", "settings pages", "search bars", "filters"],
+    "examples": [
+      "<input value={email} onChange={e => setEmail(e.target.value)} type='email' />",
+      "<select value={role} onChange={e => setRole(e.target.value)}>options...</select>",
+      "<input type='checkbox' checked={agreed} onChange={e => setAgreed(e.target.checked)} />"
+    ]
+  }
+}
