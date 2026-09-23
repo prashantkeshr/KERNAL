@@ -1,0 +1,22 @@
+{
+  "id": "apis",
+  "title": "Web APIs & HTTP",
+  "subtitle": "Consume REST APIs, master fetch, handle auth, and build robust data-fetching layers",
+  "version": "1.0.0",
+  "technologyVersion": "Fetch API / HTTP / WebSocket",
+  "icon": "api",
+  "color": "#ff6b35",
+  "description": "Everything you need to work with web APIs: understanding HTTP, using fetch(), adding authentication, handling errors and loading states, WebSockets, CORS, file uploads, and building reusable API client patterns.",
+  "estimatedHours": 15,
+  "difficulty": "intermediate",
+  "prerequisites": ["javascript", "nodejs"],
+  "tags": ["apis", "fetch", "http", "rest", "auth", "cors", "websockets", "json"],
+  "totalLessons": 15,
+  "modules": [
+    "apis-fundamentals",
+    "apis-fetch",
+    "apis-auth",
+    "apis-patterns",
+    "apis-practice"
+  ]
+}

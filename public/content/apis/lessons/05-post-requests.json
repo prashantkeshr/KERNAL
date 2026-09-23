@@ -1,0 +1,93 @@
+{
+  "id": "05-post-requests",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "apis",
+  "technologyVersion": "Fetch API",
+  "module": "apis-fetch",
+  "title": "POST Requests",
+  "subtitle": "Sending data — JSON body, Content-Type, and handling the response",
+  "difficulty": "beginner",
+  "estimatedMinutes": 15,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["apis/04-fetch-basics"],
+  "skillsTaught": ["api.post-fetch", "api.content-type", "api.request-body", "api.put-patch-delete"],
+  "skillsUsed": ["js.json", "js.async-await"],
+  "relatedConcepts": ["api.query-headers", "api.error-handling"],
+  "whyItExists": {
+    "problem": "GET requests only send data in the URL (query params and path params). Sending structured data (a user object, a form submission, a new post) requires a request body.",
+    "solution": "POST, PUT, and PATCH requests can include a body — a payload sent to the server. For APIs, this is usually JSON: set Content-Type: application/json and stringify your data with JSON.stringify(). The server parses it and uses it to create or update resources.",
+    "whenToUse": "Creating resources (POST), fully replacing a resource (PUT), partially updating a resource (PATCH).",
+    "whenNotToUse": "Don't use POST for reads (use GET). Don't put sensitive data in GET query params — it appears in server logs and browser history."
+  },
+  "explainModes": {
+    "beginner": "To send data with fetch(), add method: 'POST', headers: { 'Content-Type': 'application/json' }, and body: JSON.stringify(yourData). The Content-Type header tells the server that the body is JSON. JSON.stringify converts your JavaScript object to a JSON string for sending.",
+    "simple": "fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }). For PUT: same but include the full object. For PATCH: same but include only the changed fields. For DELETE: usually no body — fetch(url, { method: 'DELETE' }). Response: check res.ok, then res.json() for the created/updated record. 201 Created for POST, 200 OK for PUT/PATCH, 204 No Content for DELETE.",
+    "standard": "Content-Type header: required for POST/PUT/PATCH with a body. application/json for JSON data. application/x-www-form-urlencoded for HTML form data. multipart/form-data for file uploads (use FormData object, not JSON.stringify). Forgetting Content-Type: many servers treat the body as a string and don't parse it — you'll get empty req.body. Accept header: tells the server what format you want in response — usually application/json. Request body encoding: fetch() body can be a string, Blob, BufferSource, FormData, URLSearchParams, or ReadableStream.",
+    "technical": "JSON.stringify edge cases: Date objects → ISO strings. undefined values → omitted. Functions → omitted. Circular references → throws. JSON.stringify(data, null, 2) for pretty printing (useful for debugging). For large objects, JSON.stringify is synchronous and blocks the thread — consider structuredClone() + worker for huge payloads. Sending binary data: pass a Blob or ArrayBuffer as body — no Content-Type needed (browser infers). Server-sent Content-Length: some servers require it — add headers: { 'Content-Length': body.length } for compatibility.",
+    "deepDive": "Idempotency keys for POST: many payment APIs use an Idempotency-Key header. The server stores this key and returns the same response if it sees it again — safe to retry POST without creating duplicates. Optimistic locking: APIs use ETag header (a hash of the current version). You send If-Match: <etag> with PUT/PATCH. If the resource changed since you read it, the server returns 412 Precondition Failed — prevents overwriting someone else's changes. Request compression: send Content-Encoding: gzip and compress the body — useful for large JSON payloads over slow networks."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Sending data with fetch()"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "post_requests.js",
+      "code": "// ── POST — create a new resource ──\nasync function createPost(data) {\n    const res = await fetch('https://jsonplaceholder.typicode.com/posts', {\n        method:  'POST',\n        headers: { 'Content-Type': 'application/json' },\n        body:    JSON.stringify(data),  // object → JSON string\n    });\n    if (!res.ok) throw new Error(`HTTP ${res.status}`);\n    return res.json();  // → { id: 101, ...data }\n}\n\nconst post = await createPost({\n    title:  'Hello World',\n    body:   'My first post',\n    userId: 1,\n});\nconsole.log('Created:', post.id, post.title);\n// → Created: 101  Hello World\n\n// ── PATCH — partial update ──\nasync function updatePost(id, changes) {\n    const res = await fetch(`https://jsonplaceholder.typicode.com/posts/${id}`, {\n        method:  'PATCH',\n        headers: { 'Content-Type': 'application/json' },\n        body:    JSON.stringify(changes),  // only the changed fields\n    });\n    if (!res.ok) throw new Error(`HTTP ${res.status}`);\n    return res.json();\n}\n\nawait updatePost(1, { title: 'Updated Title' });\n\n// ── DELETE ── (usually no body)\nasync function deletePost(id) {\n    const res = await fetch(`https://jsonplaceholder.typicode.com/posts/${id}`, {\n        method: 'DELETE',\n    });\n    if (!res.ok) throw new Error(`HTTP ${res.status}`);\n    // 204 No Content — no body to parse\n}\n\n// ── Helper for any method ──\nasync function api(method, path, data) {\n    const opts = { method, headers: {} };\n    if (data) {\n        opts.headers['Content-Type'] = 'application/json';\n        opts.body = JSON.stringify(data);\n    }\n    const res = await fetch('https://jsonplaceholder.typicode.com' + path, opts);\n    if (!res.ok) throw new Error(`${method} ${path} → ${res.status}`);\n    if (res.status === 204) return null;\n    return res.json();\n}"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: POST / PATCH / DELETE",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0;font-size:0.88rem}\n    .tabs{display:flex;gap:4px;margin-bottom:12px}\n    .tab{padding:6px 14px;border-radius:4px;cursor:pointer;background:#1a1f2b;border:1px solid #2d3748;font-size:0.8rem;font-weight:700}\n    .tab.active{background:#4fd1c5;color:#0e1116;border-color:#4fd1c5}\n    .panel{display:none}.panel.active{display:block}\n    label{display:block;font-size:0.75rem;color:#94a3b8;margin-bottom:4px}\n    input,textarea{width:100%;box-sizing:border-box;background:#0b0e14;color:#e2e8f0;border:1px solid #2d3748;border-radius:4px;padding:7px 10px;font-family:monospace;font-size:0.82rem;margin-bottom:8px}\n    button{background:#4fd1c5;color:#0e1116;border:none;border-radius:4px;padding:8px 16px;cursor:pointer;font-weight:700;font-size:0.82rem}\n    .output{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:10px;font-family:monospace;font-size:0.78rem;min-height:100px;overflow:auto;white-space:pre-wrap;margin-top:10px}\n    .ok{color:#4fd1c5;font-weight:700}.err{color:#ef4444;font-weight:700}\n    .code-preview{background:#1a1f2b;border-radius:4px;padding:8px;font-family:monospace;font-size:0.75rem;color:#94a3b8;margin-bottom:8px;white-space:pre}\n  </style>\n</head>\n<body>\n  <div class=\"tabs\">\n    <div class=\"tab active\" onclick=\"switchTab('post')\">POST</div>\n    <div class=\"tab\" onclick=\"switchTab('patch')\">PATCH</div>\n    <div class=\"tab\" onclick=\"switchTab('delete')\">DELETE</div>\n  </div>\n\n  <div id=\"tab-post\" class=\"panel active\">\n    <div class=\"code-preview\" id=\"code-post\">Loading...</div>\n    <label>Title</label><input id=\"post-title\" value=\"My new post\" />\n    <label>Body</label><textarea id=\"post-body\" rows=\"2\">Content of the post</textarea>\n    <label>User ID</label><input id=\"post-userid\" value=\"1\" style=\"width:80px\" />\n    <button onclick=\"doPost()\">Send POST</button>\n  </div>\n\n  <div id=\"tab-patch\" class=\"panel\">\n    <div class=\"code-preview\" id=\"code-patch\">Loading...</div>\n    <label>Post ID to update</label><input id=\"patch-id\" value=\"1\" style=\"width:80px\" />\n    <label>New title (only this field changes)</label><input id=\"patch-title\" value=\"Updated title\" />\n    <button onclick=\"doPatch()\">Send PATCH</button>\n  </div>\n\n  <div id=\"tab-delete\" class=\"panel\">\n    <div class=\"code-preview\" id=\"code-delete\">Loading...</div>\n    <label>Post ID to delete</label><input id=\"delete-id\" value=\"1\" style=\"width:80px\" />\n    <button onclick=\"doDelete()\" style=\"background:#ef4444;color:#fff\">Send DELETE</button>\n  </div>\n\n  <div class=\"output\" id=\"output\">← Choose a method above and send a request</div>\n\n  <script>\n    function switchTab(t){\n      document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['post','patch','delete'][i]===t));\n      document.querySelectorAll('.panel').forEach(el=>el.classList.remove('active'));\n      document.getElementById('tab-'+t).classList.add('active');\n    }\n    function updatePreviews(){\n      const title=document.getElementById('post-title').value;\n      const body=document.getElementById('post-body').value;\n      const uid=document.getElementById('post-userid').value;\n      document.getElementById('code-post').textContent=`await fetch('/posts', {\\n  method: 'POST',\\n  headers: { 'Content-Type': 'application/json' },\\n  body: JSON.stringify({ title: '${title}', body: '${body}', userId: ${uid} })\\n});`;\n      const pid=document.getElementById('patch-id').value;\n      const ptitle=document.getElementById('patch-title').value;\n      document.getElementById('code-patch').textContent=`await fetch('/posts/${pid}', {\\n  method: 'PATCH',\\n  headers: { 'Content-Type': 'application/json' },\\n  body: JSON.stringify({ title: '${ptitle}' })\\n});`;\n      const did=document.getElementById('delete-id').value;\n      document.getElementById('code-delete').textContent=`await fetch('/posts/${did}', { method: 'DELETE' });\\n// → 200 OK  {}  (jsonplaceholder returns {} for DELETE)`;      \n    }\n    document.querySelectorAll('input,textarea').forEach(el=>el.addEventListener('input',updatePreviews));\n    async function show(fn){\n      const out=document.getElementById('output');\n      out.textContent='Sending...';\n      try{\n        const r=await fn();\n        out.innerHTML=`<span class=\"ok\">HTTP ${r.status} ${r.statusText}</span>\\n\\n${JSON.stringify(r.body,null,2)}`;\n      }catch(e){out.innerHTML=`<span class=\"err\">Error</span>\\n${e.message}`;}\n    }\n    async function doPost(){show(async()=>{const d={title:document.getElementById('post-title').value,body:document.getElementById('post-body').value,userId:parseInt(document.getElementById('post-userid').value)};const r=await fetch('https://jsonplaceholder.typicode.com/posts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});return{status:r.status,statusText:r.statusText,body:await r.json()};});}\n    async function doPatch(){show(async()=>{const id=document.getElementById('patch-id').value;const d={title:document.getElementById('patch-title').value};const r=await fetch(`https://jsonplaceholder.typicode.com/posts/${id}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});return{status:r.status,statusText:r.statusText,body:await r.json()};});}\n    async function doDelete(){show(async()=>{const id=document.getElementById('delete-id').value;const r=await fetch(`https://jsonplaceholder.typicode.com/posts/${id}`,{method:'DELETE'});return{status:r.status,statusText:r.statusText,body:r.status===204?'(No Content)':await r.json()};});}\n    updatePreviews();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "post-q1",
+          "question": "What happens if you send a POST request with a JSON body but forget to set the Content-Type: application/json header?",
+          "type": "multiple-choice",
+          "options": [
+            "fetch() throws a TypeError before sending the request",
+            "The server receives the JSON string but may not parse it as JSON — it depends on the server. Many frameworks (Express without express.json()) will give you an empty req.body.",
+            "The browser automatically adds Content-Type based on the body type",
+            "The server always rejects the request with 415 Unsupported Media Type"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Without Content-Type, the server doesn't know how to interpret the body. Some servers default to text/plain and return the raw string as req.body. Express with express.json() only parses bodies where Content-Type is application/json — without it, req.body is undefined. Always set Content-Type: 'application/json' when sending JSON. Some servers return 415 Unsupported Media Type, others just ignore the body — behavior varies, so always set the header."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Do I always need Content-Type for POST requests?",
+      "a": "For JSON bodies, yes — always set Content-Type: 'application/json'. For FormData (file uploads), do NOT set Content-Type manually — the browser sets it automatically with the correct multipart boundary. For URLSearchParams (form encoding), the browser also sets the correct Content-Type automatically. The rule: only set Content-Type manually for JSON (application/json) and raw text bodies."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — Fetch API body",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch#body",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["form submissions", "creating resources", "updating records"],
+    "examples": [
+      "POST /api/auth/login — body: { email, password }, returns JWT token",
+      "PATCH /api/users/me — body: { displayName: 'Alice' }, updates profile",
+      "POST /api/upload — FormData body with file, multipart/form-data"
+    ]
+  }
+}

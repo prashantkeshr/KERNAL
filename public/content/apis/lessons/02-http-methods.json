@@ -1,0 +1,97 @@
+{
+  "id": "02-http-methods",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "apis",
+  "technologyVersion": "HTTP/1.1",
+  "module": "apis-fundamentals",
+  "title": "HTTP Methods & Status Codes",
+  "subtitle": "GET, POST, PUT, PATCH, DELETE — when to use each, and what responses mean",
+  "difficulty": "beginner",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["apis/01-what-is-api"],
+  "skillsTaught": ["api.http-methods", "api.status-codes", "api.idempotency", "api.put-vs-patch"],
+  "skillsUsed": ["api.rest-concepts"],
+  "relatedConcepts": ["api.fetch-basics", "api.error-handling"],
+  "whyItExists": {
+    "problem": "HTTP has multiple request methods, but developers often default to GET and POST for everything — creating ambiguity and non-standard APIs.",
+    "solution": "Each HTTP method has a defined semantic: GET reads, POST creates, PUT replaces, PATCH partially updates, DELETE removes. Using the right method makes APIs self-documenting, enables caching, and allows idempotent operations.",
+    "whenToUse": "Every time you design or call an API endpoint — choose the method that matches the operation's semantic meaning, not just what works.",
+    "whenNotToUse": "Some environments (old browsers, certain proxies) only support GET and POST. In those cases, tunnelling via POST with a method override header is common."
+  },
+  "explainModes": {
+    "beginner": "HTTP methods describe what you want to do: GET = please give me data. POST = here is new data, save it. PUT = replace this existing record with this. PATCH = update only these specific fields. DELETE = remove this record. Using the right method matters because it tells the server (and caches, and developers) exactly what the request does.",
+    "simple": "GET: safe, cacheable, no body. POST: creates, has a body, not idempotent. PUT: full replace, idempotent (same call twice = same result). PATCH: partial update, body has only changed fields. DELETE: removes resource, idempotent. HEAD: like GET but response has no body — just headers (check if resource exists without downloading it). OPTIONS: asks what methods are allowed (used by CORS preflight). Safe = no side effects. Idempotent = multiple identical requests = same state as one.",
+    "standard": "Idempotency matters: POST is NOT idempotent — submitting a form twice creates two records. PUT IS idempotent — uploading the same file twice leaves you with the same file. PUT vs PATCH: PUT requires sending the complete resource (missing fields get nulled). PATCH sends only changes — more efficient, but servers must handle partial updates carefully. Status code families: 1xx informational, 2xx success, 3xx redirect, 4xx client error (your fault), 5xx server error (their fault). 429 Too Many Requests: you've hit a rate limit — back off and retry. Retry-After header tells you how long to wait.",
+    "technical": "Safe methods (GET, HEAD, OPTIONS): MUST not change server state. This is a semantic guarantee — caches and intermediaries rely on it. Idempotent methods (GET, HEAD, PUT, DELETE, OPTIONS): multiple identical requests produce the same server state as a single one. Allows safe retries after network failures. POST is neither safe nor idempotent — retrying POST can create duplicate resources (use idempotency keys: a unique ID in a header like Idempotency-Key: uuid, server stores it and returns the same response if seen again). CONNECT: establishes a tunnel (used for HTTPS through proxies). TRACE: diagnostic — server echoes the request back.",
+    "deepDive": "HTTP method override: some frameworks check for an X-HTTP-Method-Override header on POST requests to simulate PUT/PATCH/DELETE for clients that can't send them. Content-Type negotiation: POST/PUT/PATCH body format is declared by Content-Type header — application/json, multipart/form-data, application/x-www-form-urlencoded are the three common types. Server-Timing header: returned by servers to expose backend timing — useful for performance debugging. Structured field values (RFC 8941): standardized format for complex HTTP header values."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "HTTP methods and when to use them"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "http_methods.js",
+      "code": "// GET — read data, no body, safe + idempotent\nconst users = await fetch('/api/users').then(r => r.json());\nconst user  = await fetch('/api/users/42').then(r => r.json());\n\n// POST — create, has a body, NOT idempotent\nconst newUser = await fetch('/api/users', {\n    method:  'POST',\n    headers: { 'Content-Type': 'application/json' },\n    body:    JSON.stringify({ name: 'Alice', email: 'alice@example.com' }),\n}).then(r => r.json());\n// → 201 Created  { id: 100, name: 'Alice', ... }\n\n// PUT — full replace, idempotent (must send complete object)\nawait fetch('/api/users/42', {\n    method:  'PUT',\n    headers: { 'Content-Type': 'application/json' },\n    body:    JSON.stringify({ id: 42, name: 'Alice', email: 'alice@new.com', role: 'admin' }),\n});\n// → 200 OK  (complete object required — missing fields become null)\n\n// PATCH — partial update, send only changed fields\nawait fetch('/api/users/42', {\n    method:  'PATCH',\n    headers: { 'Content-Type': 'application/json' },\n    body:    JSON.stringify({ email: 'alice@new.com' }),\n});\n// → 200 OK  (only email changes; other fields untouched)\n\n// DELETE — remove, idempotent\nawait fetch('/api/users/42', { method: 'DELETE' });\n// → 204 No Content  (no body)\n\n// HEAD — check existence without downloading body\nconst res = await fetch('/api/files/report.pdf', { method: 'HEAD' });\nconsole.log(res.status);               // 200 or 404\nconsole.log(res.headers.get('content-length')); // file size in bytes"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: HTTP methods explorer",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0;font-size:0.9rem}\n    .row{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}\n    select,textarea{background:#0b0e14;color:#e2e8f0;border:1px solid #2d3748;border-radius:4px;padding:6px 10px;font-family:monospace;font-size:0.82rem}\n    textarea{flex:1;min-height:60px;resize:vertical}\n    button{background:#4fd1c5;color:#0e1116;border:none;border-radius:4px;padding:8px 14px;cursor:pointer;font-weight:700;font-size:0.82rem}\n    .output{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:12px;font-family:monospace;font-size:0.8rem;min-height:120px;white-space:pre-wrap}\n    .label{font-size:0.75rem;color:#4fd1c5;margin-bottom:4px}\n    .tag{display:inline-block;padding:2px 7px;border-radius:3px;font-size:0.72rem;font-weight:700;font-family:monospace}\n    .safe{background:#166534;color:#86efac}.idempotent{background:#1e3a5f;color:#93c5fd}.neither{background:#7f1d1d;color:#fca5a5}\n    .db-view{background:#1a1f2b;border:1px solid #2d3748;border-radius:6px;padding:10px;font-family:monospace;font-size:0.75rem;max-height:120px;overflow:auto}\n  </style>\n</head>\n<body>\n  <div class=\"label\">Method</div>\n  <div class=\"row\">\n    <select id=\"method\" onchange=\"updateInfo()\">\n      <option>GET</option><option>POST</option><option>PUT</option>\n      <option>PATCH</option><option>DELETE</option><option>HEAD</option>\n    </select>\n    <select id=\"url\" style=\"flex:1\">\n      <option value=\"list\">/users</option>\n      <option value=\"one\">/users/1</option>\n      <option value=\"two\">/users/2</option>\n      <option value=\"missing\">/users/99</option>\n    </select>\n    <button onclick=\"send()\">Send</button>\n  </div>\n  <div id=\"info\" style=\"margin-bottom:10px;display:flex;gap:8px\"></div>\n  <div class=\"label\">Request Body (for POST/PUT/PATCH)</div>\n  <div class=\"row\"><textarea id=\"body\">{\"name\": \"Alice\", \"email\": \"alice@example.com\"}</textarea></div>\n  <div style=\"display:grid;grid-template-columns:1fr 1fr;gap:10px\">\n    <div>\n      <div class=\"label\">Response</div>\n      <div class=\"output\" id=\"output\">← Click Send</div>\n    </div>\n    <div>\n      <div class=\"label\">Server State (in-memory DB)</div>\n      <div class=\"db-view\" id=\"db\"></div>\n    </div>\n  </div>\n  <script>\n    let db=[{id:1,name:'Alice',email:'alice@example.com',role:'user'},{id:2,name:'Bob',email:'bob@example.com',role:'user'}];\n    let nextId=3;\n    const info={GET:{safe:true,idempotent:true,body:false},POST:{safe:false,idempotent:false,body:true},PUT:{safe:false,idempotent:true,body:true},PATCH:{safe:false,idempotent:false,body:true},DELETE:{safe:false,idempotent:true,body:false},HEAD:{safe:true,idempotent:true,body:false}};\n    function updateInfo(){const m=document.getElementById('method').value;const i=info[m];document.getElementById('info').innerHTML=(i.safe?'<span class=\"tag safe\">Safe</span>':'')+(i.idempotent?'<span class=\"tag idempotent\">Idempotent</span>':'<span class=\"tag neither\">Not Idempotent</span>');document.getElementById('body').disabled=!i.body;}\n    function renderDb(){document.getElementById('db').textContent=JSON.stringify(db,null,2);}\n    function send(){\n      const m=document.getElementById('method').value;\n      const url=document.getElementById('url').value;\n      const bodyRaw=document.getElementById('body').value;\n      let body=null;\n      try{if(['POST','PUT','PATCH'].includes(m))body=JSON.parse(bodyRaw);}catch(e){document.getElementById('output').textContent='Invalid JSON body:\\n'+e.message;return;}\n      let id=url==='list'?null:url==='one'?1:url==='two'?2:99;\n      let status,resp;\n      if(m==='GET'){if(url==='list'){status=200;resp=db;}else{const u=db.find(x=>x.id===id);status=u?200:404;resp=u||{error:'NOT_FOUND',message:`User ${id} not found`};}}\n      else if(m==='HEAD'){const u=db.find(x=>x.id===id);status=u?200:404;resp=null;}\n      else if(m==='POST'){const u={id:nextId++,...body};db.push(u);status=201;resp=u;}\n      else if(m==='PUT'){const idx=db.findIndex(x=>x.id===id);if(idx===-1){status=404;resp={error:'NOT_FOUND'};}else{db[idx]={id,name:'',email:'',role:'',...body,id};status=200;resp=db[idx];}}\n      else if(m==='PATCH'){const idx=db.findIndex(x=>x.id===id);if(idx===-1){status=404;resp={error:'NOT_FOUND'};}else{db[idx]={...db[idx],...body};status=200;resp=db[idx];}}\n      else if(m==='DELETE'){const idx=db.findIndex(x=>x.id===id);if(idx===-1){status=404;resp={error:'NOT_FOUND'};}else{db.splice(idx,1);status=204;resp=null;}}\n      const color=status<300?'#4fd1c5':status<500?'#fbbf24':'#ef4444';\n      document.getElementById('output').innerHTML=`<span style=\"color:${color};font-weight:700\">HTTP ${status}</span>\\n\\n`+(resp?JSON.stringify(resp,null,2):'(No body)');\n      renderDb();\n    }\n    updateInfo();renderDb();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "tip",
+      "text": "Use PATCH (not PUT) for most updates — it's more efficient since you only send the fields that changed. PUT is for replacing an entire resource (like uploading a file), where you always have the complete new version."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "http-methods-q1",
+          "question": "You call DELETE /users/42 twice. What happens on the second call?",
+          "type": "multiple-choice",
+          "options": [
+            "The user is deleted again — DELETE can be called multiple times",
+            "The second call returns 404 Not Found (user no longer exists), but the server state is the same as after the first call — this is what 'idempotent' means",
+            "The second call returns 200 OK with the deleted user data",
+            "The second call causes a 500 Server Error"
+          ],
+          "correctAnswer": 1,
+          "explanation": "DELETE is idempotent: the server state after the second call (user is gone) is identical to the state after the first call. However, the response code differs — 404 is correct for the second call since the resource no longer exists. Idempotent means the *state* is the same, not necessarily the response code. This is useful for retrying requests after network failures: you know retrying DELETE is safe."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "When should I use PUT vs PATCH?",
+      "a": "Use PATCH for most updates — you send only the fields you want to change: `{ \"email\": \"new@example.com\" }`. The server merges these into the existing record. Use PUT when replacing a complete resource — you must send all fields, and missing fields get their default/null values. A common example of PUT: uploading a file (you always send the full file). PATCH is better for record updates since you don't need to fetch the full object first."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — HTTP Request Methods",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every REST API"],
+    "examples": [
+      "GitHub: PATCH /repos/{owner}/{repo} — update repo description without touching other settings",
+      "Stripe: POST /payment_intents — creates a payment (not idempotent, uses Idempotency-Key header for safety)",
+      "S3: PUT /bucket/key — uploads a file (full replace, idempotent)"
+    ]
+  }
+}

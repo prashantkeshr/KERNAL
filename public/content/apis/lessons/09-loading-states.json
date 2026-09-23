@@ -1,0 +1,93 @@
+{
+  "id": "09-loading-states",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "apis",
+  "technologyVersion": "Fetch API / React",
+  "module": "apis-auth",
+  "title": "Loading & UI States",
+  "subtitle": "The data/loading/error state pattern, skeleton screens, and optimistic updates",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 16,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["apis/08-error-handling"],
+  "skillsTaught": ["api.loading-state-pattern", "api.skeleton-ui", "api.optimistic-update", "api.abort-on-unmount"],
+  "skillsUsed": ["js.async-await", "react.useState", "react.useEffect"],
+  "relatedConcepts": ["api.crud-fetch", "api.error-handling"],
+  "whyItExists": {
+    "problem": "Without state management, API calls cause blank screens, stale data, and duplicate requests. Users don't know if their action worked. The UI looks broken during loading.",
+    "solution": "Model every fetch operation with three states: loading (request in flight), error (request failed), and data (request succeeded). Show appropriate UI for each state. Optimistic updates make the UI feel instant by updating before the server confirms.",
+    "whenToUse": "Every API call that affects UI — data fetching on mount, form submissions, button actions.",
+    "whenNotToUse": "For background sync that doesn't affect visible UI, full state machinery isn't needed. Simple fire-and-forget calls (logging, analytics) can skip the three-state pattern."
+  },
+  "explainModes": {
+    "beginner": "When you make an API call, your UI can be in three states: loading (showing a spinner), error (showing an error message), or data (showing the result). Always handle all three. Show a loading indicator while waiting. Show an error message if it fails. Show the data when it succeeds. This is the most important UI pattern for any app that talks to an API.",
+    "simple": "State: { data: null, loading: false, error: null }. On fetch start: loading=true, error=null. On success: data=result, loading=false. On failure: error=err.message, loading=false. In the UI: if loading → spinner. If error → error message. If data → show data. React useEffect + useState: the standard pattern. AbortController: cancel the request if the component unmounts to avoid setting state on a dead component.",
+    "standard": "Skeleton screens: placeholder UI that matches the shape of the real content — better than spinners for perceived performance. Stale-while-revalidate: show cached data immediately while fetching fresh data in the background. Optimistic updates: update UI immediately, roll back if request fails. Mutation state: separate loading/error state for mutations (POST/PATCH/DELETE) vs queries (GET). Debounce: for search inputs — delay the API call until typing stops to avoid excessive requests.",
+    "technical": "Race condition: if a user types quickly and two requests are in-flight, the older response might arrive last and overwrite the newer data. Fix: AbortController.abort() cancels the previous request when a new one starts. Or use a requestId counter — only apply results from the latest request. React Query / SWR: libraries that handle all of this — caching, deduplication, background refresh, optimistic updates, retry, pagination. They wrap fetch() and expose { data, isLoading, error, mutate } hooks.",
+    "deepDive": "SWR (stale-while-revalidate): a caching strategy — serve cached data immediately (stale), revalidate in background, update UI when fresh data arrives. React Query (TanStack Query): full data synchronization library. Concepts: queries (reads), mutations (writes), invalidation (mark cache stale after mutation), optimistic updates via queryClient.setQueryData. Devtools: React Query Devtools shows all queries, cache state, and refetch status. Suspense mode: instead of checking isLoading, wrap in <Suspense fallback={<Skeleton />}> — React automatically shows fallback during data fetching (works with React Query's suspense option)."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The three-state fetch pattern"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "loading_states.js",
+      "code": "// ── The three-state pattern (vanilla JS) ──\nconst state = { data: null, loading: false, error: null };\n\nasync function fetchUser(id) {\n    state.loading = true;\n    state.error   = null;\n    render();  // show spinner\n\n    try {\n        const res = await fetch(`/api/users/${id}`);\n        if (!res.ok) throw new Error(`HTTP ${res.status}`);\n        state.data    = await res.json();\n        state.loading = false;\n    } catch (err) {\n        state.error   = err.message;\n        state.loading = false;\n    }\n    render();  // update UI\n}\n\nfunction render() {\n    if (state.loading)      return showSpinner();\n    if (state.error)        return showError(state.error);\n    if (state.data)         return showUser(state.data);\n    /* nothing loaded yet */return showEmpty();\n}\n\n// ── React hook version ──\nfunction useUser(id) {\n    const [state, setState] = React.useState({ data: null, loading: true, error: null });\n\n    React.useEffect(() => {\n        if (!id) return;\n\n        const controller = new AbortController();\n        setState(s => ({ ...s, loading: true, error: null }));\n\n        fetch(`/api/users/${id}`, { signal: controller.signal })\n            .then(res => {\n                if (!res.ok) throw new Error(`HTTP ${res.status}`);\n                return res.json();\n            })\n            .then(data => setState({ data, loading: false, error: null }))\n            .catch(err => {\n                if (err.name === 'AbortError') return;  // component unmounted — ignore\n                setState({ data: null, loading: false, error: err.message });\n            });\n\n        return () => controller.abort();  // cleanup: cancel on unmount or id change\n    }, [id]);\n\n    return state;\n}\n\n// Usage:\nfunction UserProfile({ userId }) {\n    const { data: user, loading, error } = useUser(userId);\n    if (loading) return <Skeleton />;\n    if (error)   return <ErrorMessage message={error} />;\n    return <div>{user.name}</div>;\n}\n\n// ── Optimistic update ──\nasync function toggleLike(postId, isLiked) {\n    // Update UI immediately — don't wait for server\n    setPosts(posts => posts.map(p =>\n        p.id === postId ? { ...p, liked: !isLiked, likes: p.likes + (isLiked ? -1 : 1) } : p\n    ));\n\n    try {\n        await fetch(`/api/posts/${postId}/like`, {\n            method: isLiked ? 'DELETE' : 'POST',\n        });\n    } catch (err) {\n        // Revert the optimistic update\n        setPosts(posts => posts.map(p =>\n            p.id === postId ? { ...p, liked: isLiked, likes: p.likes + (isLiked ? 1 : -1) } : p\n        ));\n        showToast('Failed to update like');\n    }\n}"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Loading states demo",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0;font-size:0.88rem}\n    .controls{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}\n    button{background:#4fd1c5;color:#0e1116;border:none;border-radius:4px;padding:8px 14px;cursor:pointer;font-weight:700;font-size:0.8rem}\n    button.secondary{background:#2d3748;color:#e2e8f0}\n    .card{background:#1a1f2b;border:1px solid #2d3748;border-radius:8px;padding:16px;min-height:120px}\n    .skeleton{animation:pulse 1.5s ease-in-out infinite}\n    @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}\n    .skel-line{background:#2d3748;border-radius:4px;margin-bottom:8px}\n    .user-card{display:flex;gap:12px;align-items:center}\n    .avatar{width:48px;height:48px;border-radius:50%;background:#4fd1c5;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.2rem;color:#0e1116;flex-shrink:0}\n    .error-state{color:#ef4444;display:flex;gap:8px;align-items:flex-start}\n    .code-box{background:#0b0e14;border-radius:4px;padding:10px;font-family:monospace;font-size:0.75rem;color:#94a3b8;margin-top:10px;white-space:pre}\n    .badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.72rem;font-weight:700}\n    .badge-loading{background:#1e3a5f;color:#93c5fd}\n    .badge-error{background:#7f1d1d;color:#fca5a5}\n    .badge-success{background:#166534;color:#86efac}\n  </style>\n</head>\n<body>\n  <div class=\"controls\">\n    <button onclick=\"fetchData('success')\">Load user (success)</button>\n    <button onclick=\"fetchData('slow')\" class=\"secondary\">Slow response (2s)</button>\n    <button onclick=\"fetchData('error')\" class=\"secondary\">Load user (error)</button>\n    <button onclick=\"fetchData('notfound')\" class=\"secondary\">Not found (404)</button>\n  </div>\n  <div class=\"card\" id=\"card\">\n    <div style=\"color:#64748b;font-style:italic\">Click a button to fetch user data</div>\n  </div>\n  <div class=\"code-box\" id=\"state-log\">State: idle</div>\n  <script>\n    const USERS={1:{id:1,name:'Alice',email:'alice@example.com',role:'Admin',joined:'2024-01-15'}};\n    function log(s){document.getElementById('state-log').textContent=s;}\n    function showLoading(){\n      document.getElementById('card').innerHTML=`\n        <div style=\"display:flex;gap:8px;align-items:center;margin-bottom:12px\">\n          <span class=\"badge badge-loading\">⟳ Loading...</span>\n        </div>\n        <div class=\"skeleton\">\n          <div style=\"display:flex;gap:12px;align-items:center\">\n            <div class=\"skel-line\" style=\"width:48px;height:48px;border-radius:50%;flex-shrink:0\"></div>\n            <div style=\"flex:1\">\n              <div class=\"skel-line\" style=\"height:14px;width:60%\"></div>\n              <div class=\"skel-line\" style=\"height:12px;width:40%\"></div>\n              <div class=\"skel-line\" style=\"height:12px;width:50%\"></div>\n            </div>\n          </div>\n        </div>`;}\n    function showUser(u){\n      document.getElementById('card').innerHTML=`\n        <div style=\"display:flex;gap:8px;align-items:center;margin-bottom:12px\">\n          <span class=\"badge badge-success\">✓ Data loaded</span>\n        </div>\n        <div class=\"user-card\">\n          <div class=\"avatar\">${u.name[0]}</div>\n          <div><div style=\"font-weight:700;font-size:1rem\">${u.name}</div><div style=\"color:#94a3b8\">${u.email}</div><div style=\"font-size:0.78rem;color:#4fd1c5;margin-top:4px\">${u.role} · Joined ${u.joined}</div></div>\n        </div>`;}\n    function showError(msg,status){\n      document.getElementById('card').innerHTML=`\n        <div style=\"display:flex;gap:8px;align-items:center;margin-bottom:8px\">\n          <span class=\"badge badge-error\">✗ ${status||'Error'}</span>\n        </div>\n        <div class=\"error-state\">⚠ ${msg}</div>\n        <button onclick=\"fetchData('success')\" style=\"margin-top:10px\">Retry</button>`;}\n    async function fetchData(type){\n      showLoading();\n      log(`State: { loading: true, data: null, error: null }`);\n      const delay=type==='slow'?2000:400;\n      await new Promise(r=>setTimeout(r,delay));\n      if(type==='error'){showError('Network error — you appear to be offline');log(`State: { loading: false, data: null, error: 'Network error' }`);return;}\n      if(type==='notfound'){showError('User 42 not found',404);log(`State: { loading: false, data: null, error: 'HTTP 404: Not Found' }`);return;}\n      const u=USERS[1];\n      showUser(u);\n      log(`State: { loading: false, data: { id: ${u.id}, name: '${u.name}', ... }, error: null }`);}\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "loading-q1",
+          "question": "Why should you call AbortController.abort() in the cleanup function of useEffect when fetching data?",
+          "type": "multiple-choice",
+          "options": [
+            "It makes the fetch request faster by cancelling unnecessary work",
+            "If the component unmounts before the fetch completes, calling setState on an unmounted component causes a memory leak warning. abort() cancels the request so the .then() callbacks never fire.",
+            "AbortController is required by the Fetch API specification",
+            "It prevents the browser from caching the response"
+          ],
+          "correctAnswer": 1,
+          "explanation": "When a component unmounts (user navigates away), any pending fetch requests are still in-flight. When they complete, their .then() callback tries to call setState on an unmounted component — React warns about this (memory leak in older versions, no-op in newer). AbortController.abort() cancels the request, triggering an AbortError that you explicitly ignore in the catch block. The cleanup function (`return () => controller.abort()`) runs when the component unmounts or when the effect's dependencies change."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Should I use React Query or write my own loading state logic?",
+      "a": "For any real application, use React Query (TanStack Query) or SWR. They handle: caching (no duplicate requests for the same data), background refetching, stale-while-revalidate, retry logic, pagination, optimistic updates, and the three-state pattern — all out of the box. Writing it manually works for learning but doesn't scale. React Query's core bundle is ~12kb gzipped — a worthwhile investment for every app that talks to an API."
+    }
+  ],
+  "sources": [
+    {
+      "name": "React Query (TanStack Query)",
+      "url": "https://tanstack.com/query/latest",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every data-fetching UI component"],
+    "examples": [
+      "GitHub — skeleton screens while loading repo data, retry button on error",
+      "Twitter/X — optimistic like button (increments immediately, reverts if server rejects)",
+      "Notion — shows cached data instantly, fetches fresh in background (stale-while-revalidate)"
+    ]
+  }
+}

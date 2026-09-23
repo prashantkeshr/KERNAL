@@ -1,0 +1,93 @@
+{
+  "id": "13-caching-rate-limits",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "apis",
+  "technologyVersion": "HTTP",
+  "module": "apis-practice",
+  "title": "Caching & Rate Limits",
+  "subtitle": "HTTP caching headers, ETag conditional requests, rate limit handling, and Retry-After",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 16,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["apis/08-error-handling", "apis/06-query-headers"],
+  "skillsTaught": ["api.cache-control", "api.etag", "api.rate-limit-headers", "api.retry-after"],
+  "skillsUsed": ["api.error-handling", "api.request-headers"],
+  "relatedConcepts": ["api.api-client", "api.loading-states"],
+  "whyItExists": {
+    "problem": "Fetching the same data repeatedly wastes bandwidth and API quota. Most APIs have rate limits (e.g. 1000 requests/hour). Hitting them causes errors and degrades the user experience.",
+    "solution": "HTTP caching allows responses to be reused without hitting the server. Rate limit headers tell you how many requests remain and when the limit resets. Respect them proactively instead of reacting to 429 errors.",
+    "whenToUse": "All production API integrations. Even if you implement nothing else, check X-RateLimit-Remaining and stop making requests before you hit the limit.",
+    "whenNotToUse": "Don't cache responses that change often and where staleness is harmful (financial transactions, live bids, notifications)."
+  },
+  "explainModes": {
+    "beginner": "Caching means saving a response so you don't have to request it again. HTTP has built-in caching rules. The server tells your browser 'this data is good for 5 minutes' (Cache-Control: max-age=300). Your browser stores it and uses the saved copy for 5 minutes without hitting the network. Rate limits mean the API only allows a certain number of requests per hour. Check the headers the API sends back — they tell you how many requests you have left.",
+    "simple": "Cache-Control: max-age=300 → browser caches for 300 seconds. After that, it re-requests but can send If-None-Match: '<etag>' to check if data changed. If unchanged, server returns 304 Not Modified (no body) — saves bandwidth. Rate limit headers: X-RateLimit-Limit (total), X-RateLimit-Remaining (left), X-RateLimit-Reset (Unix timestamp when it resets). 429 Too Many Requests response: check Retry-After header, wait that many seconds, then retry.",
+    "standard": "ETag: unique identifier for a version of a resource. GET /users/1 → response has ETag: '\"v3\"'. Next request: If-None-Match: '\"v3\"'. If same: 304 Not Modified (no body). If changed: 200 OK + new body + new ETag. Last-Modified: similar but uses a date: If-Modified-Since. stale-while-revalidate: Cache-Control: max-age=60, stale-while-revalidate=300 — serve stale data for up to 300s while revalidating in background. Varies: cache key includes Vary header fields — Vary: Accept-Language means Spanish and English responses are cached separately.",
+    "technical": "Cache layers: browser cache → CDN cache → reverse proxy cache → origin server. Each layer checks Cache-Control and can serve cached responses. CDN (CloudFront, Fastly): cache at the edge. s-maxage: CDN-specific max age (vs max-age for browsers). no-cache (revalidate before serving) vs no-store (never cache). must-revalidate (don't serve stale even if can't reach origin). private (don't cache in shared caches like CDNs). Public APIs with sliding rate limits: GitHub uses per-hour limits. OpenAI uses per-minute token limits. Respect them: implement a request queue or rate limiter on your side.",
+    "deepDive": "HTTP Conditional Requests: If-None-Match + ETag (content-based version). If-Modified-Since + Last-Modified (time-based). If-Match + ETag (optimistic locking — server rejects write if another client updated first: 412 Precondition Failed). Cache busting: force refetch by appending a query param (?v=2). Or use content-addressed URLs (/assets/main.abc123.js) — the hash changes when content changes. Stale content costs: Varnish, Nginx, CloudFront all have stale policies. HTTP/2 Server Push (deprecated in HTTP/3): server proactively sends resources the client will need before it asks. HTTP/3 uses QUIC: UDP-based, no head-of-line blocking, zero RTT reconnection — dramatically reduces perceived latency for API calls."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "HTTP caching and rate limit handling"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "caching.js",
+      "code": "// ── Reading rate limit headers ──\nasync function apiFetch(url) {\n    const res = await fetch(url);\n\n    // Log rate limit info on every response\n    const remaining = Number(res.headers.get('x-ratelimit-remaining'));\n    const limit     = Number(res.headers.get('x-ratelimit-limit'));\n    const resetAt   = Number(res.headers.get('x-ratelimit-reset'));  // Unix timestamp\n\n    if (!isNaN(remaining)) {\n        console.log(`Rate limit: ${remaining}/${limit} remaining`);\n        if (remaining < 10) {\n            const resetIn = Math.ceil((resetAt * 1000 - Date.now()) / 1000);\n            console.warn(`Warning: only ${remaining} requests left, resets in ${resetIn}s`);\n        }\n    }\n\n    if (res.status === 429) {\n        const retryAfter = Number(res.headers.get('retry-after')) || 60;\n        throw new RateLimitError(`Rate limited. Retry after ${retryAfter}s`, retryAfter);\n    }\n\n    return res;\n}\n\n// ── ETag conditional request ──\nconst cache = new Map();  // url → { etag, data }\n\nasync function fetchWithETag(url) {\n    const cached = cache.get(url);\n    const headers = {};\n    if (cached?.etag) headers['If-None-Match'] = cached.etag;\n\n    const res = await fetch(url, { headers });\n\n    if (res.status === 304) {\n        // Not modified — use cached data, saved bandwidth!\n        console.log('Cache hit (304 Not Modified)');\n        return cached.data;\n    }\n\n    const data = await res.json();\n    const etag = res.headers.get('etag');\n    if (etag) cache.set(url, { etag, data });\n    return data;\n}\n\n// ── Client-side rate limiter ──\nclass RateLimiter {\n    constructor(requestsPerSecond) {\n        this.interval = 1000 / requestsPerSecond;\n        this.lastCall = 0;\n    }\n    async throttle() {\n        const wait = this.interval - (Date.now() - this.lastCall);\n        if (wait > 0) await new Promise(r => setTimeout(r, wait));\n        this.lastCall = Date.now();\n    }\n}\n\n// 5 requests per second max:\nconst limiter = new RateLimiter(5);\nasync function throttledFetch(url) {\n    await limiter.throttle();\n    return fetch(url);\n}"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Rate limit tracker",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0;font-size:0.88rem}\n    .meter-wrap{background:#1a1f2b;border:1px solid #2d3748;border-radius:8px;padding:14px;margin-bottom:12px}\n    .meter-label{display:flex;justify-content:space-between;margin-bottom:6px;font-size:0.82rem}\n    .meter-bar{height:14px;background:#2d3748;border-radius:7px;overflow:hidden}\n    .meter-fill{height:100%;border-radius:7px;transition:width 0.3s,background 0.3s}\n    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}\n    .stat{background:#1a1f2b;border:1px solid #2d3748;border-radius:6px;padding:10px;text-align:center}\n    .stat-val{font-size:1.4rem;font-weight:700;color:#4fd1c5}\n    .stat-label{font-size:0.72rem;color:#64748b;margin-top:2px}\n    .controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}\n    button{background:#4fd1c5;color:#0e1116;border:none;border-radius:4px;padding:7px 14px;cursor:pointer;font-weight:700;font-size:0.8rem}\n    button.secondary{background:#2d3748;color:#e2e8f0}\n    .log{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:8px;font-family:monospace;font-size:0.75rem;max-height:140px;overflow:auto}\n    .ok{color:#4fd1c5}.warn{color:#fbbf24}.err{color:#ef4444}.dim{color:#64748b}\n  </style>\n</head>\n<body>\n  <div class=\"stats\">\n    <div class=\"stat\"><div class=\"stat-val\" id=\"remaining\">60</div><div class=\"stat-label\">Remaining</div></div>\n    <div class=\"stat\"><div class=\"stat-val\" id=\"total\">60</div><div class=\"stat-label\">Limit/hour</div></div>\n    <div class=\"stat\"><div class=\"stat-val\" id=\"reset\">60m</div><div class=\"stat-label\">Resets in</div></div>\n  </div>\n  <div class=\"meter-wrap\">\n    <div class=\"meter-label\"><span>Rate limit usage</span><span id=\"pct\">0%</span></div>\n    <div class=\"meter-bar\"><div class=\"meter-fill\" id=\"fill\" style=\"width:0;background:#4fd1c5\"></div></div>\n  </div>\n  <div class=\"controls\">\n    <button onclick=\"makeRequest()\">Make API request</button>\n    <button onclick=\"burst()\" class=\"secondary\">Burst ×10</button>\n    <button onclick=\"reset()\" class=\"secondary\">Reset limit</button>\n  </div>\n  <div class=\"log\" id=\"log\"></div>\n  <script>\n    let _remaining=60;const _limit=60;let _reset=Date.now()+3600000;\n    function appendLog(cls,msg){const d=document.getElementById('log');const el=document.createElement('div');el.className=cls;el.textContent=msg;d.appendChild(el);d.scrollTop=d.scrollHeight;}\n    function updateUI(){\n      const pct=Math.round((_limit-_remaining)/_limit*100);\n      document.getElementById('remaining').textContent=_remaining;\n      document.getElementById('pct').textContent=pct+'%';\n      const f=document.getElementById('fill');\n      f.style.width=pct+'%';\n      f.style.background=_remaining<10?'#ef4444':_remaining<20?'#fbbf24':'#4fd1c5';\n      const ms=_reset-Date.now();\n      document.getElementById('reset').textContent=ms>0?Math.ceil(ms/60000)+'m':'now';}\n    async function makeRequest(){\n      if(_remaining<=0){appendLog('err','429 Too Many Requests — Retry-After: 60s');return;}\n      _remaining--;updateUI();\n      const pct=Math.round((_limit-_remaining)/_limit*100);\n      const cls=_remaining<10?'err':_remaining<20?'warn':'ok';\n      appendLog(cls,`GET /api/data → 200 OK  X-RateLimit-Remaining: ${_remaining}/${_limit}  (${pct}% used)`);\n      if(_remaining===10)appendLog('warn','⚠ Warning: only 10 requests remaining! Resets in '+Math.ceil((_reset-Date.now())/60000)+'min');}\n    async function burst(){for(let i=0;i<10;i++){await makeRequest();await new Promise(r=>setTimeout(r,50));}}\n    function reset(){_remaining=60;_reset=Date.now()+3600000;updateUI();appendLog('ok','Rate limit reset — 60/60 remaining');}\n    updateUI();\n    setInterval(updateUI,10000);\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "cache-q1",
+          "question": "A server responds with ETag: '\"v5\"'. You request the same resource again with If-None-Match: '\"v5\"' and get back HTTP 304. What does this mean?",
+          "type": "multiple-choice",
+          "options": [
+            "The request failed — 304 is an error code",
+            "The resource has not changed since version 5. The response has no body — use the previously cached data. This saves bandwidth.",
+            "The server could not find version 5 of the resource",
+            "You need to resend the request with a different ETag"
+          ],
+          "correctAnswer": 1,
+          "explanation": "304 Not Modified is a success response, not an error. It means: 'the resource hasn't changed since the version you have'. No response body is sent — saving bandwidth. Your code should use the data from the previous 200 response. The ETag acts as a version identifier — the browser stores it and sends it back in If-None-Match on subsequent requests. This is called conditional GET and is a core HTTP caching mechanism."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do I know if an API has rate limits and what they are?",
+      "a": "Check the API documentation — it usually specifies limits per endpoint (e.g. '60 requests/minute for free tier'). At runtime, check response headers: X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset. Not all APIs use the same header names — GitHub uses X-RateLimit-*, Stripe uses separate docs. When you get a 429 response, always check the Retry-After header before retrying. Some APIs use a sliding window (track last N seconds), others use fixed windows (reset every hour at :00)."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — HTTP Caching",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["all production API clients"],
+    "examples": [
+      "GitHub REST API — 60 req/hour unauthenticated, 5000 authenticated, X-RateLimit-* headers",
+      "Twitter/X API — rate limited per endpoint, resets every 15 minutes",
+      "npm registry — ETags on package metadata, 304 responses reduce bandwidth"
+    ]
+  }
+}

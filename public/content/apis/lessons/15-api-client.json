@@ -1,0 +1,93 @@
+{
+  "id": "15-api-client",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "apis",
+  "technologyVersion": "Fetch API",
+  "module": "apis-practice",
+  "title": "Building an API Client",
+  "subtitle": "A reusable, type-safe API client class with interceptors, base URL, and automatic auth",
+  "difficulty": "advanced",
+  "estimatedMinutes": 22,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["apis/08-error-handling", "apis/07-api-keys-tokens", "apis/13-caching-rate-limits"],
+  "skillsTaught": ["api.api-client-class", "api.request-interceptor", "api.response-interceptor", "api.token-refresh"],
+  "skillsUsed": ["api.fetch-basics", "api.error-handling", "api.api-keys-tokens", "js.classes"],
+  "relatedConcepts": ["api.crud-fetch", "api.caching-rate-limits"],
+  "whyItExists": {
+    "problem": "Calling fetch() directly everywhere leads to duplicated base URL, duplicated auth headers, inconsistent error handling, and scattered retry logic. When you need to add a feature like token refresh, you'd have to update every fetch call.",
+    "solution": "An API client class centralizes all fetch concerns: base URL, default headers, auth injection, error normalization, retry logic, and token refresh. Callers just call api.get('/users') and get back typed data.",
+    "whenToUse": "Any app with more than a few API calls. The class pays for itself immediately — cleaner call sites, one place to add auth, one place to add retry, one place to change the base URL.",
+    "whenNotToUse": "For a simple script with one or two API calls, a plain fetch() wrapper function is enough. Don't over-architect small projects."
+  },
+  "explainModes": {
+    "beginner": "An API client is a helper object that wraps fetch() and handles all the repetitive parts. Instead of writing the same headers, base URL, and error checking in every file, you create one ApiClient that does it all automatically. You call api.get('/users') instead of fetch('https://api.example.com/users', { headers: { Authorization: '...' } }). The client handles the boring parts so your code focuses on what matters.",
+    "simple": "class ApiClient { constructor(baseUrl) { this.baseUrl = baseUrl } async get(path) { const res = await fetch(this.baseUrl + path, { headers: this.headers() }); if (!res.ok) throw new Error(...); return res.json(); } }. Add headers() method for auth. Add a post(path, body), patch(path, id, body), delete(path, id). Create one instance: const api = new ApiClient('https://api.example.com'). Use everywhere.",
+    "standard": "Interceptors: request interceptor adds auth headers, timestamps, request IDs. Response interceptor normalizes errors, logs, refreshes token on 401. Token refresh: on 401 response, call /auth/refresh to get a new token, then retry the original request exactly once (don't infinite loop). Request queue: while refreshing, queue other requests that arrive. After refresh, drain the queue with the new token. TypeScript generics: api.get<User[]>('/users') returns Promise<User[]> — type-safe response.",
+    "technical": "Interceptor pattern: array of functions applied in order. request interceptors: (config) => config. response interceptors: (response) => response or (error) => error. Axios uses this pattern. AbortController integration: apiClient.get('/data', { signal: controller.signal }). Timeout: wrap every request with a default AbortSignal.timeout(10_000) unless overridden. Response caching: integrate ETag/If-None-Match cache from lesson 13. Rate limiting: integrate RateLimiter from lesson 13. Logging: log every request/response with timing (Date.now() before - Date.now() after).",
+    "deepDive": "OpenAPI/Swagger code generation: tools like openapi-typescript-codegen generate a fully typed API client from an OpenAPI spec — every endpoint has typed request params and response types. No manual client needed. tRPC: type-safe RPC — define procedures on the server, call them client-side with full TypeScript inference — no REST, no manual types. Kysely or Drizzle for DB queries use the same pattern. Tanstack Query + typed client: use React Query as the async state layer on top of your typed API client — get caching, background refresh, and optimistic updates for free."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "A production-ready API client"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "ApiClient.ts",
+      "code": "class ApiError extends Error {\n    constructor(public status: number, public body: unknown) {\n        super(typeof body === 'object' && body !== null && 'message' in body\n            ? String((body as any).message) : `HTTP ${status}`);\n        this.name = 'ApiError';\n    }\n}\n\ntype Options = Omit<RequestInit, 'body'> & { body?: unknown };\n\nclass ApiClient {\n    private token: string | null = null;\n    private refreshing: Promise<string> | null = null;\n    private requestInterceptors: ((config: RequestInit) => RequestInit)[] = [];\n    private responseInterceptors: ((res: Response) => Response)[]        = [];\n\n    constructor(\n        private baseUrl: string,\n        private defaultTimeout = 10_000,\n    ) {\n        // Default: inject auth header\n        this.use(config => ({\n            ...config,\n            headers: {\n                ...config.headers,\n                ...(this.token ? { 'Authorization': `Bearer ${this.token}` } : {}),\n                'X-Request-ID': crypto.randomUUID(),\n            },\n        }));\n    }\n\n    /** Set the access token */\n    setToken(token: string | null) { this.token = token; }\n\n    /** Add a request interceptor */\n    use(fn: (config: RequestInit) => RequestInit) {\n        this.requestInterceptors.push(fn);\n        return this;\n    }\n\n    private async request<T>(method: string, path: string, opts: Options = {}): Promise<T> {\n        const { body, ...rest } = opts;\n        let config: RequestInit = {\n            method,\n            signal: AbortSignal.timeout(this.defaultTimeout),\n            ...rest,\n            headers: {\n                ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),\n                ...rest.headers,\n            },\n            ...(body !== undefined ? { body: JSON.stringify(body) } : {}),\n        };\n\n        // Apply request interceptors\n        config = this.requestInterceptors.reduce((c, fn) => fn(c), config);\n\n        let res: Response;\n        try {\n            res = await fetch(this.baseUrl + path, config);\n        } catch (err: any) {\n            throw err.name === 'AbortError'\n                ? new Error('Request timed out')\n                : new Error('Network error');\n        }\n\n        // Auto token refresh on 401\n        if (res.status === 401 && this.token && !path.includes('/auth/')) {\n            try {\n                const newToken = await this.refreshToken();\n                this.setToken(newToken);\n                config.headers = { ...(config.headers as object), 'Authorization': `Bearer ${newToken}` };\n                res = await fetch(this.baseUrl + path, config);\n            } catch {\n                this.setToken(null);\n                throw new ApiError(401, { message: 'Session expired — please log in again' });\n            }\n        }\n\n        if (!res.ok) {\n            const body = await res.json().catch(() => null);\n            throw new ApiError(res.status, body);\n        }\n        if (res.status === 204) return null as T;\n        return res.json();\n    }\n\n    private async refreshToken(): Promise<string> {\n        // Deduplicate: if already refreshing, wait for it\n        if (this.refreshing) return this.refreshing;\n        this.refreshing = this.request<{ token: string }>('POST', '/auth/refresh')\n            .then(r => r.token)\n            .finally(() => { this.refreshing = null; });\n        return this.refreshing;\n    }\n\n    get<T>(path: string, opts?: Options)  { return this.request<T>('GET',    path, opts); }\n    post<T>(path: string, body: unknown)  { return this.request<T>('POST',   path, { body }); }\n    patch<T>(path: string, body: unknown) { return this.request<T>('PATCH',  path, { body }); }\n    put<T>(path: string, body: unknown)   { return this.request<T>('PUT',    path, { body }); }\n    del<T>(path: string)                  { return this.request<T>('DELETE', path); }\n}\n\n// ── Usage ──\nexport const api = new ApiClient('https://api.example.com');\n\n// After login:\napi.setToken(loginResponse.token);\n\n// Type-safe calls:\nconst user    = await api.get<User>('/users/me');\nconst created = await api.post<Post>('/posts', { title: 'Hello', body: 'World' });\nawait api.del(`/posts/${postId}`);"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: API client in action",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0;font-size:0.88rem}\n    .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}\n    .card{background:#1a1f2b;border:1px solid #2d3748;border-radius:6px;padding:12px}\n    .card-title{font-size:0.78rem;color:#4fd1c5;font-weight:700;text-transform:uppercase;margin-bottom:8px}\n    button{background:#4fd1c5;color:#0e1116;border:none;border-radius:4px;padding:6px 12px;cursor:pointer;font-weight:700;font-size:0.78rem;margin:2px}\n    button.secondary{background:#2d3748;color:#e2e8f0}\n    .log{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:10px;font-family:monospace;font-size:0.76rem;min-height:200px;overflow-y:auto;white-space:pre-wrap}\n    .req{color:#93c5fd}.res{color:#a78bfa}.ok{color:#4fd1c5}.err{color:#ef4444}.warn{color:#fbbf24}.dim{color:#64748b}\n    .token-status{font-size:0.78rem;margin-top:6px}\n    .sep{color:#2d3748}\n  </style>\n</head>\n<body>\n  <div class=\"grid\">\n    <div class=\"card\">\n      <div class=\"card-title\">Authentication</div>\n      <button onclick=\"login()\">Login (sets token)</button>\n      <button onclick=\"logout()\" class=\"secondary\">Logout (clears token)</button>\n      <button onclick=\"expireToken()\" class=\"secondary\">Expire token (test refresh)</button>\n      <div class=\"token-status\" id=\"token-status\">Token: not set</div>\n    </div>\n    <div class=\"card\">\n      <div class=\"card-title\">API Calls</div>\n      <button onclick=\"callGet()\">GET /users/me</button>\n      <button onclick=\"callPost()\">POST /posts</button>\n      <button onclick=\"callNoAuth()\">GET /public</button>\n      <button onclick=\"callExpired()\">Trigger 401 refresh</button>\n    </div>\n  </div>\n  <div style=\"font-size:0.75rem;color:#64748b;margin-bottom:6px\">Request/Response log:</div>\n  <div class=\"log\" id=\"log\">// ApiClient initialized — baseUrl: https://api.example.com\\n// Request interceptors: [inject-auth, add-request-id]</div>\n  <script>\n    class ApiClient{\n      constructor(baseUrl){this.baseUrl=baseUrl;this.token=null;this._interceptors=[this._authInterceptor.bind(this)];}\n      setToken(t){this.token=t;document.getElementById('token-status').innerHTML='Token: '+(t?'<span style=\"color:#4fd1c5\">'+t.slice(0,20)+'...</span>':'<span style=\"color:#ef4444\">not set</span>');}\n      _authInterceptor(cfg){if(this.token)cfg.headers={...cfg.headers,'Authorization':'Bearer '+this.token};cfg.headers={...cfg.headers,'X-Request-ID':Math.random().toString(36).slice(2,10)};return cfg;}\n      async request(method,path,body){\n        let cfg={method,headers:{}};\n        if(body!==undefined){cfg.headers['Content-Type']='application/json';cfg.body=JSON.stringify(body);}\n        this._interceptors.forEach(fn=>cfg=fn(cfg));\n        log('req',`${method} ${this.baseUrl}${path}  ${cfg.headers.Authorization?'Authorization: Bearer '+cfg.headers.Authorization.slice(7,27)+'...'+'  ':''} X-Request-ID: ${cfg.headers['X-Request-ID']}`);\n        await new Promise(r=>setTimeout(r,400));\n        const mock=this._mock(method,path,body,cfg);\n        if(mock.status===401&&this.token&&!path.includes('auth')){\n          log('warn','401 Unauthorized — attempting token refresh...');\n          await new Promise(r=>setTimeout(r,300));\n          log('req','POST /auth/refresh');\n          if(this.token==='expired'){this.setToken('new-token-xyz789');log('ok','Token refreshed: new-token-xyz789...  retrying original request...');await new Promise(r=>setTimeout(r,300));return this.request(method,path,body);}\n          else{this.setToken(null);throw{status:401,message:'Session expired'};}\n        }\n        if(mock.status>=400)throw{status:mock.status,...mock.body};\n        log('res',`← ${mock.status} OK  ${JSON.stringify(mock.body).slice(0,80)}...`);\n        return mock.body;\n      }\n      _mock(method,path,body,cfg){\n        if(!cfg.headers.Authorization&&path!=='/public')return{status:401,body:{error:'Unauthorized'}};\n        if(path==='/users/me')return{status:200,body:{id:1,name:'Alice',email:'alice@example.com',role:'admin'}};\n        if(path==='/posts'&&method==='POST')return{status:201,body:{id:Math.floor(Math.random()*1000),title:body?.title||'New Post',created:new Date().toISOString()}};\n        if(path==='/public')return{status:200,body:{message:'Public endpoint — no auth required',timestamp:new Date().toISOString()}};\n        return{status:404,body:{error:'Not Found'}};\n      }\n      get(p){return this.request('GET',p)}\n      post(p,b){return this.request('POST',p,b)}\n    }\n    const api=new ApiClient('https://api.example.com');\n    function log(type,msg){const d=document.getElementById('log');const el=document.createElement('span');el.className=type;el.textContent=msg;d.appendChild(el);d.appendChild(document.createTextNode('\\n'));d.scrollTop=d.scrollHeight;}\n    function sep(){log('sep','─────────────────────────────────────');}\n    async function login(){sep();log('dim','api.setToken(\"eyJ...\")');api.setToken('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.user42.sig');}\n    function logout(){sep();log('dim','api.setToken(null)');api.setToken(null);}\n    function expireToken(){sep();log('warn','Token set to expired value (triggers 401 → auto-refresh)');api.token='expired';document.getElementById('token-status').innerHTML='Token: <span style=\"color:#fbbf24\">expired</span>';}\n    async function callGet(){sep();try{const r=await api.get('/users/me');log('ok','Result: '+JSON.stringify(r));}catch(e){log('err','Error: '+JSON.stringify(e));}}\n    async function callPost(){sep();try{const r=await api.post('/posts',{title:'Hello from API client',body:'This was posted!'});log('ok','Created: '+JSON.stringify(r));}catch(e){log('err','Error: '+JSON.stringify(e));}}\n    async function callNoAuth(){sep();log('dim','Calling public endpoint (no auth needed)');try{const r=await api.get('/public');log('ok','Result: '+JSON.stringify(r));}catch(e){log('err','Error: '+JSON.stringify(e));}}\n    async function callExpired(){sep();log('dim','Setting expired token then calling /users/me...');api.token='expired';document.getElementById('token-status').innerHTML='Token: <span style=\"color:#fbbf24\">expired</span>';await callGet();}\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "client-q1",
+          "question": "What is a request interceptor in an API client and why is it useful?",
+          "type": "multiple-choice",
+          "options": [
+            "A function that blocks requests it considers unsafe",
+            "A function that runs before each request — transforms the request config. Used to inject auth headers, add request IDs, log timing, or add default headers without repeating them in every call.",
+            "A caching mechanism that returns a stored response instead of making a request",
+            "A function that cancels requests that take too long"
+          ],
+          "correctAnswer": 1,
+          "explanation": "A request interceptor is a transform function applied to the request configuration before it's sent. The API client runs all interceptors in order, each receiving and returning the config. Common uses: add Authorization header (so you never forget it), add X-Request-ID for distributed tracing, log request start time (compute duration later in a response interceptor). This is the interceptor pattern used by Axios. Response interceptors work the same way but run after the response — used for error normalization, token refresh on 401, and logging."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Should I build my own API client or use Axios?",
+      "a": "Both work. **fetch()**: built into every browser and Node.js 18+ — no dependency needed. Handles all modern use cases. The client in this lesson is ~60 lines. **Axios**: well-tested library with interceptors, automatic JSON parsing, progress events, request cancellation. Adds ~14KB. **TanStack Query / SWR**: if your main concern is async state (loading states, caching, background refresh), these solve more problems than a plain client. In practice: build your own fetch wrapper for new projects — you understand every line. Use Axios if your team knows it well. Use TanStack Query for React apps with complex data fetching."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — Fetch API",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every production frontend application"],
+    "examples": [
+      "Axios — the most popular HTTP client, exposes interceptors, widely used in Vue/React",
+      "Supabase JS client — auto-injects auth header, handles token refresh",
+      "Stripe.js — typed client generated from their OpenAPI spec"
+    ]
+  }
+}

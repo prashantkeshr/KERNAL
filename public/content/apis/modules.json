@@ -1,0 +1,57 @@
+[
+  {
+    "id": "apis-fundamentals",
+    "title": "API Fundamentals",
+    "description": "What APIs are, HTTP protocol, status codes, and reading documentation",
+    "order": 0,
+    "lessons": [
+      "01-what-is-api",
+      "02-http-methods",
+      "03-reading-docs"
+    ]
+  },
+  {
+    "id": "apis-fetch",
+    "title": "fetch() in the Browser",
+    "description": "Making HTTP requests with fetch, JSON handling, query params, and request headers",
+    "order": 1,
+    "lessons": [
+      "04-fetch-basics",
+      "05-post-requests",
+      "06-query-headers"
+    ]
+  },
+  {
+    "id": "apis-auth",
+    "title": "Authentication",
+    "description": "API keys, Bearer tokens, Basic auth, and keeping secrets out of frontend code",
+    "order": 2,
+    "lessons": [
+      "07-api-keys-tokens",
+      "08-error-handling",
+      "09-loading-states"
+    ]
+  },
+  {
+    "id": "apis-patterns",
+    "title": "Real-world Patterns",
+    "description": "CRUD with fetch, WebSockets, CORS, and caching strategies",
+    "order": 3,
+    "lessons": [
+      "10-crud-fetch",
+      "11-websockets",
+      "12-cors"
+    ]
+  },
+  {
+    "id": "apis-practice",
+    "title": "Advanced Techniques",
+    "description": "Rate limiting, FormData file uploads, and building a reusable API client",
+    "order": 4,
+    "lessons": [
+      "13-caching-rate-limits",
+      "14-formdata-uploads",
+      "15-api-client"
+    ]
+  }
+]

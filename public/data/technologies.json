@@ -118,5 +118,17 @@
     "enabled": true,
     "description": "JavaScript on the server",
     "estimatedHours": 25
+  },
+  {
+    "id": "apis",
+    "name": "Web APIs",
+    "icon": "api",
+    "color": "#ff6b35",
+    "order": 10,
+    "stage": 10,
+    "playground": "javascript",
+    "enabled": true,
+    "description": "Consuming REST APIs, fetch, auth, and HTTP patterns",
+    "estimatedHours": 15
   }
 ]

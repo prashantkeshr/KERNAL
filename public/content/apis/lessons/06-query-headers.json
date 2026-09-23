@@ -1,0 +1,97 @@
+{
+  "id": "06-query-headers",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "apis",
+  "technologyVersion": "Fetch API",
+  "module": "apis-fetch",
+  "title": "Query Params & Headers",
+  "subtitle": "URLSearchParams, custom request headers, and reading response headers",
+  "difficulty": "beginner",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["apis/04-fetch-basics"],
+  "skillsTaught": ["api.urlsearchparams", "api.request-headers", "api.response-headers", "api.accept-header"],
+  "skillsUsed": ["js.async-await"],
+  "relatedConcepts": ["api.api-keys-tokens", "api.cors"],
+  "whyItExists": {
+    "problem": "APIs expose filtering, sorting, pagination, and metadata via query parameters and headers. Manually building query strings with string concatenation is error-prone (encoding issues, missing &).",
+    "solution": "URLSearchParams handles encoding automatically. The fetch() headers option accepts an object of key/value pairs. Response headers carry important metadata (rate limits, cache info, pagination cursors).",
+    "whenToUse": "Filtering lists (?category=electronics&sort=price), paginating (?page=2&limit=20), passing auth tokens (Authorization header), setting content type (Content-Type header).",
+    "whenNotToUse": "Don't put secrets in query parameters — they appear in server logs, browser history, and Referer headers. Use the Authorization header instead."
+  },
+  "explainModes": {
+    "beginner": "Query parameters are added to a URL after a ? and separated by &. For example: /users?sort=name&page=2. Use URLSearchParams to build them safely — it handles encoding automatically so special characters don't break the URL. Request headers are extra information you send to the server (like an API key or what format you accept). Response headers are extra information the server sends back (like rate limit info).",
+    "simple": "URLSearchParams: const p = new URLSearchParams({ sort: 'name', page: '2' }); const url = '/users?' + p. headers object in fetch: { 'Authorization': 'Bearer token', 'Accept': 'application/json' }. Response headers: res.headers.get('x-rate-limit-remaining'). Common request headers: Authorization (auth), Content-Type (body format), Accept (wanted response format), X-Request-ID (tracing). URL encoding: special chars in values are encoded automatically — encodeURIComponent() does the same manually.",
+    "standard": "Headers class: new Headers({ 'Content-Type': 'application/json' }). Add: headers.append(name, val). Has: headers.has(name). forEach for iteration. Case-insensitive: 'Content-Type' and 'content-type' are the same. Merge headers: const headers = new Headers(defaults); headers.set('Authorization', token). Pagination via headers: Link header contains URLs for next/prev pages (GitHub style). X-Total-Count header for total results. Cursor pagination: next-cursor and prev-cursor headers or in response body.",
+    "technical": "URLSearchParams API: .set(k,v), .append(k,v) (adds duplicate), .get(k), .getAll(k), .has(k), .delete(k), .toString() (encoded string), .entries() (iterator). URL class: new URL('/users', base); url.searchParams.set('q', 'alice'); url.toString(). Prefer URL class over string concatenation — handles relative paths, port numbers, and trailing slashes. Forbidden headers: some headers (Host, Cookie, Origin, Referer) cannot be set by JS — the browser sets them. Redirect handling: fetch follows redirects by default (redirect: 'follow'). To stop: redirect: 'error' or 'manual'.",
+    "deepDive": "Content negotiation: the Accept header tells the server what format you want. application/json is standard. Some APIs return different formats: Accept: text/csv for spreadsheet data, Accept: application/pdf for reports. The server's Content-Type response header tells you what it actually sent. Structured fields (RFC 8941): standardized format for complex header values. Link header (RFC 8288): '<https://api.example.com/users?page=3>; rel=next, <...>; rel=prev'. Parse with the link-header npm package. ETag and conditional requests: store the ETag from a GET response, send it back in If-None-Match on the next request — server returns 304 Not Modified if unchanged, saving bandwidth."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Query parameters and request headers"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "query_headers.js",
+      "code": "// ── URLSearchParams — safe query string building ──\nconst params = new URLSearchParams({\n    category: 'electronics',\n    sort:     'price_asc',\n    page:     '2',\n    q:        'USB-C hub',  // spaces + special chars → encoded automatically\n});\nconsole.log(params.toString());\n// → category=electronics&sort=price_asc&page=2&q=USB-C+hub\n\nconst url = `https://api.example.com/products?${params}`;\n\n// ── URL class for full URLs ──\nconst u = new URL('https://api.github.com/search/repositories');\nu.searchParams.set('q', 'react language:typescript');\nu.searchParams.set('sort', 'stars');\nu.searchParams.set('per_page', '10');\nconsole.log(u.toString());\n// → https://api.github.com/search/repositories?q=react+language%3Atypescript&sort=stars&per_page=10\n\n// ── Request headers ──\nconst res = await fetch(url, {\n    headers: {\n        'Accept':          'application/json',\n        'Authorization':   'Bearer my-token',\n        'X-Client-Version': '1.0.0',\n        // 'Content-Type' — only needed for POST/PUT/PATCH with a body\n    },\n});\n\n// ── Reading response headers ──\nconsole.log('Content-Type:',  res.headers.get('content-type'));\nconsole.log('Rate Limit:',    res.headers.get('x-ratelimit-limit'));\nconsole.log('Remaining:',     res.headers.get('x-ratelimit-remaining'));\nconsole.log('Reset Time:',    res.headers.get('x-ratelimit-reset'));\nconsole.log('Request ID:',    res.headers.get('x-request-id'));  // for support tickets\n\n// ── Pagination via Link header (GitHub style) ──\nconst link = res.headers.get('link');\n// → '<https://api.example.com/users?page=3>; rel=\"next\", <...>; rel=\"last\"'\nif (link) {\n    const nextMatch = link.match(/<([^>]+)>; rel=\"next\"/);\n    const nextUrl   = nextMatch?.[1];\n    console.log('Next page:', nextUrl);\n}"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Query params & headers",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0;font-size:0.88rem}\n    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}\n    .card{background:#1a1f2b;border:1px solid #2d3748;border-radius:6px;padding:12px}\n    .label{font-size:0.72rem;color:#4fd1c5;margin-bottom:6px;font-weight:700;text-transform:uppercase}\n    input,select{width:100%;box-sizing:border-box;background:#0b0e14;color:#e2e8f0;border:1px solid #2d3748;border-radius:4px;padding:6px 8px;font-family:monospace;font-size:0.8rem;margin-bottom:6px}\n    button{background:#4fd1c5;color:#0e1116;border:none;border-radius:4px;padding:7px 14px;cursor:pointer;font-weight:700;font-size:0.8rem}\n    .preview{background:#0b0e14;border-radius:4px;padding:8px;font-family:monospace;font-size:0.75rem;color:#94a3b8;word-break:break-all;margin-top:6px}\n    .output{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:10px;font-family:monospace;font-size:0.78rem;min-height:80px;overflow:auto;white-space:pre-wrap;margin-top:10px}\n    .ok{color:#4fd1c5;font-weight:700}.err{color:#ef4444;font-weight:700}\n    small{color:#64748b;font-size:0.72rem;display:block;margin-top:2px}\n  </style>\n</head>\n<body>\n  <div class=\"grid\">\n    <div class=\"card\">\n      <div class=\"label\">Query Parameters</div>\n      <small>Filter</small><input id=\"q\" placeholder=\"search term\" oninput=\"buildUrl()\">\n      <small>Sort</small><select id=\"sort\" onchange=\"buildUrl()\"><option value=\"\">created</option><option value=\"updated\">updated</option><option value=\"name\">name</option></select>\n      <small>Page</small><input id=\"page\" type=\"number\" value=\"1\" min=\"1\" oninput=\"buildUrl()\" style=\"width:70px\">\n    </div>\n    <div class=\"card\">\n      <div class=\"label\">Request Headers</div>\n      <small>Accept</small><select id=\"accept\" onchange=\"buildUrl()\"><option value=\"application/json\">application/json</option><option value=\"application/xml\">application/xml</option><option value=\"text/csv\">text/csv</option></select>\n      <small>Authorization</small><input id=\"auth\" placeholder=\"Bearer token (optional)\" oninput=\"buildUrl()\">\n    </div>\n  </div>\n  <div class=\"label\">Generated fetch() call</div>\n  <div class=\"preview\" id=\"preview\"></div>\n  <button onclick=\"go()\" style=\"margin-top:8px\">Send Request</button>\n  <div class=\"output\" id=\"output\">← Build your request above and click Send</div>\n  <script>\n    function buildUrl(){\n      const q=document.getElementById('q').value;\n      const sort=document.getElementById('sort').value;\n      const page=document.getElementById('page').value;\n      const accept=document.getElementById('accept').value;\n      const auth=document.getElementById('auth').value;\n      const p=new URLSearchParams();\n      if(q)p.set('q',q);\n      if(sort)p.set('_sort',sort);\n      if(page&&page!=='1')p.set('_page',page);\n      p.set('_limit','5');\n      const qs=p.toString();\n      const url='https://jsonplaceholder.typicode.com/posts'+(qs?'?'+qs:'');\n      const headers={'Accept':accept};\n      if(auth)headers['Authorization']=auth;\n      const code=`await fetch('${url}',\\n  headers: ${JSON.stringify(headers,null,4)}\\n});`;\n      document.getElementById('preview').textContent=code;\n      window._url=url;window._headers=headers;\n    }\n    async function go(){\n      const out=document.getElementById('output');\n      out.textContent='Fetching...';\n      try{\n        const r=await fetch(window._url,{headers:window._headers});\n        const body=await r.json();\n        const hdrs={};\n        ['content-type','x-total-count','x-ratelimit-remaining','link'].forEach(h=>{const v=r.headers.get(h);if(v)hdrs[h]=v;});\n        out.innerHTML=`<span class=\"ok\">HTTP ${r.status}</span>  ${body.length} items\\n\\nResponse headers:\\n${JSON.stringify(hdrs,null,2)}\\n\\nFirst item:\\n${JSON.stringify(body[0],null,2)}`;\n      }catch(e){out.innerHTML=`<span class=\"err\">Error</span> ${e.message}`;}\n    }\n    buildUrl();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "tip",
+      "text": "Never put secrets (API keys, tokens) in query parameters — they appear in browser history, server logs, and Referer headers. Always put them in the Authorization header: `'Authorization': 'Bearer your-token'`."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "query-q1",
+          "question": "Why should you use URLSearchParams instead of manually building a query string with string concatenation?",
+          "type": "multiple-choice",
+          "options": [
+            "URLSearchParams is faster than string concatenation",
+            "URLSearchParams automatically percent-encodes special characters — a search term like 'USB-C hub & cables' would break a manually-built string but is correctly encoded as 'USB-C+hub+%26+cables'",
+            "fetch() only accepts URLSearchParams, not plain strings",
+            "URLSearchParams handles pagination automatically"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Manual string concatenation: '/search?q=' + query breaks when query contains &, =, #, ?, or non-ASCII characters. URLSearchParams.toString() percent-encodes all values correctly. For example, 'coffee & tea' becomes 'coffee+%26+tea'. You can also use encodeURIComponent() for individual values, but URLSearchParams handles the whole object at once."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do I read all response headers?",
+      "a": "Use `response.headers.forEach((value, name) => console.log(name, value))`. Or iterate with `for (const [name, value] of response.headers.entries())`. Note: for security reasons, JavaScript can only read 'simple' response headers plus headers the server explicitly exposes via `Access-Control-Expose-Headers`. Custom headers like `X-RateLimit-Remaining` must be listed in that header to be readable from cross-origin requests."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — URLSearchParams",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["search pages", "paginated lists", "authenticated API calls"],
+    "examples": [
+      "GitHub API: X-RateLimit-Remaining header tells you how many requests you have left",
+      "Stripe: Idempotency-Key request header prevents duplicate charges on retry",
+      "GitHub pagination: Link response header with rel=next/prev/last URLs"
+    ]
+  }
+}

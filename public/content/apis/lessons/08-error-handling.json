@@ -1,0 +1,93 @@
+{
+  "id": "08-error-handling",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "apis",
+  "technologyVersion": "Fetch API",
+  "module": "apis-auth",
+  "title": "Error Handling",
+  "subtitle": "Handling HTTP errors, network failures, timeout, and parsing error responses",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 17,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["apis/04-fetch-basics", "apis/07-api-keys-tokens"],
+  "skillsTaught": ["api.http-error-handling", "api.network-error", "api.error-parsing", "api.retry-logic"],
+  "skillsUsed": ["js.async-await", "js.try-catch"],
+  "relatedConcepts": ["api.loading-states", "api.crud-fetch"],
+  "whyItExists": {
+    "problem": "fetch() only throws for network failures, not HTTP errors. Without proper error handling, 4xx and 5xx responses silently pass through, and UI shows stale or no data without telling the user what went wrong.",
+    "solution": "Check response.ok after every fetch. Parse the error body (APIs return structured error objects). Distinguish network errors (no internet) from HTTP errors (server responded with an error). Implement retry logic for transient failures.",
+    "whenToUse": "Every fetch() call — no exceptions. All API calls can fail.",
+    "whenNotToUse": "Don't retry all errors — only 429, 502, 503, 504 are worth retrying. Never retry 4xx errors (400, 401, 403, 404, 422) — retrying won't fix a client-side mistake."
+  },
+  "explainModes": {
+    "beginner": "There are two kinds of API failures: network errors (no internet — fetch throws an Error) and HTTP errors (server replied with an error status — fetch does NOT throw, you check response.ok). Always use try/catch around fetch calls. Inside, check if (!res.ok). Parse the error body to show the user a useful message.",
+    "simple": "try { const res = await fetch(url); if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.message || res.statusText); } return await res.json(); } catch (err) { if (err.name === 'TypeError') { // network error } else { // HTTP error } }. 401 = not logged in. 403 = logged in but no permission. 404 = resource not found. 422 = validation failed. 429 = rate limited. 5xx = server error (retry later).",
+    "standard": "Error response parsing: most APIs return JSON: { error: 'NOT_FOUND', message: 'User 42 not found' }. Some return HTML on 500. Use .catch() on res.json() to handle non-JSON error bodies. Retry with exponential backoff: retry 5xx errors after 1s, 2s, 4s... up to 3 attempts. Always add jitter (random delay) to avoid thundering herd. AbortController for timeout: wrap fetch with a timeout signal — catch AbortError specifically. Custom error classes: class ApiError extends Error { constructor(status, body) { ... } } — lets you instanceof check.",
+    "technical": "Retry decision: network errors (TypeError) = retry. 500, 502, 503, 504 = retry (transient server issues). 429 = retry after Retry-After header delay. 4xx (except 429) = don't retry (client mistake). Structured error response format: RFC 7807 'Problem Details' — { type: URI, title, status, detail, instance }. Used by many REST APIs. AbortSignal.timeout(): new in modern browsers — AbortSignal.timeout(5000) creates a signal that aborts after 5 seconds. Cleaner than manual AbortController + setTimeout.",
+    "deepDive": "Circuit breaker pattern: after N consecutive failures, stop sending requests for a cooldown period (circuit 'opens'). After cooldown, try one request (half-open). If it succeeds, close the circuit. Prevents hammering a failing service. Dead letter queue: failed requests that exhausted retries go to a queue for manual review or later replay. Correlation IDs: include a unique X-Request-ID header — if an error occurs, include the ID in your error report so the API provider can find it in their logs. OpenTelemetry: structured tracing across multiple API calls — see exactly where latency or errors originate."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Robust API error handling"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "api_errors.js",
+      "code": "// ── Typed error class for API errors ──\nclass ApiError extends Error {\n    constructor(status, body) {\n        super(body?.message || body?.error || `HTTP ${status}`);\n        this.status  = status;\n        this.body    = body;\n        this.name    = 'ApiError';\n    }\n}\n\n// ── Robust fetch wrapper ──\nasync function apiFetch(url, options = {}) {\n    let res;\n    try {\n        res = await fetch(url, {\n            signal: AbortSignal.timeout(10_000),  // 10s timeout\n            ...options,\n        });\n    } catch (err) {\n        // Network error: no internet, DNS fail, timeout, request aborted\n        if (err.name === 'AbortError' || err.name === 'TimeoutError') {\n            throw new Error('Request timed out — check your connection');\n        }\n        throw new Error('Network error — you may be offline');\n    }\n\n    if (!res.ok) {\n        // Try to parse error body (may be JSON or HTML)\n        const body = await res.json().catch(() => null);\n        throw new ApiError(res.status, body);\n    }\n\n    if (res.status === 204) return null;  // No Content\n    return res.json();\n}\n\n// ── Retry with exponential backoff ──\nasync function fetchWithRetry(url, options = {}, maxRetries = 3) {\n    const RETRYABLE = new Set([429, 500, 502, 503, 504]);\n\n    for (let attempt = 1; attempt <= maxRetries; attempt++) {\n        try {\n            return await apiFetch(url, options);\n        } catch (err) {\n            const isLast = attempt === maxRetries;\n            const status = err.status;\n\n            // Only retry specific error types\n            if (err.name !== 'ApiError' || !RETRYABLE.has(status) || isLast) {\n                throw err;\n            }\n\n            // For 429, respect Retry-After header if present\n            // Otherwise: exponential backoff + jitter\n            const backoff = Math.pow(2, attempt - 1) * 1000 + Math.random() * 200;\n            console.warn(`Attempt ${attempt} failed (${status}). Retrying in ${backoff.toFixed(0)}ms...`);\n            await new Promise(r => setTimeout(r, backoff));\n        }\n    }\n}\n\n// ── Usage with error handling ──\ntry {\n    const user = await fetchWithRetry('/api/users/42');\n    console.log('User:', user.name);\n} catch (err) {\n    if (err instanceof ApiError) {\n        switch (err.status) {\n            case 401: redirect('/login'); break;\n            case 403: showMessage('You do not have permission'); break;\n            case 404: showMessage('User not found'); break;\n            case 422: showValidationErrors(err.body.errors); break;\n            case 429: showMessage('Too many requests — please wait'); break;\n            default:  showMessage('Server error — try again later');\n        }\n    } else {\n        showMessage(err.message);  // network/timeout error\n    }\n}"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Error handling sandbox",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0;font-size:0.88rem}\n    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}\n    .scenario{background:#1a1f2b;border:1px solid #2d3748;border-radius:6px;padding:10px;cursor:pointer;transition:border-color 0.15s}\n    .scenario:hover{border-color:#4fd1c5}\n    .scenario.active{border-color:#4fd1c5;background:#1e2d3d}\n    .scenario-code{font-size:0.72rem;color:#4fd1c5;font-family:monospace;font-weight:700}\n    .scenario-desc{font-size:0.75rem;color:#64748b;margin-top:4px}\n    .output{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:12px;font-family:monospace;font-size:0.78rem;min-height:150px;overflow:auto;white-space:pre-wrap}\n    .ok{color:#4fd1c5;font-weight:700}.err{color:#ef4444;font-weight:700}.warn{color:#fbbf24;font-weight:700}.dim{color:#64748b}\n    button{background:#4fd1c5;color:#0e1116;border:none;border-radius:4px;padding:7px 14px;cursor:pointer;font-weight:700;font-size:0.82rem;margin-bottom:10px}\n  </style>\n</head>\n<body>\n  <div class=\"grid\">\n    <div class=\"scenario\" onclick=\"run('success')\"><div class=\"scenario-code\">200 OK</div><div class=\"scenario-desc\">Successful response</div></div>\n    <div class=\"scenario\" onclick=\"run('notfound')\"><div class=\"scenario-code\">404 Not Found</div><div class=\"scenario-desc\">Resource missing</div></div>\n    <div class=\"scenario\" onclick=\"run('unauth')\"><div class=\"scenario-code\">401 Unauthorized</div><div class=\"scenario-desc\">Missing/invalid token</div></div>\n    <div class=\"scenario\" onclick=\"run('validation')\"><div class=\"scenario-code\">422 Validation</div><div class=\"scenario-desc\">Invalid request data</div></div>\n    <div class=\"scenario\" onclick=\"run('ratelimit')\"><div class=\"scenario-code\">429 Rate Limit</div><div class=\"scenario-desc\">Too many requests</div></div>\n    <div class=\"scenario\" onclick=\"run('server')\"><div class=\"scenario-code\">500 Server Error</div><div class=\"scenario-desc\">Backend crashed</div></div>\n  </div>\n  <button onclick=\"run('network')\">Simulate Network Error (offline)</button>\n  <div class=\"output\" id=\"output\">Click a scenario above to see error handling in action...</div>\n  <script>\n    class ApiError extends Error{constructor(s,b){super(b?.message||b?.error||`HTTP ${s}`);this.status=s;this.body=b;this.name='ApiError';}}\n    const scenarios={\n      success:{status:200,body:{id:1,name:'Alice',email:'alice@example.com',role:'admin'},headers:{}},\n      notfound:{status:404,body:{error:'NOT_FOUND',message:'User 42 not found'},headers:{}},\n      unauth:{status:401,body:{error:'UNAUTHORIZED',message:'Missing or invalid Bearer token'},headers:{}},\n      validation:{status:422,body:{error:'VALIDATION_FAILED',message:'Invalid input',errors:[{field:'email',message:'Invalid email format'},{field:'name',message:'Name too short'}]},headers:{}},\n      ratelimit:{status:429,body:{error:'RATE_LIMITED',message:'Too many requests'},headers:{'retry-after':'60','x-ratelimit-remaining':'0','x-ratelimit-reset':''+Math.floor(Date.now()/1000+60)}},\n      server:{status:500,body:{error:'INTERNAL_ERROR',message:'Database connection failed'},headers:{}},\n    };\n    async function run(type){\n      document.querySelectorAll('.scenario').forEach(el=>el.classList.remove('active'));\n      const el=document.querySelector(`.scenario:nth-child(${['success','notfound','unauth','validation','ratelimit','server'].indexOf(type)+1})`);\n      if(el)el.classList.add('active');\n      const out=document.getElementById('output');\n      if(type==='network'){out.innerHTML='<span class=\"dim\">Simulating network error...</span>';await new Promise(r=>setTimeout(r,300));out.innerHTML='<span class=\"err\">TypeError: Failed to fetch</span>\\n\\nCaught in catch block:\\n  err.name = \"TypeError\"\\n  err.message = \"Failed to fetch\"\\n\\n<span class=\"warn\">Handling:</span> Show offline message to user\\n→ \"Network error — check your connection\"';return;}\n      const sc=scenarios[type];\n      await new Promise(r=>setTimeout(r,200));\n      let html=`Request: GET /api/users/42\\n\\n`;\n      html+=`<span class=\"${sc.status<300?'ok':'err'}\">HTTP ${sc.status}</span>\\n`;\n      html+=`Response body: ${JSON.stringify(sc.body,null,2)}\\n`;\n      if(Object.keys(sc.headers).length)html+=`\\nHeaders: ${JSON.stringify(sc.headers,null,2)}\\n`;\n      if(sc.status>=200&&sc.status<300){html+='\\n<span class=\"ok\">res.ok = true</span>\\n→ Parse body normally';}\n      else{\n        html+='\\n<span class=\"err\">res.ok = false → throw ApiError</span>\\n\\n<span class=\"warn\">Handling:</span>\\n';\n        if(sc.status===401)html+='→ Redirect to /login';\n        else if(sc.status===422)html+='→ Show field errors: '+sc.body.errors?.map(e=>e.field+': '+e.message).join(', ');\n        else if(sc.status===429)html+='→ Show rate limit warning\\n→ Retry after '+sc.headers['retry-after']+'s (Retry-After header)';\n        else if(sc.status===404)html+='→ Show \"not found\" message to user';\n        else html+='→ Show generic error message: '+sc.body.message;\n      }\n      out.innerHTML=html;\n    }\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "api-err-q1",
+          "question": "You receive a 429 Too Many Requests response. What should you do?",
+          "type": "multiple-choice",
+          "options": [
+            "Retry immediately in a tight loop until it succeeds",
+            "Check the Retry-After response header for how long to wait, then retry after that delay with exponential backoff",
+            "Treat it as a permanent error and stop all API calls forever",
+            "Switch to a different endpoint to avoid the rate limit"
+          ],
+          "correctAnswer": 1,
+          "explanation": "429 means you've exceeded the API's rate limit. The Retry-After header (if present) tells you exactly how many seconds to wait before retrying. Without that header, use exponential backoff: wait 1s, then 2s, then 4s. Never retry in a tight loop — you'll hit the rate limit again immediately and potentially get your IP banned. Most APIs have separate rate limits per endpoint, user, and IP — switching endpoints doesn't help."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do I show the user a helpful error message instead of 'HTTP 422'?",
+      "a": "Parse the error body from the API response — most APIs return a structured JSON error: `{ \"error\": \"VALIDATION_FAILED\", \"message\": \"Email is invalid\" }`. After checking `!res.ok`, do `const errBody = await res.json().catch(() => null)`. Then use `errBody?.message || res.statusText` as the user-facing message. For 422 Validation errors, many APIs also return a list of field-specific errors — render those next to the relevant form fields."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — Response.ok",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/Response/ok",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every production API integration"],
+    "examples": [
+      "Stripe returns structured errors: { error: { type, code, message, param } } — parse param to highlight the right field",
+      "GitHub returns X-RateLimit-Remaining and X-RateLimit-Reset — implement retry-after logic",
+      "OpenAI returns { error: { message, type, code } } — display message.message to users"
+    ]
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "id": "14-formdata-uploads",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "apis",
+  "technologyVersion": "Fetch API / FormData",
+  "module": "apis-practice",
+  "title": "FormData & File Uploads",
+  "subtitle": "Uploading files with FormData, multipart/form-data, progress tracking, and drag-and-drop",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 17,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["apis/05-post-requests"],
+  "skillsTaught": ["api.formdata", "api.file-upload", "api.multipart", "api.upload-progress"],
+  "skillsUsed": ["api.post-requests", "api.error-handling", "js.dom-events"],
+  "relatedConcepts": ["api.api-client", "api.loading-states"],
+  "whyItExists": {
+    "problem": "JSON can't represent binary data (images, PDFs, videos). File uploads require a different content type — multipart/form-data — that supports mixing text fields and binary file data in one request body.",
+    "solution": "FormData builds multipart/form-data bodies automatically. Pass it directly to fetch() — don't set Content-Type (the browser sets it with the boundary string). For progress tracking, use XMLHttpRequest's upload.onprogress instead of fetch().",
+    "whenToUse": "Profile picture upload, document attachment, bulk import (CSV), any form with a file input.",
+    "whenNotToUse": "For small amounts of binary data that can be base64-encoded, a JSON body with a base64 field is simpler. For very large files (>100MB), use presigned URLs (upload directly to S3/GCS from the browser)."
+  },
+  "explainModes": {
+    "beginner": "To upload a file, you use FormData. It's like a form in JavaScript — you append fields to it: fd.append('file', theFile). Then you pass fd to fetch() as the body, without setting Content-Type (the browser handles that). The server receives it as a multipart form upload — same format as an HTML <form> with enctype='multipart/form-data'.",
+    "simple": "const fd = new FormData(); fd.append('file', fileInput.files[0]); fd.append('description', 'my photo'). fetch('/upload', { method: 'POST', body: fd }). Do NOT set Content-Type header — let the browser set multipart/form-data; boundary=... automatically. Input file via HTML: <input type='file'>. Drag-and-drop: event.dataTransfer.files[0]. Multiple files: fd.append('files', file) multiple times or fileInput.multiple = true.",
+    "standard": "Progress tracking: fetch() doesn't expose upload progress — use XMLHttpRequest instead. xhr.upload.onprogress = (e) => { const pct = (e.loaded / e.total * 100).toFixed(1) }. Multiple files: Array.from(fileInput.files).forEach(f => fd.append('files', f)). File validation before upload: check file.type (MIME type), file.size, file.name extension. Creating thumbnails: URL.createObjectURL(file) — local preview URL, revoke with URL.revokeObjectURL() after use. Presigned URLs: for large files, backend generates a presigned S3 URL — frontend uploads directly to S3, bypassing your server entirely.",
+    "technical": "multipart/form-data format: boundary string separates parts. Each part has headers (Content-Disposition with name/filename, Content-Type for files) and body (text or binary). Server parsing: express with multer: upload.single('file') puts file in req.file — { fieldname, originalname, mimetype, size, buffer/path }. Streaming uploads: for very large files, pipe the ReadableStream to avoid buffering the whole file in memory. TransformStream: compress before upload. File chunks: split into 5MB chunks and upload in parallel — reassemble on server. Resume interrupted uploads: TUS protocol.",
+    "deepDive": "Presigned URL flow: frontend → backend: 'I want to upload a 50MB video'. Backend → S3: 'generate a URL valid for 15 minutes for this key'. Backend → frontend: presigned URL. Frontend → S3: PUT directly with the presigned URL. Benefits: doesn't go through your server (saves egress costs, no timeout issues), S3 handles chunking and resumability natively. S3 multipart upload API: split into 5MB+ parts, upload in parallel with Part numbers, call CompleteMultipartUpload. Signed URL alternative: Google Cloud Storage, Azure Blob SAS URLs — same concept. Virus scanning: scan uploaded files before making them accessible — ClamAV, AWS Security Hub, or dedicated services."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "File uploads with FormData"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "upload.js",
+      "code": "// ── Basic file upload with FormData ──\nasync function uploadFile(file) {\n    const fd = new FormData();\n    fd.append('file', file);           // the file\n    fd.append('description', 'My photo');  // extra text fields\n    fd.append('tags', JSON.stringify(['profile', 'avatar']));\n\n    // Do NOT set Content-Type — browser sets multipart/form-data; boundary=...\n    const res = await fetch('/api/upload', {\n        method: 'POST',\n        body:   fd,\n    });\n\n    if (!res.ok) throw new Error(`Upload failed: HTTP ${res.status}`);\n    return res.json();  // { url: 'https://cdn.example.com/photo.jpg', id: '...' }\n}\n\n// ── Upload with progress (requires XMLHttpRequest) ──\nfunction uploadWithProgress(file, onProgress) {\n    return new Promise((resolve, reject) => {\n        const fd  = new FormData();\n        fd.append('file', file);\n\n        const xhr = new XMLHttpRequest();\n\n        // Track upload progress\n        xhr.upload.onprogress = (e) => {\n            if (e.lengthComputable) {\n                const pct = (e.loaded / e.total * 100).toFixed(1);\n                onProgress(Number(pct), e.loaded, e.total);\n            }\n        };\n\n        xhr.onload  = () => {\n            if (xhr.status >= 200 && xhr.status < 300) resolve(JSON.parse(xhr.responseText));\n            else reject(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`));\n        };\n        xhr.onerror = () => reject(new Error('Network error'));\n\n        xhr.open('POST', '/api/upload');\n        xhr.send(fd);\n    });\n}\n\n// ── Drag-and-drop with validation ──\nconst ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];\nconst MAX_SIZE_MB   = 10;\n\ndropZone.addEventListener('drop', async (e) => {\n    e.preventDefault();\n    const files = Array.from(e.dataTransfer.files);\n\n    for (const file of files) {\n        // Validate before upload\n        if (!ALLOWED_TYPES.includes(file.type)) {\n            showError(`${file.name}: not a supported image type`);\n            continue;\n        }\n        if (file.size > MAX_SIZE_MB * 1024 * 1024) {\n            showError(`${file.name}: exceeds ${MAX_SIZE_MB}MB limit`);\n            continue;\n        }\n\n        // Show preview\n        const previewUrl = URL.createObjectURL(file);\n        showPreview(previewUrl, file.name);\n\n        // Upload with progress\n        try {\n            await uploadWithProgress(file, (pct, loaded, total) => {\n                updateProgressBar(pct);  // Update UI\n            });\n            URL.revokeObjectURL(previewUrl);  // Clean up\n        } catch (err) {\n            showError(`Upload failed: ${err.message}`);\n        }\n    }\n});"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: File upload simulator",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0;font-size:0.88rem}\n    .drop-zone{border:2px dashed #2d3748;border-radius:8px;padding:30px;text-align:center;margin-bottom:12px;transition:border-color 0.2s,background 0.2s;cursor:pointer}\n    .drop-zone.over{border-color:#4fd1c5;background:#0e1f2f}\n    .drop-zone-icon{font-size:2.5rem;margin-bottom:8px}\n    .drop-zone-text{color:#94a3b8;font-size:0.85rem}\n    input[type=file]{display:none}\n    .file-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}\n    .file-item{background:#1a1f2b;border:1px solid #2d3748;border-radius:6px;padding:10px}\n    .file-header{display:flex;justify-content:space-between;margin-bottom:6px}\n    .file-name{font-size:0.82rem;font-weight:700}\n    .file-size{font-size:0.75rem;color:#64748b}\n    .progress-bar{height:6px;background:#2d3748;border-radius:3px;overflow:hidden}\n    .progress-fill{height:100%;background:#4fd1c5;border-radius:3px;width:0;transition:width 0.1s}\n    .progress-fill.done{background:#22c55e}\n    .progress-fill.error{background:#ef4444}\n    .progress-text{font-size:0.72rem;color:#94a3b8;margin-top:4px}\n    .thumbnail{width:48px;height:48px;object-fit:cover;border-radius:4px;margin-right:8px;float:left}\n    button{background:#4fd1c5;color:#0e1116;border:none;border-radius:4px;padding:8px 14px;cursor:pointer;font-weight:700}\n    .err{color:#ef4444;font-size:0.78rem;margin-top:4px}\n    .ok{color:#22c55e}\n  </style>\n</head>\n<body>\n  <div class=\"drop-zone\" id=\"drop\" onclick=\"document.getElementById('fi').click()\" ondragover=\"event.preventDefault();this.classList.add('over')\" ondragleave=\"this.classList.remove('over')\" ondrop=\"handleDrop(event)\">\n    <div class=\"drop-zone-icon\">📁</div>\n    <div class=\"drop-zone-text\">Drag & drop files here, or click to select<br><small>Images only, max 5MB each</small></div>\n    <input type=\"file\" id=\"fi\" multiple accept=\"image/*\" onchange=\"handleSelect(this.files)\">\n  </div>\n  <div class=\"file-list\" id=\"file-list\"></div>\n  <script>\n    function handleDrop(e){e.preventDefault();document.getElementById('drop').classList.remove('over');handleSelect(e.dataTransfer.files);}\n    function handleSelect(files){\n      Array.from(files).forEach(f=>{\n        if(!f.type.startsWith('image/')){addItem(f,'error','Not an image file');return;}\n        if(f.size>5*1024*1024){addItem(f,'error','File exceeds 5MB limit');return;}\n        addItem(f,'uploading');});\n    }\n    function addItem(file,state,errMsg){\n      const id='f'+Date.now()+Math.random().toString(36).slice(2);\n      const el=document.createElement('div');\n      el.className='file-item';el.id=id;\n      const isImg=file.type.startsWith('image/');\n      const previewUrl=isImg?URL.createObjectURL(file):'';\n      el.innerHTML=`${previewUrl?`<img class=\"thumbnail\" src=\"${previewUrl}\">`:''}\n        <div class=\"file-header\"><span class=\"file-name\">${file.name}</span><span class=\"file-size\">${(file.size/1024).toFixed(1)}KB</span></div>\n        <div class=\"progress-bar\"><div class=\"progress-fill${state==='error'?' error':''}\" id=\"pf-${id}\" style=\"width:${state==='error'?'100':'0'}%\"></div></div>\n        <div class=\"progress-text\" id=\"pt-${id}\">${state==='error'?'<span class=\"err\">✗ '+errMsg+'</span>':'Waiting...'}</div>`;\n      document.getElementById('file-list').appendChild(el);\n      if(state==='uploading')simulateUpload(id,file,previewUrl);}\n    function simulateUpload(id,file,previewUrl){\n      const fill=document.getElementById('pf-'+id);\n      const text=document.getElementById('pt-'+id);\n      let pct=0;const steps=20;const interval=setInterval(()=>{\n        pct+=100/steps+Math.random()*5;if(pct>=100)pct=100;\n        fill.style.width=pct+'%';\n        const loaded=(pct/100*file.size/1024).toFixed(1);\n        const total=(file.size/1024).toFixed(1);\n        text.textContent=pct<100?`Uploading... ${pct.toFixed(0)}% (${loaded}KB / ${total}KB)`:'Finalizing...';\n        if(pct>=100){clearInterval(interval);fill.className='progress-fill done';\n          text.innerHTML='<span class=\"ok\">✓ Uploaded successfully</span>&nbsp; <span style=\"color:#64748b;font-size:0.72rem\">→ cdn.example.com/'+file.name+'</span>';\n          if(previewUrl)URL.revokeObjectURL(previewUrl);}\n      },80);}\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "tip",
+      "text": "Never set Content-Type manually for FormData. The boundary string (e.g. `boundary=----WebKitFormBoundary...`) is auto-generated — if you override Content-Type, the server can't parse the file and the upload fails."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "upload-q1",
+          "question": "Why use XMLHttpRequest instead of fetch() when you need to track upload progress?",
+          "type": "multiple-choice",
+          "options": [
+            "fetch() can't upload files at all",
+            "The fetch() API doesn't expose upload progress events. XMLHttpRequest has an upload.onprogress event that fires as bytes are sent, enabling a progress bar.",
+            "XMLHttpRequest is faster than fetch() for large files",
+            "fetch() has a 10MB file size limit"
+          ],
+          "correctAnswer": 1,
+          "explanation": "fetch() returns a Response only when the request is complete — there's no way to observe bytes being uploaded. XMLHttpRequest's xhr.upload.onprogress fires repeatedly with { loaded, total } as the upload proceeds. This is the only way to show a progress bar for uploads. For downloads, you CAN track progress with fetch() using response.body.getReader() to read the stream chunk by chunk."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do I upload large files without hitting server limits or timeouts?",
+      "a": "Use presigned URLs (S3, GCS, Azure Blob). Flow: (1) Frontend asks your backend 'I want to upload a 200MB video'. (2) Your backend calls AWS S3 to generate a presigned URL valid for 15 minutes. (3) Your backend returns the URL to the frontend. (4) Frontend uses fetch() or XMLHttpRequest to PUT the file directly to S3 — no traffic goes through your server. Benefits: no server timeout, no 100MB body limit, bandwidth goes directly to S3. S3 also supports multipart uploads (split into 5MB+ chunks, upload in parallel, reassemble)."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — FormData",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/FormData",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["profile photos", "document uploads", "media hosting"],
+    "examples": [
+      "Cloudinary — presigned upload URL flow for images/videos",
+      "GitHub — file attachment in issues uses multipart form upload",
+      "Google Drive — chunked upload API for files >5MB"
+    ]
+  }
+}

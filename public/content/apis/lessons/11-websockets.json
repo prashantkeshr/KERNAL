@@ -1,0 +1,97 @@
+{
+  "id": "11-websockets",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "apis",
+  "technologyVersion": "WebSocket API",
+  "module": "apis-patterns",
+  "title": "WebSockets",
+  "subtitle": "Real-time bidirectional communication with new WebSocket(), onmessage, and send()",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 18,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["apis/10-crud-fetch"],
+  "skillsTaught": ["api.websocket-connect", "api.websocket-send", "api.websocket-events", "api.reconnect-logic"],
+  "skillsUsed": ["js.events", "js.json"],
+  "relatedConcepts": ["api.cors", "api.loading-states"],
+  "whyItExists": {
+    "problem": "HTTP is request-response: the client always initiates. For real-time data (chat, live scores, collaborative editing), you'd need polling — repeatedly asking 'any updates?'. Polling is wasteful: it adds latency and burns network/server resources.",
+    "solution": "WebSocket creates a persistent, full-duplex TCP connection after an HTTP upgrade handshake. Either side can send messages at any time. One connection stays open instead of hundreds of short-lived HTTP requests.",
+    "whenToUse": "Chat applications, live notifications, multiplayer games, collaborative editing, live dashboards, financial tickers, real-time presence (who's online).",
+    "whenNotToUse": "Regular CRUD operations that don't need real-time updates. Server-Sent Events (SSE) are simpler when only the server pushes (one-directional). Long-polling works when WebSocket is unavailable."
+  },
+  "explainModes": {
+    "beginner": "A WebSocket is like a phone call between your browser and a server. With HTTP, you have to keep hanging up and calling back. With WebSocket, you call once and both sides can speak whenever they want. You create it with new WebSocket(url). Then you listen for messages with ws.onmessage. And you send messages with ws.send(). When done, call ws.close().",
+    "simple": "const ws = new WebSocket('wss://example.com/socket'). ws.onopen = () => { ws.send('hello') }. ws.onmessage = (event) => { console.log(event.data) }. ws.onerror = (err) => { console.error(err) }. ws.onclose = (event) => { console.log('closed', event.code) }. Sending JSON: ws.send(JSON.stringify({ type: 'message', text: 'hello' })). Receiving: JSON.parse(event.data). ws.readyState: 0=CONNECTING, 1=OPEN, 2=CLOSING, 3=CLOSED.",
+    "standard": "Message types: text (string) or binary (ArrayBuffer/Blob). JSON is standard for text: { type: 'chat', data: {...} }. Type-based routing: switch on message.type to route to different handlers. Heartbeat/ping: send a ping every 30s to keep connection alive through proxies and firewalls. Reconnect strategy: exponential backoff on close — 1s, 2s, 4s, max 30s. Check event.code on close to decide whether to reconnect (1000 = normal close, 1006 = abnormal — reconnect). Authentication: send token in first message after onopen, or as a query parameter wss://example.com/ws?token=...",
+    "technical": "WebSocket upgrade: client sends HTTP GET with Upgrade: websocket, Connection: upgrade, Sec-WebSocket-Key headers. Server responds 101 Switching Protocols. After that, framed binary protocol over the same TCP connection. Frames: text, binary, ping, pong, close. Subprotocols: negotiate with Sec-WebSocket-Protocol header — common ones: graphql-ws, json, chat. Socket.IO: abstraction over WebSocket with auto-reconnect, namespaces, rooms, fallback to polling. Many production apps use Socket.IO instead of raw WebSocket for its reliability features.",
+    "deepDive": "Scaling WebSockets: HTTP is stateless — any server can handle any request. WebSocket connections are stateful — they're tied to a specific server process. Solutions: sticky sessions (load balancer routes client to same server), publish/subscribe backend (Redis pub/sub — any server publishes, all servers relay to their connected clients), or a managed WebSocket service (Pusher, Ably, AWS API Gateway WebSocket APIs). Message ordering: WebSocket doesn't guarantee message ordering if reconnects happen. Include a sequence number in messages. SSE (Server-Sent Events): one-way push, native reconnect, works over plain HTTP/2 multiplexing — often better than WebSocket for notifications and feeds."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Real-time communication with WebSockets"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "websocket.js",
+      "code": "// ── Basic WebSocket connection ──\nconst ws = new WebSocket('wss://api.example.com/chat');\n\nws.onopen = () => {\n    console.log('Connected');\n    // Send a JSON message\n    ws.send(JSON.stringify({\n        type: 'auth',\n        token: sessionStorage.getItem('token'),\n    }));\n};\n\nws.onmessage = (event) => {\n    const msg = JSON.parse(event.data);\n    switch (msg.type) {\n        case 'chat':     renderMessage(msg.data);   break;\n        case 'presence': updateOnlineUsers(msg.data); break;\n        case 'typing':   showTypingIndicator(msg.data); break;\n        case 'error':    console.error(msg.message); break;\n    }\n};\n\nws.onerror = (error) => console.error('WebSocket error:', error);\n\nws.onclose = (event) => {\n    console.log(`Closed: code=${event.code} reason=${event.reason}`);\n    // 1000 = normal close, 1001 = going away, 1006 = abnormal (reconnect)\n    if (event.code !== 1000) reconnect();\n};\n\n// Send a chat message\nfunction sendMessage(text) {\n    if (ws.readyState !== WebSocket.OPEN) return;\n    ws.send(JSON.stringify({ type: 'chat', text, timestamp: Date.now() }));\n}\n\n// ── Auto-reconnect with exponential backoff ──\nlet reconnectDelay = 1000;\n\nfunction reconnect() {\n    console.log(`Reconnecting in ${reconnectDelay / 1000}s...`);\n    setTimeout(() => {\n        const newWs = new WebSocket('wss://api.example.com/chat');\n        // re-attach event handlers...\n        reconnectDelay = Math.min(reconnectDelay * 2, 30_000);  // cap at 30s\n    }, reconnectDelay);\n}\n\n// ── Heartbeat — keep connection alive through proxies ──\nconst heartbeat = setInterval(() => {\n    if (ws.readyState === WebSocket.OPEN) {\n        ws.send(JSON.stringify({ type: 'ping' }));\n    }\n}, 30_000);\n\n// Clean up on close\nws.addEventListener('close', () => clearInterval(heartbeat));"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: WebSocket chat simulator",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0;font-size:0.88rem}\n    .chat{background:#1a1f2b;border:1px solid #2d3748;border-radius:8px;padding:12px;height:280px;overflow-y:auto;margin-bottom:10px;display:flex;flex-direction:column;gap:6px}\n    .msg{padding:6px 10px;border-radius:6px;max-width:80%;font-size:0.85rem}\n    .msg.me{background:#1e3a5f;color:#93c5fd;align-self:flex-end}\n    .msg.server{background:#2d3748;color:#e2e8f0;align-self:flex-start}\n    .msg.system{color:#64748b;font-style:italic;font-size:0.78rem;align-self:center;background:none;padding:2px 0}\n    .input-row{display:flex;gap:8px}\n    input{flex:1;background:#0b0e14;color:#e2e8f0;border:1px solid #2d3748;border-radius:4px;padding:8px 12px;font-size:0.88rem}\n    button{background:#4fd1c5;color:#0e1116;border:none;border-radius:4px;padding:8px 14px;cursor:pointer;font-weight:700}\n    .status-bar{display:flex;gap:6px;align-items:center;margin-bottom:10px;font-size:0.78rem}\n    .dot{width:8px;height:8px;border-radius:50%;background:#ef4444}\n    .dot.open{background:#4fd1c5}\n    .controls{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}\n    .ctrl-btn{background:#2d3748;color:#e2e8f0;border:none;border-radius:4px;padding:5px 10px;cursor:pointer;font-size:0.78rem}\n    .code-hint{background:#0b0e14;border-radius:4px;padding:8px;font-family:monospace;font-size:0.73rem;color:#64748b;margin-top:10px}\n  </style>\n</head>\n<body>\n  <div class=\"status-bar\">\n    <div class=\"dot\" id=\"status-dot\"></div>\n    <span id=\"status-text\">Disconnected</span>\n    <span id=\"users\" style=\"margin-left:auto;color:#64748b\"></span>\n  </div>\n  <div class=\"controls\">\n    <button class=\"ctrl-btn\" id=\"connect-btn\" onclick=\"toggle()\">Connect</button>\n    <button class=\"ctrl-btn\" onclick=\"simulateServerMsg('chat')\">Server sends message</button>\n    <button class=\"ctrl-btn\" onclick=\"simulateServerMsg('typing')\">Someone typing...</button>\n    <button class=\"ctrl-btn\" onclick=\"simulateServerMsg('user-join')\">User joins</button>\n    <button class=\"ctrl-btn\" onclick=\"simulateServerMsg('error')\">Server error</button>\n  </div>\n  <div class=\"chat\" id=\"chat\"></div>\n  <div class=\"input-row\">\n    <input id=\"msg\" placeholder=\"Type a message...\" onkeydown=\"if(event.key==='Enter')send()\" />\n    <button onclick=\"send()\">Send</button>\n  </div>\n  <div class=\"code-hint\" id=\"code-hint\">// ws.readyState: CLOSED (3)</div>\n  <script>\n    let _open=false;let _users=['Alice','Bob','Charlie'];\n    const NAMES=['Server Bot','Alice','Bob','Charlie'];\n    const MSGS=['Hey, how\\'s it going?','Did you see the new feature?','Working on the API integration','Just pushed a fix!','Coffee break?','This WebSocket is so fast!'];\n    function addMsg(text,type){const c=document.getElementById('chat');const d=document.createElement('div');d.className='msg '+type;d.textContent=text;c.appendChild(d);c.scrollTop=c.scrollHeight;}\n    function updateStatus(open){_open=open;document.getElementById('status-dot').className='dot'+(open?' open':'');document.getElementById('status-text').textContent=open?'Connected (readyState: OPEN)':'Disconnected (readyState: CLOSED)';document.getElementById('connect-btn').textContent=open?'Disconnect':'Connect';document.getElementById('code-hint').textContent='// ws.readyState: '+(open?'OPEN (1)':'CLOSED (3)');document.getElementById('users').textContent=open?_users.length+' online':'';}\n    function toggle(){if(_open){updateStatus(false);addMsg('WebSocket closed: code=1000 reason=Normal',\"system\");}else{addMsg('Connecting to wss://chat.example.com...','system');setTimeout(()=>{updateStatus(true);addMsg('WebSocket opened','system');addMsg('{type:\"welcome\",users:[\"Alice\",\"Bob\",\"Charlie\"]}','system');},600);}}\n    function send(){if(!_open){addMsg('Not connected — call ws.connect() first','system');return;}const t=document.getElementById('msg').value.trim();if(!t)return;document.getElementById('msg').value='';addMsg('Me: '+t,'me');const code=`ws.send(JSON.stringify({ type: \"chat\", text: \"${t}\", ts: ${Date.now()} }))`;document.getElementById('code-hint').textContent=code;setTimeout(()=>{if(Math.random()>0.3)addMsg(NAMES[Math.floor(Math.random()*NAMES.length)]+': '+MSGS[Math.floor(Math.random()*MSGS.length)],'server');},800+Math.random()*1200);}\n    function simulateServerMsg(type){if(!_open){addMsg('Connect first','system');return;}if(type==='chat'){const name=NAMES[Math.floor(Math.random()*NAMES.length)];const msg=MSGS[Math.floor(Math.random()*MSGS.length)];addMsg(name+': '+msg,'server');document.getElementById('code-hint').textContent='ws.onmessage({ data: \\'{\"type\":\"chat\",\"from\":\"'+name+'\"}\\'  })';}else if(type==='typing'){addMsg('Alice is typing...','system');document.getElementById('code-hint').textContent='ws.onmessage({ data: \\'{\"type\":\"typing\",\"user\":\"Alice\",\"active\":true}\\' })';}else if(type==='user-join'){const u='Dave';_users.push(u);document.getElementById('users').textContent=_users.length+' online';addMsg(u+' joined the chat','system');document.getElementById('code-hint').textContent='ws.onmessage({ data: \\'{\"type\":\"presence\",\"event\":\"join\",\"user\":\"Dave\"}\\' })';}else if(type==='error'){addMsg('Server: Error — message too long (max 500 chars)','server');document.getElementById('code-hint').textContent='ws.onmessage({ data: \\'{\"type\":\"error\",\"code\":\"MSG_TOO_LONG\"}\\'  })';} }\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "tip",
+      "text": "Always implement reconnect logic. WebSockets close unexpectedly — network hiccups, server deploys, idle timeouts. Use exponential backoff (1s, 2s, 4s...) with a cap (~30s) to avoid hammering a struggling server."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "ws-q1",
+          "question": "What is the key difference between WebSocket and regular HTTP fetch()?",
+          "type": "multiple-choice",
+          "options": [
+            "WebSocket is faster than fetch() for all requests",
+            "WebSocket creates a persistent connection where either side can send messages at any time. HTTP fetch() is request-response: the client sends a request, the server replies, and the connection closes",
+            "WebSocket only works for binary data, while fetch() handles JSON",
+            "WebSocket requires a paid API key to use"
+          ],
+          "correctAnswer": 1,
+          "explanation": "HTTP fetch() is request-response: the client always initiates and the server can only respond when asked. After the response, the connection closes. WebSocket starts with an HTTP upgrade handshake, then the connection stays open and either side can send data anytime. This makes WebSocket ideal for real-time applications: chat, live notifications, collaborative editing. For simple data fetching that doesn't need real-time updates, fetch() is the right choice."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Should I use WebSocket or Server-Sent Events (SSE)?",
+      "a": "If your app only needs the SERVER to push updates to the client (live notifications, news feeds, price tickers), SSE is simpler: `const source = new EventSource('/events')`. SSE uses plain HTTP, reconnects automatically, works over HTTP/2 multiplexing, and is easier to debug. If you need the CLIENT to also send messages to the server in real time (chat, collaborative editing, multiplayer games), use WebSocket. SSE is unidirectional; WebSocket is bidirectional."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — WebSocket API",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/WebSocket",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["chat apps", "live dashboards", "multiplayer games", "collaborative editing"],
+    "examples": [
+      "Slack — uses WebSockets for real-time message delivery",
+      "Figma — multiplayer cursor tracking and collaborative editing",
+      "Binance — live crypto price feeds via WebSocket stream"
+    ]
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "id": "12-cors",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "apis",
+  "technologyVersion": "HTTP / CORS",
+  "module": "apis-patterns",
+  "title": "CORS",
+  "subtitle": "How Cross-Origin Resource Sharing works, preflight requests, and fixing CORS errors",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 16,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["apis/06-query-headers"],
+  "skillsTaught": ["api.cors-concept", "api.preflight-request", "api.cors-headers", "api.cors-fix"],
+  "skillsUsed": ["api.request-headers"],
+  "relatedConcepts": ["api.api-keys-tokens", "api.crud-fetch"],
+  "whyItExists": {
+    "problem": "A malicious website could use your logged-in credentials to make API requests on your behalf (CSRF). Without browser enforcement, a script on evil.com could call api.yourbank.com/transfer and your cookies would be sent automatically.",
+    "solution": "The Same-Origin Policy blocks cross-origin requests by default. CORS is the opt-in mechanism that lets a server explicitly say 'I allow requests from other-origin.com'. The browser enforces this — server developers must configure it to allow trusted frontends.",
+    "whenToUse": "Any time your frontend (app.com) calls an API on a different origin (api.com or api.app.com). Both hosts, ports, and protocols must match for same-origin.",
+    "whenNotToUse": "CORS is a browser security mechanism. It doesn't affect server-to-server requests (Node.js backend calling another API) — only browser-to-server. Never use `Access-Control-Allow-Origin: *` for APIs that use cookies or Authorization headers."
+  },
+  "explainModes": {
+    "beginner": "CORS is a browser safety rule. Your browser will refuse to let JavaScript on one website (like your app at localhost:3000) talk to a server at a different address (like api.example.com) UNLESS that server says 'yes, I allow requests from localhost:3000'. This is enforced by the browser — not the server. The error message 'CORS policy blocked' means the server hasn't allowed your origin. You fix it on the SERVER by adding Access-Control-Allow-Origin headers, not in your frontend code.",
+    "simple": "Same origin: same protocol + host + port. http://app.com:3000 ≠ https://app.com:3000 (different protocol). The server must respond with Access-Control-Allow-Origin: https://your-app.com. Simple requests: GET/POST with Content-Type text/plain, application/x-www-form-urlencoded, or multipart/form-data — no preflight. Preflighted requests: any other method or Content-Type (like JSON POST) triggers an OPTIONS preflight first. CORS never applies to server-side code — only browsers enforce it.",
+    "standard": "Preflight: browser sends OPTIONS request to ask 'can I send this?' before the actual request. Access-Control-Request-Method: POST. Access-Control-Request-Headers: Content-Type, Authorization. Server replies: Access-Control-Allow-Origin: * or specific origin. Access-Control-Allow-Methods: GET, POST, PATCH, DELETE. Access-Control-Allow-Headers: Content-Type, Authorization. Access-Control-Max-Age: 86400 (cache preflight for 24h). Credentials (cookies): fetch({credentials:'include'}) + server must respond Access-Control-Allow-Credentials: true AND Access-Control-Allow-Origin must be a specific origin (not *).",
+    "technical": "CORS headers: request — Origin (browser sets, cannot be forged from JS). Response — Access-Control-Allow-Origin, Access-Control-Allow-Methods, Access-Control-Allow-Headers, Access-Control-Expose-Headers (which response headers JS can read), Access-Control-Allow-Credentials, Access-Control-Max-Age. Simple response headers readable by default: Cache-Control, Content-Language, Content-Length, Content-Type, Expires, Last-Modified, Pragma. All others need Access-Control-Expose-Headers. Express: `app.use(cors({ origin: 'https://app.com', credentials: true }))` from the cors npm package.",
+    "deepDive": "CORS bypass patterns: proxy server (frontend calls your-domain.com/proxy which forwards to third-party — same origin, no CORS check). JSONP (legacy hack for GET requests — loads script tag, third-party calls your callback). PostMessage (window.postMessage for iframe communication — separate CORS-bypass mechanism). Security auditing: check that your CORS config doesn't reflect arbitrary Origin header values — some buggy configs do `Access-Control-Allow-Origin: req.headers.origin` unconditionally, allowing any site to make credentialed requests. Vary: Origin header: CORS-enabling servers should include Vary: Origin in responses to prevent caches from serving the wrong CORS header to different origins."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Cross-Origin Resource Sharing"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "cors_explained.js",
+      "code": "// ── What triggers a CORS error ──\n// Frontend at http://localhost:3000 fetches:\nfetch('https://api.example.com/data');\n// Browser checks: different origin? Yes → check CORS headers\n// If the response doesn't include Access-Control-Allow-Origin → BLOCKED\n\n// ── Preflight request (browser does this automatically) ──\n// Before sending POST with JSON body, browser sends OPTIONS:\n//\n// OPTIONS /api/users HTTP/1.1\n// Origin: http://localhost:3000\n// Access-Control-Request-Method: POST\n// Access-Control-Request-Headers: content-type, authorization\n//\n// Server must respond:\n// HTTP/1.1 204 No Content\n// Access-Control-Allow-Origin: http://localhost:3000\n// Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE\n// Access-Control-Allow-Headers: Content-Type, Authorization\n// Access-Control-Max-Age: 86400\n//\n// Then the browser sends the actual POST request\n\n// ── Server-side fix (Express) ──\nimport cors from 'cors';\n\napp.use(cors({\n    origin:      ['https://app.example.com', 'http://localhost:3000'],\n    methods:     ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],\n    allowedHeaders: ['Content-Type', 'Authorization'],\n    credentials: true,  // only if sending cookies — and origin cannot be *\n    maxAge:      86400, // cache preflight for 24h\n}));\n\n// ── Development workaround: Vite proxy ──\n// vite.config.ts — avoids CORS during development:\nexport default {\n    server: {\n        proxy: {\n            '/api': {\n                target:      'https://api.example.com',\n                changeOrigin: true,\n                rewrite:     (path) => path.replace(/^\\/api/, ''),\n            },\n        },\n    },\n};\n// Now fetch('/api/users') → proxied to https://api.example.com/users\n// Same origin from browser perspective — no CORS check\n\n// ── Fetch with credentials ──\nfetch('https://api.example.com/me', {\n    credentials: 'include',  // send cookies + require CORS credentials header\n});"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: CORS flow visualizer",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0;font-size:0.88rem}\n    .scenario-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}\n    .scenario{background:#1a1f2b;border:1px solid #2d3748;border-radius:6px;padding:10px;cursor:pointer;transition:border-color 0.15s}\n    .scenario:hover{border-color:#4fd1c5}\n    .scenario.active{border-color:#4fd1c5;background:#1e2d3d}\n    .scenario-title{font-weight:700;font-size:0.85rem;margin-bottom:4px}\n    .scenario-desc{font-size:0.75rem;color:#64748b}\n    .flow{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:12px;font-family:monospace;font-size:0.78rem;min-height:200px;white-space:pre-wrap;overflow:auto}\n    .ok{color:#4fd1c5;font-weight:700}.err{color:#ef4444;font-weight:700}.warn{color:#fbbf24}.dim{color:#64748b}.req{color:#93c5fd}.res{color:#a78bfa}\n  </style>\n</head>\n<body>\n  <div class=\"scenario-grid\">\n    <div class=\"scenario\" onclick=\"run('same-origin')\">\n      <div class=\"scenario-title\">Same Origin</div>\n      <div class=\"scenario-desc\">app.com → app.com/api<br><small>No CORS check needed</small></div>\n    </div>\n    <div class=\"scenario\" onclick=\"run('cors-ok')\">\n      <div class=\"scenario-title\">Cross-Origin + CORS OK</div>\n      <div class=\"scenario-desc\">localhost:3000 → api.example.com<br><small>Server allows it</small></div>\n    </div>\n    <div class=\"scenario\" onclick=\"run('cors-blocked')\">\n      <div class=\"scenario-title\">CORS Blocked</div>\n      <div class=\"scenario-desc\">localhost:3000 → api.example.com<br><small>Server missing headers</small></div>\n    </div>\n    <div class=\"scenario\" onclick=\"run('preflight')\">\n      <div class=\"scenario-title\">Preflight Request</div>\n      <div class=\"scenario-desc\">POST with JSON body<br><small>Triggers OPTIONS first</small></div>\n    </div>\n    <div class=\"scenario\" onclick=\"run('credentials')\">\n      <div class=\"scenario-title\">With Credentials</div>\n      <div class=\"scenario-desc\">fetch with credentials:include<br><small>Cookies + stricter rules</small></div>\n    </div>\n    <div class=\"scenario\" onclick=\"run('wildcard-fail')\">\n      <div class=\"scenario-title\">Wildcard + Credentials</div>\n      <div class=\"scenario-desc\">Access-Control-Allow-Origin: *<br><small>Fails with credentials</small></div>\n    </div>\n  </div>\n  <div class=\"flow\" id=\"flow\">← Select a scenario to see the CORS flow</div>\n  <script>\n    const scenarios={\n      'same-origin':{steps:[\n        '<req>BROWSER: GET https://app.com/api/users</req>',\n        '  Origin: https://app.com',\n        '<dim>→ Same origin (protocol+host+port match) — no CORS check</dim>',\n        '<res>SERVER: 200 OK</res>',\n        '  Content-Type: application/json',\n        '<ok>✓ Request succeeds — no CORS involved</ok>'\n      ]},\n      'cors-ok':{steps:[\n        '<req>BROWSER: GET https://api.example.com/users</req>',\n        '  Origin: http://localhost:3000',\n        '<dim>→ Different origin — browser checks CORS headers</dim>',\n        '<res>SERVER: 200 OK</res>',\n        '  Access-Control-Allow-Origin: http://localhost:3000',\n        '  Access-Control-Allow-Methods: GET, POST',\n        '<ok>✓ Origin matches — browser allows the response</ok>'\n      ]},\n      'cors-blocked':{steps:[\n        '<req>BROWSER: GET https://api.example.com/users</req>',\n        '  Origin: http://localhost:3000',\n        '<dim>→ Different origin — browser checks CORS headers</dim>',\n        '<res>SERVER: 200 OK</res>',\n        '  Content-Type: application/json',\n        '  <warn>(missing Access-Control-Allow-Origin header)</warn>',\n        '<err>✗ CORS Error: No Access-Control-Allow-Origin header</err>',\n        '<err>  Browser BLOCKS the response from JS code</err>',\n        '<dim>Note: The request DID reach the server — only the response is blocked</dim>',\n        '<dim>Fix: Add Access-Control-Allow-Origin on the SERVER</dim>'\n      ]},\n      'preflight':{steps:[\n        '<dim>fetch(\\'https://api.example.com/users\\', {</dim>',\n        '<dim>  method: \\'POST\\',</dim>',\n        '<dim>  headers: {\\'Content-Type\\': \\'application/json\\'}</dim>',\n        '<dim>})</dim>',\n        '',\n        '<warn>Step 1: Browser auto-sends OPTIONS preflight</warn>',\n        '<req>BROWSER: OPTIONS https://api.example.com/users</req>',\n        '  Origin: http://localhost:3000',\n        '  Access-Control-Request-Method: POST',\n        '  Access-Control-Request-Headers: content-type',\n        '<res>SERVER: 204 No Content</res>',\n        '  Access-Control-Allow-Origin: http://localhost:3000',\n        '  Access-Control-Allow-Methods: GET, POST, DELETE',\n        '  Access-Control-Allow-Headers: Content-Type, Authorization',\n        '  Access-Control-Max-Age: 86400  <dim>(cache for 24h)</dim>',\n        '',\n        '<warn>Step 2: Actual POST request</warn>',\n        '<req>BROWSER: POST https://api.example.com/users</req>',\n        '<res>SERVER: 201 Created</res>',\n        '<ok>✓ Preflight passed — both requests succeed</ok>'\n      ]},\n      'credentials':{steps:[\n        '<dim>fetch(\\'https://api.example.com/me\\', { credentials: \\'include\\' })</dim>',\n        '',\n        '<req>BROWSER: GET https://api.example.com/me</req>',\n        '  Origin: https://app.com',\n        '  Cookie: session=abc123  <dim>(sent because credentials:include)</dim>',\n        '<res>SERVER: 200 OK</res>',\n        '  Access-Control-Allow-Origin: https://app.com  <dim>(MUST be specific — not *)</dim>',\n        '  Access-Control-Allow-Credentials: true  <dim>(required)</dim>',\n        '<ok>✓ Credentialed request allowed</ok>'\n      ]},\n      'wildcard-fail':{steps:[\n        '<dim>fetch(\\'https://api.example.com/me\\', { credentials: \\'include\\' })</dim>',\n        '',\n        '<req>BROWSER: GET https://api.example.com/me</req>',\n        '  Origin: https://app.com',\n        '  Cookie: session=abc123',\n        '<res>SERVER: 200 OK</res>',\n        '  Access-Control-Allow-Origin: *  <warn>(wildcard)</warn>',\n        '  Access-Control-Allow-Credentials: true',\n        '<err>✗ CORS Error: wildcard origin + credentials not allowed</err>',\n        '<dim>Fix: Change Access-Control-Allow-Origin to a specific origin</dim>',\n        '<dim>  Access-Control-Allow-Origin: https://app.com</dim>'\n      ]}\n    };\n    function run(key){\n      document.querySelectorAll('.scenario').forEach(el=>el.classList.remove('active'));\n      event.currentTarget.classList.add('active');\n      const steps=scenarios[key].steps;\n      const html=steps.map(s=>s\n        .replace(/<req>(.*?)<\\/req>/g,'<span class=\"req\">$1</span>')\n        .replace(/<res>(.*?)<\\/res>/g,'<span class=\"res\">$1</span>')\n        .replace(/<ok>(.*?)<\\/ok>/g,'<span class=\"ok\">$1</span>')\n        .replace(/<err>(.*?)<\\/err>/g,'<span class=\"err\">$1</span>')\n        .replace(/<warn>(.*?)<\\/warn>/g,'<span class=\"warn\">$1</span>')\n        .replace(/<dim>(.*?)<\\/dim>/g,'<span class=\"dim\">$1</span>')\n      ).join('\\n');\n      document.getElementById('flow').innerHTML=html;}\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "tip",
+      "text": "CORS errors are a SERVER configuration problem, not a frontend problem. You cannot fix a CORS error by changing your fetch() call. The server needs to add Access-Control-Allow-Origin headers. During development, use your framework's dev proxy (Vite, webpack-dev-server, Next.js rewrites) to avoid CORS entirely."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "cors-q1",
+          "question": "You get a CORS error: 'No Access-Control-Allow-Origin header present'. Where do you fix it?",
+          "type": "multiple-choice",
+          "options": [
+            "Add a special header to your fetch() call in the frontend",
+            "On the server — add Access-Control-Allow-Origin: https://your-app.com to the response headers. CORS is enforced by the browser based on headers the server sends back.",
+            "Set mode: 'no-cors' in your fetch() options",
+            "Use a newer browser that doesn't enforce CORS"
+          ],
+          "correctAnswer": 1,
+          "explanation": "CORS is a browser security feature that checks response headers from the server. There is no frontend workaround — you must configure the server to include Access-Control-Allow-Origin. Note: fetch with `mode: 'no-cors'` creates an 'opaque' response — the request goes through but JavaScript gets back no data, headers, or status code. It's only useful for fire-and-forget requests (like sending analytics). For development, use a proxy in your build tool instead of dealing with CORS at all."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Why does the CORS error say the request was blocked even though I can see it in the Network tab?",
+      "a": "CORS blocking is on the RESPONSE, not the request. The request reaches the server — you can see it in the Network tab, and the server processes it. The browser then checks the response headers. If Access-Control-Allow-Origin is missing or doesn't match, the browser blocks JavaScript from reading the response. This is why `mode: 'no-cors'` requests still reach the server but return no data to JavaScript — they're allowed to send but not to read the response."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — Cross-Origin Resource Sharing (CORS)",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every frontend that calls a separate backend API"],
+    "examples": [
+      "Vite dev server proxy — avoids CORS in development by proxying /api to the backend",
+      "Stripe.js — stripe.com domain calls stripe.com API (same origin from their hosted checkout page)",
+      "GitHub API — Access-Control-Allow-Origin: * (wildcard, but no credentials needed)"
+    ]
+  }
+}

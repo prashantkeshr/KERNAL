@@ -1,0 +1,99 @@
+{
+  "id": "10-crud-fetch",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "apis",
+  "technologyVersion": "Fetch API",
+  "module": "apis-patterns",
+  "title": "CRUD with fetch()",
+  "subtitle": "Complete create, read, update, delete flow — wiring a full REST API to a UI",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 20,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["apis/09-loading-states"],
+  "skillsTaught": ["api.crud-pattern", "api.api-layer", "api.full-stack-flow"],
+  "skillsUsed": ["api.fetch-basics", "api.post-requests", "api.error-handling", "api.loading-states"],
+  "relatedConcepts": ["api.websockets", "api.cors"],
+  "whyItExists": {
+    "problem": "Learning fetch() in isolation doesn't prepare you for building a real feature. Real apps need to list, create, update, and delete records — all wired to a UI with proper state management.",
+    "solution": "Build a complete CRUD feature: a todo list that reads from and writes to an API. Organize API calls into an 'API layer' module — separating network code from UI logic.",
+    "whenToUse": "Any time you build a feature that manages a collection of records — contacts, tasks, products, posts.",
+    "whenNotToUse": "When you just need a simple read — don't build a full CRUD layer if you only need GET."
+  },
+  "explainModes": {
+    "beginner": "CRUD means Create (POST), Read (GET), Update (PATCH/PUT), Delete (DELETE). A complete todo app needs all four: GET /todos (list all), POST /todos (add one), PATCH /todos/:id (mark done), DELETE /todos/:id (remove). You build one function for each operation and call them from your UI event handlers.",
+    "simple": "API layer: a module with functions: getTodos(), createTodo(text), updateTodo(id, changes), deleteTodo(id). Each wraps a fetch() call. UI layer: calls these functions, manages loading/error state, and re-renders. After any mutation (create/update/delete), refresh the list by calling getTodos() again or update the local state directly. List → button click → mutation → refresh list.",
+    "standard": "API layer pattern: all fetch calls in one file (api.js or api/todos.js). Pure functions that return promises — no UI logic inside. Error handling at the API layer: throw ApiError. UI handles it with try/catch. State update strategies: (1) Refetch — always call GET after any mutation. Simple but causes a loading flash. (2) Optimistic update — update local state immediately, refetch in background. (3) Local mutation — update local array directly from response (fastest, no extra network call). Use the response from POST/PATCH to update the local item.",
+    "technical": "Normalized state: store records in an object keyed by ID { '1': { id: 1, ... }, '2': ... } instead of an array — O(1) lookup for updates/deletes vs O(n) array.find. Array for display order, object for lookup. Mutation invalidation: after a mutation, mark the cache as stale so any dependent queries refetch. React Query does this with queryClient.invalidateQueries(['todos']). Pagination + mutation: after creating a record, it may not appear in the current page — invalidate and refetch page 1, or prepend to local state.",
+    "deepDive": "Offline-first CRUD: IndexedDB as a local cache. Mutations applied to local store immediately, synced to server when online. Conflict resolution: if both client and server changed the same record, merge or show conflict UI. Service Worker background sync API: queue POST/PATCH/DELETE requests when offline, replay them when connectivity returns. CRDTs (Conflict-free Replicated Data Types): data structures that merge automatically without conflicts — used by Figma, Notion for real-time collaborative editing."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Complete CRUD with a REST API"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "api/todos.js",
+      "code": "// ── API layer — all network calls in one place ──\nconst BASE = 'https://jsonplaceholder.typicode.com';\n\nasync function request(method, path, data) {\n    const opts = {\n        method,\n        headers: { 'Content-Type': 'application/json' },\n    };\n    if (data) opts.body = JSON.stringify(data);\n    const res = await fetch(BASE + path, opts);\n    if (!res.ok) throw new Error(`${method} ${path} → HTTP ${res.status}`);\n    if (res.status === 204) return null;\n    return res.json();\n}\n\nexport const todosApi = {\n    getAll:  ()           => request('GET',    '/todos?_limit=10'),\n    getById: (id)         => request('GET',    `/todos/${id}`),\n    create:  (data)       => request('POST',   '/todos', data),\n    update:  (id, changes)=> request('PATCH',  `/todos/${id}`, changes),\n    remove:  (id)         => request('DELETE', `/todos/${id}`),\n};"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "TodoList.jsx",
+      "code": "// ── UI component wired to the API ──\nimport { todosApi } from './api/todos';\n\nfunction TodoList() {\n    const [todos,   setTodos]   = React.useState([]);\n    const [loading, setLoading] = React.useState(true);\n    const [error,   setError]   = React.useState(null);\n    const [newText, setNewText] = React.useState('');\n\n    // ── READ — fetch on mount ──\n    React.useEffect(() => {\n        todosApi.getAll()\n            .then(setTodos)\n            .catch(err => setError(err.message))\n            .finally(() => setLoading(false));\n    }, []);\n\n    // ── CREATE ──\n    async function addTodo(e) {\n        e.preventDefault();\n        if (!newText.trim()) return;\n        const optimistic = { id: Date.now(), title: newText, completed: false };\n        setTodos(prev => [optimistic, ...prev]);  // optimistic update\n        setNewText('');\n        try {\n            const created = await todosApi.create({ title: newText, completed: false, userId: 1 });\n            setTodos(prev => prev.map(t => t.id === optimistic.id ? created : t));\n        } catch (err) {\n            setTodos(prev => prev.filter(t => t.id !== optimistic.id));  // revert\n            setError(err.message);\n        }\n    }\n\n    // ── UPDATE — toggle done ──\n    async function toggle(todo) {\n        setTodos(prev => prev.map(t => t.id === todo.id ? { ...t, completed: !t.completed } : t));\n        try {\n            await todosApi.update(todo.id, { completed: !todo.completed });\n        } catch (err) {\n            setTodos(prev => prev.map(t => t.id === todo.id ? todo : t));  // revert\n        }\n    }\n\n    // ── DELETE ──\n    async function remove(id) {\n        setTodos(prev => prev.filter(t => t.id !== id));  // optimistic\n        await todosApi.remove(id).catch(() => {\n            // Ideally refetch the list to restore state\n        });\n    }\n\n    if (loading) return <div>Loading...</div>;\n    if (error)   return <div>Error: {error}</div>;\n    return (\n        <div>\n            <form onSubmit={addTodo}>\n                <input value={newText} onChange={e => setNewText(e.target.value)} placeholder=\"New todo\" />\n                <button>Add</button>\n            </form>\n            {todos.map(todo => (\n                <div key={todo.id}>\n                    <input type=\"checkbox\" checked={todo.completed} onChange={() => toggle(todo)} />\n                    <span style={{ textDecoration: todo.completed ? 'line-through' : 'none' }}>{todo.title}</span>\n                    <button onClick={() => remove(todo.id)}>✕</button>\n                </div>\n            ))}\n        </div>\n    );\n}"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Full CRUD todo app",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0}\n    h3{color:#4fd1c5;margin:0 0 12px}\n    .add-row{display:flex;gap:8px;margin-bottom:12px}\n    input[type=text]{flex:1;background:#0b0e14;color:#e2e8f0;border:1px solid #2d3748;border-radius:4px;padding:8px 12px;font-size:0.88rem}\n    button.add-btn{background:#4fd1c5;color:#0e1116;border:none;border-radius:4px;padding:8px 14px;cursor:pointer;font-weight:700}\n    .todo{display:flex;gap:10px;align-items:center;padding:10px 12px;background:#1a1f2b;border:1px solid #2d3748;border-radius:6px;margin-bottom:6px}\n    .todo.done .title{text-decoration:line-through;color:#4b5563}\n    .title{flex:1;font-size:0.88rem}\n    .delete-btn{background:none;border:none;color:#ef4444;cursor:pointer;font-size:1.1rem;padding:2px 6px;border-radius:3px}\n    .delete-btn:hover{background:#7f1d1d}\n    input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:#4fd1c5}\n    .stats{font-size:0.78rem;color:#64748b;margin-bottom:10px}\n    .empty{color:#4b5563;font-style:italic;text-align:center;padding:20px}\n    .loading{color:#94a3b8;font-style:italic;padding:10px 0}\n    .error-msg{color:#ef4444;font-size:0.82rem;padding:8px;background:#1a1f2b;border-radius:4px;margin-bottom:10px}\n    .api-log{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:8px;font-family:monospace;font-size:0.72rem;max-height:100px;overflow:auto;margin-top:12px}\n    .log-line{margin:1px 0}.ok{color:#4fd1c5}.post-c{color:#93c5fd}.patch-c{color:#fbbf24}.del-c{color:#f87171}\n  </style>\n</head>\n<body>\n  <h3>Todos (via JSONPlaceholder API)</h3>\n  <div id=\"error\"></div>\n  <div class=\"add-row\">\n    <input type=\"text\" id=\"new-todo\" placeholder=\"Add a new todo...\" onkeydown=\"if(event.key==='Enter')addTodo()\">\n    <button class=\"add-btn\" onclick=\"addTodo()\">+ Add</button>\n  </div>\n  <div class=\"stats\" id=\"stats\">Loading...</div>\n  <div id=\"list\"><div class=\"loading\">Fetching from API...</div></div>\n  <div class=\"api-log\" id=\"log\"><div style=\"color:#4b5563\">API calls will appear here...</div></div>\n  <script>\n    let todos=[];let nextId=200;\n    function appendLog(type,msg){const d=document.getElementById('log');const el=document.createElement('div');el.className='log-line '+type;el.textContent=msg;d.appendChild(el);d.scrollTop=d.scrollHeight;}\n    function render(){\n      const done=todos.filter(t=>t.completed).length;\n      document.getElementById('stats').textContent=`${todos.length} todos — ${done} completed, ${todos.length-done} remaining`;\n      const list=document.getElementById('list');\n      if(!todos.length){list.innerHTML='<div class=\"empty\">No todos yet! Add one above.</div>';return;}\n      list.innerHTML=todos.map(t=>`<div class=\"todo${t.completed?' done':''}\">\n        <input type=\"checkbox\" ${t.completed?'checked':''} onchange=\"toggleTodo(${t.id})\">\n        <span class=\"title\">${t.title}</span>\n        <button class=\"delete-btn\" onclick=\"deleteTodo(${t.id})\">✕</button>\n      </div>`).join('');}\n    async function loadTodos(){\n      appendLog('ok','GET /todos?_limit=8');\n      try{const r=await fetch('https://jsonplaceholder.typicode.com/todos?_limit=8');const data=await r.json();todos=data;appendLog('ok',`← 200 OK  ${data.length} todos`);}catch(e){todos=[{id:1,title:'Learn fetch()',completed:false},{id:2,title:'Build a CRUD app',completed:false},{id:3,title:'Handle errors',completed:true}];appendLog('del-c','Network error — using demo data');}\n      render();}\n    async function addTodo(){\n      const inp=document.getElementById('new-todo');const text=inp.value.trim();if(!text)return;\n      inp.value='';\n      const tmp={id:nextId++,title:text,completed:false,_optimistic:true};\n      todos.unshift(tmp);render();\n      appendLog('post-c','POST /todos  { title: \"'+text+'\" }');\n      try{const r=await fetch('https://jsonplaceholder.typicode.com/todos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:text,completed:false,userId:1})});const created=await r.json();appendLog('ok','← 201 Created  id: '+created.id);todos=todos.map(t=>t.id===tmp.id?{...created,title:text}:t);}catch(e){appendLog('del-c','← Error: '+e.message);todos=todos.filter(t=>t.id!==tmp.id);}render();}\n    async function toggleTodo(id){\n      const t=todos.find(x=>x.id===id);if(!t)return;\n      todos=todos.map(x=>x.id===id?{...x,completed:!x.completed}:x);render();\n      appendLog('patch-c',`PATCH /todos/${id}  { completed: ${!t.completed} }`);\n      try{await fetch(`https://jsonplaceholder.typicode.com/todos/${id}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({completed:!t.completed})});appendLog('ok',`← 200 OK`);}catch(e){todos=todos.map(x=>x.id===id?t:x);render();appendLog('del-c','← Error: '+e.message);}}\n    async function deleteTodo(id){\n      todos=todos.filter(t=>t.id!==id);render();\n      appendLog('del-c',`DELETE /todos/${id}`);\n      try{await fetch(`https://jsonplaceholder.typicode.com/todos/${id}`,{method:'DELETE'});appendLog('ok','← 200 OK  {}');}catch(e){appendLog('del-c','← Error: '+e.message);}}\n    loadTodos();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "crud-q1",
+          "question": "What is an 'optimistic update' and when should you use it?",
+          "type": "multiple-choice",
+          "options": [
+            "An update that only runs when the user is optimistic about the outcome",
+            "Updating the UI immediately before the server confirms, then reverting if the request fails — makes the UI feel instant for high-confidence operations like toggling a checkbox or deleting an item",
+            "An update that retries automatically if it fails",
+            "An update that runs in the background without user interaction"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Optimistic updates make the UI feel instant: update the local state first, then send the API request. If the request succeeds, keep the update. If it fails, revert to the previous state and show an error. Use optimistic updates for high-confidence actions: toggling a checkbox, liking a post, deleting an item. Avoid for actions where failure is common (payment processing) or where the server generates the final value (creating an item whose ID you don't know yet)."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "After I create a new item via POST, should I refetch the list or just update local state?",
+      "a": "Both approaches work. **Refetch**: simple but causes a brief loading state. Use when the server may have applied transformations (added defaults, computed fields, sorted). **Update local state**: use the response from POST to add the new item to your local array — instant, no extra network call. Use when the POST response returns the complete item. The optimistic approach: add a temporary item before the POST, then replace it with the server response when it arrives. React Query/SWR handle this automatically — use `queryClient.invalidateQueries` to trigger a refetch after mutations."
+    }
+  ],
+  "sources": [
+    {
+      "name": "JSONPlaceholder — free fake REST API",
+      "url": "https://jsonplaceholder.typicode.com",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["todo apps", "dashboards", "admin panels", "any data management UI"],
+    "examples": [
+      "GitHub Issues — full CRUD, optimistic updates on reactions",
+      "Trello — drag/drop = optimistic update, revert on fail",
+      "Notion — every block edit = PATCH request, offline queue for sync"
+    ]
+  }
+}

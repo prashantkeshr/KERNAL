@@ -1,0 +1,97 @@
+{
+  "id": "07-api-keys-tokens",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "apis",
+  "technologyVersion": "HTTP Auth",
+  "module": "apis-auth",
+  "title": "API Keys & Bearer Tokens",
+  "subtitle": "Authenticating requests with API keys, JWT Bearer tokens, and keeping secrets safe",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 18,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["apis/06-query-headers"],
+  "skillsTaught": ["api.api-key-header", "api.bearer-token", "api.basic-auth", "api.token-storage"],
+  "skillsUsed": ["api.request-headers", "js.localStorage"],
+  "relatedConcepts": ["api.error-handling", "api.loading-states"],
+  "whyItExists": {
+    "problem": "APIs need to know who is making each request — to enforce rate limits, charge the right account, and protect private data. Without authentication, anyone could call your API.",
+    "solution": "API keys and Bearer tokens are the two most common mechanisms. API keys are simple static strings — include them in a header. Bearer tokens (usually JWTs) are issued after login and represent a logged-in session. Both go in the Authorization header.",
+    "whenToUse": "API keys: server-to-server calls, third-party service integrations (Stripe, Twilio, OpenAI). Bearer tokens: user-facing apps where users log in and then make authenticated requests.",
+    "whenNotToUse": "Never put API keys in frontend code that ships to browsers — users can extract them from the source. Use a backend proxy instead. Don't store JWTs in localStorage if XSS is a concern — use HttpOnly cookies."
+  },
+  "explainModes": {
+    "beginner": "An API key is a secret string that proves who you are. Like a password for your application. You include it in every request, usually in the Authorization header. A Bearer token is similar but represents a logged-in user — you get it by logging in, then include it in future requests. Both go in the header as: Authorization: Bearer your-token-here.",
+    "simple": "API key: Authorization: ApiKey abc123 or Authorization: Bearer abc123 or a custom header like X-API-Key: abc123. Bearer token: usually a JWT — Authorization: Bearer eyJhbGci.... Get it by POST /auth/login → response contains { token: '...' }. Store token in memory (variable) or localStorage (less secure). Refresh tokens: short-lived access tokens + long-lived refresh token. Basic Auth: Authorization: Basic base64(email:password) — use only over HTTPS, avoid for modern apps.",
+    "standard": "JWT (JSON Web Token): three base64url-encoded parts — header.payload.signature. Payload contains claims: { sub: 'user42', exp: 1752345678, role: 'admin' }. Signature verifies it hasn't been tampered with. Stateless: server verifies the signature without a database lookup. Expiration: check exp claim. Decode (NOT verify) in JS: JSON.parse(atob(token.split('.')[1])). Never trust decoded JWT client-side for security decisions — only the server verifies the signature. Token storage: memory (safest, lost on refresh), localStorage (XSS risk), sessionStorage (lost on tab close), HttpOnly cookie (XSS-safe, CSRF risk).",
+    "technical": "OAuth 2.0 flows: Authorization Code (user-facing web apps — redirect to provider, get code, exchange for token), Client Credentials (server-to-server — POST /token with client ID + secret), Implicit (deprecated), Device Flow (CLI tools, smart TVs). PKCE (Proof Key for Code Exchange): extension to Authorization Code flow for public clients (SPAs, mobile apps) — prevents authorization code interception. Token refresh: when access token expires, send refresh token to /auth/refresh for a new access token without re-login. Token revocation: call /auth/logout to invalidate token on server (stateful JWTs need a blacklist).",
+    "deepDive": "JWT security: ALWAYS verify the signature server-side. Common attacks: alg:none vulnerability (if server accepts unsigned tokens), weak secrets (brute-force HMAC-SHA256), token sidejacking (steal via XSS + replay). RS256 vs HS256: HS256 = shared secret (both parties know it). RS256 = asymmetric — server signs with private key, clients verify with public key. JWKS endpoint: server publishes public keys at /.well-known/jwks.json — rotate keys without redeploying clients. Token binding: cryptographically bind a token to a TLS session — prevents token theft and replay attacks."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Authentication patterns"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "auth_patterns.js",
+      "code": "// ── API Key (server-to-server) ──\n// Many APIs accept key in Authorization header or custom header\nconst OPENAI_KEY = process.env.OPENAI_API_KEY;  // never hardcode!\n\nconst res = await fetch('https://api.openai.com/v1/models', {\n    headers: {\n        'Authorization': `Bearer ${OPENAI_KEY}`,  // OpenAI uses Bearer\n    },\n});\n\n// Some APIs use a custom header:\nconst weather = await fetch('https://api.openweathermap.org/data/2.5/weather?q=London', {\n    headers: { 'x-api-key': process.env.WEATHER_KEY },\n});\n\n// Some APIs accept it as a query param (avoid — appears in logs):\n// fetch(`...?appid=${key}`)  ← use header instead when available\n\n// ── Login → Bearer Token flow ──\nasync function login(email, password) {\n    const res = await fetch('/api/auth/login', {\n        method:  'POST',\n        headers: { 'Content-Type': 'application/json' },\n        body:    JSON.stringify({ email, password }),\n    });\n    if (!res.ok) throw new Error('Invalid credentials');\n    const { token, refreshToken } = await res.json();\n\n    // Store token — in memory for security, localStorage for persistence\n    sessionStorage.setItem('token', token);\n    return token;\n}\n\n// ── Authenticated request helper ──\nfunction authFetch(url, options = {}) {\n    const token = sessionStorage.getItem('token');\n    return fetch(url, {\n        ...options,\n        headers: {\n            ...options.headers,\n            'Authorization': token ? `Bearer ${token}` : undefined,\n            'Content-Type': 'application/json',\n        },\n    });\n}\n\n// Usage:\nconst profile = await authFetch('/api/users/me').then(r => r.json());\n\n// ── Decode JWT payload (client-side preview only) ──\nfunction decodeToken(jwt) {\n    const [, payload] = jwt.split('.');\n    return JSON.parse(atob(payload.replace(/-/g,'+').replace(/_/g,'/')));\n}\n// → { sub: 'user42', exp: 1752345678, iat: 1752259278, role: 'admin' }\n// NOTE: This is NOT verification — trust only what your server tells you"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Auth flow simulator",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0;font-size:0.88rem}\n    .step{background:#1a1f2b;border:1px solid #2d3748;border-radius:6px;padding:14px;margin-bottom:12px}\n    .step-num{display:inline-block;background:#4fd1c5;color:#0e1116;border-radius:50%;width:20px;height:20px;text-align:center;font-weight:700;font-size:0.75rem;line-height:20px;margin-right:8px}\n    .step-title{font-weight:700;color:#e2e8f0}\n    label{display:block;font-size:0.75rem;color:#94a3b8;margin:8px 0 3px}\n    input{width:100%;box-sizing:border-box;background:#0b0e14;color:#e2e8f0;border:1px solid #2d3748;border-radius:4px;padding:6px 10px;font-family:monospace;font-size:0.82rem}\n    button{background:#4fd1c5;color:#0e1116;border:none;border-radius:4px;padding:7px 14px;cursor:pointer;font-weight:700;font-size:0.82rem;margin-top:8px}\n    .result{background:#0b0e14;border-radius:4px;padding:8px;font-family:monospace;font-size:0.75rem;margin-top:8px;white-space:pre-wrap;min-height:40px}\n    .ok{color:#4fd1c5}.err{color:#ef4444}.dim{color:#64748b}\n    .users-hint{font-size:0.72rem;color:#64748b;margin-top:4px}\n  </style>\n</head>\n<body>\n  <div class=\"step\">\n    <div><span class=\"step-num\">1</span><span class=\"step-title\">Login to get a token</span></div>\n    <div class=\"users-hint\">Try: alice@example.com / secret123 &nbsp;|&nbsp; bob@example.com / pass456</div>\n    <label>Email</label><input id=\"email\" value=\"alice@example.com\" />\n    <label>Password</label><input id=\"pass\" type=\"password\" value=\"secret123\" />\n    <button onclick=\"doLogin()\">POST /auth/login</button>\n    <div class=\"result\" id=\"login-result\">...</div>\n  </div>\n\n  <div class=\"step\">\n    <div><span class=\"step-num\">2</span><span class=\"step-title\">Use token to access a protected endpoint</span></div>\n    <div style=\"margin-top:8px;font-size:0.78rem;color:#94a3b8\">Token stored: <span id=\"token-stored\" class=\"dim\">none</span></div>\n    <button onclick=\"doProtected()\" style=\"margin-top:8px\">GET /api/profile (authenticated)</button>\n    <button onclick=\"doProtectedNoToken()\" style=\"background:#2d3748;color:#e2e8f0;margin-left:8px\">GET without token</button>\n    <div class=\"result\" id=\"profile-result\">Log in first...</div>\n  </div>\n\n  <div class=\"step\">\n    <div><span class=\"step-num\">3</span><span class=\"step-title\">Decode the JWT payload</span></div>\n    <div class=\"result\" id=\"jwt-decoded\">Log in to see decoded token</div>\n  </div>\n\n  <script>\n    const USERS={\"alice@example.com\":{password:\"secret123\",id:1,name:\"Alice\",role:\"admin\"},\"bob@example.com\":{password:\"pass456\",id:2,name:\"Bob\",role:\"user\"}};\n    let _token=null;\n    function makeJwt(payload){const h=btoa(JSON.stringify({alg:\"HS256\",typ:\"JWT\"})).replace(/=/g,'');const p=btoa(JSON.stringify(payload)).replace(/=/g,'');const sig=btoa('fake-sig').replace(/=/g,'');return `${h}.${p}.${sig}`;}\n    function decodeJwt(jwt){try{const[,p]=jwt.split('.');return JSON.parse(atob(p.replace(/-/g,'+').replace(/_/g,'/')));}catch{return null;}}\n    function doLogin(){\n      const email=document.getElementById('email').value;\n      const pass=document.getElementById('pass').value;\n      const user=USERS[email];\n      const r=document.getElementById('login-result');\n      if(!user||user.password!==pass){r.innerHTML='<span class=\"err\">401 Unauthorized</span>\\n{\"error\":\"Invalid credentials\"}';_token=null;document.getElementById('token-stored').textContent='none';document.getElementById('token-stored').className='dim';return;}\n      const exp=Math.floor(Date.now()/1000)+3600;\n      _token=makeJwt({sub:String(user.id),email,name:user.name,role:user.role,iat:Math.floor(Date.now()/1000),exp});\n      r.innerHTML='<span class=\"ok\">200 OK</span>\\n'+JSON.stringify({token:_token.slice(0,40)+'...',expires_in:3600},null,2);\n      document.getElementById('token-stored').textContent=_token.slice(0,30)+'...';\n      document.getElementById('token-stored').className='ok';\n      const decoded=decodeJwt(_token);\n      document.getElementById('jwt-decoded').innerHTML='<span class=\"ok\">Decoded payload (header.PAYLOAD.signature):</span>\\n'+JSON.stringify(decoded,null,2)+'\\n\\n<span class=\"dim\">exp → '+new Date(decoded.exp*1000).toLocaleTimeString()+' (in 1 hour)</span>';}\n    function doProtected(){\n      const r=document.getElementById('profile-result');\n      if(!_token){r.innerHTML='<span class=\"err\">401 Unauthorized</span>\\nNo token provided';return;}\n      const decoded=decodeJwt(_token);\n      r.innerHTML='<span class=\"ok\">200 OK</span>\\nAuthorization: Bearer '+_token.slice(0,25)+'...\\n\\n'+JSON.stringify({id:decoded.sub,name:decoded.name,email:decoded.email,role:decoded.role},null,2);}\n    function doProtectedNoToken(){\n      document.getElementById('profile-result').innerHTML='<span class=\"err\">401 Unauthorized</span>\\n{\"error\":\"No token provided\",\"message\":\"Authorization header required\"}';}\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "tip",
+      "text": "Never include API keys or tokens in frontend source code that ships to browsers. Store them in environment variables on your backend server, and have the frontend call YOUR backend, which proxies to the third-party API."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "auth-q1",
+          "question": "Where should you store a Bearer token received after a user logs in?",
+          "type": "multiple-choice",
+          "options": [
+            "Hardcoded as a constant in your JavaScript file",
+            "In memory (a JS variable) for the most security, or sessionStorage/localStorage if persistence across page refreshes is needed — each trade-off between security and UX",
+            "In the URL query string so it's easy to share",
+            "In a JavaScript comment in your source code"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Memory (a variable) is safest — the token disappears on page reload, so stolen code can't access it later. localStorage persists across sessions (survives refresh) but is accessible by any JS on the page (XSS risk). sessionStorage persists within the tab but is cleared on close. HttpOnly cookies are safest overall — not accessible by JS at all, but need CSRF protection. The right choice depends on your app's security requirements and UX needs."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is a JWT and how do I use it?",
+      "a": "JWT (JSON Web Token) is a self-contained token with three dot-separated base64url parts: header (algorithm), payload (claims like user ID and expiry), and signature. After login, your server creates and signs a JWT and sends it to the client. The client includes it in every request: `Authorization: Bearer <token>`. The server verifies the signature to confirm authenticity — no database lookup needed. Decode the payload client-side with `JSON.parse(atob(token.split('.')[1]))` to read claims like the user's name, but never trust client-side decoding for security decisions."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — HTTP Authentication",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Authentication",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every authenticated API"],
+    "examples": [
+      "OpenAI API — API key in Authorization: Bearer header",
+      "Supabase — JWT from supabase.auth.signIn(), passed to all API calls",
+      "GitHub Actions — GITHUB_TOKEN env var automatically provided, used as Bearer"
+    ]
+  }
+}

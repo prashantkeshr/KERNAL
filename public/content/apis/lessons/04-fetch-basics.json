@@ -1,0 +1,97 @@
+{
+  "id": "04-fetch-basics",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "apis",
+  "technologyVersion": "Fetch API",
+  "module": "apis-fetch",
+  "title": "fetch() Basics",
+  "subtitle": "Making GET requests, reading JSON responses, and handling the two-step promise",
+  "difficulty": "beginner",
+  "estimatedMinutes": 16,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["apis/01-what-is-api", "javascript/09-async-await"],
+  "skillsTaught": ["api.fetch-get", "api.response-json", "api.response-ok", "api.fetch-error"],
+  "skillsUsed": ["js.async-await", "js.promises"],
+  "relatedConcepts": ["api.post-requests", "api.error-handling"],
+  "whyItExists": {
+    "problem": "Before fetch(), developers used XMLHttpRequest (XHR) — a verbose, callback-based API. jQuery's $.ajax() improved it but required a library dependency.",
+    "solution": "The Fetch API is built into every modern browser. It returns Promises, works naturally with async/await, and has a clean, consistent interface. No library required.",
+    "whenToUse": "Any time you need to make HTTP requests from a browser or Node.js (18+, built-in). For complex cases (interceptors, request cancellation, progress), consider axios.",
+    "whenNotToUse": "When you need upload progress events in browsers (XHR has onprogress; fetch only supports download progress via ReadableStream). When targeting very old browsers (IE11 doesn't support fetch natively)."
+  },
+  "explainModes": {
+    "beginner": "fetch() makes a network request and returns a Promise. You await it to get the Response object. Then you call .json() (another Promise) to parse the body. Always check response.ok to know if the request succeeded — fetch() does NOT throw an error for 404 or 500 status codes, only for network failures.",
+    "simple": "const res = await fetch(url). res.ok: true if status 200-299. res.status: the HTTP status number. res.json(): Promise that parses body as JSON. res.text(): Promise that reads body as string. res.headers.get('content-type'): read a response header. fetch() only rejects on network failure (no internet, DNS error) — not on 4xx/5xx. You must check res.ok yourself. Common pattern: if (!res.ok) throw new Error(res.status).",
+    "standard": "Two-step Promise: fetch() resolves when headers are received (not body). response.json() / response.text() reads the body stream. This separation allows streaming large responses without loading them all into memory. Response body can only be read ONCE — calling .json() twice throws 'body already used'. Clone to read twice: const clone = res.clone(). AbortController: cancel a request — const ctrl = new AbortController(); fetch(url, { signal: ctrl.signal }); ctrl.abort(). Timeout pattern: AbortController + setTimeout.",
+    "technical": "Response object: url, status, statusText, ok, redirected, headers (Headers object), body (ReadableStream). Headers object: .get(name), .has(name), .entries(), .forEach(). request.headers vs response.headers: Request headers are what you send; Response headers are what the server returns. Content-Type negotiation: set Accept header to tell the server what format you want. Credential handling: fetch() by default sends no cookies. Add credentials: 'include' to send cookies (for same-origin) or credentials: 'include' with appropriate CORS headers for cross-origin.",
+    "deepDive": "Streaming responses: response.body is a ReadableStream. For large responses, use a reader: const reader = res.body.getReader(); while true { const { done, value } = await reader.read(); }. Useful for: server-sent events, large file downloads with progress, LLM streaming responses. Cache modes: fetch(url, { cache: 'no-cache' | 'no-store' | 'reload' | 'force-cache' | 'only-if-cached' }). Service Worker integration: fetch events can intercept all requests — the foundation of offline PWAs. node-fetch vs built-in fetch: Node 18+ includes a global fetch implementation based on undici. For older Node, use node-fetch or axios."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Using fetch() to make HTTP requests"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "fetch_basics.js",
+      "code": "// ── Basic GET request ──\nasync function getUser(id) {\n    const res = await fetch(`https://jsonplaceholder.typicode.com/users/${id}`);\n\n    // fetch() does NOT throw for 4xx/5xx — check .ok\n    if (!res.ok) {\n        throw new Error(`HTTP ${res.status}: ${res.statusText}`);\n    }\n\n    const user = await res.json();  // parses JSON body\n    return user;\n}\n\n// ── With error handling ──\ntry {\n    const user = await getUser(1);\n    console.log(user.name, user.email);\n} catch (err) {\n    console.error('Failed to load user:', err.message);\n}\n\n// ── Check response metadata ──\nasync function fetchWithInfo(url) {\n    const res = await fetch(url);\n    console.log('Status:', res.status, res.statusText);\n    console.log('Content-Type:', res.headers.get('content-type'));\n    console.log('Cache-Control:', res.headers.get('cache-control'));\n    console.log('Was redirected:', res.redirected);\n    return res.ok ? await res.json() : null;\n}\n\n// ── Timeout via AbortController ──\nasync function fetchWithTimeout(url, timeoutMs = 5000) {\n    const controller = new AbortController();\n    const timer = setTimeout(() => controller.abort(), timeoutMs);\n    try {\n        const res = await fetch(url, { signal: controller.signal });\n        return await res.json();\n    } catch (err) {\n        if (err.name === 'AbortError') throw new Error('Request timed out');\n        throw err;\n    } finally {\n        clearTimeout(timer);\n    }\n}"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: fetch() explorer",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0}\n    .row{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center}\n    input{flex:1;background:#0b0e14;color:#e2e8f0;border:1px solid #2d3748;border-radius:4px;padding:7px 10px;font-family:monospace;font-size:0.82rem;min-width:200px}\n    button{background:#4fd1c5;color:#0e1116;border:none;border-radius:4px;padding:8px 14px;cursor:pointer;font-weight:700;font-size:0.82rem}\n    .chip{background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:3px 10px;font-family:monospace;font-size:0.72rem;cursor:pointer;color:#94a3b8}\n    .chip:hover{border-color:#4fd1c5;color:#4fd1c5}\n    .output{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:12px;font-family:monospace;font-size:0.78rem;min-height:180px;overflow:auto;white-space:pre-wrap}\n    .label{font-size:0.72rem;color:#4fd1c5;margin-bottom:4px}\n    .ok{color:#4fd1c5;font-weight:700}.err{color:#ef4444;font-weight:700}.warn{color:#fbbf24}\n  </style>\n</head>\n<body>\n  <div class=\"label\">API URL</div>\n  <div class=\"row\">\n    <input id=\"url\" value=\"https://jsonplaceholder.typicode.com/users/1\" />\n    <button onclick=\"go()\">fetch()</button>\n  </div>\n  <div class=\"row\" style=\"gap:6px\">\n    <span class=\"chip\" onclick=\"setUrl('https://jsonplaceholder.typicode.com/users/1')\">user 1</span>\n    <span class=\"chip\" onclick=\"setUrl('https://jsonplaceholder.typicode.com/posts?userId=1')\">posts by user</span>\n    <span class=\"chip\" onclick=\"setUrl('https://jsonplaceholder.typicode.com/users/999')\">404 not found</span>\n    <span class=\"chip\" onclick=\"setUrl('https://jsonplaceholder.typicode.com/todos?_limit=5')\">todos (5)</span>\n  </div>\n  <div class=\"label\" style=\"margin-top:8px\">Result</div>\n  <div class=\"output\" id=\"output\">Click fetch() to make a real API request →</div>\n  <script>\n    function setUrl(u){document.getElementById('url').value=u;}\n    async function go(){\n      const url=document.getElementById('url').value.trim();\n      const out=document.getElementById('output');\n      out.textContent='Fetching...';\n      const t0=Date.now();\n      try{\n        const res=await fetch(url);\n        const ms=Date.now()-t0;\n        let body;\n        const ct=res.headers.get('content-type')||'';\n        if(ct.includes('json'))body=await res.json();\n        else body=await res.text();\n        const headers={};\n        res.headers.forEach((v,k)=>{if(['content-type','cache-control','etag','x-ratelimit-remaining'].includes(k))headers[k]=v;});\n        out.innerHTML=`<span class=\"${res.ok?'ok':'err'}\">HTTP ${res.status} ${res.statusText}</span>  <span style=\"color:#64748b\">(${ms}ms)</span>\\n\\n<span style=\"color:#4fd1c5\">Headers:</span>\\n${JSON.stringify(headers,null,2)}\\n\\n<span style=\"color:#4fd1c5\">Body:</span>\\n${typeof body==='object'?JSON.stringify(body,null,2):body}`;\n      }catch(e){\n        out.innerHTML=`<span class=\"err\">Network Error</span>\\n${e.message}\\n\\n<span class=\"warn\">Note: fetch() only throws on network failure.\\n4xx/5xx are not errors — check res.ok manually.</span>`;\n      }\n    }\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "tip",
+      "text": "fetch() only rejects (throws) on network failure — not on 404 or 500 responses. Always check `if (!res.ok)` after awaiting, and throw manually if you want HTTP errors to be catchable."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "fetch-q1",
+          "question": "What does `response.ok` return when the server responds with a 404 status code?",
+          "type": "multiple-choice",
+          "options": [
+            "true — the request was completed successfully",
+            "false — ok is true only for 2xx status codes (200-299)",
+            "It throws an error automatically",
+            "undefined — ok only exists on successful responses"
+          ],
+          "correctAnswer": 1,
+          "explanation": "response.ok is a shorthand for response.status >= 200 && response.status < 300. A 404 is a 4xx status, so ok is false. The fetch Promise itself still RESOLVES (doesn't throw) — you received a response, just not a successful one. This surprises many developers: you must check res.ok yourself if you want to treat HTTP errors as exceptions. fetch() only rejects for actual network failures (no connection, DNS failure, request aborted)."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Should I use fetch() or axios?",
+      "a": "fetch() is built-in and sufficient for most use cases. Use axios when you need: (1) automatic JSON serialization for request bodies (fetch requires JSON.stringify manually), (2) interceptors to add auth headers or handle errors globally, (3) request cancellation tokens (cleaner than AbortController), (4) upload progress events, (5) Node.js support < 18. For a browser-only app with simple needs, fetch() + a small wrapper function is the leaner choice."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — Using the Fetch API",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["React apps", "vanilla JS frontends", "Node.js 18+ scripts"],
+    "examples": [
+      "Next.js uses fetch() extended with caching options (next: { revalidate: 60 })",
+      "SvelteKit load functions use fetch() with server-side support built in",
+      "Service Workers intercept fetch() calls to implement offline caching"
+    ]
+  }
+}

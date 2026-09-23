@@ -1,0 +1,99 @@
+{
+  "id": "01-what-is-api",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "apis",
+  "technologyVersion": "HTTP/1.1 + HTTP/2",
+  "module": "apis-fundamentals",
+  "title": "What is an API?",
+  "subtitle": "How client-server communication works, REST, JSON, and why APIs exist",
+  "difficulty": "beginner",
+  "estimatedMinutes": 15,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["javascript/09-async-await"],
+  "skillsTaught": ["api.what-is-api", "api.client-server", "api.rest-concepts", "api.json-data"],
+  "skillsUsed": ["js.objects", "js.json"],
+  "relatedConcepts": ["api.http-methods", "api.fetch-basics"],
+  "whyItExists": {
+    "problem": "Web applications need to exchange data with servers — fetch a user's profile, submit a form, get weather data, post a tweet. Without a standard way to do this, every connection would require a custom protocol.",
+    "solution": "APIs (Application Programming Interfaces) define a contract: here are the URLs you can call, what data to send, and what you'll get back. REST is the most common style — it uses HTTP (the same protocol as loading web pages) and JSON for the data format.",
+    "whenToUse": "Whenever your app needs data from a server, a third-party service, or another application. Weather data, user accounts, product catalogs, payment processing, maps — all delivered via APIs.",
+    "whenNotToUse": "When data lives entirely in the browser (localStorage, IndexedDB), no API call needed. When building a simple static page with no dynamic data."
+  },
+  "explainModes": {
+    "beginner": "An API is like a waiter in a restaurant. You (the client) tell the waiter (the API) what you want. The waiter goes to the kitchen (the server), gets the food (data), and brings it back to you. You never go into the kitchen — you only talk to the waiter. In web development, you send an HTTP request to an API URL, and the server sends back data (usually JSON).",
+    "simple": "Client → HTTP Request → Server → HTTP Response → Client. REST API: uses URLs as nouns (GET /users, POST /posts), HTTP methods as verbs (GET=read, POST=create, PUT/PATCH=update, DELETE=remove). JSON: the data format — { \"name\": \"Alice\", \"age\": 30 }. Endpoint: one specific URL the API exposes (https://api.example.com/users/42). Base URL: the root all endpoints share. Status code: 200 OK, 404 Not Found, 500 Server Error.",
+    "standard": "REST (Representational State Transfer): architectural style, not a protocol. 6 constraints: stateless, client-server separation, cacheable, uniform interface, layered, code on demand (optional). Stateless: each request contains all information needed — no session on the server. Resources: nouns in URLs (/users, /products). Representations: JSON, XML, or other formats. CRUD → HTTP: Create=POST, Read=GET, Update=PUT/PATCH, Delete=DELETE. Hypermedia (HATEOAS): responses contain links to related actions — rarely used in practice.",
+    "technical": "HTTP/1.1 vs HTTP/2 vs HTTP/3: 1.1 = text-based, one request at a time per connection. 2 = binary, multiplexed (many requests over one connection), header compression. 3 = uses QUIC/UDP instead of TCP, lower latency. Content negotiation: Accept header (client preference), Content-Type header (what was actually sent). API versioning: URL path (/v1/users), query param (?version=1), header (Accept: application/vnd.api+json; version=1). OpenAPI/Swagger: machine-readable API specification format — tooling generates docs, clients, and mocks from it.",
+    "deepDive": "REST alternatives: GraphQL (single endpoint, client specifies shape of data — no over/under-fetching), gRPC (binary protocol buffers, strongly typed, excellent for microservices, not browser-native), WebSocket (persistent bidirectional connection for real-time), Server-Sent Events (one-way server push). JSON:API, HAL, JSON-LD: standardized JSON response formats that add conventions for relationships, pagination, and linking. The 'REST maturity model' (Richardson): Level 0 (single URL, all via POST), Level 1 (resources), Level 2 (HTTP methods + status codes), Level 3 (HATEOAS). Most production APIs are Level 2."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "How client-server communication works"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "HTTP Request / Response cycle",
+      "code": "Client (Browser/App)                    Server (API)\n        │                                      │\n        │── GET /users/42 ──────────────────>  │\n        │   Host: api.example.com              │\n        │   Accept: application/json           │\n        │   Authorization: Bearer <token>      │\n        │                                      │ ← looks up user 42\n        │  <─────────────── 200 OK ───────────│\n        │   Content-Type: application/json     │\n        │   {                                  │\n        │     \"id\": 42,                         │\n        │     \"name\": \"Alice\",                  │\n        │     \"email\": \"alice@example.com\"      │\n        │   }                                  │"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "api_concepts.js",
+      "code": "// A REST API exposes resources at URLs\n// The GitHub API (real example):\n\nconst BASE_URL = 'https://api.github.com';\n\n// Resources and their endpoints:\n// GET  /users/{username}          → get a user\n// GET  /repos/{owner}/{repo}      → get a repository\n// GET  /repos/{owner}/{repo}/issues → list issues\n// POST /repos/{owner}/{repo}/issues → create an issue\n// PATCH /repos/{owner}/{repo}/issues/{number} → update issue\n// DELETE /gists/{gist_id}         → delete a gist\n\n// JSON — the universal data format for APIs:\nconst user = {\n    id: 42,\n    login: 'alice',\n    name: 'Alice Smith',\n    public_repos: 24,\n    followers: 180,\n    created_at: '2018-03-15T10:00:00Z',\n};\n\n// Common API response patterns:\nconst singleResource = { id: 1, name: 'Alice' };  // one item\n\nconst listResponse = {\n    data: [{ id: 1 }, { id: 2 }],  // array of items\n    total: 50,\n    page: 1,\n    per_page: 10,\n};\n\nconst errorResponse = {\n    error: 'NOT_FOUND',\n    message: 'User 42 not found',\n    status: 404,\n};"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Explore API concepts",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0}\n    h3{color:#4fd1c5;margin:0 0 12px}\n    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}\n    .card{background:#1a1f2b;border-radius:8px;padding:12px;border:1px solid #2d3748}\n    .method{display:inline-block;padding:3px 8px;border-radius:4px;font-weight:700;font-family:monospace;font-size:0.78rem;margin-right:6px}\n    .get{background:#166534;color:#86efac}.post{background:#1e3a5f;color:#93c5fd}\n    .put{background:#713f12;color:#fcd34d}.patch{background:#4a1d96;color:#c4b5fd}\n    .del{background:#7f1d1d;color:#fca5a5}\n    .url{font-family:monospace;color:#94a3b8;font-size:0.82rem}\n    .desc{color:#64748b;font-size:0.78rem;margin-top:4px}\n    table{width:100%;border-collapse:collapse;font-size:0.82rem}\n    th{color:#4fd1c5;text-align:left;padding:6px 8px;border-bottom:1px solid #2d3748}\n    td{padding:6px 8px;border-bottom:1px solid #1a1f2b}\n    .code-badge{font-family:monospace;background:#0b0e14;padding:2px 6px;border-radius:3px;font-size:0.8rem}\n    .ok{color:#4fd1c5}.warn{color:#fbbf24}.err{color:#ef4444}\n    .sim{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:10px;font-family:monospace;font-size:0.78rem;margin-top:10px}\n    button{background:#4fd1c5;color:#0e1116;border:none;border-radius:4px;padding:6px 12px;cursor:pointer;font-weight:700;font-size:0.78rem}\n  </style>\n</head>\n<body>\n  <h3>REST API Reference</h3>\n  <div class=\"grid\">\n    <div class=\"card\">\n      <div style=\"margin-bottom:10px;font-size:0.82rem;color:#94a3b8\">Example: User API endpoints</div>\n      <div style=\"margin-bottom:8px\"><span class=\"method get\">GET</span><span class=\"url\">/users</span><div class=\"desc\">List all users</div></div>\n      <div style=\"margin-bottom:8px\"><span class=\"method get\">GET</span><span class=\"url\">/users/:id</span><div class=\"desc\">Get one user</div></div>\n      <div style=\"margin-bottom:8px\"><span class=\"method post\">POST</span><span class=\"url\">/users</span><div class=\"desc\">Create a user</div></div>\n      <div style=\"margin-bottom:8px\"><span class=\"method patch\">PATCH</span><span class=\"url\">/users/:id</span><div class=\"desc\">Update a user</div></div>\n      <div><span class=\"method del\">DELETE</span><span class=\"url\">/users/:id</span><div class=\"desc\">Delete a user</div></div>\n    </div>\n    <div class=\"card\">\n      <div style=\"margin-bottom:10px;font-size:0.82rem;color:#94a3b8\">HTTP Status Codes</div>\n      <table>\n        <tr><th>Code</th><th>Meaning</th></tr>\n        <tr><td class=\"code-badge ok\">200</td><td>OK — success</td></tr>\n        <tr><td class=\"code-badge ok\">201</td><td>Created — resource made</td></tr>\n        <tr><td class=\"code-badge ok\">204</td><td>No Content — deleted</td></tr>\n        <tr><td class=\"code-badge warn\">400</td><td>Bad Request — invalid data</td></tr>\n        <tr><td class=\"code-badge warn\">401</td><td>Unauthorized — no auth</td></tr>\n        <tr><td class=\"code-badge warn\">403</td><td>Forbidden — no permission</td></tr>\n        <tr><td class=\"code-badge warn\">404</td><td>Not Found</td></tr>\n        <tr><td class=\"code-badge warn\">422</td><td>Unprocessable — validation</td></tr>\n        <tr><td class=\"code-badge err\">429</td><td>Too Many Requests</td></tr>\n        <tr><td class=\"code-badge err\">500</td><td>Server Error</td></tr>\n      </table>\n    </div>\n  </div>\n  <div class=\"card\">\n    <div style=\"font-size:0.82rem;color:#94a3b8;margin-bottom:8px\">Simulate an API call</div>\n    <div style=\"display:flex;gap:8px;align-items:center;flex-wrap:wrap\">\n      <select id=\"method\" style=\"background:#0b0e14;color:#e2e8f0;border:1px solid #2d3748;border-radius:4px;padding:5px\">\n        <option>GET</option><option>POST</option><option>PATCH</option><option>DELETE</option>\n      </select>\n      <select id=\"endpoint\" style=\"background:#0b0e14;color:#e2e8f0;border:1px solid #2d3748;border-radius:4px;padding:5px;flex:1\">\n        <option value=\"list\">/users</option>\n        <option value=\"get\">/users/42</option>\n        <option value=\"notfound\">/users/999</option>\n        <option value=\"create\">/users (with body)</option>\n        <option value=\"delete\">/users/42</option>\n        <option value=\"error\">/users (server error)</option>\n      </select>\n      <button onclick=\"simulate()\">Send Request</button>\n    </div>\n    <div class=\"sim\" id=\"result\">↑ Select a method and endpoint, then click Send Request</div>\n  </div>\n  <script>\n    const db=[{id:1,name:'Alice',email:'alice@example.com'},{id:2,name:'Bob',email:'bob@example.com'},{id:42,name:'Eve',email:'eve@example.com'}];\n    function simulate(){\n      const m=document.getElementById('method').value;\n      const e=document.getElementById('endpoint').value;\n      const r=document.getElementById('result');\n      let status,body;\n      if(e==='list'){status=200;body=db;}\n      else if(e==='get'){status=200;body=db.find(u=>u.id===42);}\n      else if(e==='notfound'){status=404;body={error:'NOT_FOUND',message:'User 999 not found',status:404};}\n      else if(e==='create'){status=201;body={id:100,name:'New User',email:'new@example.com'};}\n      else if(e==='delete'){status=204;body=null;}\n      else if(e==='error'){status=500;body={error:'INTERNAL_ERROR',message:'Database connection failed'};}\n      const color=status<300?'#4fd1c5':status<500?'#fbbf24':'#ef4444';\n      r.innerHTML=`<span style=\"color:${color};font-weight:700\">HTTP ${status}</span>  ${status===200?'OK':status===201?'Created':status===204?'No Content':status===404?'Not Found':status===500?'Internal Server Error':''}<br><br>${body?JSON.stringify(body,null,2):'(no body — 204 No Content)'}`;\n    }\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "api-q1",
+          "question": "Which HTTP status code indicates that a new resource was successfully created by a POST request?",
+          "type": "multiple-choice",
+          "options": [
+            "200 OK",
+            "201 Created",
+            "204 No Content",
+            "202 Accepted"
+          ],
+          "correctAnswer": 1,
+          "explanation": "201 Created specifically means a new resource was created as a result of the request. The response body typically contains the new resource. 200 OK is for successful requests that return data. 204 No Content is for successful requests with no body (like DELETE). 202 Accepted means the request was received but processing hasn't completed yet (async operations)."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What's the difference between an API and a REST API?",
+      "a": "API (Application Programming Interface) is a general term — it just means an interface for two pieces of software to communicate. REST (Representational State Transfer) is a specific *style* of designing web APIs. A REST API uses HTTP, treats data as resources at URLs, and uses HTTP methods (GET/POST/PUT/DELETE) as actions. Most web APIs are REST APIs, but you'll also encounter GraphQL APIs, gRPC services, and WebSocket APIs."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — HTTP Overview",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every web and mobile application"],
+    "examples": [
+      "GitHub API — manage repos, issues, PRs programmatically",
+      "Stripe API — process payments in your app",
+      "OpenWeather API — get weather data by city"
+    ]
+  }
+}

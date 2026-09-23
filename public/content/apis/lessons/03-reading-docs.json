@@ -1,0 +1,99 @@
+{
+  "id": "03-reading-docs",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "apis",
+  "technologyVersion": "OpenAPI 3.0",
+  "module": "apis-fundamentals",
+  "title": "Reading API Documentation",
+  "subtitle": "Base URL, endpoints, parameters, headers, request body, and response schema",
+  "difficulty": "beginner",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["apis/02-http-methods"],
+  "skillsTaught": ["api.reading-docs", "api.base-url", "api.path-params", "api.query-params", "api.request-body-schema"],
+  "skillsUsed": ["api.http-methods", "api.rest-concepts"],
+  "relatedConcepts": ["api.fetch-basics", "api.api-keys-tokens"],
+  "whyItExists": {
+    "problem": "Every API has its own documentation style. Without knowing how to read docs efficiently, developers waste time trial-and-error testing endpoints instead of building features.",
+    "solution": "API docs follow predictable patterns: a base URL, endpoint paths, parameter types (path, query, header, body), and response schemas. Learning to read these quickly makes any API accessible.",
+    "whenToUse": "Every time you integrate a new API — read the authentication, list endpoints, check rate limits, and look for code examples.",
+    "whenNotToUse": "Once you've memorized an API's patterns, you can rely on autocomplete or IntelliSense from typed API clients instead."
+  },
+  "explainModes": {
+    "beginner": "API documentation tells you: what URL to call, what to send, and what you'll get back. The base URL is the root (like https://api.github.com). The endpoint is the path after it (like /users/42). Parameters can go in the URL path (/users/{id}), in the query string (?sort=asc), or in the request body (JSON). The response schema shows the shape of the data you'll receive.",
+    "simple": "Base URL: https://api.example.com/v1 — prefix for all endpoints. Path parameters: /users/{id} — replace {id} with 42 → /users/42. Query parameters: /users?page=2&sort=name — filters/pagination. Request headers: Authorization, Content-Type, Accept. Request body: JSON schema showing required/optional fields and their types. Response body: JSON schema for what comes back. Rate limits: max requests per minute/hour — look in docs or response headers (X-RateLimit-Remaining).",
+    "standard": "OpenAPI (Swagger): machine-readable API spec format. Most modern APIs publish an openapi.json or swagger.yaml. Tools like SwaggerUI render these as interactive docs. Key sections: info (title, version), servers (base URLs), paths (all endpoints + operations), components (reusable schemas). Path item object: one path with multiple operations (GET, POST, etc.). Operation object: summary, description, parameters, requestBody, responses. Schema object: type, format, required array, properties, example. Try it out: many OpenAPI docs have a live test UI embedded.",
+    "technical": "Parameter types in OpenAPI: path (in: path), query (in: query), header (in: header), cookie (in: cookie). requestBody: content → application/json → schema. Response by status code: responses → '200' → content → schema. $ref: references to reusable schemas in components/schemas. oneOf / anyOf / allOf: polymorphic schemas. nullable: true — field can be null. readOnly: only in responses, never in requests. writeOnly: only in requests (passwords). discriminator: type field for selecting the right subschema.",
+    "deepDive": "Generating code from OpenAPI: openapi-generator-cli produces typed clients in 50+ languages from a spec file — catches breaking changes at compile time. API mocking from specs: tools like Prism or Mockoon serve a fake API from the spec — enables frontend development before the backend is ready. TypeScript type generation: openapi-typescript converts OpenAPI types to .d.ts — import the types, never write manual interface definitions for API responses. Contract testing: Dredd, Pact — verify that the running API matches its OpenAPI spec."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Anatomy of an API endpoint"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "API documentation anatomy",
+      "code": "───────────────────────────────────────────────────────\nGET /repos/{owner}/{repo}/issues\n───────────────────────────────────────────────────────\nBase URL:   https://api.github.com\nFull URL:   https://api.github.com/repos/facebook/react/issues\n\nPath Parameters (required, part of URL):\n  owner  string  The account owner of the repository\n  repo   string  The name of the repository\n\nQuery Parameters (optional, after ?):\n  state   string   open | closed | all           default: open\n  labels  string   Comma-separated list of label names\n  sort    string   created | updated | comments   default: created\n  page    integer  Page number                    default: 1\n  per_page integer  Results per page (max 100)     default: 30\n\nHeaders:\n  Authorization: Bearer {personal_access_token}  (optional for public repos)\n  Accept: application/vnd.github+json            (recommended)\n\nResponse: 200 OK\n  Array of Issue objects:\n  [\n    {\n      \"id\": 12345,\n      \"number\": 28847,\n      \"title\": \"Fix memory leak in hooks\",\n      \"state\": \"open\",\n      \"user\": { \"login\": \"alice\", \"id\": 100 },\n      \"labels\": [{ \"name\": \"bug\", \"color\": \"d73a4a\" }],\n      \"created_at\": \"2026-01-15T10:00:00Z\",\n      \"body\": \"When using useEffect...\"\n    }\n  ]\n───────────────────────────────────────────────────────"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "reading_docs_example.js",
+      "code": "// Translating the docs above into actual fetch() calls\n\nconst BASE = 'https://api.github.com';\nconst TOKEN = process.env.GITHUB_TOKEN;  // optional for public repos\n\n// GET /repos/{owner}/{repo}/issues?state=open&per_page=5\nconst owner = 'facebook';\nconst repo  = 'react';\n\n// Build query string from an object (cleaner than manual string)\nconst params = new URLSearchParams({\n    state:    'open',\n    sort:     'created',\n    per_page: '5',\n});\n\nconst url = `${BASE}/repos/${owner}/${repo}/issues?${params}`;\nconsole.log('URL:', url);\n// → https://api.github.com/repos/facebook/react/issues?state=open&sort=created&per_page=5\n\nconst res = await fetch(url, {\n    headers: {\n        'Accept':        'application/vnd.github+json',\n        'Authorization': TOKEN ? `Bearer ${TOKEN}` : undefined,\n    },\n});\n\nif (!res.ok) {\n    const err = await res.json().catch(() => ({ message: res.statusText }));\n    throw new Error(`GitHub API ${res.status}: ${err.message}`);\n}\n\nconst issues = await res.json();\nconsole.log(`Found ${issues.length} open issues`);\nissues.forEach(i => console.log(`  #${i.number}: ${i.title}`));\n\n// Check rate limit from response headers\nconsole.log('Remaining requests:', res.headers.get('x-ratelimit-remaining'));\nconsole.log('Resets at:', new Date(res.headers.get('x-ratelimit-reset') * 1000));"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: API docs navigator",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0;font-size:0.85rem}\n    .api-doc{background:#1a1f2b;border:1px solid #2d3748;border-radius:8px;padding:14px;margin-bottom:12px}\n    .endpoint-title{display:flex;align-items:center;gap:8px;margin-bottom:10px}\n    .method{font-family:monospace;font-weight:700;padding:3px 8px;border-radius:4px;font-size:0.82rem}\n    .get{background:#166534;color:#86efac}.post{background:#1e3a5f;color:#93c5fd}\n    .path{font-family:monospace;font-size:0.9rem;color:#e2e8f0}\n    .section{margin-bottom:10px}\n    .section-label{font-size:0.72rem;color:#4fd1c5;text-transform:uppercase;margin-bottom:6px;font-weight:700}\n    table{width:100%;border-collapse:collapse;font-size:0.78rem}\n    th{text-align:left;color:#64748b;padding:4px 6px;border-bottom:1px solid #2d3748}\n    td{padding:4px 6px;border-bottom:1px solid #1a1f2b;vertical-align:top}\n    .param-name{font-family:monospace;color:#fcd34d}\n    .required{color:#ef4444;font-size:0.7rem;font-weight:700}\n    .optional{color:#64748b;font-size:0.7rem}\n    .type{font-family:monospace;color:#93c5fd;font-size:0.75rem}\n    .try-row{display:flex;gap:6px;align-items:center;margin-top:10px;flex-wrap:wrap}\n    input,select{background:#0b0e14;color:#e2e8f0;border:1px solid #2d3748;border-radius:4px;padding:4px 8px;font-family:monospace;font-size:0.78rem}\n    button{background:#4fd1c5;color:#0e1116;border:none;border-radius:4px;padding:6px 12px;cursor:pointer;font-weight:700;font-size:0.78rem}\n    .response{background:#0b0e14;border:1px solid #2d3748;border-radius:4px;padding:8px;font-family:monospace;font-size:0.75rem;white-space:pre-wrap;max-height:150px;overflow:auto;margin-top:8px}\n  </style>\n</head>\n<body>\n  <div class=\"api-doc\">\n    <div class=\"endpoint-title\">\n      <span class=\"method get\">GET</span>\n      <span class=\"path\">/products</span>\n    </div>\n    <div class=\"section\">\n      <div class=\"section-label\">Query Parameters</div>\n      <table><tr><th>Name</th><th>Type</th><th>Required</th><th>Default</th><th>Description</th></tr>\n        <tr><td class=\"param-name\">category</td><td class=\"type\">string</td><td class=\"optional\">optional</td><td>—</td><td>Filter by category</td></tr>\n        <tr><td class=\"param-name\">min_price</td><td class=\"type\">number</td><td class=\"optional\">optional</td><td>0</td><td>Minimum price</td></tr>\n        <tr><td class=\"param-name\">max_price</td><td class=\"type\">number</td><td class=\"optional\">optional</td><td>∞</td><td>Maximum price</td></tr>\n        <tr><td class=\"param-name\">sort</td><td class=\"type\">string</td><td class=\"optional\">optional</td><td>created</td><td>price_asc | price_desc | created</td></tr>\n        <tr><td class=\"param-name\">page</td><td class=\"type\">integer</td><td class=\"optional\">optional</td><td>1</td><td>Page number</td></tr>\n      </table>\n    </div>\n    <div class=\"try-row\">\n      Category: <input id=\"cat\" placeholder=\"electronics\" style=\"width:100px\">\n      Max $: <input id=\"max\" type=\"number\" placeholder=\"100\" style=\"width:70px\">\n      Sort: <select id=\"sort\"><option value=\"\">created</option><option value=\"price_asc\">price_asc</option><option value=\"price_desc\">price_desc</option></select>\n      <button onclick=\"tryIt()\">Try it</button>\n    </div>\n    <div id=\"built-url\" style=\"margin-top:8px;font-family:monospace;font-size:0.78rem;color:#94a3b8\">URL will appear here</div>\n    <div class=\"response\" id=\"response\" style=\"display:none\"></div>\n  </div>\n  <script>\n    const products=[\n      {id:1,name:'Wireless Headphones',category:'electronics',price:79.99},\n      {id:2,name:'Coffee Maker',category:'kitchen',price:49.99},\n      {id:3,name:'Laptop Stand',category:'electronics',price:35.00},\n      {id:4,name:'Bluetooth Speaker',category:'electronics',price:59.99},\n      {id:5,name:'Knife Set',category:'kitchen',price:89.99},\n      {id:6,name:'USB-C Hub',category:'electronics',price:29.99},\n    ];\n    function tryIt(){\n      const cat=document.getElementById('cat').value;\n      const max=document.getElementById('max').value;\n      const sort=document.getElementById('sort').value;\n      const p=new URLSearchParams();\n      if(cat)p.set('category',cat);\n      if(max)p.set('max_price',max);\n      if(sort)p.set('sort',sort);\n      const qs=p.toString();\n      document.getElementById('built-url').textContent='GET https://api.example.com/products'+(qs?'?'+qs:'');\n      let data=[...products];\n      if(cat)data=data.filter(x=>x.category===cat);\n      if(max)data=data.filter(x=>x.price<=parseFloat(max));\n      if(sort==='price_asc')data.sort((a,b)=>a.price-b.price);\n      if(sort==='price_desc')data.sort((a,b)=>b.price-a.price);\n      const r=document.getElementById('response');\n      r.style.display='block';\n      r.textContent=JSON.stringify({data,total:data.length,page:1,per_page:20},null,2);\n    }\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "api-docs-q1",
+          "question": "In the URL https://api.example.com/users/42/posts?page=2, which parts are path parameters and which are query parameters?",
+          "type": "multiple-choice",
+          "options": [
+            "42 and page=2 are both path parameters",
+            "42 is a path parameter (part of the URL path), page=2 is a query parameter (after the ?)",
+            "page=2 is a path parameter and 42 is a query parameter",
+            "Both are query parameters"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Path parameters are embedded in the URL path itself — like /users/42 where 42 is a path parameter identifying a specific user. They're documented as /users/{id} in API docs. Query parameters come after the ? and are key=value pairs — like page=2. They're optional filters, sorts, or pagination controls. Path params identify a resource; query params modify how you retrieve it."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do I find an API's documentation?",
+      "a": "Search for '{service name} API docs' or '{service name} developer docs'. Most major services have a developer portal (stripe.com/docs, docs.github.com, openweathermap.org/api). Look for an 'API Reference' section — this lists all endpoints with parameters and response schemas. If they publish an OpenAPI spec (often linked as openapi.json or swagger.yaml), you can import it into tools like Postman or Insomnia for interactive testing."
+    }
+  ],
+  "sources": [
+    {
+      "name": "GitHub REST API Documentation",
+      "url": "https://docs.github.com/en/rest",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every API integration"],
+    "examples": [
+      "Stripe docs — detailed reference with code examples in 8 languages",
+      "OpenWeather API — simple docs with base URL, API key as query param, JSON response examples",
+      "Twilio — Swagger/OpenAPI spec downloadable for code generation"
+    ]
+  }
+}
