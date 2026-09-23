@@ -1,0 +1,99 @@
+{
+  "id": "13-cli-tools",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "nodejs",
+  "technologyVersion": "Node.js 20 LTS",
+  "module": "node-practice",
+  "title": "CLI Tools",
+  "subtitle": "Building command-line tools with process.argv, readline, and formatted output",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 20,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["nodejs/04-file-system", "nodejs/11-environment"],
+  "skillsTaught": ["node.process-argv", "node.cli-args", "node.readline", "node.cli-output"],
+  "skillsUsed": ["node.process", "node.fs-module", "js.async-await"],
+  "relatedConcepts": ["node.error-handling", "node.deployment"],
+  "whyItExists": {
+    "problem": "Developers spend a lot of time in the terminal. CLI tools automate repetitive tasks — code generation, data processing, deployments, file management — far faster than GUIs.",
+    "solution": "Node.js is excellent for CLI tools: fast startup, built-in file system access, npm ecosystem. process.argv reads command-line arguments. readline handles interactive prompts. stdout/stderr control output. The bin field in package.json registers a global command.",
+    "whenToUse": "Build scripts, code generators, data migration tools, project scaffolding, automation workflows, developer utilities.",
+    "whenNotToUse": "For long-running daemons with network I/O, a server process is more appropriate. For GUI-heavy tools, consider Electron or a web UI."
+  },
+  "explainModes": {
+    "beginner": "A CLI tool is a program you run from the terminal. process.argv is an array of the command and its arguments: node script.js hello → process.argv = ['node', 'script.js', 'hello']. You read process.argv[2] to get the first user argument. process.stdout.write prints without a newline. process.exit(0) ends the program.",
+    "simple": "process.argv: array ['node', 'scriptPath', ...userArgs]. User args start at index 2. Parse flags: const verbose = process.argv.includes('--verbose'). Parse values: const idx = process.argv.indexOf('--name'); const name = idx !== -1 ? process.argv[idx+1] : null. ANSI colors: '\\x1b[32mgreen\\x1b[0m'. readline: create interface with createInterface, call question() for prompts, close() when done. Exit codes: 0 = success, 1+ = error.",
+    "standard": "Arg parsing libraries: minimist (tiny, no-dep), yargs (full-featured: flags, commands, validation, help), commander (Express-style CLI). package.json bin field: '\"bin\": { \"mytool\": \"./bin/cli.js\" }' — npm install -g registers the command globally. Shebang: #!/usr/bin/env node at top of the file — tells the OS to run it with Node. chmod +x cli.js — make it executable. stdout vs stderr: use console.error() or process.stderr.write() for errors — this allows piping stdout while seeing errors.",
+    "technical": "Interactive prompts: readline.createInterface({ input: process.stdin, output: process.stdout }). rl.question(prompt, callback) or rl.question(prompt) → Promise (Node 17+). rl.close() — close when done or stdin stays open. Detecting TTY: process.stdout.isTTY — true in terminal, false when piped. Use this to disable color output when output is redirected to a file. Signal handling: process.on('SIGINT', handler) for Ctrl+C cleanup. process.on('SIGTERM', handler) for kill signal (graceful shutdown).",
+    "deepDive": "Inquirer.js: advanced CLI prompts — checkbox, list, password, editor. Used by many scaffolding tools. chalk/kleur: ANSI color libraries with no-color detection. ora: spinner for async operations. boxen: boxes around terminal output. listr2: task list with progress. All these build on process.stdout/stderr and ANSI escape codes. ANSI codes: \\x1b[32m = green, \\x1b[31m = red, \\x1b[0m = reset, \\x1b[1m = bold, \\x1b[2m = dim. NO_COLOR env var: de-facto standard to disable colors — check process.env.NO_COLOR."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Building a CLI tool"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "cli.js",
+      "code": "#!/usr/bin/env node\n// ^^^ Shebang: tells the OS to run this file with Node.js\n\n// Simple arg parser\nconst args = process.argv.slice(2);  // skip ['node', 'script.js']\n\n// Usage: node cli.js greet --name Alice --shout\nconst command  = args[0];\nconst nameIdx  = args.indexOf('--name');\nconst name     = nameIdx !== -1 ? args[nameIdx + 1] : 'World';\nconst isShout  = args.includes('--shout');\nconst isHelp   = args.includes('--help') || args.includes('-h');\n\nif (isHelp || !command) {\n    console.log('Usage: cli <command> [options]');\n    console.log('Commands:');\n    console.log('  greet   --name <name> [--shout]   Print a greeting');\n    console.log('  version                           Print version');\n    process.exit(0);\n}\n\nif (command === 'version') {\n    const pkg = require('./package.json');\n    console.log(pkg.version);\n    process.exit(0);\n}\n\nif (command === 'greet') {\n    let msg = `Hello, ${name}!`;\n    if (isShout) msg = msg.toUpperCase();\n    console.log(msg);\n    process.exit(0);\n}\n\nconsole.error(`Unknown command: ${command}`);\nprocess.exit(1);"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "interactive.js",
+      "code": "const readline = require('readline');\n\n// Create a readline interface for interactive prompts\nconst rl = readline.createInterface({\n    input:  process.stdin,\n    output: process.stdout,\n});\n\n// ANSI colors\nconst c = {\n    green:  (s) => `\\x1b[32m${s}\\x1b[0m`,\n    red:    (s) => `\\x1b[31m${s}\\x1b[0m`,\n    bold:   (s) => `\\x1b[1m${s}\\x1b[0m`,\n    dim:    (s) => `\\x1b[2m${s}\\x1b[0m`,\n};\n\n// Promisify rl.question (Node 17+ has a native .question Promise)\nfunction ask(question) {\n    return new Promise(resolve => rl.question(question, resolve));\n}\n\nasync function setup() {\n    console.log(c.bold('\\nProject Setup Wizard'));\n    console.log(c.dim('Press Ctrl+C to cancel\\n'));\n\n    const name    = await ask('Project name: ');\n    const version = await ask('Version (1.0.0): ') || '1.0.0';\n    const author  = await ask('Author: ');\n\n    rl.close();\n\n    const pkg = { name, version, author,\n        scripts: { start: 'node index.js' }, dependencies: {} };\n\n    console.log('\\n' + c.bold('Generated package.json:'));\n    console.log(JSON.stringify(pkg, null, 2));\n    console.log('\\n' + c.green('✓ Done!'));\n}\n\nsetup().catch(err => {\n    console.error(c.red('\\nError: ' + err.message));\n    process.exit(1);\n});"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: CLI tools sandbox",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0}\n    .layout{display:flex;flex-direction:column;gap:10px;height:calc(100vh-32px)}\n    textarea{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;padding:10px;font-family:monospace;font-size:0.82rem;resize:vertical;min-height:180px}\n    button{padding:8px 14px;border:none;border-radius:5px;font-weight:700;cursor:pointer;font-size:0.8rem}\n    .chips{display:flex;flex-wrap:wrap;gap:6px}\n    .chip{background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:3px 10px;font-family:monospace;font-size:0.72rem;cursor:pointer;color:#94a3b8}\n    .chip:hover{border-color:#4fd1c5;color:#4fd1c5}\n    .args-row{display:flex;gap:6px;align-items:center}\n    .args-row input{flex:1;background:#0b0e14;color:#e2e8f0;border:1px solid #2d3748;border-radius:4px;padding:6px 10px;font-family:monospace;font-size:0.82rem}\n    .output{background:#0c0c0c;border:1px solid #2d3748;border-radius:6px;padding:12px;font-family:monospace;font-size:0.8rem;overflow:auto;flex:1;white-space:pre-wrap}\n    .panel-label{font-size:0.7rem;color:#4fd1c5;margin-bottom:6px}\n    .log{color:#e2e8f0;margin:1px 0}.err{color:#ef4444;margin:1px 0}.info{color:#94a3b8;font-style:italic}\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <textarea id=\"code\" spellcheck=\"false\">// CLI tool — run with simulated arguments below\n// Args are set via the input field at the bottom\n\nconst args = process.argv.slice(2);\n\n// ANSI colors (work in real terminals)\nconst green = s => `\\x1b[32m${s}\\x1b[0m`;\nconst red   = s => `\\x1b[31m${s}\\x1b[0m`;\nconst bold  = s => `\\x1b[1m${s}\\x1b[0m`;\n\nfunction showHelp() {\n  console.log(bold('greet-cli') + ' — a greeting tool');\n  console.log();\n  console.log('Usage: greet <name> [--shout] [--count <n>]');\n  console.log();\n  console.log('Options:');\n  console.log('  --shout       Output in UPPERCASE');\n  console.log('  --count <n>   Repeat n times (default: 1)');\n  console.log('  --help, -h    Show this help');\n}\n\nif (args.includes('--help') || args.includes('-h') || args.length === 0) {\n  showHelp();\n  process.exit(0);\n}\n\nconst name      = args[0];\nconst isShout   = args.includes('--shout');\nconst countIdx  = args.indexOf('--count');\nconst count     = countIdx !== -1 ? parseInt(args[countIdx + 1], 10) || 1 : 1;\n\nif (isNaN(count) || count < 1) {\n  console.error(red('Error: --count must be a positive number'));\n  process.exit(1);\n}\n\nfor (let i = 0; i < count; i++) {\n  let msg = `Hello, ${name}!`;\n  if (isShout) msg = msg.toUpperCase();\n  console.log(green('✓') + ' ' + msg);\n}\n\nconsole.log(bold(`\\nDone! Greeted ${name} ${count} time${count > 1 ? 's' : ''}.`));</textarea>\n    <div class=\"chips\">\n      <span class=\"chip\" onclick=\"setArgs('Alice --shout')\">Alice --shout</span>\n      <span class=\"chip\" onclick=\"setArgs('Bob --count 3')\">Bob --count 3</span>\n      <span class=\"chip\" onclick=\"setArgs('--help')\">--help</span>\n      <span class=\"chip\" onclick=\"setArgs('')\">(no args)</span>\n    </div>\n    <div class=\"args-row\">\n      <span style=\"font-size:0.78rem;color:#94a3b8;white-space:nowrap\">$ node cli.js</span>\n      <input id=\"args\" value=\"Alice\" placeholder=\"args (e.g. greet --name Alice)\" />\n      <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runNode()\">&#9654; Run</button>\n    </div>\n    <div class=\"output\" id=\"output\"><div class=\"panel-label\">TERMINAL OUTPUT</div><div class=\"info\">Set args and click Run</div></div>\n  </div>\n  <script>\n    function stripAnsi(s){return String(s).replace(/\\x1b\\[[0-9;]*m/g,'')}\n    function colorAnsi(s){\n      return String(s)\n        .replace(/\\x1b\\[32m(.*?)\\x1b\\[0m/g,'<span style=\"color:#4fd1c5\">$1</span>')\n        .replace(/\\x1b\\[31m(.*?)\\x1b\\[0m/g,'<span style=\"color:#f44747\">$1</span>')\n        .replace(/\\x1b\\[33m(.*?)\\x1b\\[0m/g,'<span style=\"color:#fbbf24\">$1</span>')\n        .replace(/\\x1b\\[1m(.*?)\\x1b\\[0m/g,'<strong>$1</strong>')\n        .replace(/\\x1b\\[2m(.*?)\\x1b\\[0m/g,'<span style=\"opacity:0.6\">$1</span>')\n        .replace(/\\x1b\\[[0-9;]*m/g,'');\n    }\n    function setArgs(a){document.getElementById('args').value=a;}\n    const _memFS={'/home/user/project/package.json':JSON.stringify({name:'my-cli',version:'1.0.0',bin:{cli:'./cli.js'}},null,2)};\n    function _require(m){if(m==='path')return{join:(...a)=>a.join('/').replace(/\\/+/g,'/')};if(m==='fs')return{readFileSync:p=>{if(_memFS[p]==null)throw Object.assign(new Error('ENOENT'),{code:'ENOENT'});return _memFS[p]},existsSync:p=>_memFS[p]!=null};throw new Error('Cannot find module \\''+m+'\\''+'\\nAvailable: path, fs');}\n    function runNode(){\n      const src=document.getElementById('code').value;\n      const rawArgs=(document.getElementById('args').value||'').trim().split(/\\s+/).filter(Boolean);\n      const logs=[];const oL=console.log,oE=console.error;\n      console.log=(...a)=>logs.push({t:'log',m:a.map(x=>typeof x==='object'?JSON.stringify(x,null,2):String(x)).join(' ')});\n      console.error=(...a)=>logs.push({t:'err',m:a.map(String).join(' ')});\n      const _proc={argv:['node','/home/user/project/cli.js',...rawArgs],env:{NODE_ENV:'development',NO_COLOR:''},cwd:()=>'/home/user/project',exit:(c=0)=>{throw new Error('process.exit('+c+')')},version:'v20.11.0',platform:'linux',pid:1234,stdout:{write:s=>_log(String(s))}};      function _log(s){logs.push({t:'log',m:s});};\n      try{new Function('require','process','__dirname',src)(_require,_proc,'/home/user/project');}\n      catch(e){if(!e.message.startsWith('process.exit'))logs.push({t:'err',m:e.message});else logs.push({t:'info',m:e.message});}\n      finally{console.log=oL;console.error=oE;}\n      const od=document.getElementById('output');\n      od.innerHTML='<div class=\"panel-label\">TERMINAL OUTPUT</div>'+(logs.length?logs.map(l=>'<div class=\"'+(l.t==='err'?'err':l.t==='info'?'info':'log')+'\">'+colorAnsi(l.m).replace(/</g,'&lt;').replace(/&lt;(\\/?(?:span|strong)[^>]*)>/g,'<$1>')+'</div>').join(''):'<div class=\"info\">No output</div>');}\n    document.getElementById('code').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runNode();}});\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "node-cli-q1",
+          "question": "What does `process.argv.slice(2)` do and why?",
+          "type": "multiple-choice",
+          "options": [
+            "It removes the first two items from process.argv in place",
+            "It returns a new array without the first two elements. process.argv[0] is always 'node' and process.argv[1] is the script path — the user's actual arguments start at index 2",
+            "It parses the first two arguments as flags",
+            "It limits argv to two arguments maximum"
+          ],
+          "correctAnswer": 1,
+          "explanation": "process.argv always starts with ['node', '/path/to/script.js', ...userArgs]. The first two elements are the Node.js executable path and the script path — not user input. slice(2) creates a new array starting from index 2, which contains only what the user typed after the script name. This is the standard idiom for processing CLI arguments."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do I make my Node.js script run as a global command (e.g., `mytool` instead of `node tool.js`)?",
+      "a": "1. Add a shebang line at the top: `#!/usr/bin/env node`. 2. Make it executable: `chmod +x cli.js` (on Mac/Linux). 3. Add to package.json: `\"bin\": { \"mytool\": \"./cli.js\" }`. 4. Run `npm install -g .` (installs globally from the current directory). Now `mytool` runs your script. For sharing, publish to npm — `npm install -g your-package` makes it available globally."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Node.js Docs — readline",
+      "url": "https://nodejs.org/api/readline.html",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["create-react-app", "vite", "prisma CLI", "aws-cdk"],
+    "examples": [
+      "npm create vite@latest — scaffolding CLI built with Node.js",
+      "prisma migrate dev — database CLI that reads process.argv",
+      "All npm/pnpm/yarn commands are Node.js CLI tools"
+    ]
+  }
+}

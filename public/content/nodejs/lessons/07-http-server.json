@@ -1,0 +1,103 @@
+{
+  "id": "07-http-server",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "nodejs",
+  "technologyVersion": "Node.js 20 LTS",
+  "module": "node-http",
+  "title": "HTTP Server",
+  "subtitle": "Building web servers with Node's built-in http module",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 20,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["nodejs/06-events"],
+  "skillsTaught": ["node.http-createserver", "node.request-response", "node.routing", "node.json-api"],
+  "skillsUsed": ["node.eventemitter", "js.async-await", "js.json"],
+  "relatedConcepts": ["node.express-basics", "node.streams"],
+  "whyItExists": {
+    "problem": "Web servers handle HTTP requests and return responses. Understanding the low-level http module helps you understand what frameworks like Express do under the hood.",
+    "solution": "http.createServer() creates a server. The callback receives (req, res) — a request object with method, URL, headers, and body; and a response object to write status, headers, and the response body.",
+    "whenToUse": "Learning the fundamentals, writing minimal microservices, or situations where Express overhead is undesirable. In production, most teams use Express or Fastify.",
+    "whenNotToUse": "For real applications with routing, middleware, authentication — use Express or Fastify rather than re-implementing those features yourself."
+  },
+  "explainModes": {
+    "beginner": "http.createServer() creates a web server. When a browser requests a page, your callback function runs with the request details (what URL, what method) and a response object. You call res.end('Hello') to send back a response.",
+    "simple": "const server = http.createServer((req, res) => { res.writeHead(200, {'Content-Type':'text/plain'}); res.end('Hello'); }); server.listen(3000). req.method: GET/POST/etc. req.url: the path. req.headers: request headers. Reading body: req is a stream — collect chunks. res.writeHead(statusCode, headers). res.write(chunk). res.end(data). JSON API: set Content-Type: application/json and JSON.stringify the response.",
+    "standard": "Routing: check req.url and req.method — a switch or if/else tree. Body reading: POST/PUT bodies come as a stream. Collect: let body=''; req.on('data', chunk => body += chunk); req.on('end', () => { const data = JSON.parse(body); }). CORS headers: res.setHeader('Access-Control-Allow-Origin', '*'). Error handling: unhandled errors in the callback crash the server — wrap in try/catch. Status codes: 200 OK, 201 Created, 400 Bad Request, 404 Not Found, 500 Internal Server Error.",
+    "technical": "Keep-alive connections: HTTP/1.1 reuses TCP connections by default. Each request/response cycle is one req/res pair on the same connection. server.keepAliveTimeout controls idle timeout. http.Agent: manages a connection pool for outgoing requests (http.request). For incoming, Node manages this automatically. HTTPS: use the https module (same API as http) with key/cert options. TLS termination is more commonly done at a load balancer (Nginx, AWS ALB) in production.",
+    "deepDive": "Backpressure: if the client reads slower than you write, res.write() returns false — wait for 'drain' before writing more. Node's http module handles this automatically for most use cases. HTTP/2: Node 18+ has a stable http2 module — multiplexed streams over one TCP connection. Express 5 supports HTTP/2 via the spdy adapter. QUIC/HTTP3: experimental in Node. Undici: Node's modern HTTP client — faster than the built-in http module for outgoing requests, now backing fetch() in Node 18+."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Creating an HTTP server"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "basic_server.js",
+      "code": "const http = require('http');\n\nconst server = http.createServer((req, res) => {\n    // req.method: 'GET', 'POST', 'PUT', 'DELETE'\n    // req.url:    '/api/users', '/about', '/'\n    console.log(`${req.method} ${req.url}`);\n\n    // Simple routing\n    if (req.url === '/' && req.method === 'GET') {\n        res.writeHead(200, { 'Content-Type': 'text/html' });\n        res.end('<h1>Hello from Node.js!</h1>');\n\n    } else if (req.url === '/api/status' && req.method === 'GET') {\n        res.writeHead(200, { 'Content-Type': 'application/json' });\n        res.end(JSON.stringify({ status: 'ok', uptime: process.uptime?.() || 0 }));\n\n    } else {\n        res.writeHead(404, { 'Content-Type': 'application/json' });\n        res.end(JSON.stringify({ error: 'Not found' }));\n    }\n});\n\nserver.listen(3000, () => {\n    console.log('Server running at http://localhost:3000');\n});"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "json_api.js",
+      "code": "const http = require('http');\n\nconst users = [\n    { id: 1, name: 'Alice', role: 'admin' },\n    { id: 2, name: 'Bob',   role: 'user'  },\n];\n\nfunction jsonResponse(res, statusCode, data) {\n    res.writeHead(statusCode, {\n        'Content-Type': 'application/json',\n        'Access-Control-Allow-Origin': '*',\n    });\n    res.end(JSON.stringify(data, null, 2));\n}\n\nconst server = http.createServer(async (req, res) => {\n    const { method, url } = req;\n\n    if (url === '/users' && method === 'GET') {\n        return jsonResponse(res, 200, users);\n    }\n\n    if (url === '/users' && method === 'POST') {\n        let body = '';\n        req.on('data', chunk => { body += chunk; });\n        req.on('end', () => {\n            try {\n                const newUser = JSON.parse(body);\n                newUser.id = users.length + 1;\n                users.push(newUser);\n                jsonResponse(res, 201, newUser);\n            } catch {\n                jsonResponse(res, 400, { error: 'Invalid JSON' });\n            }\n        });\n        return;\n    }\n\n    jsonResponse(res, 404, { error: 'Not found' });\n});\n\nserver.listen(3000, () => console.log('API ready on :3000'));"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: HTTP server simulation",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0}\n    .layout{display:flex;flex-direction:column;gap:10px;height:calc(100vh - 32px)}\n    textarea{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;padding:10px;font-family:monospace;font-size:0.82rem;resize:vertical;min-height:180px}\n    button{padding:8px 14px;border:none;border-radius:5px;font-weight:700;cursor:pointer;font-size:0.8rem}\n    .chips{display:flex;flex-wrap:wrap;gap:6px}\n    .chip{background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:3px 10px;font-family:monospace;font-size:0.72rem;cursor:pointer;color:#94a3b8}\n    .chip:hover{border-color:#4fd1c5;color:#4fd1c5}\n    .output{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:12px;font-family:monospace;font-size:0.8rem;overflow:auto;flex:1}\n    .panel-label{font-size:0.7rem;color:#4fd1c5;margin-bottom:6px}\n    .log{color:#e2e8f0;margin:1px 0}.err{color:#ef4444;margin:1px 0}.ok{color:#4fd1c5;margin:1px 0}.info{color:#94a3b8;font-style:italic}\n    .req-panel{background:#1a1f2b;border:1px solid #2d3748;border-radius:6px;padding:10px;font-family:monospace;font-size:0.78rem}\n    .req-row{display:flex;gap:6px;margin-bottom:6px;align-items:center}\n    select,input{background:#0b0e14;color:#e2e8f0;border:1px solid #2d3748;border-radius:4px;padding:4px 8px;font-family:monospace;font-size:0.78rem}\n    input{flex:1}\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <textarea id=\"code\" spellcheck=\"false\">// Define your server handler\n// The sandbox will simulate HTTP requests to it\n\nconst users = [\n  { id: 1, name: 'Alice', role: 'admin' },\n  { id: 2, name: 'Bob',   role: 'user'  },\n];\n\nfunction handleRequest(req, res) {\n  const { method, url } = req;\n  console.log(method, url);\n\n  if (url === '/' && method === 'GET') {\n    res.writeHead(200, { 'Content-Type': 'text/plain' });\n    return res.end('Hello from Node.js HTTP server!');\n  }\n\n  if (url === '/users' && method === 'GET') {\n    res.writeHead(200, { 'Content-Type': 'application/json' });\n    return res.end(JSON.stringify(users));\n  }\n\n  if (url === '/users' && method === 'POST') {\n    const body = JSON.parse(req.body || '{}');\n    const user = { id: users.length + 1, ...body };\n    users.push(user);\n    res.writeHead(201, { 'Content-Type': 'application/json' });\n    return res.end(JSON.stringify(user));\n  }\n\n  res.writeHead(404, { 'Content-Type': 'application/json' });\n  res.end(JSON.stringify({ error: 'Not found', path: url }));\n}</textarea>\n    <div class=\"chips\">\n      <span class=\"chip\" onclick=\"setCode('// Minimal hello world server\\nfunction handleRequest(req, res) {\\n  console.log(req.method, req.url);\\n  res.writeHead(200, { \\'Content-Type\\': \\'text/html\\' });\\n  res.end(\\'<h1>Hello from Node.js!</h1><p>Method: \\' + req.method + \\'</p><p>URL: \\' + req.url + \\'</p>\\');\\n}')\">hello world</span>\n      <span class=\"chip\" onclick=\"setCode('// JSON API with routing\\nconst data = { items: [\\'apple\\', \\'banana\\', \\'cherry\\'] };\\n\\nfunction handleRequest(req, res) {\\n  const send = (code, body) => {\\n    res.writeHead(code, { \\'Content-Type\\': \\'application/json\\' });\\n    res.end(JSON.stringify(body, null, 2));\\n  };\\n\\n  if (req.url === \\'/api/items\\' && req.method === \\'GET\\') {\\n    return send(200, data);\\n  }\\n  if (req.url === \\'/api/status\\') {\\n    return send(200, { ok: true, count: data.items.length });\\n  }\\n  send(404, { error: \\'Not found\\' });\\n}')\">JSON API</span>\n    </div>\n    <div class=\"req-panel\">\n      <div style=\"font-size:0.7rem;color:#4fd1c5;margin-bottom:6px\">SIMULATE REQUEST</div>\n      <div class=\"req-row\">\n        <select id=\"req-method\"><option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option></select>\n        <input id=\"req-url\" value=\"/\" placeholder=\"/path\" />\n        <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"sendReq()\">&#9654; Send</button>\n      </div>\n      <textarea id=\"req-body\" style=\"width:100%;min-height:40px;margin-top:4px\" placeholder='{\"name\":\"Carol\"} (for POST)'></textarea>\n    </div>\n    <div class=\"output\" id=\"output\"><div class=\"panel-label\">OUTPUT</div><div class=\"info\">Define handleRequest above, then send a request</div></div>\n  </div>\n  <script>\n    let _handler = null;\n    function setCode(c){document.getElementById('code').value=c;}\n    function sendReq(){\n      const src = document.getElementById('code').value;\n      const logs = [];\n      const oL=console.log,oE=console.error;\n      console.log=(...a)=>logs.push({t:'log',m:a.map(x=>typeof x==='object'?JSON.stringify(x,null,2):String(x)).join(' ')});\n      console.error=(...a)=>logs.push({t:'err',m:a.map(String).join(' ')});\n      try {\n        new Function('handleRequest', src)(fn => { _handler = fn; });\n        eval('_handler = ' + src.match(/function handleRequest[\\s\\S]*?^}/m)?.[0]);\n      } catch(e){}\n      const fn = new Function(src + '\\nreturn handleRequest;')();\n      const method = document.getElementById('req-method').value;\n      const url = document.getElementById('req-url').value || '/';\n      const body = document.getElementById('req-body').value;\n      const req = { method, url, body, headers: { 'content-type': 'application/json' } };\n      const resData = { status: 200, headers: {}, body: '' };\n      const res = {\n        writeHead: (code, hdrs) => { resData.status = code; Object.assign(resData.headers, hdrs||{}); },\n        end: (b) => { resData.body = b || ''; },\n        write: (b) => { resData.body += (b||''); },\n        setHeader: (k,v) => { resData.headers[k] = v; }\n      };\n      try { fn(req, res); } catch(e) { logs.push({t:'err', m:e.message}); }\n      finally { console.log=oL; console.error=oE; }\n      const statusColor = resData.status < 300 ? '#4fd1c5' : resData.status < 400 ? '#fbbf24' : '#f44747';\n      let bodyStr = resData.body;\n      try { bodyStr = JSON.stringify(JSON.parse(bodyStr), null, 2); } catch(e) {}\n      const od = document.getElementById('output');\n      od.innerHTML = '<div class=\"panel-label\">RESPONSE</div>'\n        + '<div style=\"color:'+statusColor+';margin-bottom:6px\">HTTP '+resData.status+'</div>'\n        + '<div style=\"color:#94a3b8;font-size:0.75rem;margin-bottom:6px\">Headers: '+JSON.stringify(resData.headers)+'</div>'\n        + '<pre style=\"color:#e2e8f0;margin:0\">'+bodyStr.replace(/</g,'&lt;')+'</pre>'\n        + (logs.length ? '<div style=\"border-top:1px solid #2d3748;margin-top:8px;padding-top:8px\"><div style=\"font-size:0.7rem;color:#4fd1c5;margin-bottom:4px\">SERVER LOG</div>'\n           + logs.map(l=>'<div class=\"'+(l.t==='err'?'err':'log')+'\">'+l.m.replace(/</g,'&lt;')+'</div>').join('') + '</div>' : '');\n    }\n    document.getElementById('code').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();sendReq();}});\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "tip",
+      "text": "In real Node.js, reading the request body requires collecting stream chunks: `let body=''; req.on('data', c => body+=c); req.on('end', () => JSON.parse(body))`. The sandbox simplifies this by providing req.body as a string directly."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "node-http-q1",
+          "question": "What are the `req` and `res` objects in an http.createServer callback?",
+          "type": "multiple-choice",
+          "options": [
+            "req is the HTML request string; res is an array of response strings",
+            "req (IncomingMessage) contains the request data (method, url, headers, body stream); res (ServerResponse) is used to write the status code, headers, and body back to the client",
+            "req and res are both EventEmitters with no special HTTP methods",
+            "req is synchronous; res is asynchronous"
+          ],
+          "correctAnswer": 1,
+          "explanation": "req is an IncomingMessage (a Readable stream): it has .method, .url, .headers, and emits 'data'/'end' events for the request body. res is a ServerResponse (a Writable stream): call res.writeHead(statusCode, headers) to set the response head, then res.end(body) or res.write(chunk) to send the body. Once you call res.end(), the response is complete and the connection is ready for the next request."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Why do most Node.js projects use Express instead of the raw http module?",
+      "a": "The raw http module handles every detail manually: routing (if/else on req.url), body parsing (stream chunks), content negotiation, error handling, middleware chains. Express adds routing (app.get('/path', handler)), automatic body parsing (express.json()), middleware (app.use()), and cleaner error handling — saving hundreds of lines of boilerplate for every real API."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Node.js Docs — HTTP",
+      "url": "https://nodejs.org/api/http.html",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["health check endpoints", "minimal microservices", "serverless functions"],
+    "examples": [
+      "AWS Lambda and Vercel Edge Functions expose req/res objects based on the same pattern",
+      "http.createServer powers every Express app — Express wraps it",
+      "Server-Sent Events (SSE): keep res open and write events over time"
+    ]
+  }
+}

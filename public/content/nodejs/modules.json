@@ -1,0 +1,37 @@
+[
+  {
+    "id": "node-foundations",
+    "title": "Node.js Foundations",
+    "description": "What Node.js is, how the event loop works, modules, and npm",
+    "lessons": ["01-introduction", "02-modules", "03-npm"],
+    "order": 0
+  },
+  {
+    "id": "node-core",
+    "title": "Core Built-in Modules",
+    "description": "The file system, path, OS, and EventEmitter — Node's standard library",
+    "lessons": ["04-file-system", "05-path-os", "06-events"],
+    "order": 1
+  },
+  {
+    "id": "node-http",
+    "title": "HTTP & Express",
+    "description": "Building web servers with Node's http module and the Express framework",
+    "lessons": ["07-http-server", "08-express-basics", "09-rest-api"],
+    "order": 2
+  },
+  {
+    "id": "node-async",
+    "title": "Async Patterns & Data",
+    "description": "Callbacks, Promises, async/await in Node, environment config, and JSON persistence",
+    "lessons": ["10-async-node", "11-environment", "12-json-files"],
+    "order": 3
+  },
+  {
+    "id": "node-practice",
+    "title": "Node.js in Practice",
+    "description": "CLI tools, error handling, and preparing a Node.js app for production",
+    "lessons": ["13-cli-tools", "14-error-handling", "15-deployment"],
+    "order": 4
+  }
+]

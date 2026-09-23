@@ -1,0 +1,93 @@
+{
+  "id": "09-rest-api",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "nodejs",
+  "technologyVersion": "Node.js 20 LTS",
+  "module": "node-http",
+  "title": "Building a REST API",
+  "subtitle": "REST principles, CRUD routes, status codes, and input validation",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 25,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["nodejs/08-express-basics"],
+  "skillsTaught": ["node.rest-principles", "node.crud-routes", "node.http-status-codes", "node.input-validation"],
+  "skillsUsed": ["node.express-routing", "js.array-methods", "js.destructuring"],
+  "relatedConcepts": ["node.error-handling", "node.json-files"],
+  "whyItExists": {
+    "problem": "HTTP is a generic protocol. Without conventions, every API would have different URL structures, response shapes, and error formats — making integration unpredictable.",
+    "solution": "REST (Representational State Transfer) provides architectural conventions: use nouns for URLs (/users, /posts), HTTP methods for actions (GET=read, POST=create, PUT/PATCH=update, DELETE=delete), and standard status codes (200/201/400/404/500) for outcomes.",
+    "whenToUse": "Any HTTP API that multiple clients (frontend, mobile, third parties) will consume. REST is the default choice — familiar, cacheable, and tooling-rich.",
+    "whenNotToUse": "For complex queries with many related resources, consider GraphQL. For real-time bidirectional communication, use WebSockets."
+  },
+  "explainModes": {
+    "beginner": "A REST API is a web service with a consistent structure. Users are at /users. To get all users: GET /users. To get one: GET /users/1. To create: POST /users with a body. To update: PUT /users/1. To delete: DELETE /users/1. The HTTP method tells the server what action to take.",
+    "simple": "REST conventions: nouns in URLs (not /getUsers). Plural resource names (/users not /user). HTTP methods are the verbs. Status codes: 200 OK, 201 Created (POST success), 204 No Content (DELETE success), 400 Bad Request (invalid input), 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 422 Unprocessable (validation), 500 Server Error. Collection: GET /users, POST /users. Item: GET /users/:id, PUT /users/:id, DELETE /users/:id.",
+    "standard": "CRUD mapping: Create → POST /resource (201 + new object), Read all → GET /resource (200 + array), Read one → GET /resource/:id (200 + object or 404), Update → PUT /resource/:id (full replace, 200) or PATCH (partial, 200), Delete → DELETE /resource/:id (200 or 204). Filtering/sorting: GET /users?role=admin&sort=name (query params). Pagination: GET /users?page=2&limit=10. Nested resources: GET /users/:id/posts. Response envelope: { data: [...], meta: { total, page } } for collections.",
+    "technical": "Idempotency: GET, PUT, DELETE are idempotent (calling twice has same effect). POST is not. PATCH is not necessarily. This distinction matters for retries. HATEOAS (Hypermedia as the Engine of Application State): responses include links to related actions — mostly theoretical for internal APIs. Content negotiation: Accept header. Versioning: /api/v1/users, or Accept: application/vnd.api.v2+json header. ETag / If-None-Match: conditional requests for efficient caching.",
+    "deepDive": "OpenAPI spec (formerly Swagger): a YAML/JSON format that describes REST APIs. Tools generate client SDKs, server stubs, and interactive docs (Swagger UI) from a spec. swagger-jsdoc reads JSDoc comments; swagger-ui-express serves the UI. JSON:API specification: a stricter REST standard with a specific response shape — used for APIs with complex relationships. Hypermedia controls (HAL, JSON-LD): self-documenting APIs — each response includes links to related resources. Used in public APIs (GitHub REST API uses _links). Rate limiting: express-rate-limit middleware — limit requests per IP per window."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "A complete CRUD REST API"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "users_api.js",
+      "code": "const express = require('express');\nconst app = express();\napp.use(express.json());\n\n// In-memory store (use a database in production)\nlet users = [\n    { id: 1, name: 'Alice', email: 'alice@example.com', role: 'admin' },\n    { id: 2, name: 'Bob',   email: 'bob@example.com',   role: 'user'  },\n];\nlet nextId = 3;\n\n// Validation helper\nfunction validateUser(body) {\n    const errors = [];\n    if (!body.name?.trim())  errors.push('name is required');\n    if (!body.email?.trim()) errors.push('email is required');\n    if (body.email && !/^[^@]+@[^@]+\\.[^@]+$/.test(body.email)) errors.push('email is invalid');\n    return errors;\n}\n\n// GET /users          — list all, with optional ?role= filter\napp.get('/users', (req, res) => {\n    const { role } = req.query;\n    const result = role ? users.filter(u => u.role === role) : users;\n    res.json({ data: result, meta: { total: result.length } });\n});\n\n// GET /users/:id      — get one user\napp.get('/users/:id', (req, res) => {\n    const user = users.find(u => u.id === +req.params.id);\n    if (!user) return res.status(404).json({ error: 'User not found' });\n    res.json(user);\n});\n\n// POST /users         — create a user\napp.post('/users', (req, res) => {\n    const errors = validateUser(req.body);\n    if (errors.length) return res.status(422).json({ errors });\n    const user = { id: nextId++, ...req.body };\n    users.push(user);\n    res.status(201).json(user);\n});\n\n// PUT /users/:id      — full update\napp.put('/users/:id', (req, res) => {\n    const idx = users.findIndex(u => u.id === +req.params.id);\n    if (idx === -1) return res.status(404).json({ error: 'User not found' });\n    const errors = validateUser(req.body);\n    if (errors.length) return res.status(422).json({ errors });\n    users[idx] = { id: users[idx].id, ...req.body };\n    res.json(users[idx]);\n});\n\n// DELETE /users/:id   — remove a user\napp.delete('/users/:id', (req, res) => {\n    const idx = users.findIndex(u => u.id === +req.params.id);\n    if (idx === -1) return res.status(404).json({ error: 'User not found' });\n    users.splice(idx, 1);\n    res.status(204).end();  // 204 = success, no body\n});\n\napp.listen(3000, () => console.log('Users API on :3000'));"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: REST API sandbox",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:12px;margin:0}\n    .layout{display:flex;flex-direction:column;gap:8px;height:calc(100vh - 24px)}\n    textarea{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;padding:10px;font-family:monospace;font-size:0.80rem;resize:vertical;min-height:160px}\n    button{padding:7px 14px;border:none;border-radius:5px;font-weight:700;cursor:pointer;font-size:0.78rem}\n    .row{display:flex;gap:6px;align-items:center}\n    select,input{background:#0b0e14;color:#e2e8f0;border:1px solid #2d3748;border-radius:4px;padding:4px 8px;font-family:monospace;font-size:0.78rem}\n    input{flex:1}\n    .output{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:10px;font-family:monospace;font-size:0.78rem;overflow:auto;flex:1}\n    .label{font-size:0.7rem;color:#4fd1c5;margin-bottom:5px}\n    .err{color:#ef4444}.info{color:#94a3b8;font-style:italic}\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <textarea id=\"code\" spellcheck=\"false\">// Complete CRUD REST API\nconst express = require('express');\nconst app = express();\napp.use(express.json());\n\nlet items = [\n  { id: 1, title: 'Buy groceries',  done: false },\n  { id: 2, title: 'Read Node docs', done: true  },\n];\nlet nextId = 3;\n\n// GET /todos — list all\napp.get('/todos', (req, res) => {\n  const { done } = req.query;\n  const result = done !== undefined\n    ? items.filter(i => String(i.done) === done)\n    : items;\n  res.json({ data: result, total: result.length });\n});\n\n// GET /todos/:id — get one\napp.get('/todos/:id', (req, res) => {\n  const item = items.find(i => i.id === +req.params.id);\n  if (!item) return res.status(404).json({ error: 'Not found' });\n  res.json(item);\n});\n\n// POST /todos — create\napp.post('/todos', (req, res) => {\n  const { title } = req.body;\n  if (!title?.trim()) return res.status(422).json({ error: 'title required' });\n  const item = { id: nextId++, title: title.trim(), done: false };\n  items.push(item);\n  res.status(201).json(item);\n});\n\n// PATCH /todos/:id — partial update\napp.patch('/todos/:id', (req, res) => {\n  const idx = items.findIndex(i => i.id === +req.params.id);\n  if (idx === -1) return res.status(404).json({ error: 'Not found' });\n  items[idx] = { ...items[idx], ...req.body, id: items[idx].id };\n  res.json(items[idx]);\n});\n\n// DELETE /todos/:id — remove\napp.delete('/todos/:id', (req, res) => {\n  const idx = items.findIndex(i => i.id === +req.params.id);\n  if (idx === -1) return res.status(404).json({ error: 'Not found' });\n  items.splice(idx, 1);\n  res.status(204).end();\n});\n\napp.listen(3000, () => console.log('Todos API running'));</textarea>\n    <div style=\"background:#1a1f2b;border:1px solid #2d3748;border-radius:6px;padding:10px\">\n      <div class=\"label\">SEND REQUEST</div>\n      <div class=\"row\" style=\"margin-bottom:6px\">\n        <select id=\"m\"><option>GET</option><option>POST</option><option>PATCH</option><option>DELETE</option></select>\n        <input id=\"u\" value=\"/todos\" />\n        <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"send()\">&#9654; Send</button>\n      </div>\n      <input id=\"b\" placeholder='{\"title\":\"Learn REST\"}' style=\"width:100%;box-sizing:border-box\" />\n    </div>\n    <div class=\"output\" id=\"out\"><div class=\"label\">RESPONSE</div><div class=\"info\">Send a request to see the response</div></div>\n  </div>\n  <script>\n    function makeApp(){\n      const routes=[];\n      function matchPath(p,u,req){const pu=u.split('?')[0];const pp=p.split('/'),up=pu.split('/');if(pp.length!==up.length)return false;const params={};for(let i=0;i<pp.length;i++){if(pp[i].startsWith(':'))params[pp[i].slice(1)]=up[i];else if(pp[i]!==up[i])return false;}req.params=params;req.query=Object.fromEntries(new URLSearchParams(u.includes('?')?u.split('?')[1]:''));return true;}\n      const mw=[];\n      function app(req,res){const chain=[...mw,...routes.filter(r=>r.m===req.method&&matchPath(r.p,req.url,req)).map(r=>r.fn),(req,res)=>res.status(404).json({error:'Not found'})];let i=0;function next(e){if(e){res.status(500).json({error:e.message});return;}if(i<chain.length)chain[i++](req,res,next);}next();}\n      app.use=fn=>{if(fn&&fn.length===1){fn(null);}else mw.push(fn);};\n      ['get','post','put','patch','delete'].forEach(m=>{app[m]=(p,fn)=>routes.push({m:m.toUpperCase(),p:p.trim(),fn});});\n      app.json=()=>(r,s,n)=>{try{r.body=JSON.parse(r._b||'{}')}catch(e){r.body={}}n();};\n      app.static=()=>(r,s,n)=>n();\n      app.listen=(port,cb)=>{console.log('Listening on port '+port);if(cb)cb();return{close:()=>{}}};\n      return app;\n    }\n    function _require(m){\n      if(m==='express'){const e=()=>makeApp();e.json=()=>(r,s,n)=>{try{r.body=JSON.parse(r._b||'{}')}catch(e){r.body={}}n();};e.static=()=>(r,s,n)=>n();return e;}\n      throw new Error('Cannot find module \\''+m+'\\'');\n    }\n    function send(){\n      const src=document.getElementById('code').value;\n      const logs=[];const oL=console.log,oE=console.error;\n      console.log=(...a)=>logs.push({t:'log',m:a.map(x=>typeof x==='object'?JSON.stringify(x,null,2):String(x)).join(' ')});\n      console.error=(...a)=>logs.push({t:'err',m:a.map(String).join(' ')});\n      let app;\n      try{\n        app=new Function('require',src+'\\nreturn app;')(_require);\n      }catch(e){logs.push({t:'err',m:e.message});}\n      const m=document.getElementById('m').value;\n      const u=document.getElementById('u').value||'/';\n      const b=document.getElementById('b').value;\n      const rd={status:200,body:''};\n      const res={status:function(c){rd.status=c;return this;},json:function(d){rd.body=JSON.stringify(d,null,2);return this;},send:function(d){rd.body=String(d);return this;},end:function(d){if(d)rd.body+=String(d);},setHeader:()=>{}};\n      const req={method:m,url:u,_b:b,params:{},query:{},body:{},headers:{}};\n      try{req.body=JSON.parse(b||'{}');}catch(e){req.body={};}\n      req.query=Object.fromEntries(new URLSearchParams(u.includes('?')?u.split('?')[1]:''));\n      try{if(app)app(req,res);}catch(e){logs.push({t:'err',m:e.message});}\n      finally{console.log=oL;console.error=oE;}\n      const sc=rd.status,col=sc<300?'#4fd1c5':sc<400?'#fbbf24':'#f44747';\n      document.getElementById('out').innerHTML='<div class=\"label\">RESPONSE — <span style=\"color:'+col+'\">HTTP '+sc+'</span></div>'\n        +'<pre style=\"color:#e2e8f0;white-space:pre-wrap;margin:0\">'+rd.body.replace(/</g,'&lt;')+'</pre>'\n        +(logs.length?'<div style=\"border-top:1px solid #2d3748;margin-top:8px;padding-top:6px\"><div class=\"label\">LOG</div>'+logs.map(l=>'<div class=\"'+(l.t==='err'?'err':'') +'\">'+l.m.replace(/</g,'&lt;')+'</div>').join('')+'</div>':'');\n    }\n    document.getElementById('code').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();send();}});\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "node-rest-q1",
+          "question": "A client creates a resource with POST /articles. What status code and response body should the server return?",
+          "type": "multiple-choice",
+          "options": [
+            "200 OK with the created resource",
+            "201 Created with the created resource (including its new id)",
+            "200 OK with a success message string",
+            "204 No Content"
+          ],
+          "correctAnswer": 1,
+          "explanation": "201 Created is the correct status for a successful POST that creates a resource. The response body should include the created object — especially its newly assigned id — so the client knows what was created without making a second request. 200 OK is for successful reads (GET). 204 No Content is for successful operations with no response body, like DELETE."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "When should I use PUT vs PATCH?",
+      "a": "PUT is a full replacement: the client sends the entire resource and the server replaces it. PATCH is a partial update: the client sends only the fields to change. In practice: use PUT when the client always sends the complete representation; use PATCH for partial edits (like toggling done: true on a todo). PATCH is not guaranteed idempotent (depends on implementation), but PUT always is."
+    }
+  ],
+  "sources": [
+    {
+      "name": "HTTP Status Codes — MDN",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["GitHub API", "Stripe API", "Twilio API", "every SaaS product"],
+    "examples": [
+      "GET /repos/:owner/:repo/issues — GitHub REST API pattern",
+      "POST /v1/charges — Stripe payment creation with 201 Created",
+      "DELETE /v1/customers/:id — Stripe resource deletion with 204"
+    ]
+  }
+}

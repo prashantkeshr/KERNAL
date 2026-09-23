@@ -1,0 +1,103 @@
+{
+  "id": "14-error-handling",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "nodejs",
+  "technologyVersion": "Node.js 20 LTS",
+  "module": "node-practice",
+  "title": "Error Handling",
+  "subtitle": "try/catch in async code, process-level handlers, and operational vs programmer errors",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 20,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["nodejs/10-async-node"],
+  "skillsTaught": ["node.try-catch-async", "node.error-types", "node.process-error-handlers", "node.custom-errors"],
+  "skillsUsed": ["js.async-await", "js.classes", "node.events"],
+  "relatedConcepts": ["node.async-node", "node.deployment"],
+  "whyItExists": {
+    "problem": "Unhandled errors crash Node.js processes. In async code, errors can be swallowed silently or crash the process at unexpected points. Without a clear error handling strategy, debugging becomes extremely difficult.",
+    "solution": "Always await async operations inside try/catch. Distinguish operational errors (expected: file not found, network timeout) from programmer errors (bugs: null reference, type error). Handle operational errors gracefully. Let programmer errors crash — they reveal bugs.",
+    "whenToUse": "Every async function that can fail. Every HTTP handler. Every file operation. Every external service call.",
+    "whenNotToUse": "Don't catch errors you can't handle meaningfully — let them propagate up to a layer that can. Don't use empty catch blocks that swallow errors silently."
+  },
+  "explainModes": {
+    "beginner": "In Node.js, errors in async code need try/catch around await expressions. If you don't catch an error, the promise rejection goes unhandled and Node.js prints a warning (or crashes in newer versions). Wrap await calls in try { const result = await something(); } catch (err) { console.error(err.message); }.",
+    "simple": "try/catch with async/await: works just like sync try/catch — the await unwraps the rejected promise into a thrown error. Promise.reject(): add .catch() if not awaiting. process.on('unhandledRejection', handler): catches any forgotten .catch(). process.on('uncaughtException', handler): catches sync throws outside try/catch. Error types: err.code ('ENOENT', 'ECONNREFUSED') for system errors. Custom error: class NotFoundError extends Error { constructor(msg) { super(msg); this.name = 'NotFoundError'; this.statusCode = 404; } }.",
+    "standard": "Operational vs programmer errors: Operational = expected failures (file missing, network down, invalid user input, resource limit). Handle gracefully — return 404, retry, log and continue. Programmer = bugs (TypeError, undefined is not a function, assertion failure). These should crash — they reveal bugs that need fixing, not handling. Error middleware in Express: (err, req, res, next) — 4 args, catches errors passed to next(err) or thrown in async handlers. Async Express wrappers: asyncHandler(fn) pattern — wraps async routes to catch rejections and forward to next(err).",
+    "technical": "process.on('unhandledRejection', (reason, promise) => {}): fires when a Promise rejects and has no .catch handler. In Node.js 15+, defaults to crashing the process (same as uncaughtException). process.on('uncaughtException', (err, origin) => {}): fires for sync throws not inside any try/catch. Best practice: log, clean up, then exit — don't try to resume. AggregateError: wraps multiple errors (Promise.any rejects with this). err.cause: chain errors with new Error('message', { cause: originalError }) — preserves the original error for debugging while adding context.",
+    "deepDive": "Error boundary pattern: define clear error domains. HTTP layer catches and translates errors to HTTP status codes. Business logic layer throws typed errors (ValidationError, NotFoundError, ConflictError). Data layer throws database errors. Each layer adds context via err.cause. Structured logging: log error objects (stack, code, context) as JSON for log aggregators (Datadog, Elastic). Never log sensitive data in errors. Correlation IDs: attach a request ID to errors so distributed traces can link log lines across services. Sentry / Bugsnag: capture unhandled errors in production, group by type, alert on spikes."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Async error handling patterns"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "errors.js",
+      "code": "// ── Custom error classes ──\nclass AppError extends Error {\n    constructor(message, statusCode = 500, code = 'INTERNAL_ERROR') {\n        super(message);\n        this.name        = this.constructor.name;\n        this.statusCode  = statusCode;\n        this.code        = code;\n        this.isOperational = true;  // expected error, not a bug\n        Error.captureStackTrace(this, this.constructor);\n    }\n}\n\nclass NotFoundError     extends AppError { constructor(msg) { super(msg, 404, 'NOT_FOUND'); } }\nclass ValidationError   extends AppError { constructor(msg) { super(msg, 422, 'VALIDATION_ERROR'); } }\nclass UnauthorizedError extends AppError { constructor(msg) { super(msg, 401, 'UNAUTHORIZED'); } }\n\n// ── Async/await error handling ──\nasync function getUserById(id) {\n    if (typeof id !== 'number') throw new ValidationError('id must be a number');\n    if (id <= 0)                throw new ValidationError('id must be positive');\n    if (id > 100)               throw new NotFoundError(`User ${id} not found`);\n    return { id, name: 'Alice', email: 'alice@example.com' };\n}\n\nasync function handleGetUser(id) {\n    try {\n        const user = await getUserById(id);\n        console.log('User found:', user);\n    } catch (err) {\n        if (err.isOperational) {\n            // Expected error — handle gracefully\n            console.error(`[${err.statusCode}] ${err.name}: ${err.message}`);\n        } else {\n            // Programmer error — let it propagate (or crash)\n            throw err;\n        }\n    }\n}\n\n// ── process-level handlers ──\nprocess.on('unhandledRejection', (reason, promise) => {\n    console.error('Unhandled Rejection at:', promise);\n    console.error('Reason:', reason);\n    // In production: log + graceful shutdown\n    process.exit(1);\n});\n\nprocess.on('uncaughtException', (err, origin) => {\n    console.error('Uncaught Exception:', err.message);\n    console.error('Origin:', origin);\n    process.exit(1);\n});\n\n// Usage\n(async () => {\n    await handleGetUser(1);    // success\n    await handleGetUser(-1);   // ValidationError\n    await handleGetUser(999);  // NotFoundError\n})();"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "express_error.js",
+      "code": "const express = require('express');\nconst app = express();\n\n// Async handler wrapper — catches rejected promises and forwards to next(err)\nconst asyncHandler = fn => (req, res, next) => {\n    Promise.resolve(fn(req, res, next)).catch(next);\n};\n\n// Route with async handler\napp.get('/users/:id', asyncHandler(async (req, res) => {\n    const id = parseInt(req.params.id, 10);\n    if (isNaN(id)) throw new ValidationError('id must be a number');\n    const user = await getUserById(id);\n    res.json(user);\n}));\n\n// Error middleware — must have 4 parameters\napp.use((err, req, res, next) => {\n    console.error(err);  // log for observability\n\n    if (err.isOperational) {\n        // Known, expected error — send structured response\n        return res.status(err.statusCode).json({\n            error: {\n                code:    err.code,\n                message: err.message,\n            }\n        });\n    }\n\n    // Unknown error — don't expose internals\n    res.status(500).json({\n        error: { code: 'INTERNAL_ERROR', message: 'Something went wrong' }\n    });\n});"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Error handling sandbox",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0}\n    .layout{display:grid;grid-template-rows:auto 1fr;gap:10px;height:calc(100vh - 32px)}\n    .top{display:flex;flex-direction:column;gap:8px}\n    .editor-row{display:flex;gap:8px;align-items:flex-start}\n    textarea{flex:1;background:#0b0e14;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;padding:10px;font-family:monospace;font-size:0.82rem;resize:vertical;min-height:200px}\n    button{padding:8px 14px;border:none;border-radius:5px;font-weight:700;cursor:pointer;font-size:0.8rem}\n    .chips{display:flex;flex-wrap:wrap;gap:6px}\n    .chip{background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:3px 10px;font-family:monospace;font-size:0.72rem;cursor:pointer;color:#94a3b8}\n    .chip:hover{border-color:#4fd1c5;color:#4fd1c5}\n    .output{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:12px;font-family:monospace;font-size:0.8rem;overflow:auto;flex:1}\n    .panel-label{font-size:0.7rem;color:#4fd1c5;margin-bottom:6px}\n    .log{color:#e2e8f0;margin:1px 0}.err{color:#ef4444;margin:1px 0}.info{color:#94a3b8;font-style:italic}.ok{color:#4fd1c5}\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"code\" spellcheck=\"false\">// Custom errors and async error handling\n\nclass AppError extends Error {\n  constructor(message, statusCode = 500, code = 'INTERNAL_ERROR') {\n    super(message);\n    this.name = this.constructor.name;\n    this.statusCode = statusCode;\n    this.code = code;\n    this.isOperational = true;\n  }\n}\n\nclass NotFoundError   extends AppError { constructor(m) { super(m, 404, 'NOT_FOUND'); } }\nclass ValidationError extends AppError { constructor(m) { super(m, 422, 'VALIDATION_ERROR'); } }\n\nasync function findUser(id) {\n  if (!Number.isInteger(id)) throw new ValidationError('id must be an integer');\n  if (id <= 0)               throw new ValidationError('id must be positive');\n  if (id > 5)                throw new NotFoundError(`User ${id} not found`);\n  // Simulate async DB lookup\n  await new Promise(r => setTimeout(r, 0));\n  return { id, name: ['Alice','Bob','Carol','Dave','Eve'][id-1], role: 'user' };\n}\n\nasync function main() {\n  const ids = [1, -1, 'abc', 99, 3];\n\n  for (const id of ids) {\n    try {\n      const user = await findUser(id);\n      console.log(`✓ [200] Found user ${user.id}: ${user.name}`);\n    } catch (err) {\n      if (err.isOperational) {\n        console.error(`✗ [${err.statusCode}] ${err.name}: ${err.message}`);\n      } else {\n        console.error(`✗ [500] Unexpected: ${err.message}`);\n        throw err; // re-throw programmer errors\n      }\n    }\n  }\n}\n\nmain().catch(err => console.error('Fatal:', err.message));</textarea>\n        <div style=\"display:flex;flex-direction:column;gap:6px\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runNode()\">&#9654; Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setCode('// Error chaining with cause\\nasync function readConfig(path) {\\n  try {\\n    const data = await require(\\'fs\\').promises.readFile(path, \\'utf8\\');\\n    return JSON.parse(data);\\n  } catch (err) {\\n    if (err.code === \\'ENOENT\\') {\\n      throw new Error(`Config file not found: ${path}`, { cause: err });\\n    }\\n    if (err instanceof SyntaxError) {\\n      throw new Error(`Invalid JSON in config: ${path}`, { cause: err });\\n    }\\n    throw err;\\n  }\\n}\\n\\nasync function main() {\\n  try {\\n    await readConfig(\\'/home/user/project/config.json\\');\\n    console.log(\\'Config loaded\\');\\n  } catch (err) {\\n    console.error(\\'Error:\\', err.message);\\n    console.error(\\'Cause:\\', err.cause?.message || err.cause);\\n  }\\n}\\n\\nmain();')\">error chaining</span>\n        <span class=\"chip\" onclick=\"setCode('// Retry with exponential backoff\\nasync function withRetry(fn, maxRetries = 3, baseDelay = 100) {\\n  let lastError;\\n  for (let attempt = 1; attempt <= maxRetries; attempt++) {\\n    try {\\n      return await fn();\\n    } catch (err) {\\n      lastError = err;\\n      if (!err.isRetryable || attempt === maxRetries) throw err;\\n      const delay = baseDelay * Math.pow(2, attempt - 1);\\n      console.log(`Attempt ${attempt} failed: ${err.message}. Retrying in ${delay}ms...`);\\n      await new Promise(r => setTimeout(r, delay));\\n    }\\n  }\\n  throw lastError;\\n}\\n\\nlet calls = 0;\\nasync function flakeyApi() {\\n  calls++;\\n  if (calls < 3) {\\n    const err = new Error(`Network timeout (attempt ${calls})`);\\n    err.isRetryable = true;\\n    throw err;\\n  }\\n  return { data: \\'success on attempt\\' + calls };\\n}\\n\\nwithRetry(flakeyApi)\\n  .then(r => console.log(\\'Result:\\', r))\\n  .catch(e => console.error(\\'Failed:\\', e.message));')\">retry pattern</span>\n      </div>\n    </div>\n    <div class=\"output\" id=\"output\"><div class=\"panel-label\">OUTPUT</div><div class=\"info\">Click &#9654; Run</div></div>\n  </div>\n  <script>\n    const _memFS={'/home/user/project/config.json':'{\"app\":\"test\"}'};\n    const _fsP={readFile:(p)=>_memFS[p]!=null?Promise.resolve(_memFS[p]):Promise.reject(Object.assign(new Error(`ENOENT: '${p}'`),{code:'ENOENT'})),writeFile:(p,d)=>{_memFS[p]=String(d);return Promise.resolve()}};\n    const _fs={promises:_fsP,readFileSync:(p)=>{if(_memFS[p]==null)throw Object.assign(new Error(`ENOENT:'${p}'`),{code:'ENOENT'});return _memFS[p]}};\n    function _require(m){if(m==='fs'||m==='node:fs')return _fs;if(m==='path')return{join:(...a)=>a.join('/').replace(/\\/+/g,'/')};throw new Error('Cannot find module \\''+m+'\\'');}\n    function setCode(c){document.getElementById('code').value=c;runNode();}\n    async function runNode(){\n      const src=document.getElementById('code').value;\n      const logs=[];const oL=console.log,oE=console.error;\n      console.log=(...a)=>logs.push({t:'ok',m:a.map(x=>typeof x==='object'&&x!==null?JSON.stringify(x,null,2):String(x)).join(' ')});\n      console.error=(...a)=>logs.push({t:'err',m:a.map(x=>typeof x==='object'&&x!==null?JSON.stringify(x,null,2):String(x)).join(' ')});\n      const _proc={argv:['node','index.js'],env:{NODE_ENV:'development'},version:'v20.11.0',platform:'linux',pid:1234,nextTick:fn=>Promise.resolve().then(fn)};\n      try{\n        const fn=new Function('require','process',src);\n        const r=fn(_require,_proc);\n        if(r&&typeof r.then==='function')await r;\n      }catch(e){logs.push({t:'err',m:'Uncaught: '+e.message});}\n      finally{console.log=oL;console.error=oE;}\n      await new Promise(r=>setTimeout(r,150));\n      const od=document.getElementById('output');\n      od.innerHTML='<div class=\"panel-label\">OUTPUT</div>'+(logs.length?logs.map(l=>'<div class=\"'+(l.t==='err'?'err':'ok')+'\">'+l.m.replace(/</g,'&lt;').replace(/\\n/g,'<br>')+'</div>').join(''):'<div class=\"info\">No output</div>');}\n    document.getElementById('code').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runNode();}});\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "tip",
+      "text": "Never write an empty catch block: `catch (err) {}`. If you don't handle an error, at least log it with `console.error(err)`. Silent error swallowing is one of the hardest bugs to debug."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "node-err-q1",
+          "question": "What is the difference between an 'operational error' and a 'programmer error' in Node.js?",
+          "type": "multiple-choice",
+          "options": [
+            "Operational errors are thrown by the OS; programmer errors are thrown by npm packages",
+            "Operational errors are expected failures (file not found, network timeout, invalid user input) that should be handled gracefully. Programmer errors are bugs (TypeError, null dereference) that should crash the process.",
+            "Operational errors only happen in production; programmer errors only happen in development",
+            "Operational errors use the Error class; programmer errors use a special OperationalError class"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Operational errors are things you can anticipate and handle: a database connection failing, a file being missing, invalid user input. You catch these and respond gracefully (return 404, retry, show an error message). Programmer errors are bugs in your code — accessing a property on null, calling undefined as a function. These should crash the process because continuing to run after a bug can lead to data corruption or unpredictable behavior. The distinction helps you decide whether to catch an error or let it propagate."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "My async function throws an error but nothing happens — why?",
+      "a": "You likely called the async function without await and without .catch(). The promise rejects silently. Always do one of: (1) `await asyncFn()` inside a try/catch, (2) `asyncFn().catch(handleError)`, or (3) listen to `process.on('unhandledRejection', ...)` as a safety net. In Node.js 15+, unhandled rejections crash the process — so 'nothing happens' in older Node versions but crashes in newer ones."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Node.js Docs — Error Handling",
+      "url": "https://nodejs.org/api/errors.html",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every production Node.js application"],
+    "examples": [
+      "Express error middleware — central error handler that formats errors as JSON API responses",
+      "Prisma database errors — .code field (P2002 = unique constraint, P2025 = record not found)",
+      "Axios network errors — err.response for HTTP errors, err.request for network errors, no response for other errors"
+    ]
+  }
+}

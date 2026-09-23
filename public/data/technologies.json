@@ -115,7 +115,7 @@
     "order": 9,
     "stage": 9,
     "playground": "javascript",
-    "enabled": false,
+    "enabled": true,
     "description": "JavaScript on the server",
     "estimatedHours": 25
   }

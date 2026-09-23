@@ -1,0 +1,99 @@
+{
+  "id": "02-modules",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "nodejs",
+  "technologyVersion": "Node.js 20 LTS",
+  "module": "node-foundations",
+  "title": "Modules",
+  "subtitle": "CommonJS require/exports, ES Modules import/export, and Node's module resolution",
+  "difficulty": "beginner",
+  "estimatedMinutes": 18,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["nodejs/01-introduction"],
+  "skillsTaught": ["node.commonjs", "node.esmodules", "node.module-resolution", "node.builtin-modules"],
+  "skillsUsed": ["js.modules", "js.destructuring"],
+  "relatedConcepts": ["node.npm", "node.file-system"],
+  "whyItExists": {
+    "problem": "Large programs need to be split into reusable files. Without a module system, every variable is global and files have no way to declare what they export or import.",
+    "solution": "Node.js supports two module systems: CommonJS (require/module.exports — the original, synchronous) and ES Modules (import/export — the standard, supports async loading). You can use either; the choice affects syntax and some behaviors.",
+    "whenToUse": "Every Node.js project uses modules. Use ES Modules for new projects. Use CommonJS when working with older codebases, legacy npm packages, or config files that require it (like .cjs).",
+    "whenNotToUse": "N/A — modules are fundamental to Node.js."
+  },
+  "explainModes": {
+    "beginner": "Node.js programs are split into multiple files called modules. Each file can export things (functions, objects, values) and other files can import them. CommonJS uses require() and module.exports. ES Modules use import and export. They're two different ways to do the same thing.",
+    "simple": "CommonJS (default, .js with no type:module): const fs = require('fs'); module.exports = { myFn }; exports.name = 'Alice'. ES Modules (.mjs or type:module in package.json): import { readFile } from 'fs/promises'; export function myFn() {}; export default class App {}. require() is synchronous. import is async (supports top-level await). Built-in modules: 'fs', 'path', 'os', 'http', 'events', 'crypto', 'stream', etc. Prefix with node: for clarity: require('node:fs').",
+    "standard": "Module resolution order for require('module'): (1) Built-in module (fs, path)? Return it. (2) Starts with ./ or /? Load that file. (3) Look in node_modules/. Try index.js and package.json 'main'. Circular requires: allowed in CommonJS — the partial export at the time of the circular require is returned. Avoid circular imports in practice. Caching: require() caches modules — calling require() twice on the same file returns the same export object (singleton).",
+    "technical": "ES Module internals: import statements are hoisted and parsed before execution (static linking). This enables tree-shaking by bundlers (dead code elimination). Dynamic import: import('./module.js') — returns a Promise, works anywhere (even CommonJS). Interoperability: you can import a CJS module from ESM. You cannot require() an ESM module — use dynamic import() instead. `__dirname` and `__filename` don't exist in ESM — use import.meta.url and fileURLToPath instead.",
+    "deepDive": "The dual module hazard: a package can expose both CJS and ESM via the 'exports' field in package.json. If someone imports with both systems in the same process, two instances of the module exist (breaking singletons). Package authors solve this by preferring one or using the 'exports' conditional carefully. Top-level await (ESM only): you can await at the top level of a module — useful for async initialization. This causes any importing module to await that module's evaluation."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "CommonJS vs ES Modules"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "commonjs.js",
+      "code": "// ── CommonJS (default in Node.js) ──\n\n// Importing — synchronous\nconst fs    = require('fs');              // built-in module\nconst path  = require('path');            // built-in module\nconst utils = require('./utils');         // local file (./utils.js)\nconst lodash = require('lodash');         // npm package\n\n// Exporting — two ways\n\n// 1. module.exports — replaces the entire export object\nmodule.exports = function greet(name) {\n    return `Hello, ${name}!`;\n};\n\n// 2. exports.x — adds to the export object\nexports.PI = 3.14159;\nexports.add = (a, b) => a + b;\nexports.subtract = (a, b) => a - b;\n\n// Note: don't mix both — module.exports replaces exports"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "esmodules.mjs",
+      "code": "// ── ES Modules (.mjs or \"type\": \"module\" in package.json) ──\n\n// Named imports\nimport { readFile, writeFile } from 'node:fs/promises';\nimport { join, dirname }      from 'node:path';\nimport { fileURLToPath }      from 'node:url';\n\n// Default import\nimport express from 'express';  // most npm packages export a default\n\n// __dirname equivalent in ESM:\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname  = dirname(__filename);\n\n// Named exports\nexport const PI = 3.14159;\nexport function add(a, b) { return a + b; }\nexport class Calculator {\n    multiply(a, b) { return a * b; }\n}\n\n// Default export\nexport default function greet(name) {\n    return `Hello, ${name}!`;\n}\n\n// Dynamic import — works anywhere, even in CJS\nconst mod = await import('./heavy-module.mjs');  // loaded on demand"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Node.js modules sandbox",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0}\n    .layout{display:grid;grid-template-rows:auto 1fr;gap:10px;height:calc(100vh - 32px)}\n    .top{display:flex;flex-direction:column;gap:8px}\n    .editor-row{display:flex;gap:8px;align-items:flex-start}\n    textarea{flex:1;background:#0b0e14;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;padding:10px;font-family:monospace;font-size:0.82rem;resize:vertical;min-height:200px}\n    .btns{display:flex;flex-direction:column;gap:6px}\n    button{padding:8px 14px;border:none;border-radius:5px;font-weight:700;cursor:pointer;font-size:0.8rem;white-space:nowrap}\n    .chips{display:flex;flex-wrap:wrap;gap:6px}\n    .chip{background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:3px 10px;font-family:monospace;font-size:0.72rem;cursor:pointer;color:#94a3b8}\n    .chip:hover{border-color:#4fd1c5;color:#4fd1c5}\n    .output{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:12px;font-family:monospace;font-size:0.8rem;overflow:auto;flex:1}\n    .panel-label{font-size:0.7rem;color:#4fd1c5;margin-bottom:6px}\n    .log{color:#e2e8f0;margin:1px 0}.err{color:#ef4444;margin:1px 0}.warn{color:#fbbf24;margin:1px 0}.info{color:#94a3b8;font-style:italic}\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"code\" spellcheck=\"false\">// Simulating module patterns in the Node.js sandbox\n\n// 1. Destructure from built-in modules\nconst { join, dirname, extname } = require('path');\nconst { platform, homedir, freemem } = require('os');\n\nconsole.log('=== path module ===');\nconsole.log('join:', join('/home/user', 'projects', 'app'));\nconsole.log('dirname:', dirname('/home/user/projects/app/index.js'));\nconsole.log('extname:', extname('styles.css'));\n\nconsole.log('\\n=== os module ===');\nconsole.log('platform:', platform());\nconsole.log('homedir:',  homedir());\nconsole.log('freemem:',  (freemem() / 1024**3).toFixed(1) + ' GB');\n\n// 2. Simulate creating a module export\nconst mathModule = (() => {\n  function add(a, b) { return a + b; }\n  function multiply(a, b) { return a * b; }\n  const PI = 3.14159;\n  return { add, multiply, PI };\n})();\n\nconsole.log('\\n=== math module ===');\nconsole.log('PI:', mathModule.PI);\nconsole.log('add(3, 4):', mathModule.add(3, 4));\nconsole.log('multiply(5, 6):', mathModule.multiply(5, 6));</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runNode()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setCode('// require() and module caching pattern\\n// In real Node.js, require() caches modules after first load\\n\\nconst path = require(\\'path\\');\\nconst os   = require(\\'os\\');\\n\\n// Both use the same cached module object\\nconst path2 = require(\\'path\\');\\nconsole.log(\\'Same object?\\', path === path2);  // true in Node.js\\n\\n// Destructuring on require\\nconst { join, resolve, basename } = require(\\'path\\');\\nconsole.log(join(\\'src\\', \\'components\\', \\'Button.tsx\\'));\\nconsole.log(resolve(\\'index.js\\'));\\nconsole.log(basename(\\'/usr/local/bin/node\\'));')\">require caching</span>\n        <span class=\"chip\" onclick=\"setCode('// node: prefix — explicit built-in module import\\n// Recommended in Node 20+ to avoid name conflicts with npm packages\\nconst { platform, arch } = require(\\'os\\');  // same as require(\\'node:os\\')\\nconst { join }           = require(\\'path\\'); // same as require(\\'node:path\\')\\n\\n// List available built-ins (simulation)\\nconst BUILTINS = [\\'fs\\',\\'path\\',\\'os\\',\\'http\\',\\'https\\',\\'events\\',\\'stream\\',\\'crypto\\',\\'url\\',\\'util\\',\\'buffer\\',\\'child_process\\',\\'cluster\\',\\'worker_threads\\',\\'readline\\',\\'net\\',\\'dns\\',\\'tls\\',\\'zlib\\',\\'querystring\\'];\nconsole.log(\\'Node.js built-in modules:\\');\nconsole.log(BUILTINS.join(\\', \\'));')\">built-in modules</span>\n      </div>\n    </div>\n    <div class=\"output\" id=\"output\"><div class=\"panel-label\">OUTPUT</div><div class=\"info\">Click ▶ Run</div></div>\n  </div>\n  <script>\n    class EventEmitter{constructor(){this._e={}}on(ev,fn){(this._e[ev]=this._e[ev]||[]).push(fn);return this}once(ev,fn){const w=(...a)=>{fn(...a);this.off(ev,w)};return this.on(ev,w)}emit(ev,...a){(this._e[ev]||[]).slice().forEach(f=>f(...a));return!!(this._e[ev]||[]).length}off(ev,fn){if(this._e[ev])this._e[ev]=this._e[ev].filter(f=>f!==fn);return this}removeAllListeners(ev){if(ev)delete this._e[ev];else this._e={};return this}listenerCount(ev){return(this._e[ev]||[]).length}}\n    const _memFS={'/home/user/project/package.json':'{\"name\":\"my-app\",\"version\":\"1.0.0\"}','/home/user/project/data.json':'[{\"id\":1,\"name\":\"Alice\"},{\"id\":2,\"name\":\"Bob\"}]','/home/user/project/notes.txt':'Hello from Node.js!','/home/user/project/src/index.js':'// entry point'};\n    const _path={join:(...a)=>a.filter(Boolean).join('/').replace(/\\/+/g,'/').replace(/\\/$/,'')||'.',resolve:(...a)=>{let r='/home/user/project';for(const p of a)r=p.startsWith('/')?p:r+'/'+p;return r.replace(/\\/+/g,'/')},dirname:p=>p.replace(/\\/[^\\/]+$/,'')||'.',basename:(p,ext)=>{const b=p.split('/').pop()||'';return ext&&b.endsWith(ext)?b.slice(0,-ext.length):b},extname:p=>{const m=p.match(/(\\.[^.]+)$/);return m?m[1]:''},normalize:p=>p.replace(/\\/+/g,'/').replace(/\\/$/,'')||'/',sep:'/',delimiter':':'};\n    const _os={platform:()=>'linux',arch:()=>'x64',hostname:()=>'kernal-sandbox',homedir:()=>'/home/user',tmpdir:()=>'/tmp',EOL:'\\n',type:()=>'Linux',cpus:()=>[{model:'Intel Core i7-10700K',speed:3800}],totalmem:()=>16*1024**3,freemem:()=>8*1024**3,uptime:()=>123456};\n    const _fs={readFileSync:(p,enc)=>{const c=_memFS[p];if(!c)throw Object.assign(new Error(`ENOENT: no such file or directory, open '${p}'`),{code:'ENOENT'});return c},writeFileSync:(p,d)=>{_memFS[p]=String(d)},appendFileSync:(p,d)=>{_memFS[p]=(_memFS[p]||'')+String(d)},existsSync:p=>p in _memFS,mkdirSync:()=>{},readdirSync:p=>{const pn=p.endsWith('/')?p:p+'/';return[...new Set(Object.keys(_memFS).filter(k=>k.startsWith(pn)).map(k=>k.slice(pn.length).split('/')[0]).filter(Boolean))]},statSync:p=>{if(!(p in _memFS))throw Object.assign(new Error(`ENOENT`),{code:'ENOENT'});return{size:_memFS[p].length,isFile:()=>true,isDirectory:()=>false,mtime:new Date()}},unlinkSync:p=>{delete _memFS[p]},promises:{readFile:async(p,enc)=>_fs.readFileSync(p,enc),writeFile:async(p,d)=>_fs.writeFileSync(p,d),readdir:async p=>_fs.readdirSync(p)}};\n    const __dirname='/home/user/project',__filename='/home/user/project/index.js';\n    const _process={argv:['node','index.js'],env:{NODE_ENV:'development',PORT:'3000',HOME:'/home/user',PATH:'/usr/bin:/bin'},cwd:()=>__dirname,exit:code=>{throw new Error(`process.exit(${code??0})`)},version:'v20.11.0',versions:{node:'20.11.0'},platform:'linux',pid:1234,nextTick:fn=>Promise.resolve().then(fn),stdout:{write:s=>console.log(String(s).replace(/\\n$/,''))},stderr:{write:s=>console.error(String(s).replace(/\\n$/,''))}};\n    function _require(mod){const map={path:_path,fs:_fs,os:_os,events:{EventEmitter},process:_process,'node:path':_path,'node:fs':_fs,'node:os':_os,'node:events':{EventEmitter}};if(mod in map)return map[mod];if(mod.startsWith('.'))throw new Error(`Local modules not supported in sandbox: '${mod}'`);throw new Error(`Cannot find module '${mod}'\\nAvailable: path, fs, os, events (also with node: prefix)`);}\n    function setCode(c){document.getElementById('code').value=c;runNode();}\n    function runNode(){const src=document.getElementById('code').value;const logs=[];const oL=console.log,oE=console.error,oW=console.warn,oI=console.info;console.log=(...a)=>logs.push({t:'log',m:a.map(x=>typeof x==='object'?JSON.stringify(x,null,2):String(x)).join(' ')});console.error=(...a)=>logs.push({t:'err',m:a.map(String).join(' ')});console.warn=(...a)=>logs.push({t:'warn',m:a.map(String).join(' ')});console.info=(...a)=>logs.push({t:'log',m:a.map(String).join(' ')});try{new Function('require','process','__dirname','__filename','EventEmitter',src)(_require,_process,__dirname,__filename,EventEmitter);}catch(e){logs.push(e.message.startsWith('process.exit')?{t:'warn',m:e.message}:{t:'err',m:e.message});}finally{console.log=oL;console.error=oE;console.warn=oW;console.info=oI;}const od=document.getElementById('output');od.innerHTML='<div class=\"panel-label\">OUTPUT</div>'+(logs.length?logs.map(l=>`<div class=\"${l.t==='err'?'err':l.t==='warn'?'warn':'log'}\">${l.m.replace(/</g,'&lt;').replace(/\\n/g,'<br>')}</div>`).join(''):'<div class=\"info\">No output</div>');}\n    document.getElementById('code').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runNode();}});\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "node-modules-q1",
+          "question": "What is the key difference between `require()` (CommonJS) and `import` (ES Modules)?",
+          "type": "multiple-choice",
+          "options": [
+            "require() is faster; import is slower",
+            "require() is synchronous and dynamic (can be inside if/functions); import is static (hoisted, parsed before execution) and enables tree-shaking",
+            "import only works with npm packages; require() works with built-in modules",
+            "They are interchangeable — just different syntax for the same behavior"
+          ],
+          "correctAnswer": 1,
+          "explanation": "require() is synchronous — it reads and evaluates the module file immediately when called, and can appear anywhere in the code (inside conditions, functions). import is static — it's parsed before the module executes, which lets bundlers know exactly what's imported at build time (tree-shaking: unused exports can be eliminated). For dynamic loading in ESM, use import() (the dynamic import function) which returns a Promise."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do I switch a Node.js project to ES Modules?",
+      "a": "Add `\"type\": \"module\"` to your package.json. Then rename .js files to .mjs, or leave them as .js (the type field makes all .js files ESM). Change require() to import and module.exports to export. Replace __dirname and __filename with: `const __dirname = dirname(fileURLToPath(import.meta.url))`."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Node.js Docs — Modules: CommonJS",
+      "url": "https://nodejs.org/api/modules.html",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every Node.js project"],
+    "examples": [
+      "const express = require('express') — CJS import of Express",
+      "import { PrismaClient } from '@prisma/client' — ESM import of Prisma ORM",
+      "export default router — Express router exported as default"
+    ]
+  }
+}

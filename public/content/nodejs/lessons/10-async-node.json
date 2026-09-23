@@ -1,0 +1,97 @@
+{
+  "id": "10-async-node",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "nodejs",
+  "technologyVersion": "Node.js 20 LTS",
+  "module": "node-async",
+  "title": "Async Patterns in Node.js",
+  "subtitle": "Callbacks, Promises, async/await, and promisify — from callback hell to clean async code",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 22,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["nodejs/03-npm"],
+  "skillsTaught": ["node.callbacks", "node.promises", "node.async-await", "node.promisify"],
+  "skillsUsed": ["js.promises", "js.async-await", "js.error-handling"],
+  "relatedConcepts": ["node.file-system", "node.error-handling"],
+  "whyItExists": {
+    "problem": "Node.js is built on async I/O, but JavaScript is single-threaded. Coordinating multiple async operations — especially when they depend on each other — has evolved through three patterns, each solving limitations of the previous.",
+    "solution": "Callbacks (Node's original pattern) → Promises (chainable, avoids nesting) → async/await (synchronous-looking syntax over Promises). util.promisify converts callback-style functions to Promises so you can use await with older APIs.",
+    "whenToUse": "Everywhere in Node.js — file reads, database queries, HTTP calls. Always use async/await for new code unless you have a specific reason for callbacks.",
+    "whenNotToUse": "Synchronous code is appropriate for startup (reading config, parsing CLI args) where performance doesn't matter and blocking is acceptable."
+  },
+  "explainModes": {
+    "beginner": "async/await is the modern way to handle operations that take time (like reading a file or fetching data). Write `async function myFn()` and inside it use `await somePromise` — the code reads top-to-bottom like synchronous code, but it doesn't block while waiting. Use try/catch for errors.",
+    "simple": "Callback pattern (old): fs.readFile(path, (err, data) => { if(err) throw err; use(data); }). Promise pattern: fetchData().then(data => use(data)).catch(err => handle(err)). async/await (modern): async function run() { try { const data = await fetchData(); use(data); } catch(err) { handle(err); } }. Sequential: await a; await b (b waits for a). Parallel: const [a, b] = await Promise.all([fetchA(), fetchB()]).",
+    "standard": "util.promisify: converts Node-style (err, result) callbacks to Promises. const readFile = util.promisify(fs.readFile). Promise.all([p1,p2,p3]): run in parallel, resolves when all done. Promise.allSettled: run all, get results for each (won't reject on partial failure). Promise.race: resolves/rejects with whichever settles first. Promise.any: resolves with first success, rejects if all fail. Async error handling: unhandled promise rejections used to be silent — in Node 15+ they crash the process.",
+    "technical": "async functions always return a Promise. await can only be used in async functions (or top-level in ES modules). Awaiting a non-Promise is fine — it's equivalent to Promise.resolve(value). Common mistake: not awaiting inside loops. `for...of` with await works; forEach doesn't (the callback isn't awaited). Solution: for...of or Promise.all(items.map(async item => await process(item))). Async IIFE: (async () => { ... })() — immediately invoked async function for top-level await in CJS.",
+    "deepDive": "The microtask queue: resolved Promises queue their .then() callbacks as microtasks — higher priority than macrotasks (setTimeout, setImmediate). In the event loop, all microtasks drain before the next I/O callback runs. This means deeply chained .then() calls can prevent I/O handling. Use setImmediate() to yield to I/O when needed. AsyncLocalStorage (node:async_hooks): propagates context across await boundaries — used for request-scoped tracing and logging without passing ctx everywhere. AbortController: cancel fetch/async operations via AbortSignal."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Evolution of async patterns"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "async_evolution.js",
+      "code": "const fs   = require('fs');\nconst util = require('util');\n\n// ── 1. Callbacks (original Node.js style) ──\nfs.readFile('./data.json', 'utf8', (err, data) => {\n    if (err) { console.error('Callback error:', err.message); return; }\n    console.log('Callback result:', JSON.parse(data).length, 'items');\n\n    // Nested callbacks — \"callback hell\"\n    fs.readFile('./notes.txt', 'utf8', (err2, notes) => {\n        if (err2) return console.error(err2.message);\n        console.log('Notes:', notes.slice(0, 30));\n    });\n});\n\n// ── 2. util.promisify — callbacks → Promises ──\nconst readFile = util.promisify(fs.readFile);\n\nreadFile('./data.json', 'utf8')\n    .then(data => console.log('Promise:', JSON.parse(data).length, 'items'))\n    .catch(err => console.error('Promise error:', err.message));\n\n// ── 3. async/await (modern — use this) ──\nasync function loadFiles() {\n    try {\n        // Sequential: wait for each\n        const data  = await readFile('./data.json', 'utf8');\n        const notes = await readFile('./notes.txt',  'utf8');\n        console.log('async/await: data items:', JSON.parse(data).length);\n        console.log('async/await: notes:', notes.slice(0, 30));\n\n        // Parallel: run concurrently\n        const [d, n] = await Promise.all([\n            readFile('./data.json', 'utf8'),\n            readFile('./notes.txt',  'utf8'),\n        ]);\n        console.log('Parallel: both loaded.');\n    } catch (err) {\n        console.error('Async error:', err.message);\n    }\n}\n\nloadFiles();"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Async patterns sandbox",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0}\n    .layout{display:grid;grid-template-rows:auto 1fr;gap:10px;height:calc(100vh - 32px)}\n    .top{display:flex;flex-direction:column;gap:8px}\n    .editor-row{display:flex;gap:8px;align-items:flex-start}\n    textarea{flex:1;background:#0b0e14;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;padding:10px;font-family:monospace;font-size:0.82rem;resize:vertical;min-height:200px}\n    button{padding:8px 14px;border:none;border-radius:5px;font-weight:700;cursor:pointer;font-size:0.8rem}\n    .chips{display:flex;flex-wrap:wrap;gap:6px}\n    .chip{background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:3px 10px;font-family:monospace;font-size:0.72rem;cursor:pointer;color:#94a3b8}\n    .chip:hover{border-color:#4fd1c5;color:#4fd1c5}\n    .output{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:12px;font-family:monospace;font-size:0.8rem;overflow:auto;flex:1}\n    .panel-label{font-size:0.7rem;color:#4fd1c5;margin-bottom:6px}\n    .log{color:#e2e8f0;margin:1px 0}.err{color:#ef4444;margin:1px 0}.info{color:#94a3b8;font-style:italic}\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"code\" spellcheck=\"false\">// Async/await patterns in Node.js\nconst { promises: fs } = require('fs');\nconst path = require('path');\n\nasync function main() {\n  // 1. Sequential — one after another\n  console.log('=== Sequential ===');\n  const pkg  = await fs.readFile(path.join(__dirname, 'package.json'), 'utf8');\n  const data = await fs.readFile(path.join(__dirname, 'data.json'), 'utf8');\n  const users = JSON.parse(data);\n  const pkgObj = JSON.parse(pkg);\n  console.log('Project:', pkgObj.name);\n  console.log('Users:', users.map(u => u.name).join(', '));\n\n  // 2. Parallel — run at the same time\n  console.log('\\n=== Parallel (Promise.all) ===');\n  const [pkg2, data2] = await Promise.all([\n    fs.readFile(path.join(__dirname, 'package.json'), 'utf8'),\n    fs.readFile(path.join(__dirname, 'data.json'), 'utf8'),\n  ]);\n  console.log('Both loaded in parallel!');\n\n  // 3. Error handling\n  console.log('\\n=== Error handling ===');\n  try {\n    await fs.readFile('/nonexistent/file.txt', 'utf8');\n  } catch (err) {\n    console.log('Caught:', err.code, '-', err.message.split(',')[0]);\n  }\n\n  console.log('Done!');\n}\n\nmain().catch(console.error);</textarea>\n        <div style=\"display:flex;flex-direction:column;gap:6px\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runNode()\">&#9654; Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setCode('// Promise.all vs Promise.allSettled\\nconst promises = [\\n  Promise.resolve(\\'a\\'),\\n  Promise.reject(new Error(\\'b failed\\')),\\n  Promise.resolve(\\'c\\'),\\n];\\n\\n// Promise.all: rejects if ANY rejects\\nPromise.all(promises)\\n  .then(r => console.log(\\'all:\\', r))\\n  .catch(e => console.log(\\'all rejected:\\', e.message));\\n\\n// Promise.allSettled: waits for ALL, never rejects\\nPromise.allSettled(promises).then(results => {\\n  results.forEach(r => {\\n    if (r.status === \\'fulfilled\\') console.log(\\'✓\\', r.value);\\n    else console.log(\\'✗\\', r.reason.message);\\n  });\\n});')\">Promise.all vs allSettled</span>\n        <span class=\"chip\" onclick=\"setCode('// async in loops\\n// WRONG: forEach does not await\\nconst items = [1, 2, 3];\\n\\nconsole.log(\\'--- forEach (wrong) ---\\');\\n// items.forEach(async n => await doWork(n));  // callbacks run concurrently, unordered\\n\\nconsole.log(\\'--- for...of (sequential) ---\\');\\nasync function sequential() {\\n  for (const n of items) {\\n    await new Promise(r => setTimeout(r, 10));\\n    console.log(\\'sequential:\\', n);\\n  }\\n  console.log(\\'done sequential\\');\\n}\\n\\nconsole.log(\\'--- Promise.all (parallel) ---\\');\\nasync function parallel() {\\n  await Promise.all(items.map(async n => {\\n    await new Promise(r => setTimeout(r, 10));\\n    console.log(\\'parallel:\\', n);\\n  }));\\n  console.log(\\'done parallel\\');\\n}\\n\\nsequential().then(parallel);')\">async loops</span>\n      </div>\n    </div>\n    <div class=\"output\" id=\"output\"><div class=\"panel-label\">OUTPUT</div><div class=\"info\">Click &#9654; Run</div></div>\n  </div>\n  <script>\n    class EventEmitter{constructor(){this._e={}}on(ev,fn){(this._e[ev]=this._e[ev]||[]).push(fn);return this}emit(ev,...a){(this._e[ev]||[]).slice().forEach(f=>f(...a));return this}}\n    const _memFS={'/home/user/project/package.json':JSON.stringify({name:'my-app',version:'1.0.0',dependencies:{express:'^4.18.2'}},null,2),'/home/user/project/data.json':JSON.stringify([{id:1,name:'Alice'},{id:2,name:'Bob'},{id:3,name:'Carol'}],null,2),'/home/user/project/notes.txt':'Line one\\nLine two\\nLine three'};\n    const _path={join:(...a)=>a.filter(Boolean).join('/').replace(/\\/+/g,'/').replace(/\\/$/,'')||'.',resolve:(...a)=>{let r='/home/user/project';for(const p of a)r=p.startsWith('/')?p:r+'/'+p;return r.replace(/\\/+/g,'/')},dirname:p=>p.replace(/\\/[^\\/]+$/,'')||'.',sep:'/',delimiter':':'};\n    const _fs={readFileSync:(p)=>{const c=_memFS[p];if(!c)throw Object.assign(new Error(`ENOENT: no such file or directory '${p}'`),{code:'ENOENT'});return c},writeFileSync:(p,d)=>{_memFS[p]=String(d)},existsSync:p=>p in _memFS,promises:{readFile:(p)=>_memFS[p]!=null?Promise.resolve(_memFS[p]):Promise.reject(Object.assign(new Error(`ENOENT: '${p}'`),{code:'ENOENT'})),writeFile:(p,d)=>{_memFS[p]=String(d);return Promise.resolve()},readdir:(p)=>{const pn=p.endsWith('/')?p:p+'/';return Promise.resolve([...new Set(Object.keys(_memFS).filter(k=>k.startsWith(pn)).map(k=>k.slice(pn.length).split('/')[0]).filter(Boolean)))]}}};\n    const _util={promisify:fn=>(...args)=>new Promise((ok,fail)=>fn(...args,(err,res)=>err?fail(err):ok(res)))};\n    const __dirname='/home/user/project',__filename='/home/user/project/index.js';\n    const _proc={argv:['node','index.js'],env:{NODE_ENV:'development'},version:'v20.11.0',platform:'linux',pid:1234,nextTick:fn=>Promise.resolve().then(fn)};\n    function _require(m){const map={path:_path,fs:{..._fs,promises:_fs.promises},util:_util,'node:path':_path,'node:fs':{..._fs,promises:_fs.promises},'node:util':_util,'fs/promises':_fs.promises,'node:fs/promises':_fs.promises};if(m in map)return map[m];throw new Error('Cannot find module \\''+m+'\\''+'\\nAvailable: fs, fs/promises, path, util');}\n    function setCode(c){document.getElementById('code').value=c;runNode();}\n    const _out=document.getElementById('output');\n    const _oL=console.log,_oE=console.error;\n    async function runNode(){\n      const src=document.getElementById('code').value;\n      const logs=[];\n      console.log=(...a)=>logs.push({t:'log',m:a.map(x=>typeof x==='object'?JSON.stringify(x,null,2):String(x)).join(' ')});\n      console.error=(...a)=>logs.push({t:'err',m:a.map(String).join(' ')});\n      try{\n        const fn=new Function('require','process','__dirname','__filename',src);\n        const r=fn(_require,_proc,__dirname,__filename);\n        if(r&&typeof r.then==='function')await r;\n      }catch(e){logs.push({t:'err',m:e.message});\n      }finally{console.log=_oL;console.error=_oE;}\n      await new Promise(r=>setTimeout(r,150));\n      _out.innerHTML='<div class=\"panel-label\">OUTPUT</div>'+(logs.length?logs.map(l=>'<div class=\"'+(l.t==='err'?'err':'log')+'\">'+l.m.replace(/</g,'&lt;').replace(/\\n/g,'<br>')+'</div>').join(''):'<div class=\"info\">No output</div>');\n    }\n    document.getElementById('code').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runNode();}});\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "tip",
+      "text": "Use Promise.all() to run independent async operations in parallel. Sequential awaits run one at a time — if each takes 100ms and you have 3 of them, sequential takes 300ms, parallel takes ~100ms."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "node-async-q1",
+          "question": "You need to fetch user data and their posts simultaneously, then display both. Which approach is best?",
+          "type": "multiple-choice",
+          "options": [
+            "const user = await fetchUser(id); const posts = await fetchPosts(id);",
+            "const [user, posts] = await Promise.all([fetchUser(id), fetchPosts(id)]);",
+            "fetchUser(id).then(u => fetchPosts(id).then(p => show(u, p)));",
+            "Use callbacks with a counter variable"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Promise.all() runs both requests concurrently. If fetchUser takes 200ms and fetchPosts takes 150ms, Promise.all takes ~200ms (the max). Sequential awaits would take 350ms (200+150). The chained .then() version works but is harder to read and also runs sequentially. Promise.all is the standard pattern for concurrent independent operations."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What happens if I forget `await` in an async function?",
+      "a": "The Promise is created and starts executing, but you don't wait for it. If you use the result immediately (e.g., const data = fetchUser(id); console.log(data.name)), data is a Promise object, not the resolved value — you'll get undefined or an error. More dangerously: errors inside unresolved Promises become unhandled rejections. In Node 15+, unhandled rejections crash the process. Always await or .catch() Promises you care about."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Node.js Docs — util.promisify",
+      "url": "https://nodejs.org/api/util.html#utilpromisifyoriginal",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["database queries", "HTTP calls", "file processing pipelines", "job queues"],
+    "examples": [
+      "const [user, orders] = await Promise.all([db.users.findById(id), db.orders.findByUser(id)])",
+      "await Promise.allSettled(emails.map(sendEmail)) — send all emails, collect failures",
+      "const data = await fetch(url).then(r => r.json()) — fetch + parse in one await"
+    ]
+  }
+}

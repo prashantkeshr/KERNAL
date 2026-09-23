@@ -1,0 +1,10 @@
+{
+  "id": "nodejs",
+  "name": "Node.js",
+  "version": "Node.js 20 LTS",
+  "difficulty": "intermediate",
+  "estimatedHours": 25,
+  "modules": ["node-foundations", "node-core", "node-http", "node-async", "node-practice"],
+  "prerequisites": ["javascript", "typescript"],
+  "certificationAvailable": true
+}

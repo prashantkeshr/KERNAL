@@ -1,0 +1,99 @@
+{
+  "id": "03-npm",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "nodejs",
+  "technologyVersion": "Node.js 20 LTS",
+  "module": "node-foundations",
+  "title": "npm & package.json",
+  "subtitle": "Package management — installing dependencies, scripts, semver, and lock files",
+  "difficulty": "beginner",
+  "estimatedMinutes": 18,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["nodejs/02-modules"],
+  "skillsTaught": ["node.npm", "node.package-json", "node.scripts", "node.semver"],
+  "skillsUsed": ["node.modules"],
+  "relatedConcepts": ["node.file-system", "node.environment"],
+  "whyItExists": {
+    "problem": "Installing, versioning, and sharing third-party code manually is error-prone. Projects need a repeatable way to declare their dependencies.",
+    "solution": "npm (Node Package Manager) is the default package manager. package.json declares what your project is and what it depends on. npm install reads it and downloads exact dependencies. The lock file (package-lock.json) pins exact versions for reproducible builds.",
+    "whenToUse": "Every Node.js project. npm is bundled with Node.js. Alternatives: pnpm (faster, disk-efficient) and yarn (older alternative).",
+    "whenNotToUse": "N/A — every Node project needs a package manager."
+  },
+  "explainModes": {
+    "beginner": "npm is like an app store for code. `npm install express` downloads the Express library and saves it in node_modules. package.json is a config file that lists your project's info and all its dependencies. Running `npm install` in a new clone of your project re-installs everything listed there.",
+    "simple": "Key commands: npm init -y (create package.json), npm install package (save to dependencies), npm install -D package (save to devDependencies), npm uninstall package, npm run script-name. package.json fields: name, version, main, scripts, dependencies, devDependencies, engines. Semver: ^1.2.3 (compatible — any 1.x.x), ~1.2.3 (patch only — 1.2.x), 1.2.3 (exact). package-lock.json: never edit manually; commit it.",
+    "standard": "Scripts: npm scripts run shell commands — build, test, start, dev are conventions. Scripts can reference node_modules/.bin executables without full path. npx: run an npm package binary without installing globally. node_modules: never commit it (.gitignore). dependencies vs devDependencies: runtime deps go in dependencies (express, prisma); build tools and test frameworks go in devDependencies (vite, jest, typescript, eslint). In production, `npm install --omit=dev` skips devDependencies.",
+    "technical": "package.json 'exports' field: controls what files of your package are importable (replaces 'main'). Supports conditional exports: '.' can export different files for CJS vs ESM. 'workspaces': monorepo support — multiple packages in one repo. npm scripts lifecycle: pre and post hooks — pretest runs before test, postinstall runs after install. npm link: symlink a local package for development. peer dependencies: packages that the user must install (e.g., react is a peerDependency of react-dom).",
+    "deepDive": "Semver resolution: npm uses a range resolver. ^1.2.3 allows >=1.2.3 <2.0.0 (major locked). ~1.2.3 allows >=1.2.3 <1.3.0 (minor locked). 0.x.y is special — ^0.2.3 allows >=0.2.3 <0.3.0 (no compatible guarantee before 1.0.0). Lock file: package-lock.json stores exact resolved versions, checksums, and the full dependency tree. This ensures identical installs across machines and CI. npm ci: installs from lock file only (faster, no resolution, fails if lock and package.json disagree — ideal for CI). npm audit: scans for known vulnerabilities in your dependency tree."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "package.json anatomy"
+    },
+    {
+      "type": "code",
+      "lang": "json",
+      "filename": "package.json",
+      "code": "{\n  \"name\": \"my-api\",\n  \"version\": \"1.0.0\",\n  \"description\": \"A simple REST API\",\n  \"main\": \"src/index.js\",\n  \"type\": \"module\",\n  \"engines\": { \"node\": \">=20.0.0\" },\n\n  \"scripts\": {\n    \"start\":   \"node src/index.js\",\n    \"dev\":     \"node --watch src/index.js\",\n    \"build\":   \"tsc\",\n    \"test\":    \"node --test\",\n    \"lint\":    \"eslint src/\",\n    \"format\":  \"prettier --write src/\"\n  },\n\n  \"dependencies\": {\n    \"express\":    \"^4.18.2\",\n    \"dotenv\":     \"^16.3.1\",\n    \"zod\":        \"^3.22.4\"\n  },\n\n  \"devDependencies\": {\n    \"@types/node\":    \"^20.0.0\",\n    \"typescript\":     \"^5.3.3\",\n    \"eslint\":         \"^8.56.0\",\n    \"prettier\":       \"^3.1.1\"\n  }\n}"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "npm_commands.sh",
+      "code": "# Initialize a new project\nnpm init -y                  # creates package.json with defaults\n\n# Install packages\nnpm install express          # save to 'dependencies'\nnpm install -D typescript    # save to 'devDependencies'\nnpm install -g nodemon       # global install (available everywhere)\nnpx create-vite my-app       # run without installing\n\n# Manage packages\nnpm uninstall lodash         # remove and update package.json\nnpm update                   # update all to latest within semver range\nnpm outdated                 # show which packages have newer versions\n\n# Run scripts (from package.json \"scripts\")\nnpm start                    # shorthand for npm run start\nnpm test                     # shorthand for npm run test\nnpm run dev                  # custom scripts need 'run'\nnpm run build\n\n# Info\nnpm list                     # show installed packages\nnpm audit                    # check for security vulnerabilities\nnpm ci                       # clean install from lock file (CI environments)"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Explore package.json",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0}\n    .layout{display:grid;grid-template-rows:auto 1fr;gap:10px;height:calc(100vh - 32px)}\n    .top{display:flex;flex-direction:column;gap:8px}\n    .editor-row{display:flex;gap:8px;align-items:flex-start}\n    textarea{flex:1;background:#0b0e14;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;padding:10px;font-family:monospace;font-size:0.82rem;resize:vertical;min-height:200px}\n    .btns{display:flex;flex-direction:column;gap:6px}\n    button{padding:8px 14px;border:none;border-radius:5px;font-weight:700;cursor:pointer;font-size:0.8rem;white-space:nowrap}\n    .chips{display:flex;flex-wrap:wrap;gap:6px}\n    .chip{background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:3px 10px;font-family:monospace;font-size:0.72rem;cursor:pointer;color:#94a3b8}\n    .chip:hover{border-color:#4fd1c5;color:#4fd1c5}\n    .output{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:12px;font-family:monospace;font-size:0.8rem;overflow:auto;flex:1}\n    .panel-label{font-size:0.7rem;color:#4fd1c5;margin-bottom:6px}\n    .log{color:#e2e8f0;margin:1px 0}.err{color:#ef4444;margin:1px 0}.warn{color:#fbbf24;margin:1px 0}.info{color:#94a3b8;font-style:italic}\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"code\" spellcheck=\"false\">// Reading package.json — a common Node.js pattern\nconst fs   = require('fs');\nconst path = require('path');\n\n// Read the sandbox package.json\nconst pkgPath = path.join(__dirname, 'package.json');\nconst pkgStr  = fs.readFileSync(pkgPath, 'utf8');\nconst pkg     = JSON.parse(pkgStr);\n\nconsole.log('Project:', pkg.name, 'v' + pkg.version);\nconsole.log('Description:', pkg.description || '(none)');\n\n// Simulate checking if a dep is installed\nconst deps    = pkg.dependencies    || {};\nconst devDeps = pkg.devDependencies || {};\n\nconsole.log('\\nDependencies:', Object.keys(deps).length);\nObject.entries(deps).forEach(([name, ver]) =>\n  console.log('  ', name, ver)\n);\n\nconsole.log('\\nDevDependencies:', Object.keys(devDeps).length);\nObject.entries(devDeps).forEach(([name, ver]) =>\n  console.log('  ', name, ver)\n);</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runNode()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setCode('// Semver range parser simulation\\nfunction parseSemver(range, version) {\\n  const [major, minor, patch] = version.split(\\'.\\').map(Number);\\n  if (range.startsWith(\\'^\\')) {\\n    const [rMaj] = range.slice(1).split(\\'.\\').map(Number);\\n    return major === rMaj;\\n  }\\n  if (range.startsWith(\\'~\\')) {\\n    const [rMaj, rMin] = range.slice(1).split(\\'.\\').map(Number);\\n    return major === rMaj && minor === rMin;\\n  }\\n  return range === version;\\n}\\n\\nconst tests = [\\n  { range: \\'^ 4.18.2\\'.trim(), ver: \\'4.19.0\\', expect: true  },\\n  { range: \\'^ 4.18.2\\'.trim(), ver: \\'5.0.0\\',  expect: false },\\n  { range: \\'~1.2.3\\',           ver: \\'1.2.9\\',  expect: true  },\\n  { range: \\'~1.2.3\\',           ver: \\'1.3.0\\',  expect: false },\\n  { range: \\'1.2.3\\',            ver: \\'1.2.3\\',  expect: true  },\\n];\\n\\ntests.forEach(t => {\\n  const result = parseSemver(t.range, t.ver);\\n  const ok = result === t.expect ? \\'✓\\' : \\'✗\\';\\n  console.log(`${ok} ${t.range} matches ${t.ver}? ${result}`);\\n});')\">semver ranges</span>\n        <span class=\"chip\" onclick=\"setCode('// npm scripts simulation\\nconst scripts = {\\n  start:   \\'node src/index.js\\',\\n  dev:     \\'node --watch src/index.js\\',\\n  build:   \\'tsc --outDir dist\\',\\n  test:    \\'node --test\\',\\n  lint:    \\'eslint src/ --fix\\',\\n};\\n\\nconsole.log(\\'Available npm scripts:\\');\\nObject.entries(scripts).forEach(([name, cmd]) => {\\n  console.log(`  npm run ${name}`);\\n  console.log(`    → ${cmd}`);\\n});\\n\\nconsole.log(\\'\\\\nRun with: npm run <script-name>\\');\\nconsole.log(\\'Shortcuts: npm start, npm test (no run needed)\\');')\">npm scripts</span>\n      </div>\n    </div>\n    <div class=\"output\" id=\"output\"><div class=\"panel-label\">OUTPUT</div><div class=\"info\">Click ▶ Run</div></div>\n  </div>\n  <script>\n    class EventEmitter{constructor(){this._e={}}on(ev,fn){(this._e[ev]=this._e[ev]||[]).push(fn);return this}once(ev,fn){const w=(...a)=>{fn(...a);this.off(ev,w)};return this.on(ev,w)}emit(ev,...a){(this._e[ev]||[]).slice().forEach(f=>f(...a));return!!(this._e[ev]||[]).length}off(ev,fn){if(this._e[ev])this._e[ev]=this._e[ev].filter(f=>f!==fn);return this}listenerCount(ev){return(this._e[ev]||[]).length}}\n    const _memFS={'/home/user/project/package.json':JSON.stringify({name:'my-api',version:'1.0.0',description:'A simple REST API',scripts:{start:'node src/index.js',dev:'node --watch src/index.js',test:'node --test'},dependencies:{express:'^4.18.2',dotenv:'^16.3.1',zod:'^3.22.4'},devDependencies:{typescript:'^5.3.3',eslint:'^8.56.0'}},null,2),'/home/user/project/data.json':'[{\"id\":1,\"name\":\"Alice\"},{\"id\":2,\"name\":\"Bob\"}]','/home/user/project/notes.txt':'Hello from Node.js!'};\n    const _path={join:(...a)=>a.filter(Boolean).join('/').replace(/\\/+/g,'/').replace(/\\/$/,'')||'.',resolve:(...a)=>{let r='/home/user/project';for(const p of a)r=p.startsWith('/')?p:r+'/'+p;return r.replace(/\\/+/g,'/')},dirname:p=>p.replace(/\\/[^\\/]+$/,'')||'.',basename:(p,ext)=>{const b=p.split('/').pop()||'';return ext&&b.endsWith(ext)?b.slice(0,-ext.length):b},extname:p=>{const m=p.match(/(\\.[^.]+)$/);return m?m[1]:''},sep:'/',delimiter:':'};\n    const _os={platform:()=>'linux',arch:()=>'x64',hostname:()=>'kernal-sandbox',homedir:()=>'/home/user',tmpdir:()=>'/tmp',EOL:'\\n'};\n    const _fs={readFileSync:(p,enc)=>{const c=_memFS[p];if(!c)throw Object.assign(new Error(`ENOENT: no such file or directory, open '${p}'`),{code:'ENOENT'});return c},writeFileSync:(p,d)=>{_memFS[p]=String(d)},existsSync:p=>p in _memFS,readdirSync:p=>{const pn=p.endsWith('/')?p:p+'/';return[...new Set(Object.keys(_memFS).filter(k=>k.startsWith(pn)).map(k=>k.slice(pn.length).split('/')[0]).filter(Boolean))]},promises:{readFile:async(p,enc)=>_fs.readFileSync(p,enc),writeFile:async(p,d)=>_fs.writeFileSync(p,d)}};\n    const __dirname='/home/user/project',__filename='/home/user/project/index.js';\n    const _process={argv:['node','index.js'],env:{NODE_ENV:'development',PORT:'3000'},cwd:()=>__dirname,exit:code=>{throw new Error(`process.exit(${code??0})`)},version:'v20.11.0',platform:'linux',pid:1234,nextTick:fn=>Promise.resolve().then(fn)};\n    function _require(mod){const map={path:_path,fs:_fs,os:_os,events:{EventEmitter},'node:path':_path,'node:fs':_fs,'node:os':_os};if(mod in map)return map[mod];throw new Error(`Cannot find module '${mod}'\\nAvailable: path, fs, os, events`);}\n    function setCode(c){document.getElementById('code').value=c;runNode();}\n    function runNode(){const src=document.getElementById('code').value;const logs=[];const oL=console.log,oE=console.error,oW=console.warn;console.log=(...a)=>logs.push({t:'log',m:a.map(x=>typeof x==='object'?JSON.stringify(x,null,2):String(x)).join(' ')});console.error=(...a)=>logs.push({t:'err',m:a.map(String).join(' ')});console.warn=(...a)=>logs.push({t:'warn',m:a.map(String).join(' ')});try{new Function('require','process','__dirname','__filename','EventEmitter',src)(_require,_process,__dirname,__filename,EventEmitter);}catch(e){logs.push(e.message.startsWith('process.exit')?{t:'warn',m:e.message}:{t:'err',m:e.message});}finally{console.log=oL;console.error=oE;console.warn=oW;}const od=document.getElementById('output');od.innerHTML='<div class=\"panel-label\">OUTPUT</div>'+(logs.length?logs.map(l=>`<div class=\"${l.t==='err'?'err':l.t==='warn'?'warn':'log'}\">${l.m.replace(/</g,'&lt;').replace(/\\n/g,'<br>')}</div>`).join(''):'<div class=\"info\">No output</div>');}\n    document.getElementById('code').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runNode();}});\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "node-npm-q1",
+          "question": "What is the difference between `dependencies` and `devDependencies`?",
+          "type": "multiple-choice",
+          "options": [
+            "devDependencies are faster to install",
+            "dependencies are required at runtime (production); devDependencies are only needed during development (build tools, test frameworks, linters)",
+            "dependencies are always installed globally; devDependencies are local",
+            "There is no practical difference — the split is only for documentation"
+          ],
+          "correctAnswer": 1,
+          "explanation": "dependencies (express, dotenv) are needed when your app runs. devDependencies (typescript, jest, eslint, prettier) are tools you need to develop the app but not to run it. In production CI/CD, you run `npm install --omit=dev` (or `--production`) to skip devDependencies — smaller deploy, faster install, smaller attack surface."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Should I commit node_modules?",
+      "a": "Never commit node_modules — add it to .gitignore. It can contain thousands of files and hundreds of MB. Instead commit package.json and package-lock.json. Anyone cloning your repo runs `npm install` to restore node_modules. The lock file ensures they get the exact same versions you used."
+    }
+  ],
+  "sources": [
+    {
+      "name": "npm Documentation",
+      "url": "https://docs.npmjs.com/",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every Node.js project"],
+    "examples": [
+      "npm install @prisma/client prisma — ORM setup",
+      "npm install -D vitest @vitest/coverage-v8 — test framework as devDep",
+      "npm run build && npm start — build then start in production"
+    ]
+  }
+}

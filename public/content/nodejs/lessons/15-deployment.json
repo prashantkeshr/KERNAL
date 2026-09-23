@@ -1,0 +1,114 @@
+{
+  "id": "15-deployment",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "nodejs",
+  "technologyVersion": "Node.js 20 LTS",
+  "module": "node-practice",
+  "title": "Deployment Basics",
+  "subtitle": "npm scripts, health endpoints, process managers, and Docker basics for Node.js",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 22,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["nodejs/11-environment", "nodejs/14-error-handling"],
+  "skillsTaught": ["node.npm-scripts", "node.health-check", "node.process-manager", "node.docker-basics"],
+  "skillsUsed": ["node.http-server", "node.express-basics", "node.environment"],
+  "relatedConcepts": ["node.error-handling", "node.async-node"],
+  "whyItExists": {
+    "problem": "Running `node index.js` works locally but isn't suitable for production: the process dies on errors, doesn't restart automatically, doesn't scale across CPU cores, and has no way for monitoring tools to check if it's healthy.",
+    "solution": "npm scripts standardize commands. A /health endpoint lets load balancers verify the app is running. Process managers (PM2) keep the app running, restart on crash, and manage logs. Docker packages the app and its runtime so it runs identically anywhere.",
+    "whenToUse": "Any Node.js application you intend to run in production — hosted VPS, Docker container, cloud run service, or PaaS like Railway/Render.",
+    "whenNotToUse": "For serverless deployments (Vercel, Netlify Functions, AWS Lambda), the platform manages the process — you don't need PM2. But health endpoints and npm scripts are still valuable."
+  },
+  "explainModes": {
+    "beginner": "Deployment means running your Node.js app in a way that keeps it running reliably. The key steps: use npm start as the command to run your app (defined in package.json scripts), add a /health route that returns 200 OK so load balancers can check it's alive, and use a process manager like PM2 so the app restarts automatically if it crashes.",
+    "simple": "package.json scripts: 'start' runs the production server, 'dev' runs with nodemon for auto-reload, 'build' compiles TypeScript. process.env.PORT: always listen on the port from environment (hosting platforms set this). Health endpoint: GET /health returns { status: 'ok', uptime: process.uptime() }. PM2: npm install -g pm2, pm2 start index.js, pm2 logs, pm2 restart, pm2 startup (auto-start on reboot). Graceful shutdown: listen for SIGTERM, stop accepting requests, wait for in-flight requests, close DB connections, exit.",
+    "standard": "Dockerfile structure: FROM node:20-alpine (small base), WORKDIR /app, COPY package*.json ./ (separate layer for cache), RUN npm ci --production (install only prod deps), COPY . . (source after deps for cache), CMD ['node', 'index.js']. .dockerignore: node_modules, .env, .git, *.log. Multi-stage build: separate build stage (compiles TypeScript) from runtime stage (only compiled output). EXPOSE port in Dockerfile is documentation — you still need -p flag when running. Environment vars: docker run -e NODE_ENV=production --env-file .env.production.",
+    "technical": "node --max-old-space-size=512: limit Node heap size for container memory limit. Cluster module: fork one worker per CPU core — each handles requests independently. PM2 cluster mode: pm2 start index.js -i max (spawns #CPU workers automatically). Zero-downtime restart: pm2 reload (workers restart one at a time — no dropped connections). Docker health check: HEALTHCHECK --interval=30s --timeout=3s CMD curl -f http://localhost:$PORT/health || exit 1. kubernetes readiness/liveness probes: readiness hits /ready (app warmed up), liveness hits /health (process alive).",
+    "deepDive": "12-factor app: a methodology for production-ready apps. Key factors relevant to Node.js: III (config via env vars, not code), IV (npm scripts as process types), VII (port binding — app is self-contained), XI (logs as event stream to stdout — no log files in app). Graceful shutdown pattern: server.close(callback) stops accepting new connections but waits for existing requests to finish. Track in-flight requests manually or use terminus / stoppable packages. Container signals: Docker sends SIGTERM to PID 1 on stop. Node.js must be PID 1 (not a shell) to receive it — use exec form CMD ['node', 'index.js'], not shell form CMD node index.js."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Production-ready Node.js server"
+    },
+    {
+      "type": "code",
+      "lang": "json",
+      "filename": "package.json (scripts section)",
+      "code": "{\n  \"name\": \"my-api\",\n  \"version\": \"1.0.0\",\n  \"scripts\": {\n    \"start\":   \"node src/index.js\",\n    \"dev\":     \"nodemon src/index.js\",\n    \"build\":   \"tsc --noEmit false --outDir dist\",\n    \"start:prod\": \"NODE_ENV=production node dist/index.js\",\n    \"test\":    \"jest\",\n    \"test:watch\": \"jest --watch\",\n    \"lint\":    \"eslint src --ext .ts,.js\"\n  },\n  \"engines\": {\n    \"node\": \">=20.0.0\",\n    \"npm\":  \">=9.0.0\"\n  }\n}"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "src/index.js",
+      "code": "require('dotenv').config();\nconst express = require('express');\n\nconst app  = express();\nconst PORT = process.env.PORT || 3000;\nconst startTime = Date.now();\n\napp.use(express.json());\n\n// ── Health check endpoint ──\n// Load balancers, Docker, Kubernetes all use this\napp.get('/health', (req, res) => {\n    res.json({\n        status:  'ok',\n        uptime:  Math.floor((Date.now() - startTime) / 1000) + 's',\n        version: process.env.npm_package_version || '?',\n        env:     process.env.NODE_ENV || 'development',\n    });\n});\n\n// ── Ready check (separate from health) ──\n// Returns 503 until DB connection is established\nlet isReady = false;\napp.get('/ready', (req, res) => {\n    if (!isReady) return res.status(503).json({ status: 'not ready' });\n    res.json({ status: 'ready' });\n});\n\n// Your routes here...\napp.get('/', (req, res) => res.json({ message: 'Hello World' }));\n\n// ── Start server ──\nconst server = app.listen(PORT, () => {\n    console.log(`Server running on port ${PORT} (${process.env.NODE_ENV})`);\n    isReady = true;  // Mark ready after startup\n});\n\n// ── Graceful shutdown ──\nfunction gracefulShutdown(signal) {\n    console.log(`${signal} received. Shutting down gracefully...`);\n    server.close(() => {\n        console.log('HTTP server closed. Exiting.');\n        process.exit(0);\n    });\n    // Force shutdown after 10s if server doesn't close\n    setTimeout(() => process.exit(1), 10_000);\n}\n\nprocess.on('SIGTERM', () => gracefulShutdown('SIGTERM'));\nprocess.on('SIGINT',  () => gracefulShutdown('SIGINT'));"
+    },
+    {
+      "type": "code",
+      "lang": "dockerfile",
+      "filename": "Dockerfile",
+      "code": "# Build stage — compile TypeScript (omit if using plain JS)\nFROM node:20-alpine AS build\nWORKDIR /app\nCOPY package*.json ./\nRUN npm ci\nCOPY . .\nRUN npm run build\n\n# Runtime stage — lean production image\nFROM node:20-alpine AS runtime\nWORKDIR /app\n\n# Install only production dependencies\nCOPY package*.json ./\nRUN npm ci --production && npm cache clean --force\n\n# Copy compiled output from build stage\nCOPY --from=build /app/dist ./dist\n\n# Non-root user for security\nRUN addgroup -S appgroup && adduser -S appuser -G appgroup\nUSER appuser\n\nEXPOSE 3000\n\n# Health check\nHEALTHCHECK --interval=30s --timeout=5s --start-period=5s \\\n  CMD wget -qO- http://localhost:3000/health || exit 1\n\n# exec form — makes Node PID 1 so it receives signals\nCMD [\"node\", \"dist/index.js\"]"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Deployment patterns sandbox",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0}\n    .layout{display:grid;grid-template-rows:auto auto 1fr;gap:10px;height:calc(100vh - 32px)}\n    textarea{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;padding:10px;font-family:monospace;font-size:0.82rem;resize:vertical;min-height:160px}\n    button{padding:8px 14px;border:none;border-radius:5px;font-weight:700;cursor:pointer;font-size:0.8rem}\n    .chips{display:flex;flex-wrap:wrap;gap:6px}\n    .chip{background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:3px 10px;font-family:monospace;font-size:0.72rem;cursor:pointer;color:#94a3b8}\n    .chip:hover{border-color:#4fd1c5;color:#4fd1c5}\n    .output{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:12px;font-family:monospace;font-size:0.8rem;overflow:auto}\n    .panel-label{font-size:0.7rem;color:#4fd1c5;margin-bottom:6px}\n    .log{color:#e2e8f0;margin:1px 0}.err{color:#ef4444;margin:1px 0}.info{color:#94a3b8;font-style:italic}\n    .top-row{display:flex;gap:8px;align-items:flex-start}\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top-row\">\n      <textarea id=\"code\" spellcheck=\"false\">// Simulate a production-ready server startup\n// This sandbox simulates Node.js — HTTP server emulated\n\nconst process_env = {\n  NODE_ENV: 'production',\n  PORT: '3000',\n  VERSION: '1.2.0',\n};\n\nconst startTime = Date.now();\nconst requests  = [];\nlet   isReady   = false;\n\n// Simulated routes\nconst routes = {};\n\nfunction app_get(path, handler) {\n  routes['GET:' + path] = handler;\n}\n\nfunction app_post(path, handler) {\n  routes['POST:' + path] = handler;\n}\n\n// Register routes\napp_get('/health', (req, res) => {\n  res.json({\n    status:  'ok',\n    uptime:  Math.floor((Date.now() - startTime) / 1000) + 's',\n    version: process_env.VERSION,\n    env:     process_env.NODE_ENV,\n    memory:  '45 MB',\n  });\n});\n\napp_get('/ready', (req, res) => {\n  if (!isReady) { res.status(503).json({ status: 'not ready' }); return; }\n  res.json({ status: 'ready' });\n});\n\napp_get('/', (req, res) => {\n  res.json({ message: 'Hello World', timestamp: new Date().toISOString() });\n});\n\n// Simulate server startup\nconsole.log('[startup] Loading config...');\nconsole.log('[startup] NODE_ENV:', process_env.NODE_ENV);\nconsole.log('[startup] PORT:', process_env.PORT);\nconsole.log('[startup] Connecting to database...');\n// Simulate async startup\nisReady = true;\nconsole.log('[startup] Ready! Server listening on port', process_env.PORT);\n\n// Test the health endpoint\nconst healthHandler = routes['GET:/health'];\nconst readyHandler  = routes['GET:/ready'];\nconst rootHandler   = routes['GET:/'];\n\nconst fakeRes = (name) => {\n  const r = { _code: 200, _body: null,\n    status(c) { r._code = c; return r; },\n    json(d)   { r._body = d; console.log(`\\n[GET ${name}] → ${r._code}`); console.log(JSON.stringify(d, null, 2)); }\n  };\n  return r;\n};\n\nhealthHandler({}, fakeRes('/health'));\nreadyHandler( {}, fakeRes('/ready'));\nrootHandler(  {}, fakeRes('/'));    \n\nconsole.log('\\n[graceful shutdown] SIGTERM received');\nconsole.log('[graceful shutdown] Stopping new connections...');\nconsole.log('[graceful shutdown] Waiting for in-flight requests...');\nconsole.log('[graceful shutdown] process.exit(0)');</textarea>\n      <div style=\"display:flex;flex-direction:column;gap:6px\">\n        <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runNode()\">&#9654; Run</button>\n      </div>\n    </div>\n    <div class=\"chips\">\n      <span class=\"chip\" onclick=\"setCode('// Process uptime and memory stats\\nconsole.log(\\'=== Runtime Info ===\\');\\nconsole.log(\\'Node version:\\', process.version);\\nconsole.log(\\'Platform:\\',     process.platform);\\nconsole.log(\\'PID:\\',          process.pid);\\nconsole.log(\\'Uptime:\\',       process.uptime().toFixed(2) + \\'s\\');\\n\\nconst mem = process.memoryUsage();\\nconsole.log(\\'\\\\n=== Memory ===\\');\\nconsole.log(\\'RSS         (total memory):\\', (mem.rss          / 1024 / 1024).toFixed(1) + \\' MB\\');\\nconsole.log(\\'Heap Total  (V8 heap)    :\\', (mem.heapTotal    / 1024 / 1024).toFixed(1) + \\' MB\\');\\nconsole.log(\\'Heap Used   (live data)  :\\', (mem.heapUsed     / 1024 / 1024).toFixed(1) + \\' MB\\');\\nconsole.log(\\'External    (C++ objects):\\', (mem.external     / 1024 / 1024).toFixed(1) + \\' MB\\');\\n\\nconst cpu = process.cpuUsage();\\nconsole.log(\\'\\\\n=== CPU ===\\');\\nconsole.log(\\'User CPU:   \\', cpu.user   / 1000, \\'ms\\');\\nconsole.log(\\'System CPU: \\', cpu.system / 1000, \\'ms\\');')\">process stats</span>\n      <span class=\"chip\" onclick=\"setCode('// Graceful shutdown pattern\\nconst server = { close: (cb) => { console.log(\\'[shutdown] Closed HTTP server\\'); cb(); } };\\nconst db      = { disconnect: () => Promise.resolve().then(() => console.log(\\'[shutdown] DB disconnected\\')) };\\n\\nlet shuttingDown = false;\\n\\nasync function gracefulShutdown(signal) {\\n  if (shuttingDown) return;\\n  shuttingDown = true;\\n  console.log(`\\\\n${signal} received`);\\n  console.log(\\'[shutdown] Refusing new requests\\');\\n  \\n  try {\\n    await new Promise((resolve, reject) => {\\n      server.close(resolve);\\n      setTimeout(() => reject(new Error(\\'Server close timed out\\')), 5000);\\n    });\\n    await db.disconnect();\\n    console.log(\\'[shutdown] Clean exit ✓\\');\\n    process.exit(0);\\n  } catch (err) {\\n    console.error(\\'[shutdown] Force exit — \\' + err.message);\\n    process.exit(1);\\n  }\\n}\\n\\nprocess.on(\\'SIGTERM\\', () => gracefulShutdown(\\'SIGTERM\\'));\\nprocess.on(\\'SIGINT\\',  () => gracefulShutdown(\\'SIGINT\\'));\\n\\n// Simulate SIGTERM after startup\\nconsole.log(\\'[startup] App running on port 3000\\');\\ngracefulShutdown(\\'SIGTERM\\');')\">graceful shutdown</span>\n    </div>\n    <div class=\"output\" id=\"output\"><div class=\"panel-label\">OUTPUT</div><div class=\"info\">Click &#9654; Run</div></div>\n  </div>\n  <script>\n    const _proc={argv:['node','index.js'],env:{NODE_ENV:'production',PORT:'3000'},version:'v20.11.0',platform:'linux',pid:1234,uptime:()=>42.3,memoryUsage:()=>({rss:47185920,heapTotal:20971520,heapUsed:14123456,external:1048576,arrayBuffers:524288}),cpuUsage:()=>({user:125000,system:43000}),exit:(c=0)=>{throw new Error('process.exit('+(c)+')');},on:(ev,fn)=>{}};\n    function _require(m){if(m==='path')return{join:(...a)=>a.join('/').replace(/\\/+/g,'/')};throw new Error('Cannot find module \\''+m+'\\'');}\n    function setCode(c){document.getElementById('code').value=c;runNode();}\n    async function runNode(){\n      const src=document.getElementById('code').value;\n      const logs=[];const oL=console.log,oE=console.error;\n      console.log=(...a)=>logs.push({t:'log',m:a.map(x=>typeof x==='object'&&x!==null?JSON.stringify(x,null,2):String(x)).join(' ')});\n      console.error=(...a)=>logs.push({t:'err',m:a.map(x=>typeof x==='object'&&x!==null?String(x):String(x)).join(' ')});\n      try{\n        const fn=new Function('require','process',src);\n        const r=fn(_require,_proc);\n        if(r&&typeof r.then==='function')await r;\n      }catch(e){if(!e.message.startsWith('process.exit'))logs.push({t:'err',m:e.message});else logs.push({t:'log',m:e.message});}\n      finally{console.log=oL;console.error=oE;}\n      await new Promise(r=>setTimeout(r,100));\n      const od=document.getElementById('output');\n      od.innerHTML='<div class=\"panel-label\">OUTPUT</div>'+(logs.length?logs.map(l=>'<div class=\"'+(l.t==='err'?'err':'log')+'\">'+l.m.replace(/</g,'&lt;').replace(/\\n/g,'<br>')+'</div>').join(''):'<div class=\"info\">No output</div>');}\n    document.getElementById('code').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runNode();}});\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "tip",
+      "text": "Always listen on `process.env.PORT || 3000` — never hardcode a port. Every major hosting platform (Railway, Render, Heroku, Fly.io) sets PORT automatically. If you hardcode a port, your app won't start."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "node-deploy-q1",
+          "question": "Why should a Dockerfile use CMD [\"node\", \"index.js\"] (exec form) instead of CMD node index.js (shell form)?",
+          "type": "multiple-choice",
+          "options": [
+            "Exec form is faster because it skips the shell startup overhead",
+            "Exec form makes Node.js PID 1, so it receives SIGTERM directly from Docker. Shell form makes the shell PID 1 — it may not forward signals to Node, preventing graceful shutdown.",
+            "Shell form only works on Linux; exec form is cross-platform",
+            "Exec form automatically sets NODE_ENV=production"
+          ],
+          "correctAnswer": 1,
+          "explanation": "When Docker stops a container, it sends SIGTERM to PID 1. In exec form [\"node\", \"index.js\"], Node.js is PID 1 and receives SIGTERM directly — your process.on('SIGTERM', gracefulShutdown) handler runs. In shell form `node index.js`, the shell (/bin/sh) is PID 1. The shell may or may not forward signals to its child process (Node). If it doesn't forward SIGTERM, Docker waits 10 seconds (the default grace period) and then sends SIGKILL — your graceful shutdown never runs and in-flight requests are dropped."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What's the simplest way to deploy a Node.js app to production?",
+      "a": "For the simplest path: use Railway or Render. Connect your GitHub repo, they detect Node.js automatically, run `npm start`, and set PORT for you. Add a /health endpoint and you're done. For more control, use a VPS (DigitalOcean Droplet, Linode) with PM2: `pm2 start npm -- start`, `pm2 startup` (survives reboot), `pm2 save`. For containerized deployments, build a Docker image and push to a registry, then run it anywhere (Railway, Fly.io, Google Cloud Run, AWS ECS)."
+    }
+  ],
+  "sources": [
+    {
+      "name": "PM2 Documentation",
+      "url": "https://pm2.keymetrics.io/docs/usage/quick-start/",
+      "verified": "2026-09-23"
+    },
+    {
+      "name": "Node.js Docker Best Practices",
+      "url": "https://github.com/nodejs/docker-node/blob/main/docs/BestPractices.md",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every production Node.js service"],
+    "examples": [
+      "Railway auto-detects Node.js, runs npm start, injects PORT — 0-config deploys",
+      "Kubernetes liveness probe hits /health every 10s — restarts pod if it returns 500 or times out",
+      "GitHub Actions: docker build + docker push to GHCR, then deploy to cloud run"
+    ]
+  }
+}

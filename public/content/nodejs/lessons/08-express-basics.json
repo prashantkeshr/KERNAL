@@ -1,0 +1,97 @@
+{
+  "id": "08-express-basics",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "nodejs",
+  "technologyVersion": "Node.js 20 LTS",
+  "module": "node-http",
+  "title": "Express Basics",
+  "subtitle": "Routing, middleware, and JSON APIs with the Express framework",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 22,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["nodejs/07-http-server"],
+  "skillsTaught": ["node.express-routing", "node.express-middleware", "node.express-json", "node.express-static"],
+  "skillsUsed": ["node.http-createserver", "js.async-await", "js.destructuring"],
+  "relatedConcepts": ["node.rest-api", "node.error-handling"],
+  "whyItExists": {
+    "problem": "The raw http module requires manual routing, body parsing, error handling, and header management for every endpoint. Building a real API this way is tedious and error-prone.",
+    "solution": "Express is a minimal web framework that adds: declarative routing (app.get/post/put/delete), middleware (app.use), body parsing (express.json()), and error handling with a consistent interface. It's the most popular Node.js framework.",
+    "whenToUse": "REST APIs, web apps, backend services. Express is the industry standard for Node.js HTTP servers — huge ecosystem of compatible middleware.",
+    "whenNotToUse": "For extremely high throughput (Fastify is faster). For TypeScript-first codebases (NestJS provides better types). For serverless (use the native handler shape — though express works with serverless-http)."
+  },
+  "explainModes": {
+    "beginner": "Express makes building web servers much easier. Instead of manually checking req.url and req.method, you write app.get('/users', handler) and Express calls your handler when a GET request comes to /users. Middleware functions (app.use()) run before your handlers and can add features like JSON body parsing.",
+    "simple": "const app = express(); app.use(express.json()). Routes: app.get(path, handler), app.post(path, handler), app.put(path, handler), app.delete(path, handler). Route params: app.get('/users/:id', (req,res)=>{ req.params.id }). Query strings: req.query.name. Request body: req.body (after express.json()). Send JSON: res.json(obj). Status: res.status(404).json({error:'Not found'}). Listen: app.listen(3000, callback).",
+    "standard": "Middleware chain: app.use(fn) registers middleware that runs for every request. Middleware signature: (req, res, next) — call next() to pass to the next middleware. Order matters: middleware runs in registration order. Router: express.Router() groups routes — useful for /api/users routes in a separate file. Error middleware: 4-argument function (err, req, res, next) — catches errors thrown in route handlers. express.static('public') serves files. app.locals for app-wide variables.",
+    "technical": "req.params vs req.query vs req.body: params are in the URL path (/users/:id → req.params.id), query strings are after ? (/users?role=admin → req.query.role), body is the request payload (req.body after express.json()). Async route handlers: Express 4 doesn't auto-catch Promise rejections — wrap in try/catch or use express-async-errors. Express 5 (RC) adds async error propagation. Route chaining: app.route('/users').get(handler).post(handler). app.param() for param preprocessing.",
+    "deepDive": "Express middleware is just a function — it can read/modify req and res, end the request, or call next(). next(error) jumps to error-handling middleware. Layer: Express stores routes and middleware as an array of Layer objects. When a request comes in, Express walks the array and calls each matching layer. Route matching: Express uses the path-to-regexp library to convert route patterns ('/users/:id') to RegExps. Performance: Express adds ~1ms overhead per request (middleware traversal) compared to raw http. Fastify uses a Radix trie for route matching — O(log n) vs O(n) — much faster for many routes."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Setting up Express routes and middleware"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "app.js",
+      "code": "const express = require('express');\nconst app = express();\n\n// Middleware — runs for every request\napp.use(express.json());               // parse JSON request bodies\napp.use(express.static('public'));     // serve files from /public\napp.use((req, res, next) => {         // custom logger\n    console.log(`${req.method} ${req.url}`);\n    next();  // MUST call next() or the request hangs\n});\n\n// Routes\napp.get('/', (req, res) => {\n    res.send('<h1>Welcome to my API</h1>');\n});\n\napp.get('/api/users', (req, res) => {\n    const { role } = req.query;        // /api/users?role=admin\n    const users = [\n        { id: 1, name: 'Alice', role: 'admin' },\n        { id: 2, name: 'Bob',   role: 'user'  },\n    ];\n    const filtered = role ? users.filter(u => u.role === role) : users;\n    res.json(filtered);\n});\n\napp.get('/api/users/:id', (req, res) => {\n    const id = parseInt(req.params.id);\n    const user = [{ id:1, name:'Alice' }, { id:2, name:'Bob' }].find(u => u.id === id);\n    if (!user) return res.status(404).json({ error: 'User not found' });\n    res.json(user);\n});\n\napp.post('/api/users', (req, res) => {\n    const { name, role } = req.body;   // parsed by express.json()\n    if (!name) return res.status(400).json({ error: 'name is required' });\n    const newUser = { id: Date.now(), name, role: role || 'user' };\n    res.status(201).json(newUser);\n});\n\n// Error handling middleware (4 params)\napp.use((err, req, res, next) => {\n    console.error(err.stack);\n    res.status(500).json({ error: 'Internal server error' });\n});\n\napp.listen(3000, () => console.log('Listening on http://localhost:3000'));"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: Express in the sandbox",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0}\n    .layout{display:flex;flex-direction:column;gap:10px;height:calc(100vh - 32px)}\n    textarea{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;padding:10px;font-family:monospace;font-size:0.82rem;resize:vertical;min-height:180px}\n    button{padding:8px 14px;border:none;border-radius:5px;font-weight:700;cursor:pointer;font-size:0.8rem}\n    .chips{display:flex;flex-wrap:wrap;gap:6px}\n    .chip{background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:3px 10px;font-family:monospace;font-size:0.72rem;cursor:pointer;color:#94a3b8}\n    .chip:hover{border-color:#4fd1c5;color:#4fd1c5}\n    .output{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:12px;font-family:monospace;font-size:0.8rem;overflow:auto;flex:1}\n    .panel-label{font-size:0.7rem;color:#4fd1c5;margin-bottom:6px}\n    .log{color:#e2e8f0;margin:1px 0}.err{color:#ef4444;margin:1px 0}.info{color:#94a3b8;font-style:italic}\n    .req-row{display:flex;gap:6px;margin-bottom:6px;align-items:center}\n    select,input{background:#0b0e14;color:#e2e8f0;border:1px solid #2d3748;border-radius:4px;padding:4px 8px;font-family:monospace;font-size:0.78rem}\n    input{flex:1}\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <textarea id=\"code\" spellcheck=\"false\">// Express-style app in the sandbox\n// The sandbox simulates Express routing and middleware\n\nconst express = require('express');\nconst app = express();\napp.use(express.json());\n\n// In-memory database\nconst users = [\n  { id: 1, name: 'Alice', role: 'admin' },\n  { id: 2, name: 'Bob',   role: 'user'  },\n];\n\n// GET all users (with optional ?role= filter)\napp.get('/users', (req, res) => {\n  const { role } = req.query;\n  const result = role ? users.filter(u => u.role === role) : users;\n  res.json(result);\n});\n\n// GET user by ID\napp.get('/users/:id', (req, res) => {\n  const user = users.find(u => u.id === parseInt(req.params.id));\n  if (!user) return res.status(404).json({ error: 'Not found' });\n  res.json(user);\n});\n\n// POST create user\napp.post('/users', (req, res) => {\n  const { name, role } = req.body;\n  if (!name) return res.status(400).json({ error: 'name required' });\n  const user = { id: users.length + 1, name, role: role || 'user' };\n  users.push(user);\n  res.status(201).json(user);\n});\n\napp.listen(3000, () => console.log('Listening on :3000'));</textarea>\n    <div class=\"chips\">\n      <span class=\"chip\" onclick=\"setCode('const express = require(\\'express\\');\\nconst app = express();\\napp.use(express.json());\\n\\n// Middleware example\\napp.use((req, res, next) => {\\n  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);\\n  next();\\n});\\n\\napp.get(\\'/ \\'.trim(), (req, res) => {\\n  res.json({ message: \\'Hello World!\\', timestamp: new Date().toISOString() });\\n});\\n\\napp.get(\\'/greet/:name\\', (req, res) => {\\n  const { name } = req.params;\\n  const { greeting = \\'Hello\\' } = req.query;\\n  res.json({ message: `${greeting}, ${name}!` });\\n});\\n\\napp.listen(3000);')\">middleware</span>\n      <span class=\"chip\" onclick=\"setCode('const express = require(\\'express\\');\\nconst app = express();\\napp.use(express.json());\\n\\n// Simulate a product catalog\\nconst products = [\\n  { id: 1, name: \\'Laptop\\',  price: 999,  category: \\'tech\\' },\\n  { id: 2, name: \\'Book\\',    price: 29,   category: \\'edu\\' },\\n  { id: 3, name: \\'Headset\\', price: 149,  category: \\'tech\\' },\\n];\\n\\napp.get(\\'/products\\', (req, res) => {\\n  const { category, maxPrice } = req.query;\\n  let result = [...products];\\n  if (category) result = result.filter(p => p.category === category);\\n  if (maxPrice) result = result.filter(p => p.price <= +maxPrice);\\n  res.json(result);\\n});\\n\\napp.get(\\'/products/:id\\', (req, res) => {\\n  const p = products.find(p => p.id === +req.params.id);\\n  if (!p) return res.status(404).json({ error: \\'Not found\\' });\\n  res.json(p);\\n});\\n\\napp.listen(3000);')\">products API</span>\n    </div>\n    <div style=\"background:#1a1f2b;border:1px solid #2d3748;border-radius:6px;padding:10px\">\n      <div style=\"font-size:0.7rem;color:#4fd1c5;margin-bottom:6px\">SIMULATE REQUEST</div>\n      <div class=\"req-row\">\n        <select id=\"req-method\"><option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option></select>\n        <input id=\"req-url\" value=\"/users\" />\n        <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"sendReq()\">&#9654; Send</button>\n      </div>\n      <div class=\"req-row\">\n        <span style=\"font-size:0.75rem;color:#94a3b8;white-space:nowrap\">Body (JSON):</span>\n        <input id=\"req-body\" placeholder='{\"name\":\"Carol\",\"role\":\"user\"}' />\n      </div>\n    </div>\n    <div class=\"output\" id=\"output\"><div class=\"panel-label\">OUTPUT</div><div class=\"info\">Send a request above</div></div>\n  </div>\n  <script>\n    let _app = null;\n    const _routes = [];\n    const _mw = [];\n    function makeExpress() {\n      const routes = [], mw = [];\n      function app(req, res) {\n        const chain = [...mw, ...routes.filter(r => r.method === req.method && matchPath(r.path, req.url, req)).map(r => r.fn), (req, res) => res.status(404).json({ error: 'Not found' })];\n        let i = 0;\n        function next(err) { if (err) return handleErr(err, req, res); if (i < chain.length) chain[i++](req, res, next); }\n        function handleErr(err, req, res) { const em = mw.find(m => m.length === 4); if (em) em(err, req, res, () => {}); else res.status(500).json({ error: err.message }); }\n        i = 0; chain[i++](req, res, next);\n      }\n      function matchPath(pattern, url, req) {\n        const pu = url.split('?')[0];\n        const pp = pattern.split('/'), up = pu.split('/');\n        if (pp.length !== up.length) return false;\n        const params = {};\n        for (let i = 0; i < pp.length; i++) { if (pp[i].startsWith(':')) params[pp[i].slice(1)] = up[i]; else if (pp[i] !== up[i]) return false; }\n        req.params = params;\n        const qs = url.includes('?') ? url.split('?')[1] : '';\n        req.query = Object.fromEntries(new URLSearchParams(qs));\n        return true;\n      }\n      app.use = (fn) => mw.push(fn);\n      ['get','post','put','delete','patch'].forEach(m => { app[m] = (p, fn) => routes.push({ method: m.toUpperCase(), path: p.trim(), fn }); });\n      app.json = () => (req, res, next) => next();\n      app.static = () => (req, res, next) => next();\n      app.listen = (port, cb) => { console.log('Express listening on port ' + port); if (cb) cb(); return { close: () => {} }; };\n      return app;\n    }\n    const _process = { argv:['node','index.js'], env:{NODE_ENV:'development'}, version:'v20.11.0', platform:'linux', pid:1234 };\n    function _require(m) {\n      if (m === 'express') { const e = makeExpress; e.json = () => (r,s,n)=>n(); e.static = () => (r,s,n)=>n(); return () => makeExpress(); }\n      throw new Error('Cannot find module \\'' + m + '\\'');\n    }\n    function setCode(c){document.getElementById('code').value=c;}\n    function sendReq() {\n      const src = document.getElementById('code').value;\n      const logs = [];\n      const oL=console.log,oE=console.error;\n      console.log=(...a)=>logs.push({t:'log',m:a.map(x=>typeof x==='object'?JSON.stringify(x,null,2):String(x)).join(' ')});\n      console.error=(...a)=>logs.push({t:'err',m:a.map(String).join(' ')});\n      let app;\n      try {\n        const expMod = () => makeExpress();\n        expMod.json = () => (r,s,n) => { try { r.body = JSON.parse(r._bodyStr||'{}'); } catch(e){r.body={};} n(); };\n        expMod.static = () => (r,s,n) => n();\n        const fn = new Function('require','process',src + '\\nreturn app;');\n        function mkReq(m){\n          const e2 = makeExpress();\n          e2._capturedApp = null;\n          return e2;\n        }\n        let capturedApp;\n        const fakeReq = (m) => { const a = makeExpress(); capturedApp = a; a.listen = (p,cb)=>{ console.log('Listening on port '+p); if(cb)cb(); }; return a; };\n        fakeReq.json = () => (r,s,n) => { try{r.body=JSON.parse(r._bodyStr||'{}')}catch(e){r.body={}} n(); };\n        fakeReq.static = () => (r,s,n) => n();\n        app = fn(()=>fakeReq(), _process);\n        if (!app || typeof app.get !== 'function') app = capturedApp;\n      } catch(e) { logs.push({t:'err',m:e.message}); }\n      const method = document.getElementById('req-method').value;\n      const rawUrl = document.getElementById('req-url').value || '/';\n      const bodyStr = document.getElementById('req-body').value;\n      const resData = { status: 200, headers: {}, body: '' };\n      const req = { method, url: rawUrl, _bodyStr: bodyStr, params: {}, query: {}, headers: { 'content-type': 'application/json' }, body: {} };\n      try { req.body = JSON.parse(bodyStr || '{}'); } catch(e) { req.body = {}; }\n      const qs = rawUrl.includes('?') ? rawUrl.split('?')[1] : '';\n      req.query = Object.fromEntries(new URLSearchParams(qs));\n      const res = {\n        writeHead: (c,h) => { resData.status=c; Object.assign(resData.headers,h||{}); },\n        status: function(c) { resData.status=c; return this; },\n        json: function(d) { resData.headers['Content-Type']='application/json'; resData.body=JSON.stringify(d,null,2); return this; },\n        send: function(d) { resData.body=String(d); return this; },\n        end: function(d) { if(d) resData.body+=String(d); },\n        setHeader: (k,v) => { resData.headers[k]=v; }\n      };\n      try { if(app) app(req, res); } catch(e) { logs.push({t:'err',m:e.message}); }\n      finally { console.log=oL; console.error=oE; }\n      const sc = resData.status;\n      const color = sc < 300 ? '#4fd1c5' : sc < 400 ? '#fbbf24' : '#f44747';\n      const od = document.getElementById('output');\n      od.innerHTML = '<div class=\"panel-label\">RESPONSE</div>'\n        + '<div style=\"color:'+color+';margin-bottom:6px;font-weight:bold\">HTTP '+sc+'</div>'\n        + '<pre style=\"color:#e2e8f0;margin:0;white-space:pre-wrap\">'+resData.body.replace(/</g,'&lt;')+'</pre>'\n        + (logs.length ? '<div style=\"border-top:1px solid #2d3748;margin-top:8px;padding-top:8px\"><div class=\"panel-label\">SERVER LOG</div>'\n          + logs.map(l=>'<div class=\"'+(l.t==='err'?'err':'log')+'\">'+l.m.replace(/</g,'&lt;')+'</div>').join('') + '</div>' : '');\n    }\n    document.getElementById('code').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();sendReq();}});\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "tip",
+      "text": "Call next() in every middleware that isn't an endpoint. If you forget, the request hangs — no response is ever sent. This is the most common Express beginner mistake."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "node-express-q1",
+          "question": "What does `app.use(express.json())` do?",
+          "type": "multiple-choice",
+          "options": [
+            "It makes Express return JSON responses by default",
+            "It registers middleware that parses incoming request bodies with Content-Type: application/json and sets req.body to the parsed object",
+            "It enables JSON logging for all requests",
+            "It converts all route handler return values to JSON automatically"
+          ],
+          "correctAnswer": 1,
+          "explanation": "express.json() is a middleware function. When a request comes in with Content-Type: application/json, it reads the body stream, parses the JSON, and sets req.body to the resulting JavaScript object. Without it, req.body would be undefined. It's typically registered with app.use() near the top so it runs before any route handlers."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between app.use() and app.get()?",
+      "a": "app.use(path, fn) registers middleware that matches any HTTP method on any path (or the given prefix). app.get(path, fn) only matches GET requests to that exact path. app.use() is for cross-cutting concerns (logging, auth, body parsing); app.get/post/put/delete are for specific endpoints. Note: app.use('/api', router) mounts a router at a prefix — it matches any method and any sub-path."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Express.js Docs",
+      "url": "https://expressjs.com/en/4x/api.html",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["REST APIs", "BFF layers", "microservices", "serverless functions"],
+    "examples": [
+      "Shopify's API platform uses Express for internal services",
+      "app.use(helmet()) — security headers middleware",
+      "app.use('/api', authMiddleware, apiRouter) — mount a protected router"
+    ]
+  }
+}

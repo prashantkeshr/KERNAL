@@ -1,0 +1,99 @@
+{
+  "id": "04-file-system",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "nodejs",
+  "technologyVersion": "Node.js 20 LTS",
+  "module": "node-core",
+  "title": "File System (fs)",
+  "subtitle": "Reading, writing, and managing files with Node's fs module",
+  "difficulty": "beginner",
+  "estimatedMinutes": 20,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["nodejs/03-npm"],
+  "skillsTaught": ["node.fs-module", "node.read-write-files", "node.fs-promises", "node.file-operations"],
+  "skillsUsed": ["js.promises", "js.async-await", "node.path-module"],
+  "relatedConcepts": ["node.streams", "node.path-os"],
+  "whyItExists": {
+    "problem": "Real applications need to read configuration files, write logs, process data files, and manage uploads — file system access is fundamental to backend development.",
+    "solution": "Node's built-in `fs` module provides synchronous and asynchronous APIs for all file system operations. The modern `fs/promises` (or `fs.promises`) API uses Promises/async-await for clean async code.",
+    "whenToUse": "Reading config files, writing logs, serving static files, processing uploads, generating reports, data pipelines, scripts.",
+    "whenNotToUse": "For web servers, let Express serve static files (it handles caching, ranges, MIME types). For large files, use streams instead of readFileSync (to avoid loading the whole file into memory)."
+  },
+  "explainModes": {
+    "beginner": "The fs module lets Node.js read and write files on the computer. `fs.readFileSync('file.txt', 'utf8')` reads a file and returns its content as a string. `fs.writeFileSync('output.txt', 'Hello')` creates or overwrites a file. For large files or many files at once, use the async version so your program doesn't freeze.",
+    "simple": "Three styles: Sync (readFileSync) — simple, blocks execution, fine for startup. Callback (readFile(path, cb)) — old-style async, error first: readFile(path, (err, data) => {}). Promise (fs.promises or import from 'fs/promises') — modern async. Use path.join() to build paths — never string concatenate paths. Always use 'utf8' encoding to get a string (default is Buffer). Check existence: fs.existsSync(path).",
+    "standard": "Common operations: readFileSync/readFile, writeFileSync/writeFile, appendFileSync/appendFile, mkdirSync/mkdir ({recursive: true}), readdirSync/readdir, statSync/stat, unlinkSync/unlink (delete), renameSync/rename (move). JSON pattern: JSON.parse(fs.readFileSync('data.json', 'utf8')). Error handling: ENOENT (file not found), EACCES (permission denied), EEXIST (directory already exists). Streams: for files > few MB, use createReadStream/createWriteStream to process in chunks.",
+    "technical": "fs.stat vs fs.exists: stat gives you metadata (size, mtime, isFile, isDirectory); it throws ENOENT if not found. existsSync just returns boolean. The stat/existsSync race condition: between checking and using, the file can disappear. Handle errors from the read/write operations directly instead. File descriptors: openSync/open gives you an fd (integer) for lower-level read/write operations. Useful for random access (seeking) or writing large files. Watching files: fs.watch(path, callback) — notifies on changes. Used by Node --watch, chokidar, and build tools.",
+    "deepDive": "The thread pool: fs operations (except statSync, existsSync, readdirSync, fstatSync) run in libuv's thread pool. The pool has 4 threads by default (UV_THREADPOOL_SIZE=4). If your app does many concurrent fs.readFile calls, they queue behind pool threads. For heavy parallel file I/O, increase UV_THREADPOOL_SIZE. Streams: createReadStream returns a Readable stream. Pipe to a Writable: readStream.pipe(writeStream). In Node 18+, use stream/promises and pipeline for async/await friendly streaming. OPFS (Origin-Private File System): in the browser, you can't use Node fs — OPFS is the modern browser equivalent for persistent file storage."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Reading and writing files"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "fs_basics.js",
+      "code": "const fs   = require('fs');\nconst path = require('path');\n\n// ── Synchronous (simple, blocking) ──\ntry {\n    const content = fs.readFileSync(path.join(__dirname, 'notes.txt'), 'utf8');\n    console.log('File contents:\\n', content);\n} catch (err) {\n    if (err.code === 'ENOENT') console.error('File not found:', err.path);\n    else throw err;\n}\n\n// Write / overwrite a file\nfs.writeFileSync(path.join(__dirname, 'output.txt'), 'Hello, Node.js!\\nLine 2');\nconsole.log('Written: output.txt');\n\n// Append to a file\nfs.appendFileSync(path.join(__dirname, 'output.txt'), '\\nLine 3 (appended)');\n\n// Check if a file exists\nconst exists = fs.existsSync(path.join(__dirname, 'output.txt'));\nconsole.log('output.txt exists:', exists);\n\n// Read back what we wrote\nconst result = fs.readFileSync(path.join(__dirname, 'output.txt'), 'utf8');\nconsole.log('Read back:', result);"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "fs_async.js",
+      "code": "// ── Modern async/await with fs.promises ──\nconst { readFile, writeFile, readdir, stat } = require('fs').promises;\nconst path = require('path');\n\nasync function processFiles() {\n    const dir = __dirname;\n\n    // List directory contents\n    const files = await readdir(dir);\n    console.log('Files in', dir + ':', files);\n\n    // Read a JSON file\n    try {\n        const raw = await readFile(path.join(dir, 'data.json'), 'utf8');\n        const data = JSON.parse(raw);\n        console.log('Loaded', data.length, 'records');\n        data.forEach(user => console.log(' -', user.name));\n    } catch (err) {\n        console.error('Read failed:', err.message);\n    }\n\n    // Write a new file\n    const report = JSON.stringify({ generatedAt: new Date().toISOString(), count: 42 }, null, 2);\n    await writeFile(path.join(dir, 'report.json'), report);\n    console.log('Report saved.');\n\n    // Get file stats\n    const info = await stat(path.join(dir, 'package.json'));\n    console.log('package.json size:', info.size, 'bytes, modified:', info.mtime.toISOString());\n}\n\nprocessFiles().catch(console.error);"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: fs module sandbox",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0}\n    .layout{display:grid;grid-template-rows:auto 1fr;gap:10px;height:calc(100vh - 32px)}\n    .top{display:flex;flex-direction:column;gap:8px}\n    .editor-row{display:flex;gap:8px;align-items:flex-start}\n    textarea{flex:1;background:#0b0e14;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;padding:10px;font-family:monospace;font-size:0.82rem;resize:vertical;min-height:200px}\n    .btns{display:flex;flex-direction:column;gap:6px}\n    button{padding:8px 14px;border:none;border-radius:5px;font-weight:700;cursor:pointer;font-size:0.8rem;white-space:nowrap}\n    .chips{display:flex;flex-wrap:wrap;gap:6px}\n    .chip{background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:3px 10px;font-family:monospace;font-size:0.72rem;cursor:pointer;color:#94a3b8}\n    .chip:hover{border-color:#4fd1c5;color:#4fd1c5}\n    .output{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:12px;font-family:monospace;font-size:0.8rem;overflow:auto;flex:1}\n    .panel-label{font-size:0.7rem;color:#4fd1c5;margin-bottom:6px}\n    .log{color:#e2e8f0;margin:1px 0}.err{color:#ef4444;margin:1px 0}.warn{color:#fbbf24;margin:1px 0}.info{color:#94a3b8;font-style:italic}\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"code\" spellcheck=\"false\">const fs   = require('fs');\nconst path = require('path');\n\n// Sandbox file system — files available:\n// /home/user/project/package.json\n// /home/user/project/data.json\n// /home/user/project/notes.txt\n// /home/user/project/src/index.js\n\n// List project files\nconst files = fs.readdirSync(__dirname);\nconsole.log('Project files:', files);\n\n// Read package.json\nconst pkgRaw = fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8');\nconst pkg = JSON.parse(pkgRaw);\nconsole.log('\\nProject:', pkg.name, 'v' + pkg.version);\n\n// Read data.json\nconst dataRaw = fs.readFileSync(path.join(__dirname, 'data.json'), 'utf8');\nconst users = JSON.parse(dataRaw);\nconsole.log('\\nUsers:');\nusers.forEach(u => console.log(' -', u.id + ':', u.name));\n\n// Write a new file\nconst log = `Run at ${new Date().toISOString()}\\nUsers: ${users.length}`;\nfs.writeFileSync(path.join(__dirname, 'run.log'), log);\nconsole.log('\\nWrote run.log');\n\n// Read it back\nconst logContent = fs.readFileSync(path.join(__dirname, 'run.log'), 'utf8');\nconsole.log('run.log:', logContent);</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runNode()\">▶ Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setCode('// Async version with fs.promises\\nasync function run() {\\n  const { readFile, writeFile, readdir } = require(\\'fs\\').promises;\\n  const path = require(\\'path\\');\\n\\n  const files = await readdir(__dirname);\\n  console.log(\\'Files:\\', files);\\n\\n  const raw = await readFile(path.join(__dirname, \\'data.json\\'), \\'utf8\\');\\n  const data = JSON.parse(raw);\\n  console.log(\\'Users:\\', data.map(u => u.name).join(\\', \\'));\\n\\n  // Transform and save\\n  const report = { count: data.length, names: data.map(u => u.name), ts: new Date().toISOString() };\\n  await writeFile(path.join(__dirname, \\'report.json\\'), JSON.stringify(report, null, 2));\\n  console.log(\\'Report saved!\\');\\n\\n  const saved = await readFile(path.join(__dirname, \\'report.json\\'), \\'utf8\\');\\n  console.log(\\'Saved:\\', saved);\\n}\\nrun().catch(console.error);')\">async/await</span>\n        <span class=\"chip\" onclick=\"setCode('// ENOENT error handling\\nconst fs   = require(\\'fs\\');\\nconst path = require(\\'path\\');\\n\\nfunction safeRead(filePath) {\\n  try {\\n    return { ok: true, data: fs.readFileSync(filePath, \\'utf8\\') };\\n  } catch (err) {\\n    return { ok: false, error: err.code, message: err.message };\\n  }\\n}\\n\\nconsole.log(safeRead(path.join(__dirname, \\'notes.txt\\')));     // exists\\nconsole.log(safeRead(path.join(__dirname, \\'missing.txt\\')));   // ENOENT\\n\\n// existsSync check\\nconst exists = fs.existsSync(path.join(__dirname, \\'package.json\\'));\\nconsole.log(\\'package.json exists:\\', exists);')\">error handling</span>\n      </div>\n    </div>\n    <div class=\"output\" id=\"output\"><div class=\"panel-label\">OUTPUT</div><div class=\"info\">Click ▶ Run</div></div>\n  </div>\n  <script>\n    class EventEmitter{constructor(){this._e={}}on(ev,fn){(this._e[ev]=this._e[ev]||[]).push(fn);return this}once(ev,fn){const w=(...a)=>{fn(...a);this.off(ev,w)};return this.on(ev,w)}emit(ev,...a){(this._e[ev]||[]).slice().forEach(f=>f(...a));return!!(this._e[ev]||[]).length}off(ev,fn){if(this._e[ev])this._e[ev]=this._e[ev].filter(f=>f!==fn);return this}listenerCount(ev){return(this._e[ev]||[]).length}}\n    const _memFS={'/home/user/project/package.json':JSON.stringify({name:'my-api',version:'1.0.0',dependencies:{express:'^4.18.2'}},null,2),'/home/user/project/data.json':JSON.stringify([{id:1,name:'Alice',role:'admin'},{id:2,name:'Bob',role:'user'},{id:3,name:'Carol',role:'user'}],null,2),'/home/user/project/notes.txt':'Hello from Node.js!\\nThis is a sandbox file.\\nYou can read and write files here.','/home/user/project/src/index.js':'// entry point\\nconst app = require(\\'express\\')();\\napp.listen(3000);'};\n    const _path={join:(...a)=>a.filter(Boolean).join('/').replace(/\\/+/g,'/').replace(/\\/$/,'')||'.',resolve:(...a)=>{let r='/home/user/project';for(const p of a)r=p.startsWith('/')?p:r+'/'+p;return r.replace(/\\/+/g,'/')},dirname:p=>p.replace(/\\/[^\\/]+$/,'')||'.',basename:(p,ext)=>{const b=p.split('/').pop()||'';return ext&&b.endsWith(ext)?b.slice(0,-ext.length):b},extname:p=>{const m=p.match(/(\\.[^.]+)$/);return m?m[1]:''},sep:'/',delimiter:':'};\n    const _os={platform:()=>'linux',arch:()=>'x64',hostname:()=>'kernal-sandbox',homedir:()=>'/home/user',tmpdir:()=>'/tmp',EOL:'\\n'};\n    const _fs={readFileSync:(p,enc)=>{const c=_memFS[p];if(!c)throw Object.assign(new Error(`ENOENT: no such file or directory, open '${p}'`),{code:'ENOENT',path:p});return c},writeFileSync:(p,d)=>{_memFS[p]=String(d)},appendFileSync:(p,d)=>{_memFS[p]=(_memFS[p]||'')+String(d)},existsSync:p=>p in _memFS,mkdirSync:(p,o)=>{},readdirSync:p=>{const pn=p.endsWith('/')?p:p+'/';return[...new Set(Object.keys(_memFS).filter(k=>k.startsWith(pn)).map(k=>k.slice(pn.length).split('/')[0]).filter(Boolean))]},statSync:p=>{if(!(p in _memFS))throw Object.assign(new Error(`ENOENT: stat '${p}'`),{code:'ENOENT'});return{size:_memFS[p].length,isFile:()=>true,isDirectory:()=>false,mtime:new Date('2026-09-23')}},unlinkSync:p=>{delete _memFS[p]},promises:{readFile:async(p,enc)=>_fs.readFileSync(p,enc),writeFile:async(p,d)=>_fs.writeFileSync(p,d),appendFile:async(p,d)=>_fs.appendFileSync(p,d),readdir:async p=>_fs.readdirSync(p),stat:async p=>_fs.statSync(p),unlink:async p=>_fs.unlinkSync(p)}};\n    const __dirname='/home/user/project',__filename='/home/user/project/index.js';\n    const _process={argv:['node','index.js'],env:{NODE_ENV:'development',PORT:'3000'},cwd:()=>__dirname,exit:code=>{throw new Error(`process.exit(${code??0})`)},version:'v20.11.0',platform:'linux',pid:1234,nextTick:fn=>Promise.resolve().then(fn)};\n    function _require(mod){const map={path:_path,fs:_fs,os:_os,events:{EventEmitter},'node:path':_path,'node:fs':_fs,'node:os':_os,'node:events':{EventEmitter},'node:fs/promises':_fs.promises,'fs/promises':_fs.promises};if(mod in map)return map[mod];throw new Error(`Cannot find module '${mod}'\\nAvailable: path, fs, fs/promises, os, events`);}\n    function setCode(c){document.getElementById('code').value=c;runNode();}\n    async function runNode(){const src=document.getElementById('code').value;const logs=[];const oL=console.log,oE=console.error,oW=console.warn;console.log=(...a)=>logs.push({t:'log',m:a.map(x=>typeof x==='object'?JSON.stringify(x,null,2):String(x)).join(' ')});console.error=(...a)=>logs.push({t:'err',m:a.map(String).join(' ')});console.warn=(...a)=>logs.push({t:'warn',m:a.map(String).join(' ')});try{const fn=new Function('require','process','__dirname','__filename','EventEmitter',src);const result=fn(_require,_process,__dirname,__filename,EventEmitter);if(result&&typeof result.then==='function')await result;}catch(e){logs.push(e.message.startsWith('process.exit')?{t:'warn',m:e.message}:{t:'err',m:e.message});}finally{console.log=oL;console.error=oE;console.warn=oW;}await new Promise(r=>setTimeout(r,100));const od=document.getElementById('output');od.innerHTML='<div class=\"panel-label\">OUTPUT</div>'+(logs.length?logs.map(l=>`<div class=\"${l.t==='err'?'err':l.t==='warn'?'warn':'log'}\">${l.m.replace(/</g,'&lt;').replace(/\\n/g,'<br>')}</div>`).join(''):'<div class=\"info\">No output</div>');}\n    document.getElementById('code').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runNode();}});\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "node-fs-q1",
+          "question": "Why should you use `fs.readFile` (async) instead of `fs.readFileSync` in a web server?",
+          "type": "multiple-choice",
+          "options": [
+            "readFileSync is deprecated — you must use readFile",
+            "readFileSync blocks the event loop while the file reads; in a server, this blocks ALL other requests from being handled during that time",
+            "readFile is always faster than readFileSync",
+            "readFileSync only works for small files"
+          ],
+          "correctAnswer": 1,
+          "explanation": "readFileSync blocks the entire Node.js event loop — while it's reading the file, no other code can run. In a web server, this means no other requests are handled during that disk I/O. readFile (async) offloads the I/O to libuv's thread pool and returns immediately — the event loop can handle other requests while the file is being read, then calls back when done. readFileSync is fine for startup code (config loading) but dangerous in request handlers."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do I read a JSON file in Node.js?",
+      "a": "Two ways: (1) fs: `const data = JSON.parse(fs.readFileSync('data.json', 'utf8'))` — always specify 'utf8' encoding. (2) In Node 20+ with `\"type\": \"module\"`, you can use `import data from './data.json' assert { type: 'json' }`. The fs approach works in both CJS and ESM and is more explicit."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Node.js Docs — File System",
+      "url": "https://nodejs.org/api/fs.html",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["config loading", "log writing", "file upload processing", "report generation"],
+    "examples": [
+      "const config = JSON.parse(fs.readFileSync('config.json', 'utf8')) — load app config",
+      "await fs.promises.writeFile('output.csv', csvData) — save processed data",
+      "fs.createReadStream('large.csv').pipe(csvParser()) — stream large files"
+    ]
+  }
+}

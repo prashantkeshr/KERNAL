@@ -1,0 +1,93 @@
+{
+  "id": "12-json-files",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "nodejs",
+  "technologyVersion": "Node.js 20 LTS",
+  "module": "node-async",
+  "title": "JSON File Persistence",
+  "subtitle": "Using JSON files as a simple data store — read, update, and atomic write patterns",
+  "difficulty": "beginner",
+  "estimatedMinutes": 18,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["nodejs/04-file-system"],
+  "skillsTaught": ["node.json-read-write", "node.atomic-write", "node.json-persistence", "node.data-patterns"],
+  "skillsUsed": ["node.fs-module", "js.json", "js.async-await"],
+  "relatedConcepts": ["node.file-system", "node.environment"],
+  "whyItExists": {
+    "problem": "Small tools, prototypes, and scripts need a simple way to persist data without setting up a database. JSON files provide human-readable, structured persistence with no dependencies.",
+    "solution": "Read with fs.readFile + JSON.parse, modify in memory, write back with fs.writeFile + JSON.stringify. For safety, write to a temp file first, then rename (atomic swap) so a crash never corrupts the original.",
+    "whenToUse": "Config files, small data stores (< a few thousand records), CLI tool state, test fixtures, prototypes. When you outgrow JSON files, migrate to SQLite (better-sqlite3) or a proper database.",
+    "whenNotToUse": "Don't use JSON files for concurrent writes from multiple processes (race condition — last writer wins). Don't use them for large datasets or queries that need indexing — use SQLite or a database."
+  },
+  "explainModes": {
+    "beginner": "Reading a JSON file: read the file as a string, then JSON.parse() it to get a JavaScript object. Writing: JSON.stringify() converts your object to a string, then write it to the file. This is how config files, package.json, and simple data files work in Node.js.",
+    "simple": "Read: const data = JSON.parse(await fs.readFile('data.json', 'utf8')). Write: await fs.writeFile('data.json', JSON.stringify(data, null, 2)). Atomic write: write to temp → fs.rename to final path (rename is atomic on most OSes). Create-if-missing: try { read } catch { return default }. Update record: read → modify array → write back. Always stringify with null, 2 for readable formatting.",
+    "standard": "JSON.stringify(data, null, 2): the 2-space indent makes files readable and produces clean diffs. JSON.parse reviver: second argument to parse — transform values during parsing (e.g., date strings to Date objects). JSON.stringify replacer: second argument to stringify — exclude fields or transform them. Concurrent write problem: if two requests write simultaneously, one may overwrite the other. Solutions: an in-memory store with periodic flush, or a proper database. For local tools, accept the limitation.",
+    "technical": "Atomic write (POSIX): write to a temp file in the same directory, then fs.rename(tempPath, finalPath). POSIX rename is atomic within the same filesystem — the final path either has the old content or the new content, never a partial write. On Windows, rename is not guaranteed atomic. node-atomically package handles cross-platform atomicity. BSON (MongoDB's binary JSON): faster parse/stringify, supports more types (Buffer, Date, ObjectId). Used internally by MongoDB drivers. JSON5 / TOML: superset formats with comments, trailing commas — use for config files where developer-friendliness matters.",
+    "deepDive": "Large JSON files: reading with readFileSync loads the whole file into memory. For files > 100MB, use streaming JSON parsers (JSONStream, stream-json) that emit objects as they're parsed. JSON5/JSONC: the json5 package parses JSON with comments and trailing commas. tsconfig.json uses JSONC. Zod for config validation: z.object({}) validates the parsed JSON against a schema at load time — fail early with a clear error if the file has wrong structure. Lock files (lockfile-js, proper-lockfile): prevent concurrent writes by requiring a lock before reading/writing."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Reading and writing JSON data"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "json_store.js",
+      "code": "const fs   = require('fs').promises;\nconst path = require('path');\n\nconst DATA_FILE = path.join(__dirname, 'users.json');\n\n// ── Read ──\nasync function readUsers() {\n    try {\n        const raw = await fs.readFile(DATA_FILE, 'utf8');\n        return JSON.parse(raw);\n    } catch (err) {\n        if (err.code === 'ENOENT') return [];  // file doesn't exist yet\n        throw err;\n    }\n}\n\n// ── Write (atomic) ──\nasync function writeUsers(users) {\n    const json = JSON.stringify(users, null, 2);\n    const temp = DATA_FILE + '.tmp';\n    await fs.writeFile(temp, json, 'utf8');\n    await fs.rename(temp, DATA_FILE);  // atomic replace\n}\n\n// ── CRUD operations ──\nasync function addUser(user) {\n    const users = await readUsers();\n    user.id = users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1;\n    users.push(user);\n    await writeUsers(users);\n    return user;\n}\n\nasync function updateUser(id, updates) {\n    const users = await readUsers();\n    const idx = users.findIndex(u => u.id === id);\n    if (idx === -1) throw new Error(`User ${id} not found`);\n    users[idx] = { ...users[idx], ...updates };\n    await writeUsers(users);\n    return users[idx];\n}\n\nasync function deleteUser(id) {\n    const users = await readUsers();\n    const next  = users.filter(u => u.id !== id);\n    if (next.length === users.length) throw new Error(`User ${id} not found`);\n    await writeUsers(next);\n}\n\n// Usage\n(async () => {\n    const u1 = await addUser({ name: 'Alice', email: 'alice@example.com' });\n    const u2 = await addUser({ name: 'Bob',   email: 'bob@example.com' });\n    console.log('Created:', await readUsers());\n\n    await updateUser(u1.id, { email: 'alice@newdomain.com' });\n    console.log('Updated Alice:', (await readUsers()).find(u => u.id === u1.id));\n\n    await deleteUser(u2.id);\n    console.log('After delete:', await readUsers());\n})();"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: JSON file persistence sandbox",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0}\n    .layout{display:grid;grid-template-rows:auto 1fr;gap:10px;height:calc(100vh - 32px)}\n    .top{display:flex;flex-direction:column;gap:8px}\n    .editor-row{display:flex;gap:8px;align-items:flex-start}\n    textarea{flex:1;background:#0b0e14;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;padding:10px;font-family:monospace;font-size:0.82rem;resize:vertical;min-height:200px}\n    button{padding:8px 14px;border:none;border-radius:5px;font-weight:700;cursor:pointer;font-size:0.8rem}\n    .chips{display:flex;flex-wrap:wrap;gap:6px}\n    .chip{background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:3px 10px;font-family:monospace;font-size:0.72rem;cursor:pointer;color:#94a3b8}\n    .chip:hover{border-color:#4fd1c5;color:#4fd1c5}\n    .output{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:12px;font-family:monospace;font-size:0.8rem;overflow:auto;flex:1}\n    .panel-label{font-size:0.7rem;color:#4fd1c5;margin-bottom:6px}\n    .log{color:#e2e8f0;margin:1px 0}.err{color:#ef4444;margin:1px 0}.info{color:#94a3b8;font-style:italic}\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"code\" spellcheck=\"false\">// JSON file persistence in Node.js\nconst fs   = require('fs').promises;\nconst path = require('path');\n\nconst FILE = path.join(__dirname, 'todos.json');\n\nasync function readTodos() {\n  try {\n    const raw = await fs.readFile(FILE, 'utf8');\n    return JSON.parse(raw);\n  } catch (err) {\n    if (err.code === 'ENOENT') return [];\n    throw err;\n  }\n}\n\nasync function saveTodos(todos) {\n  await fs.writeFile(FILE, JSON.stringify(todos, null, 2), 'utf8');\n}\n\nasync function main() {\n  // Start fresh\n  let todos = [];\n  console.log('Initial todos:', todos);\n\n  // Add items\n  todos.push({ id: 1, text: 'Learn Node.js',  done: false });\n  todos.push({ id: 2, text: 'Build REST API', done: false });\n  todos.push({ id: 3, text: 'Read docs',      done: true  });\n  await saveTodos(todos);\n  console.log('Saved', todos.length, 'todos to', FILE);\n\n  // Read back\n  todos = await readTodos();\n  console.log('\\nRead from file:');\n  todos.forEach(t => console.log(' ', t.done ? '[x]' : '[ ]', t.text));\n\n  // Mark one done\n  todos = todos.map(t => t.id === 1 ? { ...t, done: true } : t);\n  await saveTodos(todos);\n\n  // Read again to confirm\n  todos = await readTodos();\n  console.log('\\nAfter update:');\n  todos.forEach(t => console.log(' ', t.done ? '[x]' : '[ ]', t.text));\n\n  // Show raw file\n  const raw = await fs.readFile(FILE, 'utf8');\n  console.log('\\nRaw JSON file:');\n  console.log(raw);\n}\n\nmain().catch(console.error);</textarea>\n        <div style=\"display:flex;flex-direction:column;gap:6px\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runNode()\">&#9654; Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setCode('// Config file pattern\\nconst fs   = require(\\'fs\\').promises;\\nconst path = require(\\'path\\');\\n\\nasync function loadConfig(filePath) {\\n  const raw = await fs.readFile(filePath, \\'utf8\\');\\n  const config = JSON.parse(raw);\\n  // Validate required fields\\n  const required = [\\'name\\', \\'version\\'];\\n  for (const key of required) {\\n    if (!(key in config)) throw new Error(`Config missing: ${key}`);\\n  }\\n  return config;\\n}\\n\\nasync function main() {\\n  const config = await loadConfig(path.join(__dirname, \\'package.json\\'));\\n  console.log(\\'Loaded config:\\');\\n  console.log(\\'  name:\\',    config.name);\\n  console.log(\\'  version:\\', config.version);\\n  console.log(\\'  deps:\\',    Object.keys(config.dependencies || {}).join(\\', \\'));\\n}\\n\\nmain().catch(console.error);')\">config file</span>\n        <span class=\"chip\" onclick=\"setCode('// JSON.stringify options\\nconst data = {\\n  id: 1,\\n  name: \\'Alice\\',\\n  createdAt: new Date().toISOString(),\\n  password: \\'secret-should-not-appear\\',\\n  score: 98.6\\n};\\n\\n// Replacer function: filter out sensitive fields\\nconst safe = JSON.stringify(data, (key, value) => {\\n  if (key === \\'password\\') return undefined; // omit\\n  return value;\\n}, 2);\\nconsole.log(\\'Safe JSON:\\', safe);\\n\\n// Reviver: parse dates back to Date objects\\nconst restored = JSON.parse(safe, (key, value) => {\\n  if (key === \\'createdAt\\') return new Date(value);\\n  return value;\\n});\\nconsole.log(\\'\\\\ncreatedAt type:\\', restored.createdAt instanceof Date ? \\'Date object\\' : typeof restored.createdAt);\\nconsole.log(\\'year:\\', restored.createdAt.getFullYear());')\">stringify options</span>\n      </div>\n    </div>\n    <div class=\"output\" id=\"output\"><div class=\"panel-label\">OUTPUT</div><div class=\"info\">Click &#9654; Run</div></div>\n  </div>\n  <script>\n    const _memFS={'/home/user/project/package.json':JSON.stringify({name:'my-app',version:'1.0.0',dependencies:{express:'^4.18.2'}},null,2),'/home/user/project/data.json':JSON.stringify([{id:1,name:'Alice'},{id:2,name:'Bob'}],null,2)};\n    const _path={join:(...a)=>a.filter(Boolean).join('/').replace(/\\/+/g,'/').replace(/\\/$/,'')||'.',resolve:(...a)=>{let r='/home/user/project';for(const p of a)r=p.startsWith('/')?p:r+'/'+p;return r.replace(/\\/+/g,'/')},sep:'/',delimiter':':'};\n    const _fsPromises={readFile:(p)=>_memFS[p]!=null?Promise.resolve(_memFS[p]):Promise.reject(Object.assign(new Error(`ENOENT: no such file '${p}'`),{code:'ENOENT'})),writeFile:(p,d)=>{_memFS[p]=String(d);return Promise.resolve()},appendFile:(p,d)=>{_memFS[p]=(_memFS[p]||'')+String(d);return Promise.resolve()},readdir:(p)=>{const pn=p.endsWith('/')?p:p+'/';return Promise.resolve([...new Set(Object.keys(_memFS).filter(k=>k.startsWith(pn)).map(k=>k.slice(pn.length).split('/')[0]).filter(Boolean))])},rename:(s,d)=>{_memFS[d]=_memFS[s];delete _memFS[s];return Promise.resolve()},stat:(p)=>_memFS[p]!=null?Promise.resolve({size:_memFS[p].length,isFile:()=>true,isDirectory:()=>false,mtime:new Date()}):Promise.reject(Object.assign(new Error(`ENOENT: '${p}'`),{code:'ENOENT'}))};\n    const _fs={promises:_fsPromises,readFileSync:(p)=>{if(_memFS[p]==null)throw Object.assign(new Error(`ENOENT:'${p}'`),{code:'ENOENT'});return _memFS[p]},writeFileSync:(p,d)=>{_memFS[p]=String(d)},existsSync:p=>_memFS[p]!=null};\n    const __dirname='/home/user/project',__filename='/home/user/project/index.js';\n    const _proc={argv:['node','index.js'],env:{NODE_ENV:'development'},version:'v20.11.0',platform:'linux',pid:1234,nextTick:fn=>Promise.resolve().then(fn)};\n    function _require(m){const map={path:_path,fs:_fs,'node:path':_path,'node:fs':_fs,'fs/promises':_fsPromises,'node:fs/promises':_fsPromises};if(m in map)return map[m];throw new Error('Cannot find module \\''+m+'\\''+'\\nAvailable: fs, fs/promises, path');}\n    function setCode(c){document.getElementById('code').value=c;runNode();}\n    const _out=document.getElementById('output');\n    const _oL=console.log,_oE=console.error;\n    async function runNode(){\n      const src=document.getElementById('code').value;\n      const logs=[];\n      console.log=(...a)=>logs.push({t:'log',m:a.map(x=>typeof x==='object'?JSON.stringify(x,null,2):String(x)).join(' ')});\n      console.error=(...a)=>logs.push({t:'err',m:a.map(String).join(' ')});\n      try{const fn=new Function('require','process','__dirname','__filename',src);const r=fn(_require,_proc,__dirname,__filename);if(r&&typeof r.then==='function')await r;}\n      catch(e){logs.push({t:'err',m:e.message});}finally{console.log=_oL;console.error=_oE;}\n      await new Promise(r=>setTimeout(r,100));\n      _out.innerHTML='<div class=\"panel-label\">OUTPUT</div>'+(logs.length?logs.map(l=>'<div class=\"'+(l.t==='err'?'err':'log')+'\">'+l.m.replace(/</g,'&lt;').replace(/\\n/g,'<br>')+'</div>').join(''):'<div class=\"info\">No output</div>');\n    }\n    document.getElementById('code').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runNode();}});\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "node-json-q1",
+          "question": "What is the purpose of writing to a temp file first and then using fs.rename() when saving JSON data?",
+          "type": "multiple-choice",
+          "options": [
+            "It makes the write faster by using disk cache",
+            "POSIX rename is atomic — if the process crashes during the write, the original file is untouched. Without it, a crash mid-write leaves a corrupted file.",
+            "It prevents other processes from reading the file while writing",
+            "It compresses the JSON data automatically"
+          ],
+          "correctAnswer": 1,
+          "explanation": "fs.writeFile writes directly to the target path — if the process crashes halfway through (power loss, OOM kill), the file can be left partially written and corrupt. Writing to a .tmp file first means the target always has either the old content (rename not yet called) or the new content (rename completed). POSIX rename is atomic at the filesystem level — it's a single directory entry update, not a data copy."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "When should I switch from JSON files to a real database?",
+      "a": "Switch when: (1) you have concurrent writers (multiple requests at the same time) — JSON files have race conditions. (2) Your data grows past a few thousand records — no indexing, full scan on every read. (3) You need queries, filtering, or joins. SQLite (via better-sqlite3 or Bun's built-in) is a great step up — file-based like JSON but with full SQL, transactions, and indexes. Add PostgreSQL or MySQL when you need multi-server access."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Node.js Docs — fs.rename",
+      "url": "https://nodejs.org/api/fs.html#fsrenameoldpath-newpath-callback",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["CLI tool state files", "config persistence", "test fixtures", "prototypes"],
+    "examples": [
+      "npm and pnpm store lock files (package-lock.json) using atomic writes",
+      "VS Code's settings.json — JSON config file read/written by the editor",
+      "lowdb — a tiny JSON database for Node.js using this exact pattern"
+    ]
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "id": "05-path-os",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "nodejs",
+  "technologyVersion": "Node.js 20 LTS",
+  "module": "node-core",
+  "title": "path & os Modules",
+  "subtitle": "Building portable file paths and reading system information",
+  "difficulty": "beginner",
+  "estimatedMinutes": 16,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["nodejs/04-file-system"],
+  "skillsTaught": ["node.path-module", "node.os-module", "node.portable-paths"],
+  "skillsUsed": ["node.fs-module", "js.strings"],
+  "relatedConcepts": ["node.file-system", "node.environment"],
+  "whyItExists": {
+    "problem": "File paths differ between operating systems: Windows uses backslashes (C:\\Users\\name), Unix uses forward slashes (/home/name). Hardcoded path strings break when the app runs on a different OS or in a different directory.",
+    "solution": "The `path` module builds paths portably — path.join() inserts the correct separator for the OS. The `os` module provides runtime information about the host system (platform, CPU count, free memory) without shell commands.",
+    "whenToUse": "Everywhere you construct file paths. Never concatenate paths with + or template literals — always use path.join() or path.resolve().",
+    "whenNotToUse": "N/A — path is a universal utility for any Node.js code that touches files."
+  },
+  "explainModes": {
+    "beginner": "The `path` module helps you build file paths correctly. Instead of writing '/users/name/project/file.js' yourself, you use path.join('/users/name', 'project', 'file.js') — it handles slashes for any OS. The `os` module tells you about the computer: its platform, how much memory it has, how many CPUs, and its home directory.",
+    "simple": "path.join(): combine path segments (auto correct separators). path.resolve(): make an absolute path from relative segments. path.dirname(): parent directory of a path. path.basename(): filename from a path. path.extname(): file extension. path.sep: OS separator ('/' or '\\'). os.platform(): 'linux'/'win32'/'darwin'. os.homedir(): home directory. os.cpus(): array of CPU info. os.freemem()/totalmem(): bytes.",
+    "standard": "path.resolve() vs path.join(): resolve() always returns an absolute path (starts from cwd or the last absolute segment). join() just concatenates with sep. Use resolve() when you need an absolute path from a relative one; use join() to assemble path segments. __dirname + path.join: always use path.join(__dirname, 'relative/path') to get a path relative to the current file. os.cpus().length: number of logical CPU cores — used to set worker thread pool size. process.env.HOME vs os.homedir(): homedir() is cross-platform; HOME env var doesn't exist on Windows.",
+    "technical": "path.parse() returns an object: {root, dir, base, name, ext}. path.format() is the inverse. path.relative(from, to): relative path between two absolute paths — useful for generating import paths or display strings. POSIX vs Win32: path.posix and path.win32 let you force a specific style regardless of OS — useful for normalizing paths in config files or URLs. os.networkInterfaces(): returns IP addresses of all network interfaces — useful for finding the machine's IP programmatically.",
+    "deepDive": "Path traversal attacks: never trust user input in paths. A user sending '../../../etc/passwd' can escape your intended directory. Always use path.resolve() and verify the result starts with your intended base directory. Example: const safe = path.resolve(BASE, userPath); if (!safe.startsWith(BASE)) throw new Error('Access denied'). Node 22 introduced `path.matchesGlob()` for glob pattern matching without a library. The URL module (url.fileURLToPath) converts file:// URLs (as used by import.meta.url in ESM) to POSIX paths."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Building paths with the path module"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "path_examples.js",
+      "code": "const path = require('path');\n\n// ── Assembling paths ──\nconsole.log(path.join('/home/user', 'projects', 'app', 'index.js'));\n// → /home/user/projects/app/index.js\n\nconsole.log(path.join(__dirname, '..', 'config', 'app.json'));\n// → resolves .. relative to __dirname\n\nconsole.log(path.resolve('src', 'index.js'));\n// → absolute: /cwd/src/index.js\n\n// ── Parsing paths ──\nconst filePath = '/home/user/project/src/main.ts';\nconsole.log('dirname:  ', path.dirname(filePath));   // /home/user/project/src\nconsole.log('basename: ', path.basename(filePath));   // main.ts\nconsole.log('no ext:   ', path.basename(filePath, '.ts')); // main\nconsole.log('extname:  ', path.extname(filePath));   // .ts\nconsole.log('sep:      ', JSON.stringify(path.sep)); // '/' on Unix, '\\\\' on Windows\n\n// ── Parsing to object ──\nconsole.log(path.parse(filePath));\n// { root:'/', dir:'/home/user/project/src', base:'main.ts', name:'main', ext:'.ts' }"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "os_examples.js",
+      "code": "const os = require('os');\n\n// System information\nconsole.log('Platform:  ', os.platform());   // 'linux', 'win32', 'darwin'\nconsole.log('Arch:      ', os.arch());        // 'x64', 'arm64'\nconsole.log('Hostname:  ', os.hostname());\nconsole.log('Home dir:  ', os.homedir());\nconsole.log('Temp dir:  ', os.tmpdir());\nconsole.log('EOL char:  ', JSON.stringify(os.EOL)); // '\\n' (Unix) or '\\r\\n' (Windows)\n\n// CPU and memory\nconsole.log('CPUs:      ', os.cpus().length, 'cores');\nconsole.log('Total RAM: ', (os.totalmem() / 1024**3).toFixed(1), 'GB');\nconsole.log('Free RAM:  ', (os.freemem()  / 1024**3).toFixed(1), 'GB');\nconsole.log('Uptime:    ', (os.uptime()   / 3600).toFixed(1),     'hours');"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: path & os modules",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0}\n    .layout{display:grid;grid-template-rows:auto 1fr;gap:10px;height:calc(100vh - 32px)}\n    .top{display:flex;flex-direction:column;gap:8px}\n    .editor-row{display:flex;gap:8px;align-items:flex-start}\n    textarea{flex:1;background:#0b0e14;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;padding:10px;font-family:monospace;font-size:0.82rem;resize:vertical;min-height:200px}\n    .btns{display:flex;flex-direction:column;gap:6px}\n    button{padding:8px 14px;border:none;border-radius:5px;font-weight:700;cursor:pointer;font-size:0.8rem;white-space:nowrap}\n    .chips{display:flex;flex-wrap:wrap;gap:6px}\n    .chip{background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:3px 10px;font-family:monospace;font-size:0.72rem;cursor:pointer;color:#94a3b8}\n    .chip:hover{border-color:#4fd1c5;color:#4fd1c5}\n    .output{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:12px;font-family:monospace;font-size:0.8rem;overflow:auto;flex:1}\n    .panel-label{font-size:0.7rem;color:#4fd1c5;margin-bottom:6px}\n    .log{color:#e2e8f0;margin:1px 0}.err{color:#ef4444;margin:1px 0}.info{color:#94a3b8;font-style:italic}\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"code\" spellcheck=\"false\">const path = require('path');\nconst os   = require('os');\n\n// path operations\nconsole.log('=== path ===');\nconsole.log('join:    ', path.join(__dirname, 'src', 'index.js'));\nconsole.log('resolve: ', path.resolve('config', 'app.json'));\nconsole.log('dirname: ', path.dirname('/home/user/projects/app/main.ts'));\nconsole.log('basename:', path.basename('/home/user/projects/app/main.ts'));\nconsole.log('extname: ', path.extname('styles.module.css'));\n\n// os information\nconsole.log('\\n=== os ===');\nconsole.log('platform:', os.platform());\nconsole.log('arch:    ', os.arch());\nconsole.log('homedir: ', os.homedir());\nconsole.log('cpus:    ', os.cpus().length, 'cores');\nconsole.log('totalRAM:', (os.totalmem()/1024**3).toFixed(1)+'GB');\nconsole.log('freeRAM: ', (os.freemem()/1024**3).toFixed(1)+'GB');</textarea>\n        <div class=\"btns\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runNode()\">&#9654; Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setCode('// Path security: prevent traversal attacks\\nconst path = require(\\'path\\');\\n\\nconst BASE_DIR = \\'/home/user/project/uploads\\';\\n\\nfunction safeFile(userInput) {\\n  const resolved = path.resolve(BASE_DIR, userInput);\\n  if (!resolved.startsWith(BASE_DIR)) {\\n    throw new Error(\\'Access denied: path traversal attempt\\');\\n  }\\n  return resolved;\\n}\\n\\nconsole.log(safeFile(\\'image.png\\'));          // OK\\nconsole.log(safeFile(\\'subdir/photo.jpg\\'));   // OK\\ntry {\\n  safeFile(\\'../../etc/passwd\\');  // blocked\\n} catch(e) { console.error(e.message); }')\">path security</span>\n        <span class=\"chip\" onclick=\"setCode('// Build a typical project path structure\\nconst path = require(\\'path\\');\\n\\nconst ROOT    = \\'/home/user/my-project\\';\\nconst SRC     = path.join(ROOT, \\'src\\');\\nconst PUBLIC  = path.join(ROOT, \\'public\\');\\nconst CONFIG  = path.join(ROOT, \\'config\\');\\n\\nconsole.log(\\'Project structure:\\');\\nconsole.log(\\'  root:  \\', ROOT);\\nconsole.log(\\'  src:   \\', SRC);\\nconsole.log(\\'  public:\\', PUBLIC);\\nconsole.log(\\'  config:\\', CONFIG);\\n\\n// Common pattern: require a config file relative to this file\\nconst configFile = path.join(__dirname, \\'..\\', \\'config\\', \\'app.json\\');\\nconsole.log(\\'\\\\nConfig path:\\', configFile);\\nconsole.log(\\'Parsed:\\', path.parse(configFile));')\">project paths</span>\n      </div>\n    </div>\n    <div class=\"output\" id=\"output\"><div class=\"panel-label\">OUTPUT</div><div class=\"info\">Click &#9654; Run</div></div>\n  </div>\n  <script>\n    const _path={join:(...a)=>a.filter(Boolean).join('/').replace(/\\/+/g,'/').replace(/\\/$/,'')||'.',resolve:(...a)=>{let r='/home/user/project';for(const p of a)r=p.startsWith('/')?p:r+'/'+p;return r.replace(/\\/+/g,'/')},dirname:p=>p.replace(/\\/[^\\/]+$/,'')||'.',basename:(p,ext)=>{const b=p.split('/').pop()||'';return ext&&b.endsWith(ext)?b.slice(0,-ext.length):b},extname:p=>{const m=p.match(/(\\.[^.]+)$/);return m?m[1]:''},normalize:p=>p.replace(/\\/+/g,'/'),parse:p=>{const ext=p.match(/(\\.[^./]+)$/)?.[1]||'';const base=p.split('/').pop()||'';const dir=p.replace(/\\/[^\\/]+$/,'')||'.';const name=ext?base.slice(0,-ext.length):base;const root=p.startsWith('/')?'/':'';return{root,dir,base,name,ext}},sep:'/',delimiter':':'};\n    const _os={platform:()=>'linux',arch:()=>'x64',hostname:()=>'kernal-sandbox',homedir:()=>'/home/user',tmpdir:()=>'/tmp',EOL:'\\n',type:()=>'Linux',cpus:()=>[{model:'Intel Core i7-10700K',speed:3800},{model:'Intel Core i7-10700K',speed:3800},{model:'Intel Core i7-10700K',speed:3800},{model:'Intel Core i7-10700K',speed:3800}],totalmem:()=>16*1024**3,freemem:()=>8*1024**3,uptime:()=>123456};\n    const __dirname='/home/user/project',__filename='/home/user/project/index.js';\n    const _process={argv:['node','index.js'],env:{NODE_ENV:'development',PORT:'3000'},cwd:()=>__dirname,exit:code=>{throw new Error('process.exit('+code+')')},version:'v20.11.0',platform:'linux',pid:1234};\n    function _require(m){const map={path:_path,os:_os,'node:path':_path,'node:os':_os};if(m in map)return map[m];throw new Error('Cannot find module \\''+m+'\\''+'\\nAvailable: path, os');}\n    function setCode(c){document.getElementById('code').value=c;runNode();}\n    function runNode(){const src=document.getElementById('code').value;const logs=[];const oL=console.log,oE=console.error;console.log=(...a)=>logs.push({t:'log',m:a.map(x=>typeof x==='object'?JSON.stringify(x,null,2):String(x)).join(' ')});console.error=(...a)=>logs.push({t:'err',m:a.map(String).join(' ')});try{new Function('require','process','__dirname','__filename',src)(_require,_process,__dirname,__filename);}catch(e){logs.push({t:'err',m:e.message});}finally{console.log=oL;console.error=oE;}const od=document.getElementById('output');od.innerHTML='<div class=\"panel-label\">OUTPUT</div>'+(logs.length?logs.map(l=>'<div class=\"'+(l.t==='err'?'err':'log')+'\">'+l.m.replace(/</g,'&lt;').replace(/\\n/g,'<br>')+'</div>').join(''):'<div class=\"info\">No output</div>');}\n    document.getElementById('code').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runNode();}});\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "node-path-q1",
+          "question": "Why should you use `path.join(__dirname, 'config', 'app.json')` instead of `__dirname + '/config/app.json'`?",
+          "type": "multiple-choice",
+          "options": [
+            "path.join() is faster than string concatenation",
+            "path.join() inserts the correct path separator for the OS (/ on Unix, \\ on Windows) and normalizes double slashes, making the code portable",
+            "path.join() validates that the file actually exists",
+            "They are identical — it's just a style preference"
+          ],
+          "correctAnswer": 1,
+          "explanation": "String concatenation hardcodes the separator. On Windows, paths use backslashes; on Unix, forward slashes. path.join() uses path.sep (the OS-correct separator) automatically, so the same code works on any OS. It also normalizes multiple slashes and handles '..' segments. This is the reason every Node.js project uses path.join() for file paths."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between path.join() and path.resolve()?",
+      "a": "path.join() concatenates segments with the OS separator and normalizes the result, but doesn't make it absolute. path.resolve() processes segments left to right; if a segment is absolute ('/foo'), it discards everything before it. It always returns an absolute path (prepends cwd for relative segments). Use resolve() when you need an absolute path; use join() when assembling path components where the base is already known."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Node.js Docs — Path",
+      "url": "https://nodejs.org/api/path.html",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["Express static serving", "config file loading", "build tools", "CLI tools"],
+    "examples": [
+      "app.use(express.static(path.join(__dirname, 'public'))) — serve static files",
+      "os.cpus().length → set worker thread concurrency",
+      "path.extname(filename) === '.json' → check file type before parsing"
+    ]
+  }
+}

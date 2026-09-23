@@ -1,0 +1,103 @@
+{
+  "id": "06-events",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "nodejs",
+  "technologyVersion": "Node.js 20 LTS",
+  "module": "node-core",
+  "title": "EventEmitter",
+  "subtitle": "The publish/subscribe pattern that powers Node.js internals",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 18,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-09-23",
+  "updatedAt": "2026-09-23",
+  "lastVerified": "2026-09-23",
+  "prerequisites": ["nodejs/04-file-system"],
+  "skillsTaught": ["node.eventemitter", "node.events-module", "node.pub-sub", "node.custom-events"],
+  "skillsUsed": ["js.classes", "js.callbacks", "node.modules"],
+  "relatedConcepts": ["node.streams", "node.http-server"],
+  "whyItExists": {
+    "problem": "When multiple parts of an application need to react to the same event (a file being uploaded, a user connecting, an error occurring), coupling them directly creates a rigid dependency chain — every emitter must know every listener.",
+    "solution": "The observer pattern via EventEmitter: emitters publish named events; listeners subscribe without the emitter needing to know who's listening. Node's http.Server, streams, process, and child_process all extend EventEmitter.",
+    "whenToUse": "Any time you need loose coupling between components: server lifecycle events, real-time updates, plugin hooks, progress notifications, custom domain events.",
+    "whenNotToUse": "Don't use events for simple function calls where a direct return value works better. For complex async event flows, consider RxJS or a message queue."
+  },
+  "explainModes": {
+    "beginner": "EventEmitter is like a notification system. You subscribe to events with .on('event', callback), and when something emits that event with .emit('event', data), all subscribers are called. It's the same idea as addEventListener in the browser, but for Node.js objects.",
+    "simple": "const { EventEmitter } = require('events'); class MyEmitter extends EventEmitter {}; const em = new MyEmitter(); em.on('data', (msg) => console.log(msg)); em.emit('data', 'hello'). Key methods: on(event, fn) — subscribe (multiple allowed). once(event, fn) — subscribe for one call only. emit(event, ...args) — trigger all listeners. off(event, fn) — remove a specific listener. removeAllListeners(event) — remove all. listenerCount(event) — how many listeners.",
+    "standard": "Inheritance pattern: extend EventEmitter to give your class event capabilities. Error events are special: if 'error' is emitted with no listener, Node throws an uncaught exception — always add .on('error', ...) to emitters you don't control. The 'newListener' and 'removeListener' meta-events fire when listeners are added/removed — useful for debugging. EventEmitter is synchronous: listeners run in the order added, synchronously when emit() is called. For async listeners, use setImmediate() or Promise inside the callback.",
+    "technical": "Memory leaks: each EventEmitter has a default max of 10 listeners per event. Exceeding it prints a warning — use emitter.setMaxListeners(n) to increase. Use once() for one-time setup and .off() to clean up to avoid leak. The EventTarget API (browser-compatible): Node 14+ has EventTarget (new EventTarget()) which mirrors the browser API. Useful for code that runs in both environments. process itself is an EventEmitter: process.on('uncaughtException', handler), process.on('unhandledRejection', handler), process.on('SIGTERM', handler).",
+    "deepDive": "Under the hood: EventEmitter stores listeners in _events (object) and _eventsCount. Emitting calls listeners synchronously via a for loop. This synchrony is important: if a listener throws, subsequent listeners don't run. Wrap listeners in try/catch if you need resilience. AsyncResource: if you use EventEmitter across async boundaries (e.g., emit happens inside a Promise), the async context may be lost — use AsyncResource.bind() to preserve the execution context for diagnostic purposes (AsyncLocalStorage)."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Creating and using EventEmitter"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "events_basics.js",
+      "code": "const { EventEmitter } = require('events');\n\n// Create an emitter\nconst emitter = new EventEmitter();\n\n// Subscribe with .on() — runs every time\nemitter.on('greet', (name) => {\n    console.log('Hello,', name + '!');\n});\n\n// Subscribe with .once() — runs only the first time\nemitter.once('connect', () => {\n    console.log('Connected! (will only print once)');\n});\n\n// Emit events — calls all matching listeners immediately (sync)\nemitter.emit('greet', 'Alice');    // → Hello, Alice!\nemitter.emit('greet', 'Bob');      // → Hello, Bob!\nemitter.emit('connect');            // → Connected!\nemitter.emit('connect');            // → (nothing — once() already fired)\n\n// Check listener count\nconsole.log('greet listeners:', emitter.listenerCount('greet')); // 1\n\n// Remove a listener\nconst fn = (n) => console.log('bye', n);\nemitter.on('disconnect', fn);\nemitter.off('disconnect', fn);  // remove it\nconsole.log('disconnect listeners:', emitter.listenerCount('disconnect')); // 0"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "custom_emitter.js",
+      "code": "const { EventEmitter } = require('events');\n\n// Extend EventEmitter to create a class with events\nclass FileProcessor extends EventEmitter {\n    async process(files) {\n        this.emit('start', { total: files.length });\n\n        for (let i = 0; i < files.length; i++) {\n            const file = files[i];\n            // ... processing logic ...\n            this.emit('progress', { file, done: i + 1, total: files.length });\n        }\n\n        this.emit('done', { processed: files.length });\n    }\n}\n\nconst processor = new FileProcessor();\n\nprocessor.on('start',    ({ total }) => console.log(`Processing ${total} files...`));\nprocessor.on('progress', ({ file, done, total }) => console.log(`  [${done}/${total}] ${file}`));\nprocessor.on('done',     ({ processed }) => console.log(`Done! ${processed} files processed.`));\nprocessor.on('error',    (err) => console.error('Error:', err.message));\n\nprocessor.process(['report.csv', 'users.json', 'orders.xlsx']);"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Try it: EventEmitter sandbox",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n  <style>\n    body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0}\n    .layout{display:grid;grid-template-rows:auto 1fr;gap:10px;height:calc(100vh - 32px)}\n    .top{display:flex;flex-direction:column;gap:8px}\n    .editor-row{display:flex;gap:8px;align-items:flex-start}\n    textarea{flex:1;background:#0b0e14;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;padding:10px;font-family:monospace;font-size:0.82rem;resize:vertical;min-height:200px}\n    button{padding:8px 14px;border:none;border-radius:5px;font-weight:700;cursor:pointer;font-size:0.8rem}\n    .chips{display:flex;flex-wrap:wrap;gap:6px}\n    .chip{background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:3px 10px;font-family:monospace;font-size:0.72rem;cursor:pointer;color:#94a3b8}\n    .chip:hover{border-color:#4fd1c5;color:#4fd1c5}\n    .output{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:12px;font-family:monospace;font-size:0.8rem;overflow:auto;flex:1}\n    .panel-label{font-size:0.7rem;color:#4fd1c5;margin-bottom:6px}\n    .log{color:#e2e8f0;margin:1px 0}.err{color:#ef4444;margin:1px 0}.info{color:#94a3b8;font-style:italic}\n  </style>\n</head>\n<body>\n  <div class=\"layout\">\n    <div class=\"top\">\n      <div class=\"editor-row\">\n        <textarea id=\"code\" spellcheck=\"false\">const { EventEmitter } = require('events');\n\n// Build a simple task runner with events\nclass TaskRunner extends EventEmitter {\n  run(tasks) {\n    this.emit('start', tasks.length);\n    tasks.forEach((task, i) => {\n      try {\n        const result = task.fn();\n        this.emit('task:done', { name: task.name, result, index: i });\n      } catch (err) {\n        this.emit('task:error', { name: task.name, error: err.message });\n      }\n    });\n    this.emit('finish');\n  }\n}\n\nconst runner = new TaskRunner();\n\nrunner.on('start',      n  => console.log(`Starting ${n} tasks...`));\nrunner.on('task:done',  t  => console.log(`  ✓ ${t.name}:`, t.result));\nrunner.on('task:error', t  => console.error(`  ✗ ${t.name}:`, t.error));\nrunner.on('finish',     () => console.log('All tasks complete.'));\n\nrunner.run([\n  { name: 'parse config',  fn: () => ({ port: 3000, env: 'dev' }) },\n  { name: 'load users',    fn: () => [{ id: 1, name: 'Alice' }, { id: 2, name: 'Bob' }] },\n  { name: 'risky task',    fn: () => { throw new Error('timeout'); } },\n  { name: 'write report',  fn: () => 'report.json saved' },\n]);</textarea>\n        <div class=\"btns\" style=\"display:flex;flex-direction:column;gap:6px\">\n          <button style=\"background:#4fd1c5;color:#0e1116\" onclick=\"runNode()\">&#9654; Run</button>\n        </div>\n      </div>\n      <div class=\"chips\">\n        <span class=\"chip\" onclick=\"setCode('const { EventEmitter } = require(\\'events\\');\\n\\n// once() vs on()\\nconst bus = new EventEmitter();\\n\\n// .on() fires every time\\nbus.on(\\'tick\\', count => console.log(\\'tick:\\', count));\\n\\n// .once() fires only on first emit\\nbus.once(\\'ready\\', () => console.log(\\'Ready! (fires once)\\'));\\n\\nbus.emit(\\'ready\\');   // fires once()\\nbus.emit(\\'ready\\');   // nothing\\nbus.emit(\\'tick\\', 1);\\nbus.emit(\\'tick\\', 2);\\nbus.emit(\\'tick\\', 3);\\nconsole.log(\\'tick listeners:\\', bus.listenerCount(\\'tick\\'));\\nconsole.log(\\'ready listeners:\\', bus.listenerCount(\\'ready\\'));')\">once vs on</span>\n        <span class=\"chip\" onclick=\"setCode('const { EventEmitter } = require(\\'events\\');\\n\\n// Error events — always add an error listener!\\nconst em = new EventEmitter();\\n\\nem.on(\\'error\\', (err) => {\\n  console.error(\\'Caught error event:\\', err.message);\\n});\\n\\nem.emit(\\'error\\', new Error(\\'Connection refused\\'));\\nconsole.log(\\'Program continues after error event\\');\\n\\n// Without error listener, emit(\\'error\\') would throw:\\n// const em2 = new EventEmitter();\\n// em2.emit(\\'error\\', new Error(\\'This would crash\\'));')\">error events</span>\n      </div>\n    </div>\n    <div class=\"output\" id=\"output\"><div class=\"panel-label\">OUTPUT</div><div class=\"info\">Click &#9654; Run</div></div>\n  </div>\n  <script>\n    class EventEmitter{constructor(){this._e={}}on(ev,fn){(this._e[ev]=this._e[ev]||[]).push(fn);return this}once(ev,fn){const w=(...a)=>{fn(...a);this.off(ev,w)};return this.on(ev,w)}emit(ev,...a){const ls=(this._e[ev]||[]).slice();ls.forEach(f=>f(...a));if(ev==='error'&&!ls.length)throw a[0]||new Error('Unhandled error event');return!!ls.length}off(ev,fn){if(this._e[ev])this._e[ev]=this._e[ev].filter(f=>f!==fn);return this}removeAllListeners(ev){if(ev)delete this._e[ev];else this._e={};return this}listenerCount(ev){return(this._e[ev]||[]).length}setMaxListeners(){return this}}\n    const _process={argv:['node','index.js'],env:{NODE_ENV:'development'},version:'v20.11.0',platform:'linux',pid:1234,nextTick:fn=>setTimeout(fn,0)};\n    function _require(m){if(m==='events'||m==='node:events')return{EventEmitter};throw new Error('Cannot find module \\''+m+'\\''+'\\nAvailable: events');}\n    function setCode(c){document.getElementById('code').value=c;runNode();}\n    function runNode(){const src=document.getElementById('code').value;const logs=[];const oL=console.log,oE=console.error;console.log=(...a)=>logs.push({t:'log',m:a.map(x=>typeof x==='object'?JSON.stringify(x,null,2):String(x)).join(' ')});console.error=(...a)=>logs.push({t:'err',m:a.map(String).join(' ')});try{new Function('require','process','EventEmitter',src)(_require,_process,EventEmitter);}catch(e){logs.push({t:'err',m:e.message});}finally{console.log=oL;console.error=oE;}const od=document.getElementById('output');od.innerHTML='<div class=\"panel-label\">OUTPUT</div>'+(logs.length?logs.map(l=>'<div class=\"'+(l.t==='err'?'err':'log')+'\">'+l.m.replace(/</g,'&lt;').replace(/\\n/g,'<br>')+'</div>').join(''):'<div class=\"info\">No output</div>');}\n    document.getElementById('code').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();runNode();}});\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "tip",
+      "text": "Always add an `.on('error', handler)` listener to EventEmitter instances you don't fully control. An unhandled 'error' event crashes the Node.js process."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "node-events-q1",
+          "question": "What is the difference between `.on()` and `.once()`?",
+          "type": "multiple-choice",
+          "options": [
+            ".once() is faster than .on()",
+            ".on() fires every time the event is emitted; .once() fires only the first time, then automatically removes itself",
+            ".once() waits for the event asynchronously; .on() is synchronous",
+            ".on() can only listen to one event type; .once() can listen to multiple"
+          ],
+          "correctAnswer": 1,
+          "explanation": ".on() registers a permanent listener that runs every time the event is emitted. .once() wraps the listener so it calls itself and then immediately removes itself after the first emission. Use .once() for one-time setup (like a 'ready' event on a database connection) and .on() for recurring events (like 'data' on a stream)."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How does EventEmitter relate to Node.js streams?",
+      "a": "Streams (Readable, Writable, Transform) extend EventEmitter. A Readable stream emits 'data' events for each chunk, 'end' when done, and 'error' on failure. A Writable emits 'drain' when its buffer is empty. Everything you learned about EventEmitter applies directly to working with streams — they're the same mechanism."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Node.js Docs — Events",
+      "url": "https://nodejs.org/api/events.html",
+      "verified": "2026-09-23"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["Express middleware", "Socket.IO", "Node streams", "child_process"],
+    "examples": [
+      "server.on('request', handler) — http.Server extends EventEmitter",
+      "socket.on('data', chunk => ...) — TCP socket events",
+      "process.on('SIGTERM', gracefulShutdown) — OS signal handling"
+    ]
+  }
+}
