@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Flame, Trophy, BookOpen, Zap } from 'lucide-react';
+import { ArrowRight, Flame, Trophy, BookOpen, Zap, Lock } from 'lucide-react';
 import { loadTechnologies } from '@/lib/content-engine';
 import { useStore } from '@/store';
 import type { Technology } from '@/types/content';
@@ -176,17 +176,31 @@ function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string
 }
 
 function TechCard({ tech }: { tech: Technology; completedCount: number }) {
+  if (!tech.enabled) {
+    return (
+      <div className="group flex items-center gap-3 p-3 bg-k-surface/40 border border-k-border/40 rounded-kernal cursor-not-allowed select-none">
+        <div
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 grayscale opacity-40"
+          style={{ backgroundColor: tech.color, color: '#fff' }}
+        >
+          {tech.name.slice(0, 2).toUpperCase()}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-medium text-k-muted/60 truncate">{tech.name}</div>
+          <div className="text-xs text-k-muted/40 truncate">{tech.description}</div>
+        </div>
+        <div className="flex flex-col items-end gap-0.5 shrink-0">
+          <Lock size={12} className="text-k-muted/40" />
+          <span className="text-[10px] text-k-muted/40 font-mono">Soon</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Link
-      to={tech.enabled ? `/learn/${tech.id}` : '#'}
-      className={`
-        group flex items-center gap-3 p-3 bg-k-surface border rounded-kernal transition-kernal
-        ${tech.enabled
-          ? 'border-k-border hover:border-k-accent/50 hover:bg-k-surface-2 cursor-pointer'
-          : 'border-k-border opacity-50 cursor-not-allowed'
-        }
-      `}
-      onClick={e => !tech.enabled && e.preventDefault()}
+      to={`/learn/${tech.id}`}
+      className="group flex items-center gap-3 p-3 bg-k-surface border border-k-border hover:border-k-accent/50 hover:bg-k-surface-2 rounded-kernal transition-kernal cursor-pointer"
     >
       <div
         className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0"
@@ -200,12 +214,7 @@ function TechCard({ tech }: { tech: Technology; completedCount: number }) {
         </div>
         <div className="text-xs text-k-muted truncate">{tech.description}</div>
       </div>
-      {!tech.enabled && (
-        <span className="text-xs text-k-muted/50 shrink-0">Soon</span>
-      )}
-      {tech.enabled && (
-        <ArrowRight size={14} className="text-k-muted group-hover:text-k-accent transition-kernal shrink-0" />
-      )}
+      <ArrowRight size={14} className="text-k-muted group-hover:text-k-accent transition-kernal shrink-0" />
     </Link>
   );
 }

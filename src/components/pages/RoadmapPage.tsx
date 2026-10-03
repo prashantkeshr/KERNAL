@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Lock } from 'lucide-react';
 import { loadTechnologies } from '@/lib/content-engine';
 import { useStore } from '@/store';
 import type { Technology } from '@/types/content';
@@ -77,32 +77,42 @@ export default function RoadmapPage() {
 
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {techs.map(tech => (
-                      <Link
-                        key={tech.id}
-                        to={tech.enabled ? `/learn/${tech.id}` : '#'}
-                        onClick={e => !tech.enabled && e.preventDefault()}
-                        className={`
-                          flex items-center gap-3 p-3 rounded-kernal border transition-kernal
-                          ${tech.enabled
-                            ? 'bg-k-surface border-k-border hover:border-k-accent/50 hover:bg-k-surface-2'
-                            : 'bg-k-surface/50 border-k-border opacity-40 cursor-not-allowed'
-                          }
-                        `}
-                      >
-                        <div
-                          className="w-9 h-9 rounded-lg flex items-center justify-center font-bold text-xs text-white shrink-0"
-                          style={{ background: tech.color }}
+                      tech.enabled ? (
+                        <Link
+                          key={tech.id}
+                          to={`/learn/${tech.id}`}
+                          className="flex items-center gap-3 p-3 rounded-kernal border bg-k-surface border-k-border hover:border-k-accent/50 hover:bg-k-surface-2 transition-kernal group"
                         >
-                          {tech.name.slice(0, 2).toUpperCase()}
+                          <div
+                            className="w-9 h-9 rounded-lg flex items-center justify-center font-bold text-xs text-white shrink-0"
+                            style={{ background: tech.color }}
+                          >
+                            {tech.name.slice(0, 2).toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-k-text group-hover:text-k-accent transition-kernal truncate">{tech.name}</div>
+                            <div className="text-xs text-k-muted truncate">{tech.description}</div>
+                          </div>
+                          <ArrowRight size={14} className="text-k-muted group-hover:text-k-accent transition-kernal shrink-0" />
+                        </Link>
+                      ) : (
+                        <div
+                          key={tech.id}
+                          className="flex items-center gap-3 p-3 rounded-kernal border bg-k-surface/30 border-k-border/30 cursor-not-allowed select-none"
+                        >
+                          <div
+                            className="w-9 h-9 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 grayscale opacity-30"
+                            style={{ background: tech.color, color: '#fff' }}
+                          >
+                            {tech.name.slice(0, 2).toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-k-muted/50 truncate">{tech.name}</div>
+                            <div className="text-xs text-k-muted/35 truncate">{tech.description}</div>
+                          </div>
+                          <Lock size={13} className="text-k-muted/35 shrink-0" />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-k-text truncate">{tech.name}</div>
-                          <div className="text-xs text-k-muted truncate">{tech.description}</div>
-                        </div>
-                        {tech.enabled && (
-                          <ArrowRight size={14} className="text-k-muted shrink-0" />
-                        )}
-                      </Link>
+                      )
                     ))}
                   </div>
                 </div>
