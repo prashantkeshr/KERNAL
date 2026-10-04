@@ -1,0 +1,147 @@
+{
+  "id": "10-three-layers",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "fundamentals",
+  "technologyVersion": "1.0",
+  "module": "web-rendering",
+  "title": "The Three Layers of the Web",
+  "subtitle": "HTML structures, CSS styles, JavaScript behaves — and why this separation matters",
+  "difficulty": "beginner",
+  "estimatedMinutes": 12,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-05",
+  "updatedAt": "2026-10-05",
+  "lastVerified": "2026-10-05",
+  "prerequisites": [],
+  "skillsTaught": ["web.three-layers", "web.separation-of-concerns", "web.progressive-enhancement"],
+  "skillsUsed": [],
+  "relatedConcepts": ["html.basics", "css.basics", "js.dom"],
+  "whyItExists": {
+    "problem": "Beginners mix all three concerns together — inline styles, onclick attributes, and HTML all in one place. This creates unmaintainable code that is hard to style, debug, and update.",
+    "solution": "The web has three distinct layers by design. Understanding their roles and keeping them separate makes code easier to read, test, style, and maintain. This is the foundation of every web development approach.",
+    "whenToUse": "Whenever you write any web code. The three-layer mental model guides every architecture decision.",
+    "whenNotToUse": "Modern component-based frameworks (React, Vue) co-locate these concerns by component — but the underlying layer separation still exists conceptually."
+  },
+  "explainModes": {
+    "beginner": "Think of a web page like a person. HTML is the skeleton — the bones that give structure. CSS is the clothes and appearance — what you see. JavaScript is the muscles and brain — what lets you move and think. You need all three: without HTML there is no structure, without CSS it is ugly, without JavaScript it does not respond to you. But each does its own job.",
+    "simple": "HTML = content + structure (nouns: heading, paragraph, image, button, link). CSS = presentation (adjectives: color, size, font, layout, animation). JavaScript = behavior (verbs: click, submit, fetch, show, hide, animate). Separation of concerns: keep structure in .html, style in .css, behavior in .js. Progressive enhancement: the page should work without CSS (readable content) and without JS (basic functionality). Add each layer as enhancement.",
+    "standard": "The three-layer model follows the principle of Separation of Concerns (SoC). HTML describes semantic meaning — what content IS, not how it looks. CSS describes visual presentation — divorced from content. JavaScript handles imperative behavior — event handling, DOM manipulation, API calls. Keeping these separate makes each layer independently cacheable, testable, and modifiable. A screen reader can consume HTML and CSS without JavaScript. A mobile device can apply a different CSS file without changing HTML.",
+    "technical": "In practice, React and other component frameworks co-locate HTML (JSX), CSS (CSS-in-JS or CSS modules), and JavaScript (event handlers, state) within a component. This is a deliberate tradeoff: co-location by feature (UserCard) vs separation by technology (HTML/CSS/JS folders). The underlying browser still processes the same three layers — React transpiles JSX to createElement() calls, CSS-in-JS injects style tags, and event handlers become DOM event listeners.",
+    "deepDive": "Progressive enhancement has roots in web accessibility standards. The core idea: semantic HTML works everywhere — dial-up connections, screen readers, search engine crawlers, old browsers. CSS is loaded next — visual users get the designed experience. JavaScript is loaded last — interactive users get enhanced behavior. Each layer enhances the previous without breaking it. This is the opposite of graceful degradation (start with full features, fall back). Modern frameworks often break progressive enhancement by requiring JavaScript to render content (client-side rendering). Server-Side Rendering (SSR) and Static Site Generation (SSG) restore progressive enhancement for JS-heavy apps."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Three technologies, three jobs"
+    },
+    {
+      "type": "paragraph",
+      "text": "Every web page is built from three technologies that each have a distinct role. Understanding this separation is the foundation of all web development."
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "The three layers",
+      "code": "┌─────────────────────────────────────────────────────────┐\n│  JAVASCRIPT — Behavior (the verbs)                       │\n│  Responds to events, manipulates the DOM, fetches data  │\n├─────────────────────────────────────────────────────────┤\n│  CSS — Presentation (the adjectives)                     │\n│  Colors, fonts, sizes, layout, animation                │\n├─────────────────────────────────────────────────────────┤\n│  HTML — Structure (the nouns)                            │\n│  Headings, paragraphs, images, buttons, links           │\n└─────────────────────────────────────────────────────────┘\n\nEach layer builds on the one below it."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "What each layer does"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "filename": "Example: A buy button",
+      "code": "<!-- HTML: What is it? (structure, meaning) -->\n<button class=\"buy-btn\" id=\"addToCart\"\n        aria-label=\"Add iPhone 15 to cart\">\n  Add to cart\n</button>\n\n<!-- CSS: What does it look like? (in a separate .css file) -->\n.buy-btn {\n  background: #ff6900;\n  color: white;\n  padding: 12px 24px;\n  border-radius: 6px;\n  font-size: 1rem;\n  cursor: pointer;\n  transition: background 0.2s;\n}\n.buy-btn:hover { background: #e55a00; }\n\n// JavaScript: What does it do? (in a separate .js file)\ndocument.getElementById('addToCart').addEventListener('click', () => {\n  cart.add(product);\n  showToast('Added to cart!');\n});"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "<strong>HTML</strong> — The skeleton. Defines what is on the page and its semantic meaning. Without HTML, there is nothing.",
+        "<strong>CSS</strong> — The skin and clothes. Controls how everything looks. Without CSS, the page is readable but unstyled.",
+        "<strong>JavaScript</strong> — The muscles. Makes the page respond to user actions and data. Without JS, the page is static but still functional."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Progressive enhancement"
+    },
+    {
+      "type": "paragraph",
+      "text": "<strong>Progressive enhancement</strong> means building from the bottom up: start with working HTML, add CSS to make it look good, then add JavaScript to make it interactive. The page should be <em>usable</em> at every layer."
+    },
+    {
+      "type": "tip",
+      "text": "A form with <code>&lt;button type=\"submit\"&gt;</code> works without JavaScript — it submits to the server. JavaScript can then enhance this with client-side validation and AJAX submission. This is progressive enhancement: the basic action works with or without JS."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Interactive: Toggle the Three Layers",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n<style>\n  body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0;font-size:14px}\n  h3{color:#4fd1c5;margin:0 0 14px}\n  .controls{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}\n  .toggle{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:6px;border:2px solid transparent;cursor:pointer;font-size:0.8rem;font-weight:700;user-select:none;transition:all 0.2s}\n  .toggle.on{}\n  .toggle.off{opacity:0.4}\n  .html-t{border-color:#e34c26;color:#e34c26}.html-t.on{background:#1a0a00}\n  .css-t{border-color:#264de4;color:#93c5fd}.css-t.on{background:#000a1a}\n  .js-t{border-color:#f7df1e;color:#f7df1e}.js-t.on{background:#1a1800}\n  .dot{width:10px;height:10px;border-radius:50%}\n  .html-t .dot{background:#e34c26}.css-t .dot{background:#264de4}.js-t .dot{background:#f7df1e}\n  .preview{border:1px solid #2d3748;border-radius:8px;background:#fff;padding:20px;min-height:120px}\n  .preview *{box-sizing:border-box}\n  /* PAGE STYLES (injected when CSS is ON) */\n  .page-card{font-family:system-ui,sans-serif;max-width:320px;padding:16px;border-radius:10px}\n  .page-card.styled{background:#fff5f5;border:2px solid #ff6900;box-shadow:0 4px 16px rgba(0,0,0,0.12)}\n  .page-card h2{margin:0 0 8px;font-size:1.1rem}.page-card.styled h2{color:#e55a00}\n  .page-card p{margin:0 0 12px;font-size:0.85rem}.page-card.styled p{color:#555}\n  .page-card button{padding:8px 16px;border:none;cursor:pointer;font-size:0.85rem;border-radius:4px}\n  .page-card.styled button{background:#ff6900;color:#fff;font-weight:700;box-shadow:0 2px 6px rgba(255,105,0,0.4)}\n  .page-card.styled button:hover{background:#e55a00}\n  .toast{display:none;margin-top:10px;padding:6px 12px;border-radius:4px;font-size:0.8rem;background:#d1fae5;color:#065f46;border:1px solid #6ee7b7}\n  .label{margin-top:12px;font-size:0.72rem;color:#64748b;font-style:italic;text-align:center}\n</style>\n</head>\n<body>\n  <h3>Toggle the Three Layers</h3>\n  <div class=\"controls\">\n    <div class=\"toggle html-t on\" id=\"t-html\" onclick=\"toggle('html')\"><div class=\"dot\"></div>HTML</div>\n    <div class=\"toggle css-t on\" id=\"t-css\" onclick=\"toggle('css')\"><div class=\"dot\"></div>CSS</div>\n    <div class=\"toggle js-t on\" id=\"t-js\" onclick=\"toggle('js')\"><div class=\"dot\"></div>JavaScript</div>\n  </div>\n  <div class=\"preview\">\n    <div id=\"card\"></div>\n    <div class=\"toast\" id=\"toast\">✓ Added iPhone 15 to cart</div>\n    <div class=\"label\" id=\"label\">All three layers active</div>\n  </div>\n  <script>\n    let layers={html:true,css:true,js:true};\n    function toggle(l){\n      layers[l]=!layers[l];\n      document.getElementById('t-'+l).className='toggle '+l[0]+l.slice(1)[0]+(l==='html'?'tml':l==='css'?'ss':'s')+'-t'+(layers[l]?' on':'');\n      document.getElementById('t-'+l).className='toggle '+l+'-t'+(layers[l]?' on':'');\n      render();\n    }\n    function render(){\n      const card=document.getElementById('card');\n      if(!layers.html){card.innerHTML='<div style=\"color:#64748b;font-size:0.82rem;padding:20px;text-align:center\">HTML removed — nothing to show</div>';document.getElementById('label').textContent='No HTML — the page is blank';return;}\n      card.innerHTML=`<div class=\"page-card${layers.css?' styled':''}\">\n        <h2>iPhone 15 Pro</h2>\n        <p>6.1\" ProMotion display. Titanium design. A17 Pro chip. ₹1,34,900</p>\n        <button id=\"btn\" ${layers.js?'onclick=\"addToCart()\"':''}>Add to cart</button>\n      </div>`;\n      const labels=[];\n      if(!layers.css)labels.push('no CSS — unstyled but readable');\n      if(!layers.js)labels.push('no JS — button does nothing');\n      document.getElementById('label').textContent=labels.length?labels.join(', '):'All three layers active — full experience';\n    }\n    function addToCart(){\n      if(!layers.js)return;\n      const t=document.getElementById('toast');\n      t.style.display='block';\n      setTimeout(()=>t.style.display='none',2500);\n    }\n    render();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "web-10-q1",
+          "question": "A user visits your site with JavaScript disabled. What should still work?",
+          "type": "multiple-choice",
+          "options": [
+            "Nothing — modern sites require JavaScript",
+            "The visual design should still appear, but no content",
+            "The HTML content and CSS styling should still be visible and readable",
+            "Only the images should load"
+          ],
+          "correctAnswer": 2,
+          "explanation": "With progressive enhancement, HTML and CSS should work independently of JavaScript. The page's content (HTML) and visual design (CSS) should still be visible and readable even if JavaScript is blocked or fails to load. This is important for accessibility, search engine crawlers, and users on slow connections where JS fails to parse."
+        },
+        {
+          "id": "web-10-q2",
+          "question": "Which layer is responsible for making a button change color when you hover over it?",
+          "type": "multiple-choice",
+          "options": [
+            "HTML — using the onmouseover attribute",
+            "CSS — using the :hover pseudo-class",
+            "JavaScript — using the mouseover event listener",
+            "Both CSS and JavaScript are required"
+          ],
+          "correctAnswer": 1,
+          "explanation": "CSS's :hover pseudo-class handles hover effects entirely without JavaScript. This is the correct layer for visual state changes. Using JavaScript for a simple hover color change is overkill and breaks progressive enhancement. CSS can handle hover, focus, active, checked states natively. JavaScript should only be used for dynamic behavior that CSS cannot express, like fetching data on hover or complex animations."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "React uses JSX which mixes HTML and JavaScript. Does that break the three-layer model?",
+      "a": "React moves the separation from files (HTML file, CSS file, JS file) to components (one file per feature). JSX is JavaScript that looks like HTML — it is all compiled to createElement() calls. The browser still processes the three layers. The argument is that separating by feature (UserCard component) is more maintainable than separating by technology (HTML folder, CSS folder, JS folder) for large apps."
+    },
+    {
+      "q": "Should I use inline styles?",
+      "a": "Avoid inline styles. They mix presentation into structure, they cannot be reused, they cannot be overridden with CSS (short of !important), and they are harder to maintain. The exception: dynamically computed values that only make sense as JavaScript expressions, like style={{ width: percentage + '%' }} in React, where the value comes from state."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — How CSS works",
+      "url": "https://developer.mozilla.org/en-US/docs/Learn/CSS/First_steps/How_CSS_works",
+      "verified": "2026-10-05"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every web page", "component design", "accessibility planning", "SEO"],
+    "examples": [
+      "Wikipedia renders complete content with CSS disabled — the HTML structure alone makes articles readable",
+      "GitHub's navigation works without JavaScript because the links are real <a href> elements, not JS-only event handlers",
+      "Search engines crawl HTML content — pages that render content only via JavaScript are harder to index"
+    ]
+  }
+}

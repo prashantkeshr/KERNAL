@@ -1,0 +1,129 @@
+{
+  "id": "05-http-methods",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "fundamentals",
+  "technologyVersion": "1.0",
+  "module": "web-http",
+  "title": "HTTP Methods",
+  "subtitle": "GET, POST, PUT, PATCH, DELETE — what they mean and when to use them",
+  "difficulty": "beginner",
+  "estimatedMinutes": 12,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-05",
+  "updatedAt": "2026-10-05",
+  "lastVerified": "2026-10-05",
+  "prerequisites": ["fundamentals/04-what-is-http"],
+  "skillsTaught": ["web.http-methods", "web.idempotency", "web.rest-verbs"],
+  "skillsUsed": ["web.http-basics"],
+  "relatedConcepts": ["api.crud", "api.rest-design"],
+  "whyItExists": {
+    "problem": "Without standard HTTP methods, every API would invent its own conventions. Some might use POST /getUser, others GET /deleteUser?id=1 — chaotic and dangerous.",
+    "solution": "HTTP methods are semantic verbs. They tell the server (and any cache, proxy, or middleware) what kind of operation is intended. GET = safe (no changes). POST = create. PUT = replace. PATCH = partial update. DELETE = remove. This lets caches know they can cache GET responses but not POST responses.",
+    "whenToUse": "Always when designing or consuming REST APIs. The method tells every layer of the stack what kind of operation this is.",
+    "whenNotToUse": "Some older APIs use only GET and POST for everything — called RPC-style. This is still common but breaks caching and intermediate proxy behavior."
+  },
+  "explainModes": {
+    "beginner": "HTTP methods are like verbs — action words for what you want to do. GET means 'give me something'. POST means 'create something new'. PUT means 'replace this completely'. PATCH means 'change just this one field'. DELETE means 'remove this'. Think of them like editing a document: GET reads it, POST writes a new one, PUT replaces it entirely, PATCH makes a small change, DELETE throws it away.",
+    "simple": "GET: fetch data, no body, cacheable, safe, idempotent. POST: create data, has body, not cacheable, not idempotent. PUT: replace resource completely, has body, idempotent. PATCH: partial update, has body, not always idempotent. DELETE: remove resource, usually no body, idempotent. Safe = no server-side change. Idempotent = calling it multiple times has the same result as calling it once.",
+    "standard": "HTTP methods (RFC 7231) define the semantics of the request. Safe methods (GET, HEAD, OPTIONS) must not cause side effects — they can be retried by clients and cached by proxies freely. Idempotent methods (GET, HEAD, OPTIONS, PUT, DELETE) produce the same result regardless of how many times they are called. POST is neither safe nor idempotent — retrying a POST may create duplicate resources. This matters for automatic retry logic.",
+    "technical": "RFC 7231 defines GET, HEAD, POST, PUT, DELETE, CONNECT, OPTIONS, TRACE. RFC 5789 defines PATCH. Method overriding (X-HTTP-Method-Override header) lets clients that only support GET/POST tunnel other methods — common in older REST clients and some firewalls. HEAD is identical to GET but returns only headers (no body) — useful for checking if a resource exists or getting its size before downloading.",
+    "deepDive": "Idempotency is critical for distributed systems. If a network request fails without a response, the client does not know if the server received it. For idempotent methods (PUT, DELETE), the client can safely retry without risk of duplicate effects. For POST (not idempotent), retry requires an idempotency key — a unique ID sent with the request (Stripe API does this with Idempotency-Key header). This lets the server detect and deduplicate retried requests, returning the same response as the first call."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Methods are semantic verbs"
+    },
+    {
+      "type": "paragraph",
+      "text": "HTTP methods tell the server — and every layer in between (caches, proxies, load balancers) — what kind of operation the request intends. Using the right method is not just convention; it affects caching, retries, and security."
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "HTTP Methods Reference",
+      "code": "Method   Safe?  Idempotent?  Has body?  Use for\n──────   ─────  ───────────  ─────────  ──────────────────────────────────\nGET      Yes    Yes          No         Read / fetch a resource\nHEAD     Yes    Yes          No         Same as GET but no response body\nPOST     No     No           Yes        Create a resource or trigger action\nPUT      No     Yes          Yes        Replace a resource completely\nPATCH    No     No           Yes        Partial update of a resource\nDELETE   No     Yes          No         Remove a resource\nOPTIONS  Yes    Yes          No         Check allowed methods (CORS preflight)\n\nSafe      = no server-side changes (can be retried freely)\nIdempotent = multiple identical calls = same result as one call"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Methods in a CRUD API"
+    },
+    {
+      "type": "code",
+      "lang": "http",
+      "filename": "CRUD with HTTP methods",
+      "code": "# CREATE\nPOST /articles\nContent-Type: application/json\n{ \"title\": \"Hello\", \"body\": \"World\" }\n→ 201 Created  { \"id\": 7, \"title\": \"Hello\" }\n\n# READ (list)\nGET /articles\n→ 200 OK  [{ \"id\": 1 }, { \"id\": 7 }]\n\n# READ (single)\nGET /articles/7\n→ 200 OK  { \"id\": 7, \"title\": \"Hello\", \"body\": \"World\" }\n\n# UPDATE (replace completely)\nPUT /articles/7\n{ \"title\": \"Updated title\", \"body\": \"Updated body\" }\n→ 200 OK  { \"id\": 7, \"title\": \"Updated title\", \"body\": \"Updated body\" }\n\n# UPDATE (partial change — only what you send changes)\nPATCH /articles/7\n{ \"title\": \"New title only\" }\n→ 200 OK  { \"id\": 7, \"title\": \"New title only\", \"body\": \"World\" }\n\n# DELETE\nDELETE /articles/7\n→ 204 No Content  (no body)"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>PUT vs PATCH:</strong> PUT replaces the entire resource — any fields you omit go blank. PATCH only changes the fields you include. Use PATCH for editing a single field (e.g. updating just a user's email address)."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Interactive: HTTP Method Simulator",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n<style>\n  body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0;font-size:14px}\n  h3{color:#4fd1c5;margin:0 0 12px}\n  .toolbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}\n  .btn{padding:7px 14px;border:none;border-radius:6px;font-weight:700;font-size:0.78rem;cursor:pointer;letter-spacing:0.03em}\n  .get{background:#166534;color:#86efac}.post{background:#1e3a5f;color:#93c5fd}\n  .put{background:#713f12;color:#fcd34d}.patch{background:#4a1d96;color:#c4b5fd}\n  .del{background:#7f1d1d;color:#fca5a5}\n  .req{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:10px;font-family:monospace;font-size:0.72rem;white-space:pre-wrap;margin-bottom:8px;min-height:60px}\n  .resp{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:10px;font-family:monospace;font-size:0.72rem;white-space:pre-wrap;min-height:60px}\n  .label{font-size:0.72rem;color:#64748b;margin-bottom:4px}\n  .data{background:#1a1f2b;border:1px solid #2d3748;border-radius:6px;padding:8px 10px;margin-bottom:10px}\n  .data h4{margin:0 0 6px;font-size:0.72rem;color:#64748b;text-transform:uppercase}\n  .row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #0b0e14;font-size:0.78rem;font-family:monospace}\n  .row:last-child{border:none}\n  .del-row{text-decoration:line-through;color:#64748b}\n  .ok{color:#4fd1c5}.warn{color:#fbbf24}.err{color:#ef4444}\n</style>\n</head>\n<body>\n  <h3>HTTP Method Simulator — Article API</h3>\n  <div class=\"data\">\n    <h4>Server Data (articles)</h4>\n    <div id=\"table\"></div>\n  </div>\n  <div class=\"toolbar\">\n    <button class=\"btn get\" onclick=\"doGet('list')\">GET /articles</button>\n    <button class=\"btn get\" onclick=\"doGet('single')\">GET /articles/1</button>\n    <button class=\"btn post\" onclick=\"doPost()\">POST /articles</button>\n    <button class=\"btn put\" onclick=\"doPut()\">PUT /articles/1</button>\n    <button class=\"btn patch\" onclick=\"doPatch()\">PATCH /articles/1</button>\n    <button class=\"btn del\" onclick=\"doDelete()\">DELETE /articles/1</button>\n  </div>\n  <div class=\"label\">Request</div><div class=\"req\" id=\"req\">Click a button to make a request</div>\n  <div class=\"label\">Response</div><div class=\"resp\" id=\"resp\"></div>\n  <script>\n    let db=[{id:1,title:'Introduction to HTTP',body:'HTTP is the language of the web.',published:true},{id:2,title:'Understanding URLs',body:'Every URL has a structure.',published:false}];\n    let nextId=3;\n    function render(){\n      document.getElementById('table').innerHTML=db.length?db.map(a=>`<div class=\"row\"><span>#${a.id}</span><span>${a.title}</span><span style=\"color:${a.published?'#4fd1c5':'#64748b'}\">${a.published?'published':'draft'}</span></div>`).join(''):'<div style=\"color:#64748b;font-size:0.78rem\">No articles</div>';\n    }\n    function show(req,status,body){\n      const sc=parseInt(status);\n      const col=sc<300?'ok':sc<500?'warn':'err';\n      document.getElementById('req').textContent=req;\n      document.getElementById('resp').innerHTML=`<span class=\"${col}\">${status}</span>\\n${body?JSON.stringify(body,null,2):'(no body)'}`;\n    }\n    function doGet(type){\n      if(type==='list'){show('GET /articles HTTP/1.1\\nHost: api.example.com\\nAccept: application/json','200 OK',db);}\n      else{const a=db.find(x=>x.id===1);show('GET /articles/1 HTTP/1.1\\nHost: api.example.com\\nAccept: application/json',a?'200 OK':'404 Not Found',a||{error:'NOT_FOUND',message:'Article 1 not found'});}\n    }\n    function doPost(){\n      const a={id:nextId++,title:`New Article ${nextId-1}`,body:'Created via POST.',published:false};\n      db.push(a);render();\n      show('POST /articles HTTP/1.1\\nHost: api.example.com\\nContent-Type: application/json\\n\\n{\"title\":\"New Article\",\"body\":\"Created via POST.\"}','201 Created',a);\n    }\n    function doPut(){\n      const i=db.findIndex(x=>x.id===1);\n      if(i===-1){show('PUT /articles/1 HTTP/1.1\\n...','404 Not Found',{error:'NOT_FOUND'});return;}\n      db[i]={id:1,title:'Completely Replaced Title',body:'Entire resource was replaced by PUT.',published:true};render();\n      show('PUT /articles/1 HTTP/1.1\\nHost: api.example.com\\nContent-Type: application/json\\n\\n{\"title\":\"Completely Replaced Title\",\"body\":\"...\",\"published\":true}','200 OK',db[i]);\n    }\n    function doPatch(){\n      const i=db.findIndex(x=>x.id===1);\n      if(i===-1){show('PATCH /articles/1 HTTP/1.1\\n...','404 Not Found',{error:'NOT_FOUND'});return;}\n      db[i].title='Patched Title Only';render();\n      show('PATCH /articles/1 HTTP/1.1\\nHost: api.example.com\\nContent-Type: application/json\\n\\n{\"title\":\"Patched Title Only\"}','200 OK',db[i]);\n    }\n    function doDelete(){\n      const i=db.findIndex(x=>x.id===1);\n      if(i===-1){show('DELETE /articles/1 HTTP/1.1\\n...','404 Not Found',{error:'NOT_FOUND'});return;}\n      db.splice(i,1);render();\n      show('DELETE /articles/1 HTTP/1.1\\nHost: api.example.com','204 No Content','');\n    }\n    render();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "web-05-q1",
+          "question": "You want to change only a user's email address without affecting any other fields. Which HTTP method should you use?",
+          "type": "multiple-choice",
+          "options": [
+            "GET — to retrieve and resend the full object",
+            "PUT — to replace the entire user object",
+            "PATCH — to send only the changed fields",
+            "POST — to create a new version of the user"
+          ],
+          "correctAnswer": 2,
+          "explanation": "PATCH sends only the fields you want to change. The server merges them with the existing data. PUT would require you to send the entire user object — any fields you omit would be erased. PATCH is the correct choice for partial updates."
+        },
+        {
+          "id": "web-05-q2",
+          "question": "Which HTTP method is 'safe'?",
+          "type": "multiple-choice",
+          "options": [
+            "POST",
+            "DELETE",
+            "GET",
+            "PATCH"
+          ],
+          "correctAnswer": 2,
+          "explanation": "GET is safe because it should not cause any side effects on the server — it only reads data. Safe methods can be retried freely, prefetched, or cached by browsers and proxies. POST, DELETE, and PATCH are not safe because they change server state."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Can I send a body with a GET request?",
+      "a": "Technically yes, but you should not. Many proxies, servers, and libraries strip the body from GET requests. Use query string parameters instead: GET /search?q=kernal. The HTTP spec says GET requests should have no semantic meaning to the body."
+    },
+    {
+      "q": "What is idempotency and why does it matter?",
+      "a": "An idempotent operation produces the same result no matter how many times you call it. DELETE /articles/1 twice has the same result as calling it once — the article is gone. This matters for reliability: if your network drops after sending a request, you may not know if it succeeded. For idempotent methods, you can safely retry. For POST (not idempotent), you might create duplicates if you retry — which is why payment APIs use Idempotency-Key headers."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — HTTP Methods",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods",
+      "verified": "2026-10-05"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["REST API design", "browser form submissions", "AJAX calls", "API client libraries"],
+    "examples": [
+      "Twitter's API: GET /tweets/:id, POST /tweets (create), DELETE /tweets/:id",
+      "Stripe's API uses POST for nearly everything — creating a charge, capturing a payment — because these are actions, not just data changes",
+      "GitHub's REST API uses PATCH /repos/:owner/:repo to update only the description without touching other fields"
+    ]
+  }
+}

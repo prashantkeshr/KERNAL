@@ -1,0 +1,136 @@
+{
+  "id": "14-cookies-and-storage",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "fundamentals",
+  "technologyVersion": "1.0",
+  "module": "web-security-basics",
+  "title": "Cookies and Browser Storage",
+  "subtitle": "When to use cookies, localStorage, sessionStorage, and IndexedDB",
+  "difficulty": "beginner",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-05",
+  "updatedAt": "2026-10-05",
+  "lastVerified": "2026-10-05",
+  "prerequisites": ["fundamentals/13-https-and-tls"],
+  "skillsTaught": ["web.cookies", "web.localstorage", "web.sessionstorage", "web.storage-choice"],
+  "skillsUsed": ["web.https", "web.http-basics", "web.same-origin"],
+  "relatedConcepts": ["web.authentication", "web.sessions", "web.indexeddb"],
+  "whyItExists": {
+    "problem": "HTTP is stateless — each request is independent. The server does not know if request #42 is from the same user as request #41. Without storage, you would have to log in on every page visit.",
+    "solution": "Cookies are small pieces of data the server sends to the browser. The browser includes them in every subsequent request to that domain. localStorage and sessionStorage let JavaScript store data on the client without sending it to the server.",
+    "whenToUse": "Cookies for session tokens (authentication), security-sensitive data. localStorage for user preferences, cached data. sessionStorage for tab-specific temporary state. IndexedDB for large structured data.",
+    "whenNotToUse": "Never store passwords, credit card numbers, or private keys in any browser storage — all of it is accessible to JavaScript on the page."
+  },
+  "explainModes": {
+    "beginner": "Imagine a café that does not remember customers. Every time you walk in, they ask your name and what you like. Cookies are like a stamp on your hand — the café stamps you on your first visit, and every time you come back they see the stamp and know who you are. This is how websites remember that you are logged in. localStorage is like a notepad the website keeps on your device — it can write notes about your preferences that persist even when you close the browser.",
+    "simple": "Cookies: set by server via Set-Cookie header. Browser sends them automatically in every request to that domain. Used for: session tokens (you are logged in), tracking, preferences. Security attributes: HttpOnly (JS cannot read it — XSS protection), Secure (only sent over HTTPS), SameSite (CSRF protection). localStorage: JavaScript key-value store. Persists until explicitly cleared. ~5MB limit. No expiry. sessionStorage: same as localStorage but cleared when the tab closes. IndexedDB: full database in the browser. Large data, binary, structured queries.",
+    "standard": "Session cookies (no Expires) are deleted when the browser closes. Persistent cookies (with Expires or Max-Age) survive browser restarts. HttpOnly cookies cannot be read by document.cookie — this is the primary XSS defense for session tokens. Secure cookies are only transmitted over HTTPS. SameSite=Strict prevents the cookie from being sent in cross-site requests. SameSite=Lax (the default in modern browsers) allows the cookie in top-level navigation (clicking a link) but not in cross-site sub-requests (CSRF vectors).",
+    "technical": "document.cookie gives you a semicolon-joined string of all non-HttpOnly cookies for the current origin — a notoriously bad API. The CookieStore API (modern browsers) is promise-based. localStorage.setItem / getItem / removeItem / clear are synchronous — they block the main thread for large data. Use IndexedDB (or a library like idb-keyval) for async storage. Service Workers can only access IndexedDB (not localStorage/sessionStorage). The Storage Quota API (navigator.storage.estimate()) reports how much storage is used and available.",
+    "deepDive": "Cookie prefixes are a security mechanism: a cookie with __Secure- prefix must have the Secure attribute, and __Host- prefix must have Secure, Path=/, and no Domain attribute (tightly bound to the exact host). CHIPS (Cookies Having Independent Partitioned State) are cookies partitioned by top-level site — allowing third-party cookies to remain functional for legitimate use cases (embedded widgets) while preventing cross-site tracking. Chrome's Privacy Sandbox is phasing out third-party cookies (unpartitioned) in favor of CHIPS and Topics API."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Storage options compared"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Browser storage comparison",
+      "code": "Storage         Capacity  Expiry             Sent to server?  JS access?  Use case\n──────────────  ────────  ─────────────────  ───────────────  ──────────  ──────────────────────\nCookie          4 KB      Set by server      Yes, every req   Yes*        Session tokens, auth\nlocalStorage    ~5 MB     Never (manual)     No               Yes         Preferences, cache\nsessionStorage  ~5 MB     Tab closed         No               Yes         Temp tab state, draft\nIndexedDB       100s MB   Never (manual)     No               Yes         Large data, offline\n\n* HttpOnly cookies cannot be read by JavaScript (document.cookie)"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Cookies in detail"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Cookie attributes",
+      "code": "Server sends:\nSet-Cookie: sessionId=abc123;\n            HttpOnly;          ← JS cannot read this cookie (XSS protection)\n            Secure;            ← Only sent over HTTPS\n            SameSite=Strict;   ← Not sent in cross-site requests (CSRF protection)\n            Max-Age=86400;     ← Expires in 24 hours\n            Path=/             ← Sent for all paths on this domain\n\nBrowser sends in every subsequent request:\nCookie: sessionId=abc123\n\nWithout HttpOnly:\n  document.cookie  →  'sessionId=abc123; theme=dark'\n  An XSS attack could steal the session token!\n\nWith HttpOnly:\n  document.cookie  →  'theme=dark'  (sessionId is hidden from JS)"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "localStorage and sessionStorage"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "localStorage API",
+      "code": "// localStorage — persists until explicitly cleared\nlocalStorage.setItem('theme', 'dark');\nlocalStorage.setItem('fontSize', '16');\n\nconst theme = localStorage.getItem('theme'); // 'dark'\nconst missing = localStorage.getItem('xyz'); // null\n\nlocalStorage.removeItem('theme');   // delete one key\nlocalStorage.clear();               // delete everything\n\n// Store objects (JSON serialization required)\nlocalStorage.setItem('user', JSON.stringify({ name: 'Alice', score: 95 }));\nconst user = JSON.parse(localStorage.getItem('user'));\n\n// sessionStorage — same API, but clears when tab closes\nsessionStorage.setItem('currentStep', '3');\nsessionStorage.getItem('currentStep'); // '3'\n// → null after tab is closed and reopened"
+    },
+    {
+      "type": "warning",
+      "text": "<strong>Never store sensitive data in localStorage.</strong> All JavaScript on the page — including third-party scripts and XSS injections — can read localStorage. Store session tokens in HttpOnly cookies instead."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Interactive: Storage Explorer",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n<style>\n  body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0;font-size:13px}\n  h3{color:#4fd1c5;margin:0 0 12px}\n  .tabs{display:flex;gap:0;border-bottom:1px solid #2d3748;margin-bottom:12px}\n  .tab{padding:7px 14px;cursor:pointer;font-size:0.8rem;color:#64748b;border-bottom:2px solid transparent}\n  .tab.active{color:#4fd1c5;border-bottom-color:#4fd1c5}\n  .panel{display:none}\n  .panel.active{display:block}\n  .row{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}\n  input{background:#0b0e14;border:1px solid #2d3748;border-radius:4px;padding:5px 8px;color:#e2e8f0;font-size:0.78rem;flex:1;min-width:80px}\n  .btn{padding:5px 10px;background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;color:#94a3b8;font-size:0.75rem;cursor:pointer;white-space:nowrap}\n  .btn.primary{background:#4fd1c5;color:#0e1116;border-color:#4fd1c5;font-weight:700}\n  .btn.danger{border-color:#ef4444;color:#ef4444}\n  .items{background:#0b0e14;border:1px solid #2d3748;border-radius:4px;padding:8px;min-height:60px;max-height:160px;overflow-y:auto;font-family:monospace;font-size:0.72rem}\n  .item{display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid #111;gap:8px}\n  .item:last-child{border:none}\n  .key{color:#4fd1c5}.val{color:#fbbf24;flex:1;text-align:right;word-break:break-all}\n  .empty{color:#4a5568;font-style:italic}\n  .info{background:#0b0e14;border:1px solid #1e3a5f;border-radius:4px;padding:8px;font-size:0.72rem;color:#93c5fd;line-height:1.6;margin-top:8px}\n</style>\n</head>\n<body>\n  <h3>Browser Storage Explorer</h3>\n  <div class=\"tabs\">\n    <div class=\"tab active\" onclick=\"switchTab('ls')\">localStorage</div>\n    <div class=\"tab\" onclick=\"switchTab('ss')\">sessionStorage</div>\n    <div class=\"tab\" onclick=\"switchTab('ck')\">Cookies (simulated)</div>\n  </div>\n  <div id=\"p-ls\" class=\"panel active\">\n    <div class=\"row\">\n      <input id=\"ls-key\" placeholder=\"key\" />\n      <input id=\"ls-val\" placeholder=\"value\" />\n      <button class=\"btn primary\" onclick=\"lsSet()\">Set</button>\n    </div>\n    <div class=\"row\"><button class=\"btn danger\" onclick=\"localStorage.clear();lsRender()\">Clear All</button></div>\n    <div class=\"items\" id=\"ls-items\"></div>\n    <div class=\"info\">localStorage persists forever until explicitly cleared. Use for: user preferences (theme, language), draft content, cached data. <strong>Do not store passwords or tokens here.</strong></div>\n  </div>\n  <div id=\"p-ss\" class=\"panel\">\n    <div class=\"row\">\n      <input id=\"ss-key\" placeholder=\"key\" />\n      <input id=\"ss-val\" placeholder=\"value\" />\n      <button class=\"btn primary\" onclick=\"ssSet()\">Set</button>\n    </div>\n    <div class=\"row\"><button class=\"btn danger\" onclick=\"sessionStorage.clear();ssRender()\">Clear All</button></div>\n    <div class=\"items\" id=\"ss-items\"></div>\n    <div class=\"info\">sessionStorage is cleared when the tab closes. Use for: current wizard step, temp form data, in-progress search state.</div>\n  </div>\n  <div id=\"p-ck\" class=\"panel\">\n    <div class=\"row\">\n      <input id=\"ck-key\" placeholder=\"name\" />\n      <input id=\"ck-val\" placeholder=\"value\" />\n      <input id=\"ck-opt\" placeholder=\"options (e.g. Secure; HttpOnly)\" />\n      <button class=\"btn primary\" onclick=\"ckSet()\">Set Cookie</button>\n    </div>\n    <div class=\"items\" id=\"ck-items\"></div>\n    <div class=\"info\">\n      <strong>HttpOnly</strong> cookies are NOT visible here — they exist but JavaScript cannot read them.<br>\n      <strong>Secure</strong> — only sent over HTTPS.<br>\n      <strong>SameSite=Strict</strong> — not sent in cross-site requests.<br>\n      Session tokens should always be HttpOnly + Secure + SameSite.\n    </div>\n  </div>\n  <script>\n    function switchTab(t){\n      document.querySelectorAll('.tab,.panel').forEach(e=>e.classList.remove('active'));\n      document.querySelectorAll('.tab').forEach((e,i)=>{if(['ls','ss','ck'][i]===t)e.classList.add('active');});\n      document.getElementById('p-'+t).classList.add('active');\n      if(t==='ls')lsRender();else if(t==='ss')ssRender();else ckRender();\n    }\n    function renderItems(el,items){\n      el.innerHTML=items.length?items.map(([k,v])=>`<div class=\"item\"><span class=\"key\">${k}</span><span class=\"val\">${v}</span><button style=\"background:none;border:none;color:#ef4444;cursor:pointer;font-size:0.7rem\" onclick=\"removeItem('${el.id}','${k}')\">✕</button></div>`).join(''):'<div class=\"empty\">Empty</div>';\n    }\n    function removeItem(elId,key){\n      if(elId==='ls-items')localStorage.removeItem(key);\n      else if(elId==='ss-items')sessionStorage.removeItem(key);\n      if(elId==='ls-items')lsRender();else if(elId==='ss-items')ssRender();\n    }\n    function lsRender(){renderItems(document.getElementById('ls-items'),Object.entries(localStorage));}\n    function ssRender(){renderItems(document.getElementById('ss-items'),Object.entries(sessionStorage));}\n    function lsSet(){const k=document.getElementById('ls-key').value,v=document.getElementById('ls-val').value;if(k){localStorage.setItem(k,v);document.getElementById('ls-key').value='';document.getElementById('ls-val').value='';lsRender();}}\n    function ssSet(){const k=document.getElementById('ss-key').value,v=document.getElementById('ss-val').value;if(k){sessionStorage.setItem(k,v);document.getElementById('ss-key').value='';document.getElementById('ss-val').value='';ssRender();}}\n    // Simulated cookie store since real document.cookie is limited in iframes\n    const fakeCookies={};\n    function ckSet(){const k=document.getElementById('ck-key').value,v=document.getElementById('ck-val').value,o=document.getElementById('ck-opt').value;if(k){fakeCookies[k]={v,opts:o};document.getElementById('ck-key').value='';document.getElementById('ck-val').value='';document.getElementById('ck-opt').value='';ckRender();}}\n    function ckRender(){\n      const el=document.getElementById('ck-items');\n      const items=Object.entries(fakeCookies).map(([k,{v,opts}])=>[k,opts?`${v}; ${opts}`:v]);\n      renderItems(el,items);\n      // also remove from fakeCookies on click — patch the onclick\n      el.querySelectorAll('button').forEach((btn,i)=>{\n        const key=Object.keys(fakeCookies)[i];\n        btn.onclick=()=>{delete fakeCookies[key];ckRender();};\n      });\n    }\n    lsRender();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "web-14-q1",
+          "question": "Why should session tokens be stored in HttpOnly cookies rather than localStorage?",
+          "type": "multiple-choice",
+          "options": [
+            "localStorage has a smaller size limit than cookies",
+            "HttpOnly cookies cannot be read by JavaScript, so an XSS attack cannot steal the token",
+            "Cookies are automatically encrypted; localStorage is not",
+            "localStorage is deleted when the browser closes"
+          ],
+          "correctAnswer": 1,
+          "explanation": "HttpOnly cookies are hidden from JavaScript — document.cookie (and any malicious script injected via XSS) cannot read them. If you store a session token in localStorage, any XSS vulnerability allows the attacker to steal the token with a single line of code. HttpOnly cookies are the standard protection for session tokens against XSS attacks."
+        },
+        {
+          "id": "web-14-q2",
+          "question": "You want to save a user's dark mode preference so it persists even when they close and reopen the browser. Which storage should you use?",
+          "type": "multiple-choice",
+          "options": [
+            "sessionStorage — it is faster than localStorage",
+            "A cookie — preferences should always be sent to the server",
+            "localStorage — it persists indefinitely until explicitly cleared",
+            "IndexedDB — it has the best browser support"
+          ],
+          "correctAnswer": 2,
+          "explanation": "localStorage persists indefinitely (until explicitly cleared) and survives browser restarts. sessionStorage is cleared when the tab closes — wrong for persistent preferences. A cookie works but is unnecessary overhead (the server does not need to know about dark mode). IndexedDB is correct for large data but overkill for a single string value. localStorage is the right tool here."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the SameSite cookie attribute and why was it added?",
+      "a": "SameSite prevents CSRF (Cross-Site Request Forgery) attacks. Without SameSite, if you are logged into bank.com and visit evil.com, evil.com can make your browser send a request to bank.com and your session cookie goes along for the ride. SameSite=Strict prevents cookies from being sent in any cross-site request. SameSite=Lax (the modern browser default) prevents it in sub-resource requests but allows it in top-level navigation (clicking a link from another site). SameSite=None allows cross-site cookies but requires Secure attribute."
+    },
+    {
+      "q": "Is localStorage secure?",
+      "a": "localStorage is origin-scoped (only your origin can read it) but accessible to all JavaScript running on that origin — including third-party scripts (analytics, ads, CDN libraries). Any XSS vulnerability gives an attacker full access to localStorage. Do not store sensitive information (tokens, private data) in localStorage. Use HttpOnly cookies for session tokens, and consider the sensitivity of anything you cache there."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — Web Storage API",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API",
+      "verified": "2026-10-05"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["user authentication (sessions)", "user preferences", "offline-capable apps", "shopping carts", "draft saving"],
+    "examples": [
+      "Gmail uses IndexedDB to store email locally for offline access — much larger than localStorage's 5MB limit",
+      "GitHub uses localStorage to remember your UI preferences (compact view, theme) across sessions",
+      "Banking apps use HttpOnly Secure SameSite=Strict cookies for session tokens — the gold standard"
+    ]
+  }
+}

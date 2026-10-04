@@ -1,0 +1,152 @@
+{
+  "id": "07-browser-devtools",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "fundamentals",
+  "technologyVersion": "1.0",
+  "module": "web-developer-tools",
+  "title": "Browser DevTools",
+  "subtitle": "Opening DevTools and navigating the panels",
+  "difficulty": "beginner",
+  "estimatedMinutes": 15,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-05",
+  "updatedAt": "2026-10-05",
+  "lastVerified": "2026-10-05",
+  "prerequisites": ["fundamentals/04-what-is-http"],
+  "skillsTaught": ["web.devtools-navigation", "web.inspect-element", "web.devtools-panels"],
+  "skillsUsed": ["web.browser-job", "web.http-basics"],
+  "relatedConcepts": ["web.network-panel", "web.console", "web.debugging"],
+  "whyItExists": {
+    "problem": "New developers build blind — they change code and reload without any visibility into what the browser is actually doing.",
+    "solution": "DevTools turns the browser into a transparent machine. You can inspect every element, watch every network request, run JavaScript live, and measure performance — all without any setup.",
+    "whenToUse": "Every single day of web development. DevTools is your primary debugging environment.",
+    "whenNotToUse": "DevTools is always available and always useful."
+  },
+  "explainModes": {
+    "beginner": "Browser DevTools is like an X-ray for web pages. When you press F12, a panel opens that shows you everything happening inside the page — the HTML structure, the styles applied to each element, all the network requests being made, and any errors in the JavaScript. Every professional web developer has DevTools open almost all the time.",
+    "simple": "DevTools panels: Elements (inspect and edit HTML/CSS live), Console (run JS, see errors), Network (watch every HTTP request), Sources (read and debug JS files), Application (view cookies, localStorage, IndexedDB), Performance (record and analyze slow frames), Lighthouse (audit page quality). Open with F12 or Ctrl+Shift+I (Windows/Linux) or Cmd+Option+I (Mac). Right-click any element → Inspect to jump to it in Elements panel.",
+    "standard": "Modern browsers (Chrome, Firefox, Safari, Edge) all have built-in DevTools. Chrome DevTools is the most feature-rich and is what most tutorials reference. The Lighthouse panel runs automated audits for performance, accessibility, SEO, and PWA compliance — it is how Google measures Core Web Vitals. The Performance panel records a CPU profile and flame chart of the event loop, useful for diagnosing JavaScript performance bottlenecks.",
+    "technical": "DevTools communicates with the browser engine via the Chrome DevTools Protocol (CDP). This is also what Playwright, Puppeteer, and Selenium use for automated browser testing. The Sources panel exposes the browser's JavaScript debugger — you can set breakpoints, step through code, inspect scope, and watch expressions, all while the page is running. DevTools is itself built as a web page (HTML/CSS/JS), which is why you can dock it in different positions.",
+    "deepDive": "The DevTools Protocol exposes every internal browser event: network requests, V8 heap snapshots, JS execution traces, layout events, paint events. Tools like WebPageTest, Lighthouse CI, and Chrome's CrUX (Chrome User Experience Report) all build on this. The Performance panel's flame chart maps every function call to wall-clock time on the main thread — you can see exactly which JavaScript is blocking the rendering pipeline. 'Long tasks' (JS execution > 50ms) are highlighted in red and are the primary cause of jank (dropped frames)."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Opening DevTools"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "How to open DevTools",
+      "code": "Windows/Linux:\n  F12\n  Ctrl + Shift + I\n  Right-click any element → 'Inspect'\n\nMac:\n  Cmd + Option + I\n  Right-click any element → 'Inspect'\n\nTip: Press F12 while DevTools is open to close it.\nTip: Click the ⋮ icon → Dock side to undock or move DevTools."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The panels"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "<strong>Elements</strong> — View and edit the live HTML and CSS of any element. Changes appear instantly on the page but are not saved to your file.",
+        "<strong>Console</strong> — Run JavaScript, see <code>console.log()</code> output, errors, and warnings.",
+        "<strong>Network</strong> — See every HTTP request the page makes. Essential for debugging APIs and slow loads.",
+        "<strong>Sources</strong> — Browse and debug JavaScript files. Set breakpoints to pause execution.",
+        "<strong>Application</strong> — Inspect cookies, localStorage, sessionStorage, IndexedDB, and Service Workers.",
+        "<strong>Performance</strong> — Record and analyze page rendering performance. Find what is making the page slow.",
+        "<strong>Lighthouse</strong> — Automated audits for performance, accessibility, SEO, and PWA features."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The Elements panel"
+    },
+    {
+      "type": "paragraph",
+      "text": "The Elements panel shows the live DOM — the browser's understanding of your HTML. It is not the same as your source file: JavaScript may have added elements, and the browser may have fixed invalid HTML."
+    },
+    {
+      "type": "list",
+      "ordered": true,
+      "items": [
+        "Click the cursor icon (top-left of DevTools) then click any element on the page to jump to it in the Elements panel",
+        "Click any HTML element to select it — its CSS appears in the Styles pane on the right",
+        "Double-click any attribute or text to edit it live",
+        "Right-click an element → <strong>Delete element</strong> to remove it temporarily",
+        "In the Styles pane, click a CSS property value to edit it — great for testing changes before writing them in your editor"
+      ]
+    },
+    {
+      "type": "tip",
+      "text": "Changes in DevTools are temporary — they reset on page reload. Use DevTools to experiment and find the right value, then write it in your actual code."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Interactive: DevTools Panel Guide",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n<style>\n  body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0;font-size:14px}\n  h3{color:#4fd1c5;margin:0 0 14px}\n  .tabs{display:flex;gap:0;border-bottom:1px solid #2d3748;margin-bottom:14px;overflow-x:auto}\n  .tab{padding:8px 14px;cursor:pointer;font-size:0.8rem;color:#64748b;border-bottom:2px solid transparent;white-space:nowrap;transition:all 0.2s}\n  .tab.active{color:#4fd1c5;border-bottom-color:#4fd1c5}\n  .panel{display:none}\n  .panel.active{display:block}\n  .panel h4{color:#4fd1c5;margin:0 0 8px;font-size:0.82rem}\n  .panel p{color:#94a3b8;font-size:0.78rem;line-height:1.6;margin:0 0 8px}\n  .shortcut{display:inline-block;background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:2px 7px;font-family:monospace;font-size:0.72rem;color:#e2e8f0}\n  .feature-list{list-style:none;padding:0;margin:0}\n  .feature-list li{padding:4px 0;font-size:0.78rem;color:#94a3b8;border-bottom:1px solid #1a1f2b}\n  .feature-list li:last-child{border:none}\n  .feature-list li::before{content:'→  ';color:#4fd1c5}\n  .code{background:#0b0e14;border:1px solid #2d3748;border-radius:4px;padding:8px;font-family:monospace;font-size:0.72rem;color:#94a3b8;margin:6px 0}\n  .try{background:#1a1f2b;border:1px solid #2d3748;border-radius:6px;padding:8px 10px;margin-top:8px;font-size:0.75rem}\n  .try strong{color:#fbbf24}\n</style>\n</head>\n<body>\n  <h3>DevTools Panel Reference</h3>\n  <div class=\"tabs\">\n    <div class=\"tab active\" onclick=\"show('elements')\">Elements</div>\n    <div class=\"tab\" onclick=\"show('console')\">Console</div>\n    <div class=\"tab\" onclick=\"show('network')\">Network</div>\n    <div class=\"tab\" onclick=\"show('sources')\">Sources</div>\n    <div class=\"tab\" onclick=\"show('application')\">Application</div>\n    <div class=\"tab\" onclick=\"show('lighthouse')\">Lighthouse</div>\n  </div>\n  <div id=\"elements\" class=\"panel active\">\n    <h4>Elements Panel</h4>\n    <p>Shows the live DOM tree. Edit HTML and CSS in real time. The inspector cursor lets you click any element on the page to highlight it here.</p>\n    <ul class=\"feature-list\">\n      <li>Click any element to see its computed styles on the right</li>\n      <li>Double-click text or attribute values to edit them live</li>\n      <li>Right-click an element → Force state to simulate :hover, :focus, :active</li>\n      <li>Styles pane → Computed tab shows final resolved values (great for debugging inheritance)</li>\n      <li>Box model diagram shows margin, border, padding, content dimensions</li>\n    </ul>\n    <div class=\"try\"><strong>Try it:</strong> Open DevTools on any page, click the cursor icon, then click a heading on the page. You will see it highlighted in the Elements panel with its CSS on the right.</div>\n  </div>\n  <div id=\"console\" class=\"panel\">\n    <h4>Console Panel</h4>\n    <p>A JavaScript REPL and log viewer. Every console.log(), error, and warning from the page appears here.</p>\n    <ul class=\"feature-list\">\n      <li>Type any JavaScript expression and press Enter to run it</li>\n      <li>Errors show the file and line number — click to jump to Sources</li>\n      <li>Filter by: Errors only, Warnings only, or search by text</li>\n      <li>$0 refers to the element currently selected in the Elements panel</li>\n      <li>Press ↑ arrow to recall previous commands</li>\n    </ul>\n    <div class=\"code\">// Useful console commands\\nconsole.log('hello')          // print a value\\nconsole.table([{a:1},{a:2}])  // print as table\\nconsole.dir(document.body)    // inspect object\\n$0                            // currently selected element\\n$('h1')                       // querySelector shorthand\\n$$('p')                       // querySelectorAll shorthand</div>\n  </div>\n  <div id=\"network\" class=\"panel\">\n    <h4>Network Panel</h4>\n    <p>Shows every HTTP request the page makes. Reload the page after opening to see all requests from the start.</p>\n    <ul class=\"feature-list\">\n      <li>Filter by type: XHR/Fetch (API calls), JS, CSS, Img, Font, Doc</li>\n      <li>Click any request to see Headers, Preview, Response, Timing</li>\n      <li>Timing waterfall shows parallel vs sequential loading</li>\n      <li>Right-click a request → Copy → Copy as cURL to replay it in terminal</li>\n      <li>Check 'Disable cache' while developing to always get fresh responses</li>\n    </ul>\n    <div class=\"try\"><strong>Try it:</strong> Open Network tab, reload this page, filter by 'Fetch/XHR'. You will see any API calls the page makes. Click one to inspect its request headers and response body.</div>\n  </div>\n  <div id=\"sources\" class=\"panel\">\n    <h4>Sources Panel</h4>\n    <p>Browse and debug all JavaScript files loaded by the page. Set breakpoints to pause execution and inspect values.</p>\n    <ul class=\"feature-list\">\n      <li>Click a line number to set a breakpoint — execution pauses here</li>\n      <li>Step over / step into / step out controls to walk through code</li>\n      <li>Scope panel shows all variables in the current scope</li>\n      <li>Watch panel evaluates expressions as you step</li>\n      <li>Ctrl+P (Cmd+P on Mac) to open any file by name</li>\n    </ul>\n    <div class=\"code\">// You can also set breakpoints in code:\\ndebugger;  // execution pauses here when DevTools is open</div>\n  </div>\n  <div id=\"application\" class=\"panel\">\n    <h4>Application Panel</h4>\n    <p>Inspect all client-side storage: cookies, localStorage, sessionStorage, IndexedDB, and Service Workers.</p>\n    <ul class=\"feature-list\">\n      <li>Storage → Local Storage → your origin: see all key-value pairs</li>\n      <li>Cookies: see HttpOnly, Secure, SameSite attributes (and their absence)</li>\n      <li>Service Workers: see registered workers, update/unregister them</li>\n      <li>Clear Storage: wipe everything for a fresh start</li>\n      <li>Manifest: inspect your PWA manifest if you have one</li>\n    </ul>\n  </div>\n  <div id=\"lighthouse\" class=\"panel\">\n    <h4>Lighthouse Panel</h4>\n    <p>Automated audits that give your page a score out of 100 for Performance, Accessibility, Best Practices, SEO, and PWA.</p>\n    <ul class=\"feature-list\">\n      <li>Performance: measures LCP, INP, CLS, FCP, TTFB</li>\n      <li>Accessibility: checks for missing alt text, ARIA labels, color contrast</li>\n      <li>SEO: checks meta tags, robots.txt, structured data</li>\n      <li>Each failed audit includes a specific explanation and a fix</li>\n      <li>Run in Incognito mode for accurate results (no extensions interference)</li>\n    </ul>\n    <div class=\"try\"><strong>Try it:</strong> Open Lighthouse on any production page. Run an audit. Even popular sites often have accessibility or performance issues — fixing them is a great way to learn.</div>\n  </div>\n  <script>\n    function show(id){\n      document.querySelectorAll('.panel,.tab').forEach(el=>el.classList.remove('active'));\n      document.getElementById(id).classList.add('active');\n      document.querySelectorAll('.tab').forEach((t,i)=>{if(['elements','console','network','sources','application','lighthouse'][i]===id)t.classList.add('active');});\n    }\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "web-07-q1",
+          "question": "You edited a CSS rule in the Elements panel to fix a layout bug. Where do you make the permanent fix?",
+          "type": "multiple-choice",
+          "options": [
+            "Nowhere — DevTools changes are automatically saved to your file",
+            "In your actual CSS file in your code editor — DevTools changes reset on reload",
+            "In the Styles pane — click Save to write to disk",
+            "In the Console — type document.write() to save"
+          ],
+          "correctAnswer": 1,
+          "explanation": "DevTools changes are live but temporary — they exist only in the browser's memory and disappear on reload. Once you find the correct value in DevTools (e.g. the right padding that fixes the layout), copy it and apply it in your actual CSS file using your code editor."
+        },
+        {
+          "id": "web-07-q2",
+          "question": "Which DevTools panel should you open to see why an API call is failing?",
+          "type": "multiple-choice",
+          "options": [
+            "Elements",
+            "Sources",
+            "Network",
+            "Application"
+          ],
+          "correctAnswer": 2,
+          "explanation": "The Network panel shows every HTTP request and response. For a failing API call, click the request in the Network panel to see: the exact URL requested, the request headers (including Authorization), the HTTP status code, and the response body (which often contains the error message from the server)."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Which browser has the best DevTools?",
+      "a": "Chrome DevTools is generally considered the most feature-rich, with the best performance profiling and Lighthouse integration. Firefox DevTools has unique strengths in CSS Grid and Flexbox inspection — it draws visual overlays showing grid lines and flex containers. Safari DevTools is required for debugging iOS devices. Most developers use Chrome DevTools day-to-day."
+    },
+    {
+      "q": "Can I use DevTools on my phone?",
+      "a": "Yes, through remote debugging. Connect your Android phone to your computer via USB, enable USB debugging in Android developer options, then open chrome://inspect in Chrome on your desktop. You can see and interact with DevTools for the browser running on your phone."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Chrome DevTools Documentation",
+      "url": "https://developer.chrome.com/docs/devtools",
+      "verified": "2026-10-05"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["debugging UI bugs", "inspecting API responses", "testing CSS changes", "analyzing page performance", "reading error stack traces"],
+    "examples": [
+      "When a button does not work, open Console — 9 times out of 10 there is a red JavaScript error with the exact line causing the problem",
+      "When an API call fails, open Network → click the failing request → Response tab shows the server's error message",
+      "When a page feels slow, run Lighthouse → Performance → it tells you exactly which images are too large and which JavaScript is blocking rendering"
+    ]
+  }
+}

@@ -1,0 +1,192 @@
+{
+  "id": "01-what-is-the-web",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "fundamentals",
+  "technologyVersion": "1.0",
+  "module": "web-how-it-works",
+  "title": "What is the Web?",
+  "subtitle": "Internet vs the web, clients, servers, and packets",
+  "difficulty": "beginner",
+  "estimatedMinutes": 12,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-05",
+  "updatedAt": "2026-10-05",
+  "lastVerified": "2026-10-05",
+  "prerequisites": [],
+  "skillsTaught": ["web.internet-vs-web", "web.client-server", "web.packets"],
+  "skillsUsed": [],
+  "relatedConcepts": ["web.browsers", "web.http", "web.urls"],
+  "whyItExists": {
+    "problem": "Most people use the web every day but have no mental model of what it actually is. Without understanding what the web is, you can't reason about why things work or break.",
+    "solution": "The web is a specific service built on top of the internet. Once you distinguish between the two, and understand the client-server model, everything else — HTTP, URLs, APIs — falls into place.",
+    "whenToUse": "This mental model is always active. Every network request, every API call, every slow page load makes sense once you understand clients, servers, and packets.",
+    "whenNotToUse": "N/A — this is foundational knowledge."
+  },
+  "explainModes": {
+    "beginner": "The internet is like the roads and highways of a city. The web is one type of vehicle that drives on those roads — specifically, the kind that lets you visit web pages. The road system (internet) also carries email, video calls, and gaming traffic. The web is just the part you use when you type a URL into your browser.",
+    "simple": "Internet = the physical network (cables, routers, Wi-Fi) that connects billions of devices. Web = a service built on top of the internet that uses HTTP to deliver HTML pages. Your browser is a client — it requests pages. A web server is a computer that stores and sends those pages. Data travels as small chunks called packets.",
+    "standard": "The internet is a global packet-switched network. The World Wide Web is an information system built on top of it, using HTTP/HTTPS as its application layer protocol and HTML/CSS/JavaScript as its content languages. Tim Berners-Lee invented it in 1989 at CERN. Clients (browsers) request resources from servers, which respond with data. Each page may trigger dozens of sub-requests for images, scripts, fonts, and API data.",
+    "technical": "The internet runs on the TCP/IP protocol stack. HTTP (HyperText Transfer Protocol) is an application-layer protocol on top of TCP. HTTP/1.1 opened a new TCP connection per request (with keep-alive as an optimization). HTTP/2 multiplexes requests over a single TCP connection. HTTP/3 uses QUIC over UDP for lower latency. A client-server interaction involves DNS resolution, TCP handshake (or QUIC handshake for HTTP/3), optional TLS negotiation, then the actual HTTP request-response exchange.",
+    "deepDive": "Tim Berners-Lee's original proposal at CERN (1989) described a 'mesh' of information linked by hypertext. Three inventions made it work: URL (uniform resource locator), HTTP (the transfer protocol), and HTML (the markup language). The internet itself predates the web by ~20 years — ARPANET (1969) was a US Defense Department project. The distinction matters for engineers: the web is one application layer on top of the internet's transport infrastructure. Others include email (SMTP/IMAP), file transfer (FTP/SFTP), and real-time communication (WebRTC, which also runs on QUIC)."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The internet vs the web"
+    },
+    {
+      "type": "paragraph",
+      "text": "Developers often use <em>internet</em> and <em>web</em> interchangeably, but they are different things — and the distinction matters."
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "<strong>The internet</strong> — the physical and logical infrastructure: cables under oceans, routers in data centers, Wi-Fi signals in your home. It connects billions of devices worldwide.",
+        "<strong>The web</strong> — one service that runs on top of the internet. It uses a protocol called <strong>HTTP</strong> to transfer <strong>HTML</strong> pages between computers.",
+        "<strong>Other internet services</strong> — email (SMTP), file transfer (FTP), video calls (WebRTC), and online gaming all use the same internet infrastructure but are not the web."
+      ]
+    },
+    {
+      "type": "tip",
+      "text": "When your email goes down but the web still works, it is because they are separate services sharing the same internet infrastructure."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Clients and servers"
+    },
+    {
+      "type": "paragraph",
+      "text": "Every web interaction involves two roles: a <strong>client</strong> and a <strong>server</strong>."
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "client-server model",
+      "code": "CLIENT (your browser)           SERVER (web server)\n        │                               │\n        │  ── request ──────────────>   │  ← stores files/data\n        │                               │  ← runs software\n        │  <── response ─────────────   │\n        │                               │\n  displays page                    sends HTML, CSS, JS,\n  runs JavaScript                  images, JSON data"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "<strong>Client</strong> — the browser (Chrome, Firefox, Safari). It initiates requests, receives responses, and renders what the user sees.",
+        "<strong>Server</strong> — a computer that is always running, waiting for requests, and responding with data. It could be a single machine in a closet or thousands of machines in a data center.",
+        "<strong>You can be both</strong> — a developer running a local server makes their own computer act as both client and server simultaneously."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "How data travels: packets"
+    },
+    {
+      "type": "paragraph",
+      "text": "Data on the internet is never sent as one big chunk. It is broken into small units called <strong>packets</strong> — each about 1,500 bytes (roughly 1,500 characters)."
+    },
+    {
+      "type": "list",
+      "ordered": true,
+      "items": [
+        "Your browser prepares an HTTP request (\"get me the homepage of example.com\")",
+        "The request is broken into packets, each labeled with a source address and destination address",
+        "Packets travel independently through routers — different packets from the same request may take different paths across the world",
+        "The server's network card reassembles the packets in the correct order",
+        "The server sends back a response (the HTML page), also broken into packets",
+        "Your browser reassembles the response and renders the page"
+      ]
+    },
+    {
+      "type": "tip",
+      "text": "Packets crossing the Atlantic in fiber optic cables travel at about 200,000 km/s — close to the speed of light. A round trip from New York to London takes roughly 70ms."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Interactive: Client-Server Request Simulator",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n<style>\n  body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0;font-size:14px}\n  h3{color:#4fd1c5;margin:0 0 16px}\n  .scene{display:flex;align-items:center;justify-content:space-around;gap:12px;margin:16px 0}\n  .box{background:#1a1f2b;border:2px solid #2d3748;border-radius:10px;padding:14px 20px;text-align:center;min-width:100px}\n  .box .icon{font-size:2rem;margin-bottom:6px}\n  .box .label{font-weight:700;color:#e2e8f0;font-size:0.85rem}\n  .box .sub{color:#64748b;font-size:0.72rem;margin-top:2px}\n  .arrow-area{flex:1;position:relative;height:60px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:6px}\n  .arrow{font-size:1.2rem;transition:all 0.4s}\n  .arrow.active{color:#4fd1c5}\n  .arrow.inactive{color:#2d3748}\n  .arrow-label{font-size:0.7rem;color:#64748b;text-align:center;max-width:120px}\n  .log{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:10px;font-family:monospace;font-size:0.75rem;min-height:80px;margin-top:12px}\n  .log-line{padding:2px 0;border-bottom:1px solid #1a1f2b}\n  .log-line:last-child{border:none}\n  .t{color:#64748b;margin-right:8px}\n  .ok{color:#4fd1c5}.req{color:#93c5fd}.resp{color:#86efac}.warn{color:#fbbf24}\n  .btn{background:#4fd1c5;color:#0e1116;border:none;border-radius:6px;padding:8px 18px;cursor:pointer;font-weight:700;font-size:0.82rem;margin-top:12px}\n  .btn:disabled{background:#2d3748;color:#64748b;cursor:not-allowed}\n  .steps{margin-top:14px}\n  .step{padding:5px 0;font-size:0.78rem;color:#64748b;border-left:2px solid #2d3748;padding-left:10px;margin-bottom:4px;transition:all 0.3s}\n  .step.done{color:#e2e8f0;border-color:#4fd1c5}\n  .step.active{color:#4fd1c5;border-color:#4fd1c5;font-weight:600}\n</style>\n</head>\n<body>\n  <h3>Client → Server → Client</h3>\n  <div class=\"scene\">\n    <div class=\"box\" id=\"client-box\">\n      <div class=\"icon\">🌐</div>\n      <div class=\"label\">Browser</div>\n      <div class=\"sub\">Client</div>\n    </div>\n    <div class=\"arrow-area\">\n      <div class=\"arrow inactive\" id=\"req-arrow\">────── request ──────></div>\n      <div class=\"arrow inactive\" id=\"resp-arrow\">&lt;── response ──────</div>\n      <div class=\"arrow-label\" id=\"arrow-label\">Click to start</div>\n    </div>\n    <div class=\"box\" id=\"server-box\">\n      <div class=\"icon\">🖥️</div>\n      <div class=\"label\">Web Server</div>\n      <div class=\"sub\">Server</div>\n    </div>\n  </div>\n  <div class=\"steps\">\n    <div class=\"step\" id=\"s1\">1. Browser needs example.com homepage</div>\n    <div class=\"step\" id=\"s2\">2. DNS lookup: example.com → 93.184.216.34</div>\n    <div class=\"step\" id=\"s3\">3. TCP connection established (3-way handshake)</div>\n    <div class=\"step\" id=\"s4\">4. HTTP GET / request sent</div>\n    <div class=\"step\" id=\"s5\">5. Server processes request, finds index.html</div>\n    <div class=\"step\" id=\"s6\">6. Server sends HTTP 200 OK + HTML body</div>\n    <div class=\"step\" id=\"s7\">7. Browser parses HTML and renders the page ✓</div>\n  </div>\n  <div class=\"log\" id=\"log\"><span style=\"color:#64748b\">Press the button to simulate a page load...</span></div>\n  <button class=\"btn\" id=\"btn\" onclick=\"runSim()\">Simulate page load</button>\n  <script>\n    let running=false;\n    const steps=['s1','s2','s3','s4','s5','s6','s7'];\n    const logs=[\n      {t:'0ms',   cls:'req',  txt:'[Browser]  User navigated to http://example.com'},\n      {t:'1ms',   cls:'ok',   txt:'[DNS]      Resolving example.com...'},\n      {t:'18ms',  cls:'ok',   txt:'[DNS]      Resolved → 93.184.216.34'},\n      {t:'20ms',  cls:'req',  txt:'[TCP]      SYN sent to 93.184.216.34:80'},\n      {t:'88ms',  cls:'ok',   txt:'[TCP]      SYN-ACK received — connection established'},\n      {t:'89ms',  cls:'req',  txt:'[HTTP]     GET / HTTP/1.1  Host: example.com'},\n      {t:'156ms', cls:'ok',   txt:'[Server]   Processing: found index.html (1,249 bytes)'},\n      {t:'157ms', cls:'resp', txt:'[HTTP]     HTTP/1.1 200 OK  Content-Type: text/html'},\n      {t:'180ms', cls:'resp', txt:'[Browser]  Received 1,249 bytes, parsing HTML...'},\n      {t:'195ms', cls:'ok',   txt:'[Browser]  DOM built, page rendered ✓  (total: 195ms)'},\n    ];\n    async function runSim(){\n      if(running)return;\n      running=true;\n      document.getElementById('btn').disabled=true;\n      document.getElementById('log').innerHTML='';\n      steps.forEach(id=>document.getElementById(id).className='step');\n      document.getElementById('req-arrow').className='arrow inactive';\n      document.getElementById('resp-arrow').className='arrow inactive';\n      document.getElementById('arrow-label').textContent='Loading...';\n      for(let i=0;i<logs.length;i++){\n        await delay(300);\n        const {t,cls,txt}=logs[i];\n        const line=document.createElement('div');\n        line.className='log-line';\n        line.innerHTML=`<span class=\"t\">${t}</span><span class=\"${cls}\">${txt}</span>`;\n        document.getElementById('log').appendChild(line);\n        if(i<7) document.getElementById(steps[i]).className='step active';\n        if(i>0) document.getElementById(steps[i-1]).className='step done';\n        if(i===5){document.getElementById('req-arrow').className='arrow active';document.getElementById('arrow-label').textContent='request →';}\n        if(i===7){document.getElementById('req-arrow').className='arrow inactive';document.getElementById('resp-arrow').className='arrow active';document.getElementById('arrow-label').textContent='← response';}\n      }\n      document.getElementById(steps[6]).className='step done';\n      document.getElementById('resp-arrow').className='arrow inactive';\n      document.getElementById('arrow-label').textContent='Done!';\n      document.getElementById('btn').disabled=false;\n      running=false;\n    }\n    function delay(ms){return new Promise(r=>setTimeout(r,ms));}\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "web-01-q1",
+          "question": "What is the difference between the internet and the web?",
+          "type": "multiple-choice",
+          "options": [
+            "They are the same thing — different words for the same concept",
+            "The internet is the physical network; the web is a service built on top of it",
+            "The web is the physical network; the internet is a service built on top",
+            "The internet is for computers; the web is for phones"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The internet is the global network infrastructure (cables, routers, protocols). The web is one service that runs on top of the internet, using HTTP to deliver HTML pages. Email, video calls, and gaming are other services on the same internet."
+        },
+        {
+          "id": "web-01-q2",
+          "question": "In a client-server model, what is the role of a web browser?",
+          "type": "multiple-choice",
+          "options": [
+            "Server — it stores and sends pages",
+            "Both client and server simultaneously",
+            "Client — it requests pages and renders them for the user",
+            "Router — it directs traffic between servers"
+          ],
+          "correctAnswer": 2,
+          "explanation": "A web browser is a client. It sends requests to servers and renders the responses for the user. The server stores data, processes requests, and sends responses back. (Note: a developer's machine running a local server is technically both — but in typical web usage, the browser is purely the client.)"
+        },
+        {
+          "id": "web-01-q3",
+          "question": "Why is data on the internet sent as packets rather than one continuous stream?",
+          "type": "multiple-choice",
+          "options": [
+            "Packets are faster because they are compressed",
+            "Packets allow multiple conversations to share the same network cables",
+            "Packets prevent copyright infringement",
+            "Packets encrypt the data automatically"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Packet switching allows many devices to share the same physical cables by interleaving small chunks of data. It also improves reliability — if one packet is lost, only that packet is resent, not the entire file. This is the fundamental design of the internet and why it is resilient to failures."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Who invented the web?",
+      "a": "Tim Berners-Lee, a British scientist working at CERN, invented the World Wide Web in 1989. He created the first web browser, the first web server, and the first web page. The internet itself (as ARPANET) was invented about 20 years earlier by the US Defense Department."
+    },
+    {
+      "q": "Is Wi-Fi the internet?",
+      "a": "No. Wi-Fi is a wireless networking technology that connects your device to a local router. The router then connects to your internet service provider (ISP) via a physical cable. Wi-Fi gives you access to the local network — the ISP gives you access to the internet."
+    },
+    {
+      "q": "What is a web server exactly?",
+      "a": "A web server is software (like Apache, Nginx, or Node.js) that listens for HTTP requests and sends back responses. The term also refers to the physical machine that runs that software. Cloud platforms like AWS or Vercel provide managed servers so you do not have to manage physical hardware."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — How the Web Works",
+      "url": "https://developer.mozilla.org/en-US/docs/Learn/Getting_started_with_the_web/How_the_Web_works",
+      "verified": "2026-10-05"
+    },
+    {
+      "name": "MDN — Internet vs the Web",
+      "url": "https://developer.mozilla.org/en-US/docs/Learn/Common_questions/Web_mechanics/How_does_the_Internet_work",
+      "verified": "2026-10-05"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every web request", "API design", "debugging network issues", "understanding load times"],
+    "examples": [
+      "Netflix breaks each video into thousands of packets sent across dozens of servers simultaneously",
+      "When GitHub.com loads, your browser makes 50+ separate requests for HTML, CSS, JS, images, and API data",
+      "A CDN (Content Delivery Network) places server copies close to users worldwide to reduce the time packets spend traveling"
+    ]
+  }
+}

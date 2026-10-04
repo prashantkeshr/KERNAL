@@ -1,0 +1,154 @@
+{
+  "id": "03-urls-and-dns",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "fundamentals",
+  "technologyVersion": "1.0",
+  "module": "web-how-it-works",
+  "title": "URLs and DNS",
+  "subtitle": "Anatomy of a URL, domain names, and how DNS resolves them",
+  "difficulty": "beginner",
+  "estimatedMinutes": 12,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-05",
+  "updatedAt": "2026-10-05",
+  "lastVerified": "2026-10-05",
+  "prerequisites": ["fundamentals/01-what-is-the-web"],
+  "skillsTaught": ["web.url-anatomy", "web.dns", "web.domain-names"],
+  "skillsUsed": ["web.client-server"],
+  "relatedConcepts": ["web.http", "web.path-routing"],
+  "whyItExists": {
+    "problem": "URLs look like magic strings but every part has a specific meaning. Developers who do not understand URL anatomy construct broken links, set up routing incorrectly, and misread server logs.",
+    "solution": "Break the URL into its seven components. Each part has a job: scheme selects the protocol, host locates the server, port selects the service, path locates the resource, query sends parameters, fragment jumps to a position.",
+    "whenToUse": "Every time you write a link, set up a route, construct an API URL, or debug a redirect.",
+    "whenNotToUse": "N/A — URL structure is always relevant."
+  },
+  "explainModes": {
+    "beginner": "A URL is like a postal address for the web. The scheme is the type of delivery (HTTP or HTTPS). The host is the city and street (the server's name). The path is the apartment number (which specific page). The query is a note you leave on the envelope (extra parameters). The fragment is a sticky note inside the letter (which section to scroll to).",
+    "simple": "URL = scheme :// host : port / path ? query # fragment. Example: https://api.example.com:443/users/42?format=json#profile. Scheme: https (use HTTPS). Host: api.example.com (the server). Port: 443 (default for HTTPS, usually omitted). Path: /users/42 (the resource). Query: format=json (parameter). Fragment: profile (browser scroll target, never sent to server).",
+    "standard": "A URL (Uniform Resource Locator) is defined by RFC 3986. Hosts are human-readable names backed by DNS (Domain Name System). DNS is a globally distributed database that maps domain names to IP addresses. A domain like api.example.com has three parts: TLD (.com), second-level domain (example), and subdomain (api). DNS resolution is hierarchical: root servers → TLD servers → authoritative nameservers for the domain.",
+    "technical": "URL encoding (percent-encoding) converts special characters to %XX hex format for safe transmission. The query string is a flat key-value string — nested data requires conventions like name[0] or JSON encoding. Fragment identifiers are processed exclusively by the browser — they are never sent in the HTTP request, making them useful for client-side state (React Router's hash mode uses this). IDN (Internationalized Domain Names) encode Unicode domains to ASCII using Punycode (e.g., münchen.de becomes xn--mnchen-3ya.de).",
+    "deepDive": "DNS has multiple record types: A (IPv4 address), AAAA (IPv6), CNAME (alias to another domain), MX (mail server), TXT (arbitrary text, used for domain verification and SPF/DKIM for email), NS (nameservers), SOA (zone authority). DNSSEC adds cryptographic signatures to prevent cache poisoning. DNS-over-HTTPS (DoH) and DNS-over-TLS (DoT) encrypt DNS queries, which historically were sent in plaintext — ISPs could see every domain you visited. Modern browsers support DoH natively."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Anatomy of a URL"
+    },
+    {
+      "type": "paragraph",
+      "text": "Every URL you have ever typed or clicked follows the same structure. Understanding each part helps you construct correct links, debug broken ones, and design clean API routes."
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "URL anatomy",
+      "code": "https://api.example.com:443/users/42?format=json&lang=en#profile\n│      │               │   │         │                   │\n│      │               │   │         │                   └── Fragment\n│      │               │   │         └── Query string\n│      │               │   └── Path\n│      │               └── Port\n│      └── Host (domain)\n└── Scheme\n\nScheme  → https  (which protocol to use)\nHost    → api.example.com  (which server to talk to)\nPort    → 443  (which port on the server; 443 is default for HTTPS, usually omitted)\nPath    → /users/42  (which resource on the server)\nQuery   → format=json&lang=en  (key=value pairs, separated by &)\nFragment → profile  (browser scrolls to this; NEVER sent to the server)"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "<strong>Scheme</strong> — <code>http</code> or <code>https</code>. Tells the browser which protocol to use. Always use <code>https</code> — it encrypts the connection.",
+        "<strong>Host</strong> — the domain name. Translated to an IP address by DNS.",
+        "<strong>Port</strong> — a number from 0–65535. HTTP defaults to <code>80</code>, HTTPS to <code>443</code>. Omit when using defaults.",
+        "<strong>Path</strong> — the location of the resource on the server. Like a file path on disk. Starts with <code>/</code>.",
+        "<strong>Query string</strong> — optional parameters after <code>?</code>. Keys and values joined by <code>=</code>, pairs joined by <code>&</code>.",
+        "<strong>Fragment</strong> — after <code>#</code>. The browser uses this to scroll to an element with that ID. Never sent to the server — purely client-side."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Domain names and DNS"
+    },
+    {
+      "type": "paragraph",
+      "text": "<strong>DNS</strong> (Domain Name System) is the internet's phone book. It translates human-readable domain names like <code>kernal.dhurta.org</code> into IP addresses like <code>185.199.108.153</code> that computers use to connect."
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "DNS resolution",
+      "code": "Domain:  kernal . dhurta . org\n         │        │         │\n         │        │         └── TLD (Top-Level Domain): .org, .com, .io, .dev\n         │        └── Second-level domain: you register this (e.g. on Namecheap, GoDaddy)\n         └── Subdomain: you configure this in your DNS settings\n\nDNS lookup sequence:\n1. Browser cache (remembers recent lookups)\n2. OS cache (/etc/hosts on Linux/Mac, C:\\Windows\\System32\\drivers\\etc\\hosts on Windows)\n3. Router cache\n4. ISP recursive DNS resolver\n5. Root nameservers (13 clusters worldwide, know where .org lives)\n6. TLD nameservers (.org knows where dhurta.org nameservers are)\n7. Authoritative nameserver for dhurta.org → returns 185.199.108.153\n8. Result cached with TTL (time-to-live). Common TTLs: 300s–86400s"
+    },
+    {
+      "type": "tip",
+      "text": "You can look up any domain's DNS records in your terminal: <code>nslookup kernal.dhurta.org</code> or <code>dig kernal.dhurta.org</code>. Browsers also show DNS timing in the Network panel's request waterfall."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Interactive: URL Anatomy Dissector",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n<style>\n  body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0;font-size:14px}\n  h3{color:#4fd1c5;margin:0 0 12px}\n  input{width:100%;padding:10px;background:#1a1f2b;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;font-family:monospace;font-size:0.88rem;box-sizing:border-box}\n  input:focus{outline:none;border-color:#4fd1c5}\n  .parts{display:flex;flex-direction:column;gap:6px;margin-top:14px}\n  .part{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:6px;border-left:3px solid transparent}\n  .part-name{font-weight:700;min-width:80px;font-size:0.78rem;flex-shrink:0}\n  .part-val{font-family:monospace;font-size:0.82rem;word-break:break-all}\n  .part-desc{font-size:0.72rem;color:#64748b;margin-top:2px}\n  .empty{color:#2d3748}\n  .highlight{display:inline;padding:1px 4px;border-radius:3px}\n  .examples{margin-top:14px;display:flex;flex-wrap:wrap;gap:6px}\n  .ex{background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:4px 8px;font-family:monospace;font-size:0.72rem;cursor:pointer;color:#94a3b8}\n  .ex:hover{border-color:#4fd1c5;color:#4fd1c5}\n  .colors{scheme:'#7c3aed',host:'#0891b2',port:'#b45309',path:'#166534',query:'#9a3412',fragment:'#be185d'}\n</style>\n</head>\n<body>\n  <h3>URL Anatomy Dissector</h3>\n  <input id=\"url\" type=\"text\" value=\"https://api.example.com:443/users/42?format=json&lang=en#profile\" oninput=\"parse()\" />\n  <div class=\"parts\" id=\"parts\"></div>\n  <div style=\"margin-top:10px;font-size:0.72rem;color:#64748b\">Try an example:</div>\n  <div class=\"examples\">\n    <div class=\"ex\" onclick=\"setUrl('https://kernal.dhurta.org/')\">kernal.dhurta.org/</div>\n    <div class=\"ex\" onclick=\"setUrl('http://localhost:5173/learn/html/01-introduction')\">localhost:5173</div>\n    <div class=\"ex\" onclick=\"setUrl('https://jsonplaceholder.typicode.com/posts?userId=1')\">API with query</div>\n    <div class=\"ex\" onclick=\"setUrl('https://github.com/prashantkeshr/kernal#readme')\">GitHub with fragment</div>\n  </div>\n  <script>\n    const COLORS={scheme:'#7c3aed',host:'#0891b2',port:'#b45309',path:'#166534',query:'#9a3412',fragment:'#be185d'};\n    const DESCS={scheme:'Protocol — https (encrypted) or http (plain)',host:'Domain name — resolved to an IP by DNS',port:'Server port — 443 is default for HTTPS (usually hidden)',path:'Resource path on the server',query:'Key=value parameters (never use for sensitive data)',fragment:'Browser scroll target — never sent to the server'};\n    function setUrl(v){document.getElementById('url').value=v;parse();}\n    function parse(){\n      const raw=document.getElementById('url').value.trim();\n      let u;try{u=new URL(raw);}catch(e){document.getElementById('parts').innerHTML='<div style=\"color:#ef4444;font-size:0.78rem\">Invalid URL — make sure it includes https:// or http://</div>';return;}\n      const parts=[\n        {k:'scheme',v:u.protocol.replace(':','')},\n        {k:'host',v:u.hostname},\n        {k:'port',v:u.port||(u.protocol==='https:'?'443 (default)':u.protocol==='http:'?'80 (default)':'')},\n        {k:'path',v:u.pathname},\n        {k:'query',v:u.search.replace('?','')||'(none)'},\n        {k:'fragment',v:u.hash.replace('#','')||'(none)'},\n      ];\n      document.getElementById('parts').innerHTML=parts.map(p=>`\n        <div class=\"part\" style=\"border-left-color:${COLORS[p.k]}\">\n          <div style=\"min-width:80px\">\n            <div class=\"part-name\" style=\"color:${COLORS[p.k]}\">${p.k}</div>\n          </div>\n          <div>\n            <div class=\"part-val\">${p.v}</div>\n            <div class=\"part-desc\">${DESCS[p.k]}</div>\n          </div>\n        </div>`).join('');\n    }\n    parse();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "web-03-q1",
+          "question": "In the URL https://shop.example.com/products?category=shoes#size-guide, what is the fragment?",
+          "type": "multiple-choice",
+          "options": [
+            "products",
+            "category=shoes",
+            "size-guide",
+            "shop.example.com"
+          ],
+          "correctAnswer": 2,
+          "explanation": "The fragment is everything after #, which is 'size-guide'. It tells the browser to scroll to an element with id='size-guide'. The fragment is NEVER sent to the server — it exists only in the browser. This is why React Router's hash mode (/#/page) works without a server: the server sees a request for / and the browser handles the #/page part."
+        },
+        {
+          "id": "web-03-q2",
+          "question": "DNS converts _____ into _____.",
+          "type": "multiple-choice",
+          "options": [
+            "IP addresses into domain names",
+            "HTTP requests into HTTPS",
+            "Domain names into IP addresses",
+            "URLs into file paths"
+          ],
+          "correctAnswer": 2,
+          "explanation": "DNS (Domain Name System) converts human-readable domain names (like google.com) into machine-readable IP addresses (like 142.250.185.46). Computers communicate using IP addresses; domain names are just a friendly alias for humans. The reverse — looking up a domain from an IP — is called a 'reverse DNS lookup'."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between a URL, a URI, and a URN?",
+      "a": "URI (Uniform Resource Identifier) is the broadest term — it identifies a resource. URL (Uniform Resource Locator) is a URI that also specifies how to locate it (http://, ftp://, etc.). URN (Uniform Resource Name) identifies without saying how to find it (like an ISBN for books). In everyday web development, URL is the term you use."
+    },
+    {
+      "q": "Why does localhost not need DNS?",
+      "a": "localhost is a special hostname that always resolves to 127.0.0.1 (IPv4) or ::1 (IPv6) — your own machine. It is defined in the operating system's hosts file, bypassing DNS entirely. This is why your development server is instant — no DNS lookup."
+    },
+    {
+      "q": "Can a URL have a space in it?",
+      "a": "No — spaces and many special characters are not allowed in URLs. They must be percent-encoded: a space becomes %20, a # becomes %23. Browsers handle this automatically when you paste a URL, and the URLSearchParams API handles it when building query strings in JavaScript."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — What is a URL?",
+      "url": "https://developer.mozilla.org/en-US/docs/Learn/Common_questions/Web_mechanics/What_is_a_URL",
+      "verified": "2026-10-05"
+    },
+    {
+      "name": "MDN — What is DNS?",
+      "url": "https://developer.mozilla.org/en-US/docs/Learn/Common_questions/Web_mechanics/What_is_a_domain_name",
+      "verified": "2026-10-05"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["building hyperlinks", "API endpoint design", "client-side routing", "SEO", "debugging 404 errors"],
+    "examples": [
+      "GitHub uses the URL path /owner/repo/blob/branch/file to locate any file in any repo",
+      "Google uses query strings (?q=search+term) to pass search terms without creating a new URL for each query",
+      "Single-page apps like React Router use the fragment (#/route) so the server always serves the same HTML file regardless of the 'page' the user is on"
+    ]
+  }
+}

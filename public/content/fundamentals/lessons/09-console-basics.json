@@ -1,0 +1,154 @@
+{
+  "id": "09-console-basics",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "fundamentals",
+  "technologyVersion": "1.0",
+  "module": "web-developer-tools",
+  "title": "The Console",
+  "subtitle": "console.log, errors, warnings, and running JavaScript live",
+  "difficulty": "beginner",
+  "estimatedMinutes": 12,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-05",
+  "updatedAt": "2026-10-05",
+  "lastVerified": "2026-10-05",
+  "prerequisites": ["fundamentals/07-browser-devtools"],
+  "skillsTaught": ["web.console-api", "web.reading-errors", "web.js-repl"],
+  "skillsUsed": ["web.devtools-navigation"],
+  "relatedConcepts": ["js.debugging", "js.console", "web.devtools-panels"],
+  "whyItExists": {
+    "problem": "When JavaScript breaks, the page just does nothing — no feedback, no error message visible to the user. Developers need a place to see what went wrong.",
+    "solution": "The Console is where JavaScript sends output, reports errors, and takes live input. Every error includes a file name, line number, and error type — enough to find and fix the problem.",
+    "whenToUse": "Debugging any JavaScript behavior. Checking values at runtime. Running quick experiments without creating a file.",
+    "whenNotToUse": "console.log is for development only — remove it (or use a logging library) before deploying to production."
+  },
+  "explainModes": {
+    "beginner": "The Console is your browser's way of showing you what JavaScript is doing. When you write console.log('hello'), it prints 'hello' in the Console. When JavaScript crashes, the Console shows a red error message telling you exactly which line broke and why. You can also type JavaScript directly into the Console and press Enter to run it — like a calculator for your web page.",
+    "simple": "console.log(value) — print any value. console.error(msg) — print in red. console.warn(msg) — print in yellow. console.table(array) — print as formatted table. console.group(name) / console.groupEnd() — group related messages. Errors show: error type, message, file, line number, and a stack trace. Stack trace = the chain of function calls that led to the error.",
+    "standard": "The Console API is defined by the WHATWG Console Living Standard. It is available in browsers and in Node.js. console.log can print any JavaScript value — primitives, objects, arrays, DOM nodes. Objects are interactive: click the arrow to expand and explore nested properties. The Console's JavaScript REPL (Read-Eval-Print Loop) evaluates expressions in the context of the current page — you have access to document, window, and all global variables.",
+    "technical": "console.time(label) / console.timeEnd(label) measure elapsed time between two points. console.profile(label) / console.profileEnd(label) start and stop the JavaScript CPU profiler. console.assert(condition, message) logs only when the condition is false — useful for invariant checking during development. console.count(label) increments a counter each time it is called — useful for counting how many times a function runs.",
+    "deepDive": "The browser's Console is sandboxed — you run code in the page's JavaScript context but cannot access the browser's internal state. Chrome DevTools allows you to change the Console's execution context (top-right dropdown) to run code inside a specific iframe or Service Worker. Stack traces show the call stack at the time of the error — in production builds, source maps translate minified names back to original names. Source maps are separate .map files that map compiled code back to your source — DevTools loads them automatically when they exist."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The console API"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "console-methods.js",
+      "code": "// Basic output\nconsole.log('Hello, world!');          // white text\nconsole.info('Page loaded');           // same as log\nconsole.warn('Deprecated API used');   // yellow, warning icon\nconsole.error('Fetch failed: 404');    // red, error icon, stack trace\n\n// Structured output\nconsole.table([                        // renders as a table\n  { name: 'Alice', score: 95 },\n  { name: 'Bob', score: 80 },\n]);\n\nconsole.dir(document.body);            // explore an object's properties\n\n// Grouping\nconsole.group('User data');            // collapsible group\nconsole.log('Name: Alice');\nconsole.log('Role: admin');\nconsole.groupEnd();\n\n// Timing\nconsole.time('fetch-users');           // start timer\nawait fetchUsers();\nconsole.timeEnd('fetch-users');        // prints: 'fetch-users: 84ms'\n\n// Assertions\nconsole.assert(user.age > 0, 'Age must be positive'); // only logs if false\n\n// Counting\nconsole.count('click');  // click: 1\nconsole.count('click');  // click: 2"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Reading error messages"
+    },
+    {
+      "type": "paragraph",
+      "text": "When JavaScript throws an error, the Console shows three key pieces of information: the <strong>error type</strong>, the <strong>error message</strong>, and a <strong>stack trace</strong> showing exactly which line caused the problem."
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Reading an error",
+      "code": "Uncaught TypeError: Cannot read properties of undefined (reading 'name')\n    at getUserName (app.js:42:18)     ← line 42, column 18 in app.js\n    at renderHeader (app.js:15:5)     ← called from renderHeader\n    at app.js:3:1                     ← called from top of file\n\n┌─ Error type: TypeError\n├─ Message: Cannot read properties of undefined (reading 'name')\n└─ Translation: You tried to access .name on something that is undefined\n                → the variable you used is undefined, not an object\n\nFix: Check that the variable is not null/undefined before accessing .name\n     const name = user?.name ?? 'Unknown';"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "<strong>TypeError</strong> — wrong type (accessed property on undefined/null, called non-function)",
+        "<strong>ReferenceError</strong> — variable does not exist (typo, wrong scope, forgot to import)",
+        "<strong>SyntaxError</strong> — invalid JavaScript syntax (missing bracket, unexpected token)",
+        "<strong>RangeError</strong> — value out of valid range (array length negative, too many recursion levels)"
+      ]
+    },
+    {
+      "type": "tip",
+      "text": "Click the file:line link in a stack trace (e.g. <code>app.js:42</code>) to jump directly to that line in the Sources panel with the code highlighted."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The Console as a JavaScript REPL"
+    },
+    {
+      "type": "paragraph",
+      "text": "You can type any JavaScript expression into the Console and press <strong>Enter</strong> to run it. This gives you live access to the page's JavaScript context."
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "Console REPL examples",
+      "code": "// Inspect the DOM\ndocument.title                     // → 'KERNAL — The core of every coder'\ndocument.querySelector('h1').textContent  // → 'The Three Layers of the Web'\ndocument.querySelectorAll('p').length     // → 14\n\n// Manipulate the page live\ndocument.body.style.background = 'red'  // page background turns red\ndocument.title = 'Hacked!'              // changes the tab title\n\n// Inspect stored data\nlocalStorage.getItem('kernal_progress')  // see your saved progress\nJSON.parse(localStorage.getItem('kernal_progress'))\n\n// DevTools shortcuts\n$0          // the element currently selected in Elements panel\n$('h1')     // shorthand for document.querySelector('h1')\n$$('p')     // shorthand for document.querySelectorAll('p')\n$_          // the result of the last expression"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Interactive: Console Simulator",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n<style>\n  body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0;font-size:14px}\n  h3{color:#4fd1c5;margin:0 0 12px}\n  .console{background:#0b0e14;border:1px solid #2d3748;border-radius:8px;overflow:hidden}\n  .output{min-height:200px;max-height:300px;overflow-y:auto;padding:8px;font-family:monospace;font-size:0.78rem}\n  .line{padding:2px 4px;border-bottom:1px solid #111;display:flex;gap:8px;align-items:flex-start;line-height:1.5}\n  .line.log{color:#e2e8f0}\n  .line.info{color:#e2e8f0}\n  .line.warn{color:#fbbf24;background:#1a1200}\n  .line.err{color:#ef4444;background:#1a0000}\n  .line.result{color:#4fd1c5}\n  .line.input{color:#94a3b8}\n  .icon{min-width:14px}\n  .input-row{display:flex;gap:0;border-top:1px solid #2d3748}\n  .prompt{padding:8px;color:#4fd1c5;font-family:monospace;font-size:0.82rem;user-select:none}\n  .cinput{flex:1;background:transparent;border:none;color:#e2e8f0;font-family:monospace;font-size:0.78rem;padding:8px 4px;outline:none}\n  .presets{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}\n  .preset{background:#1a1f2b;border:1px solid #2d3748;border-radius:4px;padding:3px 8px;font-family:monospace;font-size:0.72rem;cursor:pointer;color:#94a3b8}\n  .preset:hover{border-color:#4fd1c5;color:#4fd1c5}\n  .clear{background:none;border:none;color:#64748b;font-size:0.72rem;padding:4px 8px;cursor:pointer;border-top:1px solid #2d3748;width:100%;text-align:right}\n</style>\n</head>\n<body>\n  <h3>Console Simulator — try console methods</h3>\n  <div class=\"presets\">\n    <div class=\"preset\" onclick=\"run('console.log(\\\"Hello, world!\\\")')\">console.log</div>\n    <div class=\"preset\" onclick=\"run('console.warn(\\\"Deprecated API\\\")')\">console.warn</div>\n    <div class=\"preset\" onclick=\"run('console.error(\\\"Fetch failed: 404\\\")')\">console.error</div>\n    <div class=\"preset\" onclick=\"run('console.table([{name:\\\"Alice\\\",score:95},{name:\\\"Bob\\\",score:80}])')\">console.table</div>\n    <div class=\"preset\" onclick=\"run('[1,2,3].map(x => x * 2)')\">array.map</div>\n    <div class=\"preset\" onclick=\"run('typeof null')\">typeof null</div>\n    <div class=\"preset\" onclick=\"run('new Date().toISOString()')\">Date</div>\n    <div class=\"preset\" onclick=\"run('Math.random()')\">Math.random</div>\n    <div class=\"preset\" onclick=\"run('null.name')\">TypeError</div>\n    <div class=\"preset\" onclick=\"run('undeclaredVar')\">ReferenceError</div>\n  </div>\n  <div class=\"console\">\n    <div class=\"output\" id=\"out\"></div>\n    <button class=\"clear\" onclick=\"clearConsole()\">Clear console</button>\n    <div class=\"input-row\">\n      <div class=\"prompt\">&gt;</div>\n      <input class=\"cinput\" id=\"inp\" placeholder=\"Type JavaScript here...\" onkeydown=\"if(event.key==='Enter')runInput()\" />\n    </div>\n  </div>\n  <script>\n    let history=[],histIdx=-1;\n    const out=document.getElementById('out');\n    function addLine(text,cls,icon=''){\n      const div=document.createElement('div');\n      div.className='line '+cls;\n      div.innerHTML=`<span class=\"icon\">${icon}</span><span>${typeof text==='object'?formatVal(text):escHtml(String(text))}</span>`;\n      out.appendChild(div);out.scrollTop=out.scrollHeight;\n    }\n    function formatVal(v){\n      if(Array.isArray(v))return'('+v.length+') ['+v.map(formatVal).join(', ')+']';\n      if(v===null)return'null';\n      if(typeof v==='object'){const keys=Object.keys(v);if(keys.length===0)return'{}';const inner=keys.slice(0,4).map(k=>`${k}: ${formatVal(v[k])}`).join(', ');return`{${inner}${keys.length>4?', …':''}}`; }\n      if(typeof v==='string')return'\"'+v+'\"';\n      return String(v);\n    }\n    function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}\n    const origLog=console.log,origWarn=console.warn,origError=console.error;\n    function patchConsole(){\n      console.log=(...a)=>{addLine(a.length===1?a[0]:a.join(' '),'log','');origLog(...a);};\n      console.warn=(...a)=>{addLine(a.join(' '),'warn','⚠');origWarn(...a);};\n      console.error=(...a)=>{addLine(a.join(' '),'err','✖');origError(...a);};\n      console.table=(arr)=>{\n        if(Array.isArray(arr)&&arr.length&&typeof arr[0]==='object'){\n          const keys=Object.keys(arr[0]);\n          const header='(index)  '+keys.join('  ');\n          const rows=arr.map((r,i)=>String(i).padEnd(8)+keys.map(k=>String(r[k]).padEnd(8)).join('  '));\n          addLine(header+'\\n'+rows.join('\\n'),'log','');\n        }else addLine(String(arr),'log','');\n        origLog(arr);\n      };\n    }\n    function run(code){\n      addLine('> '+code,'input');\n      history.unshift(code);histIdx=-1;\n      patchConsole();\n      try{\n        const result=eval(code);\n        if(result!==undefined)addLine(result,'result','←');\n      }catch(e){\n        addLine(e.name+': '+e.message,'err','✖');\n      }\n    }\n    function runInput(){const v=document.getElementById('inp').value.trim();if(v){run(v);document.getElementById('inp').value='';}}\n    function clearConsole(){out.innerHTML='';}\n    document.getElementById('inp').addEventListener('keydown',e=>{\n      if(e.key==='ArrowUp'){e.preventDefault();histIdx=Math.min(histIdx+1,history.length-1);document.getElementById('inp').value=history[histIdx]||'';}\n      if(e.key==='ArrowDown'){e.preventDefault();histIdx=Math.max(histIdx-1,-1);document.getElementById('inp').value=histIdx===-1?'':history[histIdx];}\n    });\n    addLine('Console ready. Try the preset buttons or type JavaScript below.','log','');\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "web-09-q1",
+          "question": "You see: 'Uncaught ReferenceError: userName is not defined' in the Console. What is the most likely cause?",
+          "type": "multiple-choice",
+          "options": [
+            "The variable userName has the value undefined",
+            "The variable userName was never declared — it does not exist in scope",
+            "You need to refresh the page to load the variable",
+            "The server did not return the user's name"
+          ],
+          "correctAnswer": 1,
+          "explanation": "ReferenceError means the variable does not exist at all — it was never declared with let, const, or var in the current scope. Common causes: typo in the variable name, trying to use a variable before it is declared, or forgetting to import a function. This is different from TypeError: cannot read 'x' of undefined — which means the variable EXISTS but its value is undefined."
+        },
+        {
+          "id": "web-09-q2",
+          "question": "Which console method shows an array of objects as a formatted table?",
+          "type": "multiple-choice",
+          "options": [
+            "console.log(array)",
+            "console.format(array)",
+            "console.table(array)",
+            "console.print(array)"
+          ],
+          "correctAnswer": 2,
+          "explanation": "console.table(array) renders an array of objects as a visual table in the Console — perfect for comparing multiple objects at a glance. Each object becomes a row, each property becomes a column. console.log(array) shows the raw array; you have to expand it manually."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Should I remove console.log before deploying?",
+      "a": "Yes, in production. console.log statements slow down your app slightly and expose debugging information that end users and malicious actors can see. Use a build tool (Vite, webpack) with a terser plugin that strips console statements automatically in production builds. Keep them during development — they are your best debugging tool."
+    },
+    {
+      "q": "What is a stack trace?",
+      "a": "A stack trace is the list of function calls that led to the error — most recent at the top. Reading it bottom-up shows the chain: what started the chain (the entry point) → through what intermediate functions → to the line that crashed. The first line mentioning your own code (not a library) is usually where the bug is."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — console",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/console",
+      "verified": "2026-10-05"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["debugging JavaScript errors", "logging API responses", "tracking down null errors", "quick-testing expressions"],
+    "examples": [
+      "When a React component does not render, console.log the props inside the component — if it logs nothing, the component is not being called",
+      "When an async function returns undefined, console.log right before the return — if you see the value, you have an await missing",
+      "When you need to test a regex, type it in the Console: /^\\d{4}-\\d{2}-\\d{2}$/.test('2026-10-05')"
+    ]
+  }
+}

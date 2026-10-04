@@ -1,0 +1,185 @@
+{
+  "id": "04-what-is-http",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "fundamentals",
+  "technologyVersion": "1.0",
+  "module": "web-http",
+  "title": "HTTP — The Language of the Web",
+  "subtitle": "Request and response cycle, headers, and protocol basics",
+  "difficulty": "beginner",
+  "estimatedMinutes": 15,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-05",
+  "updatedAt": "2026-10-05",
+  "lastVerified": "2026-10-05",
+  "prerequisites": ["fundamentals/03-urls-and-dns"],
+  "skillsTaught": ["web.http-basics", "web.request-structure", "web.response-structure", "web.headers"],
+  "skillsUsed": ["web.url-anatomy", "web.client-server"],
+  "relatedConcepts": ["web.http-methods", "web.status-codes", "api.fetch"],
+  "whyItExists": {
+    "problem": "Developers treat HTTP as a black box. When something breaks — a CORS error, a 401, a slow API — they cannot diagnose it without understanding the message format.",
+    "solution": "HTTP is text. A request is a few lines: a method, a URL, headers, and an optional body. A response is a status code, headers, and an optional body. Once you can read these, you can debug anything in the network panel.",
+    "whenToUse": "Every time you work with an API, debug a failed request, set up server responses, or configure caching.",
+    "whenNotToUse": "WebSockets replace HTTP for real-time bidirectional connections. But the initial handshake still uses HTTP."
+  },
+  "explainModes": {
+    "beginner": "HTTP is the language that browsers and servers use to talk to each other. When you go to a web page, your browser sends a message (a request) that says 'please send me this page'. The server reads the message and sends back a reply (a response) with the page content. The response also includes a status code — like 200 (everything is fine) or 404 (I could not find that page).",
+    "simple": "HTTP request: Method + URL + headers + optional body. HTTP response: status line + headers + optional body. Headers are key-value pairs: Content-Type tells you what kind of data, Authorization sends credentials, Cache-Control tells caches how long to keep it. HTTP is stateless — each request is independent, the server does not remember previous ones. Cookies or Authorization headers carry state between requests.",
+    "standard": "HTTP/1.1 (RFC 7230-7235) is the text-based protocol that has powered the web since 1997. HTTP/2 (RFC 7540) uses binary framing and multiplexing — multiple requests and responses can interleave over one TCP connection. HTTP/3 (RFC 9114) replaces TCP with QUIC, reducing latency especially on poor connections. In all versions, the semantics (methods, status codes, headers) are the same. The differences are in transport efficiency.",
+    "technical": "HTTP is a stateless application-layer protocol. 'Stateless' means the server has no memory of previous requests — each request must carry all necessary context (auth token, session cookie). This is by design: it makes servers horizontally scalable (any server can handle any request). The request-response model enables caching at every level: browser cache, CDN cache, proxy cache, server-side cache. Cache semantics are controlled by headers: Cache-Control, ETag, Last-Modified, Vary.",
+    "deepDive": "HTTP/1.1 suffers from Head-of-Line (HoL) blocking: if a large response is being sent, it blocks subsequent responses in the queue. HTTP/2 solved this with multiplexing over a single TCP connection — but TCP itself still has HoL blocking at the transport layer (one dropped packet blocks the whole connection). HTTP/3 + QUIC uses UDP with per-stream reliability, eliminating transport-layer HoL blocking. QUIC also integrates TLS 1.3, reducing connection setup from 2-3 round trips to 0-1 (0-RTT resumption)."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "HTTP is text"
+    },
+    {
+      "type": "paragraph",
+      "text": "HTTP (HyperText Transfer Protocol) is the protocol that browsers and servers use to communicate. Despite sounding technical, an HTTP message is just structured text — you can read it by eye. Every network request you will ever make follows this format."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The HTTP request"
+    },
+    {
+      "type": "code",
+      "lang": "http",
+      "filename": "HTTP Request",
+      "code": "GET /users/42 HTTP/1.1\nHost: api.example.com\nAccept: application/json\nAuthorization: Bearer eyJhbGciOiJSUzI1NiJ9...\nAccept-Encoding: gzip, br\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)\n\n(no body for GET requests)"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "<strong>Request line</strong> — method (<code>GET</code>), path (<code>/users/42</code>), protocol version (<code>HTTP/1.1</code>)",
+        "<strong>Headers</strong> — key-value pairs, one per line. <code>Host</code> is required; others are optional.",
+        "<strong>Blank line</strong> — signals the end of headers",
+        "<strong>Body</strong> — optional. GET requests have no body. POST/PUT/PATCH carry data here."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The HTTP response"
+    },
+    {
+      "type": "code",
+      "lang": "http",
+      "filename": "HTTP Response",
+      "code": "HTTP/1.1 200 OK\nContent-Type: application/json; charset=utf-8\nContent-Length: 97\nCache-Control: max-age=3600\nX-Request-ID: f47ac10b-58cc-4372-a567-0e02b2c3d479\n\n{\n  \"id\": 42,\n  \"name\": \"Alice Smith\",\n  \"email\": \"alice@example.com\",\n  \"role\": \"admin\"\n}"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "<strong>Status line</strong> — protocol version, status code (<code>200</code>), reason phrase (<code>OK</code>)",
+        "<strong>Response headers</strong> — metadata: content type, size, caching rules",
+        "<strong>Blank line</strong> — signals the end of headers",
+        "<strong>Response body</strong> — the actual data: HTML, JSON, an image, etc."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Important request headers"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Common Request Headers",
+      "code": "Host: api.example.com           → Required. Which server to talk to.\nAccept: application/json        → What response format the client wants.\nContent-Type: application/json  → What format the request body is in.\nAuthorization: Bearer <token>   → Credentials (API key, JWT, etc.).\nCookie: session=abc123          → Sends stored cookies to the server.\nIf-None-Match: \"abc123\"         → Conditional GET — only send if changed.\nOrigin: https://app.example.com → Where the request came from (CORS)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Important response headers"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Common Response Headers",
+      "code": "Content-Type: text/html; charset=utf-8  → Body format.\nContent-Length: 4823                     → Body size in bytes.\nCache-Control: max-age=86400, public     → Cache for 24 hours.\nSet-Cookie: token=abc; HttpOnly; Secure  → Set a cookie in the browser.\nLocation: /users/42                      → Where to redirect (for 3xx).\nAccess-Control-Allow-Origin: *          → CORS: any origin may read this.\nX-Request-ID: uuid-here                 → Custom header (X- prefix = non-standard)."
+    },
+    {
+      "type": "tip",
+      "text": "HTTP is stateless — the server remembers nothing between requests. Cookies and Authorization headers are how state (\"I am logged in\") travels from request to request."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Interactive: HTTP Request / Response Builder",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n<style>\n  body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0;font-size:14px}\n  h3{color:#4fd1c5;margin:0 0 12px}\n  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}\n  @media(max-width:600px){.grid{grid-template-columns:1fr}}\n  .card{background:#1a1f2b;border:1px solid #2d3748;border-radius:8px;padding:12px}\n  .card h4{margin:0 0 10px;font-size:0.82rem;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em}\n  select,input{background:#0b0e14;border:1px solid #2d3748;border-radius:4px;padding:6px 8px;color:#e2e8f0;font-size:0.8rem;width:100%;box-sizing:border-box;margin-bottom:6px}\n  .http-box{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:10px;font-family:monospace;font-size:0.72rem;white-space:pre-wrap;min-height:180px;line-height:1.6}\n  .m{color:#93c5fd}.s{color:#86efac}.e{color:#ef4444}.h{color:#94a3b8}.b{color:#e2e8f0}.hv{color:#fbbf24}\n  label{font-size:0.75rem;color:#64748b;display:block;margin-bottom:2px}\n</style>\n</head>\n<body>\n  <h3>HTTP Message Explorer</h3>\n  <div class=\"grid\">\n    <div class=\"card\">\n      <h4>Build a Request</h4>\n      <label>Method</label>\n      <select id=\"method\" onchange=\"update()\">\n        <option>GET</option><option>POST</option><option>PUT</option>\n        <option>PATCH</option><option>DELETE</option>\n      </select>\n      <label>Path</label>\n      <input id=\"path\" value=\"/users/42\" oninput=\"update()\" />\n      <label>Authorization</label>\n      <select id=\"auth\" onchange=\"update()\">\n        <option value=\"\">None</option>\n        <option value=\"Bearer eyJhb...\">Bearer token (JWT)</option>\n        <option value=\"Basic dXNlcjpwYXNz\">Basic auth</option>\n        <option value=\"ApiKey sk-live-abc\">API Key</option>\n      </select>\n      <label>Accept</label>\n      <select id=\"accept\" onchange=\"update()\">\n        <option value=\"application/json\">application/json</option>\n        <option value=\"text/html\">text/html</option>\n        <option value=\"*/*\">*/* (anything)</option>\n      </select>\n      <div style=\"margin-top:8px;font-size:0.72rem;color:#64748b\">Generated request:</div>\n      <div class=\"http-box\" id=\"req\"></div>\n    </div>\n    <div class=\"card\">\n      <h4>Simulate Response</h4>\n      <label>Status</label>\n      <select id=\"status\" onchange=\"updateResp()\">\n        <option value=\"200\">200 OK</option>\n        <option value=\"201\">201 Created</option>\n        <option value=\"204\">204 No Content</option>\n        <option value=\"301\">301 Moved Permanently</option>\n        <option value=\"400\">400 Bad Request</option>\n        <option value=\"401\">401 Unauthorized</option>\n        <option value=\"403\">403 Forbidden</option>\n        <option value=\"404\">404 Not Found</option>\n        <option value=\"500\">500 Internal Server Error</option>\n      </select>\n      <label>Content-Type</label>\n      <select id=\"ct\" onchange=\"updateResp()\">\n        <option value=\"application/json\">application/json</option>\n        <option value=\"text/html\">text/html</option>\n        <option value=\"text/plain\">text/plain</option>\n      </select>\n      <label>Cache-Control</label>\n      <select id=\"cc\" onchange=\"updateResp()\">\n        <option value=\"no-store\">no-store (never cache)</option>\n        <option value=\"max-age=3600\">max-age=3600 (1 hour)</option>\n        <option value=\"max-age=86400, public\">max-age=86400, public</option>\n        <option value=\"no-cache\">no-cache (revalidate)</option>\n      </select>\n      <div style=\"margin-top:8px;font-size:0.72rem;color:#64748b\">Generated response:</div>\n      <div class=\"http-box\" id=\"resp\"></div>\n    </div>\n  </div>\n  <script>\n    const bodies={200:'{\\n  \"id\": 42,\\n  \"name\": \"Alice\",\\n  \"email\": \"alice@example.com\"\\n}',201:'{\\n  \"id\": 100,\\n  \"name\": \"New User\",\\n  \"created\": true\\n}',204:'',301:'',400:'{\\n  \"error\": \"BAD_REQUEST\",\\n  \"message\": \"id must be a number\"\\n}',401:'{\\n  \"error\": \"UNAUTHORIZED\",\\n  \"message\": \"Missing or invalid token\"\\n}',403:'{\\n  \"error\": \"FORBIDDEN\",\\n  \"message\": \"You cannot access this resource\"\\n}',404:'{\\n  \"error\": \"NOT_FOUND\",\\n  \"message\": \"User 42 not found\"\\n}',500:'{\\n  \"error\": \"INTERNAL_ERROR\",\\n  \"message\": \"Database connection failed\"\\n}'};\n    const reasons={200:'OK',201:'Created',204:'No Content',301:'Moved Permanently',400:'Bad Request',401:'Unauthorized',403:'Forbidden',404:'Not Found',500:'Internal Server Error'};\n    function update(){\n      const m=document.getElementById('method').value;\n      const p=document.getElementById('path').value||'/';\n      const a=document.getElementById('auth').value;\n      const ac=document.getElementById('accept').value;\n      const hasBody=['POST','PUT','PATCH'].includes(m);\n      let lines=[];\n      lines.push(`<span class=\"m\">${m}</span> <span class=\"b\">${p}</span> <span class=\"h\">HTTP/1.1</span>`);\n      lines.push(`<span class=\"h\">Host:</span> <span class=\"hv\">api.example.com</span>`);\n      lines.push(`<span class=\"h\">Accept:</span> <span class=\"hv\">${ac}</span>`);\n      if(a)lines.push(`<span class=\"h\">Authorization:</span> <span class=\"hv\">${a}</span>`);\n      lines.push(`<span class=\"h\">Accept-Encoding:</span> <span class=\"hv\">gzip, br</span>`);\n      if(hasBody){lines.push(`<span class=\"h\">Content-Type:</span> <span class=\"hv\">application/json</span>`);lines.push('');lines.push(`<span class=\"b\">{\\n  \"name\": \"New User\",\\n  \"email\": \"new@example.com\"\\n}</span>`);}\n      document.getElementById('req').innerHTML=lines.join('\\n');\n    }\n    function updateResp(){\n      const s=document.getElementById('status').value;\n      const ct=document.getElementById('ct').value;\n      const cc=document.getElementById('cc').value;\n      const body=bodies[s];\n      const sc=parseInt(s);\n      const col=sc<300?'s':sc<500?'hv':'e';\n      let lines=[];\n      lines.push(`<span class=\"h\">HTTP/1.1</span> <span class=\"${col}\">${s} ${reasons[s]}</span>`);\n      lines.push(`<span class=\"h\">Content-Type:</span> <span class=\"hv\">${ct}</span>`);\n      if(body)lines.push(`<span class=\"h\">Content-Length:</span> <span class=\"hv\">${new TextEncoder().encode(body).length}</span>`);\n      lines.push(`<span class=\"h\">Cache-Control:</span> <span class=\"hv\">${cc}</span>`);\n      if(s==='301')lines.push(`<span class=\"h\">Location:</span> <span class=\"hv\">https://new.example.com/users/42</span>`);\n      if(body){lines.push('');lines.push(`<span class=\"b\">${body}</span>`);}\n      document.getElementById('resp').innerHTML=lines.join('\\n');\n    }\n    update();updateResp();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "web-04-q1",
+          "question": "HTTP is stateless. What does this mean?",
+          "type": "multiple-choice",
+          "options": [
+            "The server stores all user data in a database",
+            "Each HTTP request is independent — the server has no memory of previous requests",
+            "HTTP cannot transfer files, only text",
+            "The browser cannot store cookies"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Stateless means each request must carry all the context the server needs to process it. If you are logged in, your authentication token must be included in every request — the server does not remember your previous requests. This is by design: it makes servers easy to scale horizontally (any server can handle any request)."
+        },
+        {
+          "id": "web-04-q2",
+          "question": "Which header tells the server what format the request body is in?",
+          "type": "multiple-choice",
+          "options": [
+            "Accept",
+            "Content-Type",
+            "Authorization",
+            "Content-Length"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Content-Type (on the request) tells the server the format of the request body — e.g. 'application/json' or 'multipart/form-data'. Accept (on the request) tells the server what format the CLIENT wants the response in. Content-Type on the response tells the CLIENT the format of the response body."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between HTTP/1.1, HTTP/2, and HTTP/3?",
+      "a": "HTTP/1.1 is text-based; each request needs its own TCP connection (or queues behind others). HTTP/2 is binary and multiplexes many requests over one connection. HTTP/3 uses QUIC (over UDP) for lower latency, especially on mobile networks. The method/status code/header semantics are the same across all versions — only the transport changes."
+    },
+    {
+      "q": "What are X- headers?",
+      "a": "Headers starting with X- are non-standard (custom) headers — X stands for 'extension'. Examples: X-Request-ID (trace an individual request), X-Rate-Limit-Remaining (how many API calls you have left), X-Powered-By (the server software). The X- convention is deprecated in new specifications, but still widely used in practice."
+    },
+    {
+      "q": "Can I see raw HTTP messages?",
+      "a": "Yes. Open DevTools (F12) → Network tab → click any request → click 'Headers'. You will see the exact request and response headers. For the raw request body, click the 'Payload' or 'Request' tab."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — HTTP Overview",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview",
+      "verified": "2026-10-05"
+    },
+    {
+      "name": "MDN — HTTP Headers",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers",
+      "verified": "2026-10-05"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every web page load", "every API call", "debugging 401/404/500 errors", "caching configuration"],
+    "examples": [
+      "When you log in to GitHub, your browser sends your credentials in the request body; GitHub responds with a Set-Cookie header to remember your session",
+      "When Stripe charges a card, your JS sends a POST request with card token in JSON body; Stripe responds 201 Created with the charge object",
+      "CDNs use Cache-Control and ETag headers to serve cached responses without hitting the origin server"
+    ]
+  }
+}

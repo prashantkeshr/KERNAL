@@ -1,0 +1,149 @@
+{
+  "id": "08-network-tab",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "fundamentals",
+  "technologyVersion": "1.0",
+  "module": "web-developer-tools",
+  "title": "The Network Panel",
+  "subtitle": "Inspecting HTTP requests, headers, timing, and responses",
+  "difficulty": "beginner",
+  "estimatedMinutes": 15,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-05",
+  "updatedAt": "2026-10-05",
+  "lastVerified": "2026-10-05",
+  "prerequisites": ["fundamentals/07-browser-devtools", "fundamentals/04-what-is-http"],
+  "skillsTaught": ["web.network-panel", "web.request-inspection", "web.waterfall-reading"],
+  "skillsUsed": ["web.http-basics", "web.status-codes", "web.headers"],
+  "relatedConcepts": ["web.performance", "api.debugging", "web.caching"],
+  "whyItExists": {
+    "problem": "Developers cannot debug what they cannot see. Network failures, slow responses, missing headers, and CORS errors are invisible without the Network panel.",
+    "solution": "The Network panel is a real-time HTTP inspector built into every browser. It shows every request the page makes — URL, method, status code, request headers, response headers, response body, and timing.",
+    "whenToUse": "Debugging a failed API call, diagnosing a slow page load, checking if CORS headers are present, verifying authentication headers are being sent, inspecting response bodies.",
+    "whenNotToUse": "The Network panel only shows requests made by the current page in the current tab. It does not show server-to-server requests or background processes."
+  },
+  "explainModes": {
+    "beginner": "The Network panel is like a phone tap for your browser. Every time the page calls a server — to get data, load an image, or run a script — it shows up here. You can see exactly what was sent and what came back. When your API call fails, the Network panel shows you the exact error message the server returned.",
+    "simple": "Open Network panel → reload the page → see all requests. Each row is one HTTP request. Click a row to see: Headers tab (request/response headers), Preview tab (formatted response), Response tab (raw response body), Timing tab (DNS/TCP/request/response breakdown). Filter by 'Fetch/XHR' to see only API calls. Sort by Size to find large assets. Sort by Time to find slow requests.",
+    "standard": "The Network panel uses the browser's Resource Timing API and the underlying DevTools protocol to capture detailed timing for each request. The waterfall chart shows how requests overlap — HTTP/2 requests can interleave, HTTP/1.1 requests queue. The 'Initiator' column shows which code triggered the request. 'Copy as cURL' (right-click a request) lets you replay a request in the terminal with the exact same headers.",
+    "technical": "The Network panel captures all resource types: Document (HTML), Stylesheet, Script, Image, Font, XHR/Fetch (API calls), WebSocket, Media. The Timing tab breaks each request into: Queueing (waiting for a free connection slot), Stalled (blocked), DNS Lookup, Initial connection (TCP), SSL (TLS handshake), Request sent, Waiting (TTFB — time to first byte), Content download. Long TTFB means slow server processing. Long Content download means large payload or slow connection.",
+    "deepDive": "The Network panel's HAR (HTTP Archive) export format captures a complete session including all timing, headers, and bodies. HAR files are used by performance analysis tools like WebPageTest and GTmetrix. The 'Preserve log' checkbox keeps requests across navigations — useful for debugging redirect chains. 'Throttling' lets you simulate 3G or slower connections to test performance on mobile. Chrome's Priority column shows which requests the browser considered high-priority (HTML, CSS, fonts) vs low-priority (off-screen images, analytics)."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Reading the Network panel"
+    },
+    {
+      "type": "paragraph",
+      "text": "Open DevTools (F12), click the <strong>Network</strong> tab, then reload the page. Every request the page makes appears as a row."
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Network panel columns",
+      "code": "Name        — Filename or URL of the resource\nStatus      — HTTP status code (200, 404, 500, etc.)\nType        — Resource type (document, fetch, script, img, font)\nInitiator   — What triggered this request (HTML parser, JS code, CSS)\nSize        — Response size (compressed + uncompressed)\nTime        — Total request duration (from send to last byte)\nWaterfall   — Visual timing bar showing when the request happened"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Inspecting a single request"
+    },
+    {
+      "type": "paragraph",
+      "text": "Click any row to see the full details of that request and response:"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "<strong>Headers tab</strong> — Request headers (what you sent) and Response headers (what the server sent back). Check here for Authorization, Content-Type, CORS headers, and Cache-Control.",
+        "<strong>Preview tab</strong> — Pretty-printed response body. JSON is interactive, HTML is rendered, images show visually.",
+        "<strong>Response tab</strong> — Raw response body as text.",
+        "<strong>Timing tab</strong> — Breakdown: DNS, TCP, TLS, Waiting (TTFB), Content download. Long TTFB = slow server. Long Download = large payload.",
+        "<strong>Cookies tab</strong> — Cookies sent in the request and set in the response."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Filtering requests"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Network panel filters",
+      "code": "Type filter buttons (above the request list):\n  All        → Show everything\n  Fetch/XHR  → Show only API calls (most useful for debugging APIs)\n  JS         → JavaScript files\n  CSS        → Stylesheet files\n  Img        → Images\n  Font       → Font files\n  Doc        → HTML documents\n\nSearch box filters:\n  'api'        → Requests with 'api' in the URL\n  '-status:200' → Requests that did NOT return 200\n  'larger-than:100k' → Responses over 100KB"
+    },
+    {
+      "type": "tip",
+      "text": "Check <strong>Disable cache</strong> (checkbox in the toolbar) while developing so you always get fresh responses. Uncheck it when testing caching behavior. Also check <strong>Preserve log</strong> to keep requests visible across page navigations — useful for debugging redirects."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Interactive: Network Waterfall Simulator",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n<style>\n  body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0;font-size:13px}\n  h3{color:#4fd1c5;margin:0 0 12px}\n  .toolbar{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}\n  .btn{padding:5px 12px;border-radius:4px;border:none;font-size:0.75rem;font-weight:700;cursor:pointer;background:#1a1f2b;color:#94a3b8;border:1px solid #2d3748}\n  .btn.active{background:#4fd1c5;color:#0e1116;border-color:#4fd1c5}\n  table{width:100%;border-collapse:collapse;font-size:0.75rem}\n  th{color:#64748b;text-align:left;padding:4px 8px;border-bottom:1px solid #2d3748;font-weight:600}\n  td{padding:5px 8px;border-bottom:1px solid #1a1f2b;cursor:pointer}\n  tr:hover td{background:#1a1f2b}\n  tr.active td{background:#1a1f2b;border-left:2px solid #4fd1c5}\n  .bar{display:inline-block;height:10px;border-radius:2px;vertical-align:middle}\n  .detail{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:12px;margin-top:10px;font-size:0.75rem;display:none}\n  .detail.show{display:block}\n  .detail-tabs{display:flex;gap:0;border-bottom:1px solid #2d3748;margin-bottom:8px}\n  .dtab{padding:5px 10px;cursor:pointer;color:#64748b;font-size:0.72rem;border-bottom:2px solid transparent}\n  .dtab.active{color:#4fd1c5;border-bottom-color:#4fd1c5}\n  .dpanel{display:none;font-family:monospace;white-space:pre-wrap;line-height:1.6}\n  .dpanel.active{display:block}\n  .ok{color:#4fd1c5}.warn{color:#fbbf24}.err{color:#ef4444}.muted{color:#64748b}\n  .hname{color:#94a3b8}.hval{color:#fbbf24}\n</style>\n</head>\n<body>\n  <h3>Network Panel Simulator</h3>\n  <div class=\"toolbar\">\n    <button class=\"btn active\" onclick=\"filter('all',this)\">All</button>\n    <button class=\"btn\" onclick=\"filter('fetch',this)\">Fetch/XHR</button>\n    <button class=\"btn\" onclick=\"filter('js',this)\">JS</button>\n    <button class=\"btn\" onclick=\"filter('css',this)\">CSS</button>\n    <button class=\"btn\" onclick=\"filter('img',this)\">Img</button>\n  </div>\n  <table id=\"tbl\">\n    <thead><tr><th>Name</th><th>Status</th><th>Type</th><th>Size</th><th>Time</th><th>Waterfall</th></tr></thead>\n    <tbody id=\"tbody\"></tbody>\n  </table>\n  <div class=\"detail\" id=\"detail\">\n    <div class=\"detail-tabs\">\n      <div class=\"dtab active\" onclick=\"dtab('headers',this)\">Headers</div>\n      <div class=\"dtab\" onclick=\"dtab('preview',this)\">Preview</div>\n      <div class=\"dtab\" onclick=\"dtab('timing',this)\">Timing</div>\n    </div>\n    <div class=\"dpanel active\" id=\"dp-headers\"></div>\n    <div class=\"dpanel\" id=\"dp-preview\"></div>\n    <div class=\"dpanel\" id=\"dp-timing\"></div>\n  </div>\n  <script>\n    const reqs=[\n      {name:'index.html',status:200,type:'document',size:'4.2 kB',time:180,start:0,dur:180,col:'#4fd1c5',\n       reqH:'GET / HTTP/1.1\\nHost: kernal.dhurta.org\\nAccept: text/html',\n       respH:'HTTP/1.1 200 OK\\nContent-Type: text/html; charset=utf-8\\nCache-Control: max-age=3600\\nContent-Encoding: gzip',\n       body:'<!DOCTYPE html>\\n<html>\\n  <head>...</head>\\n  <body>...</body>\\n</html>',\n       timing:{DNS:18,TCP:52,TLS:38,Waiting:48,Download:24}},\n      {name:'index-abc.css',status:200,type:'css',size:'32.1 kB',time:95,start:80,dur:95,col:'#264de4',\n       reqH:'GET /assets/index-abc.css HTTP/1.1\\nHost: kernal.dhurta.org\\nAccept: text/css',\n       respH:'HTTP/1.1 200 OK\\nContent-Type: text/css\\nCache-Control: max-age=31536000, immutable\\nContent-Encoding: br',\n       body:'/* Compiled Tailwind CSS... */',\n       timing:{DNS:0,TCP:0,TLS:0,Waiting:55,Download:40}},\n      {name:'index-xyz.js',status:200,type:'js',size:'148.3 kB',time:210,start:80,dur:210,col:'#f7df1e',\n       reqH:'GET /assets/index-xyz.js HTTP/1.1\\nHost: kernal.dhurta.org\\nAccept: */*',\n       respH:'HTTP/1.1 200 OK\\nContent-Type: application/javascript\\nCache-Control: max-age=31536000, immutable\\nContent-Encoding: br',\n       body:'(function(){...})()',\n       timing:{DNS:0,TCP:0,TLS:0,Waiting:60,Download:150}},\n      {name:'technologies.json',status:200,type:'fetch',size:'3.8 kB',time:85,start:300,dur:85,col:'#ff6b35',\n       reqH:'GET /data/technologies.json HTTP/1.1\\nHost: kernal.dhurta.org\\nAccept: application/json',\n       respH:'HTTP/1.1 200 OK\\nContent-Type: application/json\\nCache-Control: max-age=300',\n       body:'[\\n  { \"id\": \"html\", \"name\": \"HTML\", ... },\\n  ...\\n]',\n       timing:{DNS:0,TCP:0,TLS:0,Waiting:42,Download:43}},\n      {name:'icon-192.png',status:200,type:'img',size:'8.1 kB',time:120,start:310,dur:120,col:'#4fd1c5',\n       reqH:'GET /icon-192.png HTTP/1.1\\nHost: kernal.dhurta.org\\nAccept: image/webp,image/png',\n       respH:'HTTP/1.1 200 OK\\nContent-Type: image/png\\nCache-Control: max-age=86400',\n       body:'[binary PNG data]',\n       timing:{DNS:0,TCP:0,TLS:0,Waiting:35,Download:85}},\n      {name:'api/user/progress',status:404,type:'fetch',size:'98 B',time:55,start:400,dur:55,col:'#ef4444',\n       reqH:'GET /api/user/progress HTTP/1.1\\nHost: kernal.dhurta.org\\nAuthorization: Bearer eyJh...',\n       respH:'HTTP/1.1 404 Not Found\\nContent-Type: application/json',\n       body:'{\\n  \"error\": \"NOT_FOUND\",\\n  \"message\": \"No progress found for this user\"\\n}',\n       timing:{DNS:0,TCP:0,TLS:0,Waiting:40,Download:15}},\n    ];\n    let activeFilter='all',activeRow=-1;\n    const total=500;\n    function filter(f,btn){activeFilter=f;document.querySelectorAll('.btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');render();}\n    function render(){\n      const tb=document.getElementById('tbody');\n      tb.innerHTML='';\n      const filtered=reqs.filter(r=>activeFilter==='all'||r.type===activeFilter||(activeFilter==='fetch'&&r.type==='fetch'));\n      filtered.forEach((r,i)=>{\n        const sc=parseInt(r.status);\n        const scol=sc<300?'ok':sc<500?'warn':'err';\n        const barL=Math.round((r.start/total)*100);\n        const barW=Math.max(2,Math.round((r.dur/total)*100));\n        const tr=document.createElement('tr');\n        if(activeRow===reqs.indexOf(r))tr.classList.add('active');\n        tr.innerHTML=`<td>${r.name}</td><td class=\"${scol}\">${r.status}</td><td class=\"muted\">${r.type}</td><td class=\"muted\">${r.size}</td><td class=\"muted\">${r.time}ms</td><td><div style=\"margin-left:${barL}%;display:inline-block\"><div class=\"bar\" style=\"width:${barW}px;background:${r.col}\"></div></div></td>`;\n        tr.onclick=()=>showDetail(reqs.indexOf(r),tr);\n        tb.appendChild(tr);\n      });\n    }\n    function showDetail(idx,tr){\n      activeRow=idx;\n      document.querySelectorAll('tr').forEach(r=>r.classList.remove('active'));\n      tr.classList.add('active');\n      const r=reqs[idx];\n      document.getElementById('dp-headers').innerHTML=`<span class=\"muted\">Request Headers</span>\\n<span class=\"hname\">GET</span> <span class=\"hval\">${r.name}</span>\\n${r.reqH.split('\\n').slice(1).map(l=>{const[k,...v]=l.split(': ');return`<span class=\"hname\">${k}:</span> <span class=\"hval\">${v.join(': ')}</span>`;}).join('\\n')}\\n\\n<span class=\"muted\">Response Headers</span>\\n${r.respH.split('\\n').map((l,i)=>i===0?`<span class=\"${parseInt(r.status)<300?'ok':parseInt(r.status)<500?'warn':'err'}\">${l}</span>`:l).join('\\n')}`;\n      document.getElementById('dp-preview').textContent=r.body;\n      const t=r.timing;\n      const total2=Object.values(t).reduce((a,b)=>a+b,0);\n      document.getElementById('dp-timing').innerHTML=Object.entries(t).map(([k,v])=>v?`${k.padEnd(12)} ${String(v+'ms').padEnd(8)} ${'█'.repeat(Math.round(v/total2*30))}`:null).filter(Boolean).join('\\n')+`\\n${'─'.repeat(35)}\\nTotal       ${total2}ms`;\n      document.querySelector('.detail').classList.add('show');\n    }\n    function dtab(id,btn){document.querySelectorAll('.dtab,.dpanel').forEach(e=>e.classList.remove('active'));btn.classList.add('active');document.getElementById('dp-'+id).classList.add('active');}\n    render();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "web-08-q1",
+          "question": "An API call is failing with a red row in the Network panel. What tab in the request details should you check first?",
+          "type": "multiple-choice",
+          "options": [
+            "Timing — to see how slow it was",
+            "Preview or Response — to see the error message the server returned",
+            "Cookies — to check for expired cookies",
+            "Initiator — to see which line of code made the request"
+          ],
+          "correctAnswer": 1,
+          "explanation": "When an API call fails, the most important thing is to see what the server said. Open the failing request → Preview tab (for formatted JSON) or Response tab (for raw text). The response body almost always contains an error message with the specific reason the request failed — far more useful than just knowing the status code."
+        },
+        {
+          "id": "web-08-q2",
+          "question": "You load a page and see 80 requests in the Network panel. Which filter shows you only API calls?",
+          "type": "multiple-choice",
+          "options": [
+            "Doc",
+            "JS",
+            "Fetch/XHR",
+            "Media"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Fetch/XHR filters to requests made by the Fetch API or XMLHttpRequest — which is how JavaScript makes API calls. 'Doc' shows HTML documents. 'JS' shows script files. 'Media' shows video/audio. For debugging API calls, always filter to Fetch/XHR first to reduce noise."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Why do I see (from disk cache) or (from memory cache) in the Network panel?",
+      "a": "These mean the browser used a cached copy instead of making a network request. 'From disk cache' — the response was saved to disk from a previous visit and the Cache-Control headers allow reuse. 'From memory cache' — the response is in RAM, available until the tab closes. These are good for performance — it means the user did not have to wait for a network request."
+    },
+    {
+      "q": "How do I replay a request in the terminal?",
+      "a": "Right-click any request in the Network panel → Copy → Copy as cURL. Paste the result in your terminal. This gives you the exact same request (same URL, same headers, same body) that the browser sent. You can then modify it with curl flags to test variations."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Chrome DevTools — Network panel",
+      "url": "https://developer.chrome.com/docs/devtools/network",
+      "verified": "2026-10-05"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["debugging API calls", "diagnosing CORS errors", "finding slow resources", "checking authentication headers", "verifying cache behavior"],
+    "examples": [
+      "When a login does not work, check Network → the POST /login request → Response tab — it often says 'Invalid password' or 'Account locked'",
+      "When a page is slow, sort Network by Time column to find the slowest request — often a large image or an uncached API call",
+      "When you get a CORS error, check the failing request's Response Headers — if Access-Control-Allow-Origin is missing, the server is not configured for CORS"
+    ]
+  }
+}

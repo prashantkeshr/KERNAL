@@ -1,0 +1,129 @@
+{
+  "id": "06-http-status-codes",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "fundamentals",
+  "technologyVersion": "1.0",
+  "module": "web-http",
+  "title": "HTTP Status Codes",
+  "subtitle": "1xx, 2xx, 3xx, 4xx, 5xx — what every number means",
+  "difficulty": "beginner",
+  "estimatedMinutes": 12,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-05",
+  "updatedAt": "2026-10-05",
+  "lastVerified": "2026-10-05",
+  "prerequisites": ["fundamentals/04-what-is-http"],
+  "skillsTaught": ["web.status-codes", "web.error-handling-basics"],
+  "skillsUsed": ["web.http-basics", "web.http-methods"],
+  "relatedConcepts": ["api.error-handling", "web.redirects"],
+  "whyItExists": {
+    "problem": "Developers treat all non-200 responses as 'errors' and do not distinguish between client mistakes (4xx) and server failures (5xx), leading to wrong error handling and confusing user messages.",
+    "solution": "Status codes are grouped by first digit. 2xx = success. 3xx = redirect. 4xx = client made a mistake. 5xx = server is broken. This distinction drives completely different error handling strategies.",
+    "whenToUse": "Every time you receive an HTTP response and every time you write server-side code that sends responses.",
+    "whenNotToUse": "N/A — status codes are part of every HTTP interaction."
+  },
+  "explainModes": {
+    "beginner": "Status codes are the server's way of giving you a quick answer before you read the details. 200 means 'here you go'. 404 means 'I could not find that'. 401 means 'who are you?'. 403 means 'I know who you are but you are not allowed'. 500 means 'I broke — not your fault'. The first digit tells you the category: 2 = good, 3 = go somewhere else, 4 = your mistake, 5 = my mistake.",
+    "simple": "1xx: informational (rare, ignore for now). 2xx: success — 200 OK, 201 Created, 204 No Content. 3xx: redirect — 301 permanent, 302 temporary, 304 Not Modified (cached). 4xx: client error — 400 Bad Request (invalid data), 401 Unauthorized (not logged in), 403 Forbidden (logged in but no permission), 404 Not Found, 422 Unprocessable Entity (validation failed), 429 Too Many Requests. 5xx: server error — 500 Internal Server Error, 502 Bad Gateway, 503 Service Unavailable.",
+    "standard": "Status codes (RFC 7231) communicate the result of the request to any HTTP-aware layer. Browsers use 3xx codes to redirect automatically. CDNs use 304 to serve from cache. API clients use 4xx vs 5xx to decide retry behavior — retry 503 (server down temporarily) but not 404 (resource does not exist). Some codes have specific semantics: 401 must include a WWW-Authenticate header. 405 Method Not Allowed must include an Allow header listing valid methods.",
+    "technical": "409 Conflict means the request conflicts with current state — used for optimistic concurrency (two clients tried to update the same record simultaneously). 410 Gone is like 404 but permanent — the resource existed and was deliberately removed. 412 Precondition Failed is used with If-Match for conditional updates (ETags). 425 Too Early is an HTTP/3 code preventing 0-RTT replay attacks. 451 Unavailable For Legal Reasons was standardized in 2015 (RFC 7725) for censored content.",
+    "deepDive": "The choice of status code affects caching. 200 responses may be cached per Cache-Control. 301 redirects are cached permanently (browsers remember them). 302 redirects are not cached. 404 responses may be cached for a short time. 503 should include Retry-After header to hint when to try again. API design controversy: some teams return 200 for all responses and put success/error in the JSON body ('200 is the only status code we use') — this breaks HTTP semantics and makes middleware, logging, and retry logic harder."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Status code categories"
+    },
+    {
+      "type": "paragraph",
+      "text": "Every HTTP response starts with a 3-digit status code. The <strong>first digit</strong> tells you the category — whether the request succeeded, needs to go somewhere else, or failed."
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Status code categories",
+      "code": "1xx  Informational  → Request received, keep going (rare)\n2xx  Success        → Request completed successfully\n3xx  Redirection    → Go somewhere else\n4xx  Client Error   → You made a mistake\n5xx  Server Error   → The server is broken"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The most important codes"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Common Status Codes",
+      "code": "─── 2xx SUCCESS ─────────────────────────────────────────────\n200 OK               Standard success. Response has a body.\n201 Created          Resource was created. Body = the new resource.\n204 No Content       Success, but no body (common for DELETE).\n\n─── 3xx REDIRECT ─────────────────────────────────────────────\n301 Moved Permanently  Resource permanently moved to Location header.\n                       Browser caches this forever.\n302 Found              Temporary redirect. Not cached.\n304 Not Modified       Your cached version is still current — use it.\n\n─── 4xx CLIENT ERROR ──────────────────────────────────────────\n400 Bad Request        Malformed request (bad JSON, missing field).\n401 Unauthorized       Not authenticated — you need to log in.\n403 Forbidden          Authenticated but not allowed.\n404 Not Found          Resource does not exist.\n405 Method Not Allowed This URL does not accept this HTTP method.\n409 Conflict           State conflict (e.g. duplicate record).\n422 Unprocessable      Syntactically valid but semantically wrong\n                       (validation failed).\n429 Too Many Requests  Rate limited. Check Retry-After header.\n\n─── 5xx SERVER ERROR ──────────────────────────────────────────\n500 Internal Error     Something crashed on the server.\n502 Bad Gateway        Upstream server returned a bad response.\n503 Unavailable        Server is down or overloaded (retry later).\n504 Gateway Timeout    Upstream server took too long."
+    },
+    {
+      "type": "tip",
+      "text": "<strong>401 vs 403:</strong> 401 means 'who are you?' — include credentials and try again. 403 means 'I know who you are, but you are not allowed here' — sending credentials again will not help."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Interactive: Status Code Explorer",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n<style>\n  body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0;font-size:13px}\n  h3{color:#4fd1c5;margin:0 0 14px}\n  .groups{display:flex;flex-direction:column;gap:8px}\n  .group{border-radius:8px;overflow:hidden;border:1px solid #2d3748}\n  .group-header{padding:8px 12px;font-weight:700;font-size:0.8rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none}\n  .codes{display:none;background:#0b0e14}\n  .codes.open{display:block}\n  .code-row{display:grid;grid-template-columns:60px 180px 1fr;gap:0;padding:7px 12px;border-top:1px solid #1a1f2b;cursor:pointer;transition:background 0.15s}\n  .code-row:hover{background:#1a1f2b}\n  .code-row.active{background:#1a1f2b;border-left:3px solid var(--ac)}\n  .code-num{font-family:monospace;font-weight:700}\n  .code-name{color:#94a3b8;font-size:0.78rem}\n  .detail{background:#1a1f2b;border:1px solid #2d3748;border-radius:8px;padding:12px;margin-top:12px;font-size:0.78rem;line-height:1.6;display:none}\n  .detail.show{display:block}\n  .detail .code{font-size:1.4rem;font-weight:700;margin-bottom:4px}\n  .detail .name{color:#94a3b8;margin-bottom:8px;font-size:0.82rem}\n  .detail .when{margin-bottom:8px}\n  .detail .hint{background:#0b0e14;padding:6px 10px;border-radius:4px;font-family:monospace;font-size:0.75rem;color:#94a3b8}\n  b{color:#e2e8f0}\n</style>\n</head>\n<body>\n  <h3>Status Code Explorer</h3>\n  <div class=\"groups\" id=\"groups\"></div>\n  <div class=\"detail\" id=\"detail\"></div>\n  <script>\n    const GC={'2xx':'#166534','3xx':'#1e3a5f','4xx':'#713f12','5xx':'#7f1d1d'};\n    const TC={'2xx':'#86efac','3xx':'#93c5fd','4xx':'#fcd34d','5xx':'#fca5a5'};\n    const data={\n      '2xx Success':[\n        {c:200,n:'OK',d:'The standard success response. The body contains the requested data.',hint:'fetch response.ok === true when status is 200–299'},\n        {c:201,n:'Created',d:'A new resource was successfully created. The response body usually contains the created object with its assigned ID.',hint:'Always return 201 (not 200) when creating via POST'},\n        {c:204,n:'No Content',d:'Success, but no body. Common response for DELETE and some PATCH operations.',hint:'Never parse a 204 response body — it will be empty'},\n      ],\n      '3xx Redirect':[\n        {c:301,n:'Moved Permanently',d:'The resource has permanently moved to the URL in the Location header. Browsers cache this indefinitely — be careful with mistakes.',hint:'Browser automatically follows to: Location: /new-url'},\n        {c:302,n:'Found (Temporary)',d:'Temporary redirect. The resource is at the Location header URL for now. Not cached.',hint:'Used for login redirects and temporary maintenance pages'},\n        {c:304,n:'Not Modified',d:'Your cached version is still current — use it. The server returns no body, saving bandwidth.',hint:'Only sent when request includes If-None-Match or If-Modified-Since'},\n      ],\n      '4xx Client Error':[\n        {c:400,n:'Bad Request',d:'The request is malformed — invalid JSON, missing required field, wrong data type. Fix the request before retrying.',hint:'Do NOT retry automatically — fix the request first'},\n        {c:401,n:'Unauthorized',d:'Not authenticated. You need to provide credentials (log in, provide an API key, or refresh your token).',hint:'Include Authorization: Bearer <token> header'},\n        {c:403,n:'Forbidden',d:'Authenticated but not authorized. Your credentials are valid but you do not have permission for this resource.',hint:'Retrying with different credentials will not help'},\n        {c:404,n:'Not Found',d:'The resource does not exist at this URL. Either the URL is wrong or the resource was deleted.',hint:'Check the URL and resource ID'},\n        {c:422,n:'Unprocessable Entity',d:'The request syntax is valid but the content fails validation — e.g. email format is wrong, a required field is blank.',hint:'Read the error body for validation details'},\n        {c:429,n:'Too Many Requests',d:'Rate limited — you are making requests too fast. Check the Retry-After header for when to try again.',hint:'Retry-After: 30  (wait 30 seconds)'},\n      ],\n      '5xx Server Error':[\n        {c:500,n:'Internal Server Error',d:'Something went wrong on the server — a bug, unhandled exception, or crash. Not your fault.',hint:'Retry with exponential backoff. Report if persistent.'},\n        {c:502,n:'Bad Gateway',d:'A gateway or proxy received an invalid response from an upstream server. Common during deployments.',hint:'Usually temporary — retry after a few seconds'},\n        {c:503,n:'Service Unavailable',d:'The server is down or overloaded. Check Retry-After header.',hint:'Retry-After: 60  (try again in 1 minute)'},\n      ]\n    };\n    const gEl=document.getElementById('groups');\n    Object.entries(data).forEach(([g,codes])=>{\n      const key=g.split(' ')[0];\n      const col=GC[key]||'#2d3748';\n      const tc=TC[key]||'#e2e8f0';\n      const div=document.createElement('div');div.className='group';\n      div.innerHTML=`<div class=\"group-header\" style=\"background:${col};color:${tc}\" onclick=\"toggleGroup(this)\">${g}<span>▼</span></div><div class=\"codes open\" id=\"g-${key}\"></div>`;\n      const list=div.querySelector('.codes');\n      codes.forEach(({c,n,d,hint})=>{\n        const row=document.createElement('div');row.className='code-row';\n        row.style.setProperty('--ac',tc);\n        row.innerHTML=`<div class=\"code-num\" style=\"color:${tc}\">${c}</div><div class=\"code-name\">${n}</div>`;\n        row.onclick=()=>{\n          document.querySelectorAll('.code-row').forEach(r=>r.classList.remove('active'));\n          row.classList.add('active');\n          const det=document.getElementById('detail');\n          det.innerHTML=`<div class=\"code\" style=\"color:${tc}\">${c}</div><div class=\"name\">${n}</div><div class=\"when\">${d}</div><div class=\"hint\">// ${hint}</div>`;\n          det.classList.add('show');\n        };\n        list.appendChild(row);\n      });\n      gEl.appendChild(div);\n    });\n    function toggleGroup(h){const c=h.nextElementSibling;c.classList.toggle('open');h.querySelector('span').textContent=c.classList.contains('open')?'▼':'▶';}\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "web-06-q1",
+          "question": "Your API returns 403 when you try to delete a post. What should you do?",
+          "type": "multiple-choice",
+          "options": [
+            "Log in again — you are not authenticated",
+            "Nothing — the resource does not exist",
+            "Stop — you are authenticated but do not have permission to delete this post",
+            "Retry the request — it is a temporary server issue"
+          ],
+          "correctAnswer": 2,
+          "explanation": "403 Forbidden means you are authenticated (the server knows who you are) but you do not have permission to perform this action. Retrying, logging in again, or refreshing your token will not help. You either need elevated permissions or are trying to delete something you do not own."
+        },
+        {
+          "id": "web-06-q2",
+          "question": "An API responds with 503. What should your client do?",
+          "type": "multiple-choice",
+          "options": [
+            "Fix the request — it is invalid",
+            "Never retry — the resource is permanently gone",
+            "Wait and retry — the server is temporarily unavailable",
+            "Log out — the session has expired"
+          ],
+          "correctAnswer": 2,
+          "explanation": "503 Service Unavailable is a temporary server-side issue. The server is overloaded or undergoing maintenance. Your client should retry after a delay — check the Retry-After header for how long to wait. Unlike 4xx errors (which mean fix the request), 5xx errors mean the server needs to recover."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Why do some APIs always return 200 even for errors?",
+      "a": "Some APIs put error information in the response body and always return 200. This is an anti-pattern — it breaks HTTP semantics and makes it impossible for middleware, caches, and monitoring tools to detect errors automatically. Use proper status codes; the HTTP spec exists precisely to communicate success and failure consistently."
+    },
+    {
+      "q": "What is the difference between 401 and 403?",
+      "a": "401 Unauthorized (confusingly named) means unauthenticated — 'I don't know who you are, please identify yourself'. You should include credentials and try again. 403 Forbidden means authenticated but unauthorized — 'I know who you are, but you're not allowed here'. No amount of credential-providing will fix a 403; you need a permission change."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — HTTP Status Codes",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status",
+      "verified": "2026-10-05"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["API error handling", "redirect configuration", "caching strategies", "monitoring and alerting"],
+    "examples": [
+      "GitHub returns 404 for private repositories (not 403) to avoid revealing they exist",
+      "Stripe uses 429 with Retry-After when you exceed rate limits on their payment API",
+      "Google Search Console returns 301 redirects to migrate old URLs to new canonical URLs"
+    ]
+  }
+}

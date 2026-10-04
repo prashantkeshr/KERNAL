@@ -1,0 +1,149 @@
+{
+  "id": "11-critical-render-path",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "fundamentals",
+  "technologyVersion": "1.0",
+  "module": "web-rendering",
+  "title": "The Critical Render Path",
+  "subtitle": "How browsers turn HTML into pixels: DOM, CSSOM, layout, paint, composite",
+  "difficulty": "beginner",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-05",
+  "updatedAt": "2026-10-05",
+  "lastVerified": "2026-10-05",
+  "prerequisites": ["fundamentals/10-three-layers"],
+  "skillsTaught": ["web.render-pipeline", "web.dom", "web.cssom", "web.render-blocking"],
+  "skillsUsed": ["web.three-layers", "web.http-basics"],
+  "relatedConcepts": ["web.performance", "web.web-vitals", "css.specificity"],
+  "whyItExists": {
+    "problem": "Developers add scripts and stylesheets without understanding why some resources make the page appear blank for seconds. 'My page is slow and I do not know where to start.'",
+    "solution": "The Critical Render Path is the sequence of steps the browser must complete before it can show the first pixel. Render-blocking resources interrupt this path. Understanding it tells you exactly which resources to prioritize.",
+    "whenToUse": "When optimizing page load performance, deciding where to place <script> tags, or diagnosing a slow First Contentful Paint.",
+    "whenNotToUse": "N/A — every page goes through this pipeline."
+  },
+  "explainModes": {
+    "beginner": "When your browser downloads an HTML file, it does a lot of work before showing anything. It reads the HTML, reads all the CSS, figures out where every element goes, then draws pixels on screen. If any step is blocked — like waiting for a large CSS file to download — the whole page stays blank. This is why big CSS files and scripts placed at the top of the page make sites feel slow.",
+    "simple": "1. Parse HTML → DOM tree (node tree representing all elements). 2. Download and parse CSS → CSSOM tree (which styles apply to which nodes). 3. Combine → Render tree (only visible nodes with their computed styles). 4. Layout → calculate exact position and size of every element. 5. Paint → draw pixels for each element (text, backgrounds, borders, shadows). 6. Composite → combine layers in the correct order on the GPU. CSS and synchronous JS are render-blocking — they pause step 1.",
+    "standard": "CSS is always render-blocking because the browser cannot construct the render tree without the full CSSOM. JavaScript can also be render-blocking: a <script> tag without async or defer pauses HTML parsing, downloads the script, executes it (which may modify the DOM or CSSOM), then resumes. This is why: put CSS in <head> (load early), put scripts at end of <body> or use defer/async. Fonts are render-blocking for text: the browser may show no text ('Flash of Invisible Text') until the font loads.",
+    "technical": "Layout (reflow) is expensive — changing any property that affects an element's size or position triggers a re-layout of all affected elements. Interleaving DOM reads and writes (reading offsetWidth then setting a style, in a loop) causes 'layout thrashing' — the browser must re-layout synchronously for each read. Paint is expensive for properties that require pixels to be redrawn. Compositing (GPU layers) handles transform and opacity changes efficiently — these properties can animate at 60fps without triggering layout or paint.",
+    "deepDive": "The browser's rendering pipeline runs on two threads: the main thread (HTML parsing, JavaScript, layout, paint) and the compositor thread (compositing GPU layers, scroll, CSS transform/opacity animations). will-change: transform or transform: translateZ(0) promotes an element to its own GPU layer — this is why CSS-only animations using transform and opacity are smooth even when the main thread is busy with JavaScript. However, promoting too many elements wastes GPU memory. Chrome's Performance panel shows the pipeline stages as distinct colored sections in the flame chart: blue = HTML parse, purple = layout, green = paint, yellow = JavaScript."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The six steps"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Critical Render Path",
+      "code": "HTML bytes received\n  ↓\n1. Parse HTML → DOM Tree\n   (Document Object Model: tree of all HTML elements)\n  ↓\n2. Parse CSS → CSSOM Tree\n   (CSS Object Model: which styles apply to which nodes)\n  ↓\n3. DOM + CSSOM → Render Tree\n   (only visible nodes, with all styles resolved)\n  ↓\n4. Layout (Reflow)\n   (calculate exact size and position of every element)\n  ↓\n5. Paint (Rasterize)\n   (draw pixels for each element onto layers)\n  ↓\n6. Composite\n   (combine layers and send to screen)\n  ↓\nFirst visible pixel (First Contentful Paint)"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Render-blocking resources"
+    },
+    {
+      "type": "paragraph",
+      "text": "Some resources pause the rendering pipeline. The browser cannot proceed until these resources are downloaded and processed."
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "filename": "Render-blocking vs non-blocking",
+      "code": "<!-- RENDER-BLOCKING (pauses rendering until downloaded + parsed) -->\n<link rel=\"stylesheet\" href=\"styles.css\">        <!-- always blocks -->\n<script src=\"analytics.js\"></script>             <!-- blocks + pauses HTML parsing -->\n\n<!-- NON-BLOCKING -->\n<script src=\"analytics.js\" defer></script>       <!-- downloads in parallel, runs after HTML parsed -->\n<script src=\"widget.js\" async></script>          <!-- downloads in parallel, runs when ready -->\n<link rel=\"preload\" href=\"hero.jpg\" as=\"image\">  <!-- fetch early, don't block rendering -->\n<link rel=\"preload\" href=\"font.woff2\" as=\"font\" crossorigin> <!-- preload critical fonts -->"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "<strong>CSS always blocks rendering</strong> — The browser must have the full CSSOM before it can build the render tree. Put critical CSS in <code>&lt;head&gt;</code> but keep it small.",
+        "<strong>Script without defer/async blocks HTML parsing</strong> — The parser stops, waits for the script to download and run, then resumes. A slow CDN for one analytics script can blank your page for seconds.",
+        "<strong>Fonts block text rendering</strong> — Browsers show invisible text until the font loads (FOIT). Use <code>font-display: swap</code> in @font-face to show system font first."
+      ]
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Rule of thumb:</strong> CSS in <code>&lt;head&gt;</code>. Scripts at end of <code>&lt;body&gt;</code> or with <code>defer</code>. Third-party scripts almost always get <code>async</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Layout vs Paint vs Composite"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "CSS property cost",
+      "code": "Changing this CSS property triggers:\n\nwidth / height / margin / padding / top / left → Layout + Paint + Composite\n  (most expensive — recalculates positions of other elements too)\n\ncolor / background / box-shadow / border-color  → Paint + Composite\n  (expensive — pixels must be redrawn)\n\ntransform / opacity                             → Composite only\n  (cheap — handled by the GPU, no layout or paint needed)\n  ✓ Use transform/opacity for ALL animations"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Interactive: Render Pipeline Visualizer",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n<style>\n  body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0;font-size:13px}\n  h3{color:#4fd1c5;margin:0 0 12px}\n  .pipeline{display:flex;flex-direction:column;gap:0}\n  .step{display:flex;gap:0;cursor:pointer;}\n  .step-line{display:flex;flex-direction:column;align-items:center;margin-right:12px}\n  .dot{width:16px;height:16px;border-radius:50%;flex-shrink:0;transition:all 0.3s;background:#2d3748}\n  .connector{width:2px;flex:1;background:#2d3748;min-height:10px}\n  .step-body{padding:6px 0 14px}\n  .step-title{font-weight:700;font-size:0.82rem;color:#64748b;transition:color 0.3s}\n  .step-desc{font-size:0.75rem;color:#4a5568;line-height:1.5;margin-top:2px;transition:color 0.3s;max-height:0;overflow:hidden;transition:max-height 0.3s,color 0.3s}\n  .step.active .dot{background:var(--c);box-shadow:0 0 0 4px color-mix(in srgb,var(--c) 20%,transparent)}\n  .step.active .step-title{color:var(--c)}\n  .step.active .step-desc{max-height:80px;color:#94a3b8}\n  .step.done .dot{background:var(--c)}\n  .step.done .step-title{color:#64748b}\n  .step.done .connector{background:var(--c)}\n  .controls{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}\n  .btn{padding:5px 12px;border:1px solid #2d3748;border-radius:4px;background:#1a1f2b;color:#94a3b8;font-size:0.78rem;cursor:pointer}\n  .btn:hover{border-color:#4fd1c5;color:#4fd1c5}\n  .scenario{font-size:0.72rem;color:#64748b;background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:8px;margin-top:10px}\n  .scenario strong{color:#e2e8f0}\n</style>\n</head>\n<body>\n  <h3>Render Pipeline — click a scenario</h3>\n  <div class=\"controls\">\n    <button class=\"btn\" onclick=\"run('normal')\">Normal page load</button>\n    <button class=\"btn\" onclick=\"run('blocking-css')\">Large CSS file</button>\n    <button class=\"btn\" onclick=\"run('blocking-js')\">Render-blocking JS</button>\n    <button class=\"btn\" onclick=\"run('defer')\">defer + async</button>\n  </div>\n  <div class=\"pipeline\" id=\"pipe\"></div>\n  <div class=\"scenario\" id=\"note\">Select a scenario above to animate the pipeline.</div>\n  <script>\n    const steps=[\n      {id:'html',label:'1. Parse HTML → DOM',col:'#60a5fa',desc:'Browser reads HTML bytes and builds the DOM tree. Discovers CSS and script links.'},\n      {id:'css',label:'2. Parse CSS → CSSOM',col:'#818cf8',desc:'Downloads and parses stylesheets. BROWSER CANNOT PROCEED without full CSSOM.'},\n      {id:'render',label:'3. Build Render Tree',col:'#a78bfa',desc:'Combines DOM + CSSOM. Only visible elements included (no display:none).'},\n      {id:'layout',label:'4. Layout (Reflow)',col:'#c084fc',desc:'Calculates exact position and dimensions of every element. Expensive.'},\n      {id:'paint',label:'5. Paint (Rasterize)',col:'#e879f9',desc:'Draws pixels for text, backgrounds, borders, shadows onto layers.'},\n      {id:'composite',label:'6. Composite',col:'#4fd1c5',desc:'Combines layers in the right order and sends to the GPU for display.'},\n    ];\n    const pipe=document.getElementById('pipe');\n    steps.forEach((s,i)=>{\n      const div=document.createElement('div');div.className='step';div.id='s-'+s.id;\n      div.style.setProperty('--c',s.col);\n      div.innerHTML=`<div class=\"step-line\"><div class=\"dot\"></div>${i<steps.length-1?'<div class=\"connector\"></div>':''}</div><div class=\"step-body\"><div class=\"step-title\">${s.label}</div><div class=\"step-desc\">${s.desc}</div></div>`;\n      pipe.appendChild(div);\n    });\n    const notes={\n      normal:'Normal page load: HTML parsed → CSS downloaded → render tree → layout → paint → first pixel visible. Total ~200ms on fast connection.',\n      'blocking-css':'<strong>Large CSS file:</strong> HTML parsed quickly, but rendering is BLOCKED waiting for the 2MB CSS file. Page stays blank until all CSS is downloaded and parsed. Avoid large CSS bundles — split or inline critical CSS.',\n      'blocking-js':'<strong>Render-blocking JS:</strong> <script src=\"app.js\"></script> in <head> pauses HTML parsing at step 1. Nothing proceeds until script downloads and runs. This is why you see blank pages on slow 3G — the JS CDN is the bottleneck.',\n      defer:'<strong>defer/async:</strong> Scripts download in parallel with HTML parsing. defer runs after DOM is ready but before DOMContentLoaded. The pipeline flows without interruption — First Contentful Paint is much earlier.',\n    };\n    const delays={normal:[0,300,600,800,1000,1200],'blocking-css':[0,900,1200,1400,1600,1800],'blocking-js':[600,1200,1500,1700,1900,2100],defer:[0,300,600,800,1000,1200]};\n    let running=false;\n    function run(scenario){\n      if(running)return;\n      running=true;\n      steps.forEach(s=>document.getElementById('s-'+s.id).className='step');\n      document.getElementById('note').innerHTML=notes[scenario];\n      const d=delays[scenario];\n      steps.forEach((s,i)=>{\n        setTimeout(()=>{\n          steps.slice(0,i).forEach(ps=>{\n            const el=document.getElementById('s-'+ps.id);\n            el.className='step done';el.style.setProperty('--c',ps.col);\n          });\n          const el=document.getElementById('s-'+s.id);\n          el.className='step active';el.style.setProperty('--c',s.col);\n          if(i===steps.length-1)setTimeout(()=>{steps.forEach(ps=>{const e=document.getElementById('s-'+ps.id);e.className='step done';e.style.setProperty('--c',ps.col);});running=false;},600);\n        },d[i]);\n      });\n    }\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "web-11-q1",
+          "question": "Why does <script src=\"app.js\"></script> in the <head> make a page appear blank?",
+          "type": "multiple-choice",
+          "options": [
+            "Scripts in <head> are ignored by browsers",
+            "The script tag blocks HTML parsing — the browser stops building the DOM until the script downloads and runs",
+            "Scripts cause a full page reload",
+            "The browser only reads <head> for metadata, not for resources"
+          ],
+          "correctAnswer": 1,
+          "explanation": "A plain <script> tag pauses the HTML parser at step 1 of the render path. The browser stops building the DOM, downloads the script, executes it, then resumes. If the script is large or the CDN is slow, the page stays blank until it finishes. Fix: add defer attribute (downloads in parallel, runs after DOM is ready) or move the script to the end of <body>."
+        },
+        {
+          "id": "web-11-q2",
+          "question": "You want to animate a card sliding in. Which CSS property lets the animation run at 60fps without blocking?",
+          "type": "multiple-choice",
+          "options": [
+            "margin-left — because it is a positioning property",
+            "left — because it moves the element",
+            "transform: translateX() — because it only triggers compositing, not layout or paint",
+            "width — because it changes the element's size"
+          ],
+          "correctAnswer": 2,
+          "explanation": "transform and opacity are the only CSS properties that trigger only the Composite step — handled entirely on the GPU without re-running Layout or Paint. Animating margin-left, left, or width triggers Layout, which recalculates positions for all affected elements on the main thread — causing dropped frames and jank. Always animate with transform/opacity for smooth motion."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between reflow and repaint?",
+      "a": "Reflow (layout) recalculates the position and size of elements — triggered by changes to geometry (width, height, margin, padding, font-size). It can cascade: changing one element's size may shift others. Repaint draws pixels for visual changes that do not affect geometry (color, background, visibility). Reflow always triggers repaint, but repaint does not always trigger reflow. Both are expensive on the main thread — prefer transform/opacity changes that only trigger compositing."
+    },
+    {
+      "q": "What does 'render-blocking' actually mean in practice?",
+      "a": "The browser shows a completely blank white screen until all render-blocking resources are downloaded and processed. On a fast connection, this is imperceptible. On 3G or a slow CDN, it can mean 3-8 seconds of blank screen. The fix: inline critical CSS (<style> in <head>), use font-display: swap for fonts, add defer or async to scripts, and host scripts on a fast CDN."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — Critical rendering path",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/Performance/Critical_rendering_path",
+      "verified": "2026-10-05"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["page performance optimization", "Core Web Vitals improvement", "CSS animation design", "script loading strategy"],
+    "examples": [
+      "Google recommends inlining above-the-fold CSS and deferring everything else to improve First Contentful Paint",
+      "React apps that render on the client have poor First Contentful Paint because the HTML is nearly empty — SSR/SSG restores fast first paint",
+      "Lighthouse 'Eliminate render-blocking resources' audit identifies exactly which CSS and JS files are delaying first paint"
+    ]
+  }
+}

@@ -1,0 +1,145 @@
+{
+  "id": "13-https-and-tls",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "fundamentals",
+  "technologyVersion": "1.0",
+  "module": "web-security-basics",
+  "title": "HTTPS and TLS",
+  "subtitle": "How the padlock works: encryption, certificates, and Certificate Authorities",
+  "difficulty": "beginner",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-05",
+  "updatedAt": "2026-10-05",
+  "lastVerified": "2026-10-05",
+  "prerequisites": ["fundamentals/04-what-is-http"],
+  "skillsTaught": ["web.https", "web.tls", "web.certificates", "web.encryption-basics"],
+  "skillsUsed": ["web.http-basics", "web.client-server"],
+  "relatedConcepts": ["web.same-origin-policy", "web.cookies", "security.certificates"],
+  "whyItExists": {
+    "problem": "HTTP sends all data in plain text — passwords, credit card numbers, private messages are all readable by anyone who can intercept the network traffic (public WiFi, ISPs, routers).",
+    "solution": "HTTPS wraps HTTP in TLS (Transport Layer Security), which encrypts all traffic between the browser and server. Certificates verify the server's identity so you cannot be deceived by a fake site.",
+    "whenToUse": "Always. Every site should use HTTPS in 2026. Let's Encrypt provides free certificates. HTTP is a security failure, not an option.",
+    "whenNotToUse": "HTTPS adds ~1 TLS handshake round-trip on first connection (0 for TLS 1.3 with session resumption). This is negligible compared to the security benefit."
+  },
+  "explainModes": {
+    "beginner": "When you visit a site with HTTP, everything you send — your password, your messages, your bank details — is sent as plain readable text. Anyone on the same WiFi can read it. HTTPS adds encryption: it is like putting your message in a locked box before sending it. Only you and the website have the key. The padlock icon in your browser means HTTPS is active and the connection is encrypted.",
+    "simple": "HTTPS = HTTP + TLS (Transport Layer Security). TLS does three things: (1) Encryption — all data between you and the server is encrypted. (2) Authentication — the server's certificate proves it is who it claims to be. (3) Integrity — any tampering with data in transit is detected. Without HTTPS: passwords are readable in plain text, sessions can be hijacked (stealing your cookie = stealing your login), and content can be injected (ads, malware) by ISPs or attackers on the network.",
+    "standard": "TLS works through asymmetric and symmetric cryptography. During the handshake, asymmetric encryption (expensive) establishes a shared secret. After the handshake, that shared secret is used for symmetric encryption (fast) for all subsequent data. Certificates contain the server's public key, domain name, validity dates, and a digital signature from a Certificate Authority (CA) that the browser trusts. The CA's signature is what prevents anyone from just generating a fake certificate for bank.com.",
+    "technical": "TLS 1.3 (2018) reduced the handshake from 2 round-trips (TLS 1.2) to 1 round-trip, and 0-RTT session resumption allows subsequent connections with no handshake delay. Perfect Forward Secrecy (PFS) means that even if a server's private key is later compromised, past sessions cannot be decrypted because each session used a fresh ephemeral key. HSTS (HTTP Strict Transport Security) — the Strict-Transport-Security header — tells the browser to always use HTTPS for this domain and never fall back to HTTP, preventing protocol downgrade attacks.",
+    "deepDive": "Certificate transparency (CT) logs are public, append-only logs of all issued certificates. Browsers require that certificates appear in CT logs to be trusted. This prevents CAs from issuing secret certificates. Browsers ship with a list of ~150 trusted root CAs built in. OCSP (Online Certificate Status Protocol) and CRL (Certificate Revocation Lists) are mechanisms to check if a certificate has been revoked before its expiry — for example, after a private key compromise. Certificate pinning (in mobile apps) specifies exactly which certificate or CA to accept, preventing even legitimate CA misuse."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "HTTP vs HTTPS"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "HTTP vs HTTPS comparison",
+      "code": "HTTP (plain text):\n  You → Router → ISP → Internet → Server\n  Every step can read: \"POST /login password=hunter2\"\n  Every step can modify: inject ads, malware, tracking pixels\n\nHTTPS (encrypted):\n  You → [encrypted tunnel] → Server\n  All data is encrypted between your browser and the server\n  Routers, ISPs, and attackers see only: random ciphertext\n  The server's certificate proves it is who it claims to be\n\nResults without HTTPS:\n  ✗ Passwords readable on public WiFi\n  ✗ Session cookies stealable (cookie theft = account takeover)\n  ✗ ISPs can inject ads or track every page you visit\n  ✗ Attackers can modify page content in transit"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "How TLS works"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "TLS handshake (simplified)",
+      "code": "Browser                               Server\n  │                                     │\n  │─── ClientHello ───────────────────►│\n  │    (TLS version, supported ciphers) │\n  │                                     │\n  │◄── ServerHello + Certificate ───────│\n  │    (chosen cipher, server's         │\n  │     certificate with public key)    │\n  │                                     │\n  │  Browser verifies certificate:      │\n  │  1. Trusted CA signed it?          │\n  │  2. Domain name matches?            │\n  │  3. Not expired?                    │\n  │  4. Not revoked?                    │\n  │                                     │\n  │─── Encrypted with server's key ───►│\n  │    (establish shared secret)        │\n  │                                     │\n  │◄══ All HTTP data now encrypted ════►│\n  │    (using fast symmetric key)       │"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Certificates and Certificate Authorities"
+    },
+    {
+      "type": "paragraph",
+      "text": "A TLS certificate is a digital document that proves: 'I am kernal.dhurta.org, and this public key belongs to me.' But anyone could generate a self-signed certificate claiming to be kernal.dhurta.org. Certificate Authorities (CAs) are trusted third parties that verify domain ownership before signing certificates."
+    },
+    {
+      "type": "list",
+      "ordered": true,
+      "items": [
+        "You generate a private key and a Certificate Signing Request (CSR) for your domain",
+        "A CA (Let's Encrypt, DigiCert, Comodo) verifies you own the domain (by checking DNS records or a file on your server)",
+        "The CA signs your certificate with their private key",
+        "Browsers ship with a list of ~150 trusted root CAs built in",
+        "When a browser sees your certificate, it checks: 'Is this signed by a CA I trust?' → yes → padlock shown"
+      ]
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Let's Encrypt</strong> is a free, automated CA. Most hosting providers (Cloudflare, Netlify, Vercel) provision TLS certificates automatically. There is no reason for any site to use HTTP in 2026."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Interactive: TLS Handshake Simulator",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n<style>\n  body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0;font-size:13px}\n  h3{color:#4fd1c5;margin:0 0 12px}\n  .btn{padding:6px 16px;background:#4fd1c5;color:#0e1116;border:none;border-radius:4px;font-weight:700;cursor:pointer;font-size:0.8rem;margin-bottom:12px}\n  .btn:disabled{background:#2d3748;color:#4a5568;cursor:not-allowed}\n  .chat{display:grid;grid-template-columns:1fr 40px 1fr;gap:0;align-items:start}\n  .col-h{font-size:0.72rem;font-weight:700;color:#64748b;text-align:center;padding:4px 0;border-bottom:1px solid #2d3748;margin-bottom:8px}\n  .browser-col,.server-col{display:flex;flex-direction:column;gap:4px}\n  .center-col{display:flex;flex-direction:column;align-items:center;gap:4px;padding-top:20px}\n  .msg{padding:6px 8px;border-radius:4px;font-size:0.72rem;line-height:1.5;opacity:0;transition:opacity 0.4s}\n  .msg.show{opacity:1}\n  .b-msg{background:#1a2a1a;border-left:2px solid #4ade80;color:#e2e8f0}\n  .s-msg{background:#1a1a2a;border-left:2px solid #60a5fa;color:#e2e8f0;text-align:right}\n  .arrow{font-size:1.1rem;opacity:0;transition:opacity 0.4s;color:#4fd1c5}\n  .arrow.show{opacity:1}\n  .arrow.right::before{content:'→'}\n  .arrow.left::before{content:'←'}\n  .lock{font-size:0.9rem}\n  .note{font-size:0.72rem;color:#64748b;font-style:italic;margin-top:4px}\n  .done{background:#1a2a1a;border:1px solid #166534;border-radius:6px;padding:8px;margin-top:10px;font-size:0.78rem;color:#86efac;display:none}\n  .done.show{display:block}\n</style>\n</head>\n<body>\n  <h3>TLS Handshake Simulator</h3>\n  <button class=\"btn\" id=\"btn\" onclick=\"start()\">Start TLS Handshake</button>\n  <div class=\"chat\">\n    <div>\n      <div class=\"col-h\">Browser</div>\n      <div class=\"browser-col\" id=\"bc\"></div>\n    </div>\n    <div class=\"center-col\" id=\"cc\"></div>\n    <div>\n      <div class=\"col-h\" style=\"text-align:right\">Server (kernal.dhurta.org)</div>\n      <div class=\"server-col\" id=\"sc\"></div>\n    </div>\n  </div>\n  <div class=\"done\" id=\"done\">🔒 TLS established — all HTTP traffic is now encrypted with AES-256-GCM. The padlock appears in the address bar.</div>\n  <script>\n    const steps=[\n      {dir:'→',bMsg:'ClientHello\\nTLS 1.3, supported ciphers:\\nAES-256-GCM, ChaCha20-Poly1305',sMsg:'',note:'Browser announces TLS version and crypto it supports'},\n      {dir:'←',bMsg:'',sMsg:'ServerHello\\nChosen: AES-256-GCM\\n+ Certificate (kernal.dhurta.org)',note:'Server picks cipher and sends its certificate'},\n      {dir:'b',bMsg:'Verify certificate:\\n✓ Signed by Let\\'s Encrypt (trusted CA)\\n✓ Domain: kernal.dhurta.org ✓\\n✓ Valid: 2026-01 to 2026-04 ✓\\n✓ Not revoked ✓',sMsg:'',note:'Browser validates the certificate chain'},\n      {dir:'→',bMsg:'Encrypted key exchange\\n(ECDH — derive shared secret)',sMsg:'',note:'Establish shared symmetric key'},\n      {dir:'s',bMsg:'',sMsg:'✓ Handshake complete\\nSymmetric key established',note:'Server confirms — both sides have the same key'},\n      {dir:'b',bMsg:'GET /content/fundamentals HTTP/1.1\\nHost: kernal.dhurta.org\\n[encrypted with AES-256-GCM]',sMsg:'',note:'All HTTP traffic is now encrypted'},\n    ];\n    let running=false;\n    function start(){\n      if(running)return;\n      running=true;\n      document.getElementById('btn').disabled=true;\n      document.getElementById('bc').innerHTML='';\n      document.getElementById('sc').innerHTML='';\n      document.getElementById('cc').innerHTML='';\n      document.getElementById('done').classList.remove('show');\n      steps.forEach((s,i)=>{\n        setTimeout(()=>{\n          const bc=document.getElementById('bc'),sc=document.getElementById('sc'),cc=document.getElementById('cc');\n          if(s.bMsg){const d=document.createElement('div');d.className='msg b-msg';d.innerHTML=s.bMsg.replace(/\\n/g,'<br>');bc.appendChild(d);setTimeout(()=>d.classList.add('show'),50);}\n          if(s.sMsg){const d=document.createElement('div');d.className='msg s-msg';d.innerHTML=s.sMsg.replace(/\\n/g,'<br>');sc.appendChild(d);setTimeout(()=>d.classList.add('show'),50);}\n          if(s.dir==='→'||s.dir==='←'){const a=document.createElement('div');a.className='arrow '+(s.dir==='→'?'right':'left');cc.appendChild(a);setTimeout(()=>a.classList.add('show'),50);}\n          if(s.note){const n=document.createElement('div');n.className='msg b-msg note';n.style.gridColumn='1 / -1';n.textContent=s.note;bc.appendChild(n);setTimeout(()=>n.classList.add('show'),50);}\n          if(i===steps.length-1)setTimeout(()=>{document.getElementById('done').classList.add('show');document.getElementById('btn').disabled=false;running=false;},600);\n        },i*700);\n      });\n    }\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "web-13-q1",
+          "question": "You log into a banking site over HTTP on public WiFi. What can someone on the same WiFi network see?",
+          "type": "multiple-choice",
+          "options": [
+            "Nothing — WiFi traffic is always encrypted",
+            "Only the URL, not the password",
+            "Your username, password, and session cookies — all in plain text",
+            "Only the server's IP address"
+          ],
+          "correctAnswer": 2,
+          "explanation": "HTTP sends all data as plain text. On public WiFi, anyone running a packet sniffer can read every byte you send and receive: your username, password, session cookies, and all page content. This is why banking sites (and all sites) use HTTPS — the TLS encryption makes all that data unreadable to anyone on the network path."
+        },
+        {
+          "id": "web-13-q2",
+          "question": "What does a TLS certificate prove?",
+          "type": "multiple-choice",
+          "options": [
+            "The site is safe and has no vulnerabilities",
+            "The site's code has been audited by the CA",
+            "The domain name is owned by the entity that has the private key, verified by a trusted CA",
+            "The site is operated by a legitimate business"
+          ],
+          "correctAnswer": 2,
+          "explanation": "A TLS certificate proves domain ownership — that the entity serving content for kernal.dhurta.org controls the private key that matches the certificate. A CA verified this by checking DNS records or a file on the server. It does NOT mean the site is free of vulnerabilities, has been security audited, or is run by a trustworthy business — it only proves you are talking to the entity that legitimately controls the domain."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is HTTPS enough to keep my site secure?",
+      "a": "HTTPS encrypts data in transit — it prevents eavesdropping and tampering on the network. But it says nothing about what happens at the server: your database can still be hacked, your JavaScript can still have XSS vulnerabilities, your passwords can still be stored in plain text. HTTPS is necessary but not sufficient. It is the floor of web security, not the ceiling."
+    },
+    {
+      "q": "Does HTTPS slow down my site?",
+      "a": "Negligibly, in practice. TLS 1.3 requires only 1 extra round-trip on first connection (vs HTTP's 0), and 0-RTT session resumption eliminates this for returning visitors. The overhead is measured in milliseconds. Modern CPUs handle TLS encryption natively with hardware acceleration. The benefits (security, user trust, SEO) far outweigh the negligible performance cost."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — HTTPS",
+      "url": "https://developer.mozilla.org/en-US/docs/Glossary/HTTPS",
+      "verified": "2026-10-05"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["every production website", "API authentication", "login forms", "e-commerce", "anything with user data"],
+    "examples": [
+      "Chrome shows 'Not Secure' in the address bar for HTTP sites — most users will not enter a password on a 'Not Secure' page",
+      "Google gives a small ranking boost to HTTPS sites — a direct SEO incentive",
+      "Let's Encrypt has issued over 4 billion certificates since 2015 — enabling free HTTPS for millions of small sites"
+    ]
+  }
+}

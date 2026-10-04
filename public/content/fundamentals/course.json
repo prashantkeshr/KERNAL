@@ -1,0 +1,19 @@
+{
+  "id": "fundamentals",
+  "name": "Web Fundamentals",
+  "description": "Understand how the web actually works before writing a single line of code. From browsers and servers to HTTP, DevTools, rendering, and security — this is the mental model every developer needs.",
+  "version": "1.0",
+  "icon": "globe",
+  "color": "#64748b",
+  "difficulty": "beginner",
+  "estimatedHours": 4,
+  "modules": [
+    "web-how-it-works",
+    "web-http",
+    "web-developer-tools",
+    "web-rendering",
+    "web-security-basics"
+  ],
+  "prerequisites": [],
+  "certificationAvailable": false
+}

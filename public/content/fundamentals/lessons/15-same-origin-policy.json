@@ -1,0 +1,155 @@
+{
+  "id": "15-same-origin-policy",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "fundamentals",
+  "technologyVersion": "1.0",
+  "module": "web-security-basics",
+  "title": "Same-Origin Policy and CORS",
+  "subtitle": "Why your fetch fails cross-origin and how CORS allows it",
+  "difficulty": "beginner",
+  "estimatedMinutes": 16,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-05",
+  "updatedAt": "2026-10-05",
+  "lastVerified": "2026-10-05",
+  "prerequisites": ["fundamentals/14-cookies-and-storage", "fundamentals/04-what-is-http"],
+  "skillsTaught": ["web.same-origin-policy", "web.cors", "web.preflight", "web.cross-origin"],
+  "skillsUsed": ["web.http-basics", "web.cookies", "web.headers"],
+  "relatedConcepts": ["web.security", "api.cors", "web.headers"],
+  "whyItExists": {
+    "problem": "Without Same-Origin Policy, a script on evil.com could make requests to bank.com using your session cookies, read your account balance, and transfer money — all while you are on evil.com.",
+    "solution": "The Same-Origin Policy (SOP) prevents JavaScript on one origin from reading responses from a different origin. CORS (Cross-Origin Resource Sharing) is the standard mechanism for a server to opt-in and allow specific cross-origin access.",
+    "whenToUse": "Every time you build an API that will be called from a different origin. Every time you debug a 'CORS error'. Understanding SOP explains why the browser blocks certain requests and what to do about it.",
+    "whenNotToUse": "SOP is a browser security mechanism — it applies to browser-based JavaScript. Server-to-server requests are not subject to SOP."
+  },
+  "explainModes": {
+    "beginner": "Imagine your browser is like a careful friend who carries your bank card. They will only use your card at the exact bank you told them — not at random shops that claim to be your bank. The Same-Origin Policy is your browser refusing to let scripts on one website read data from a completely different website. CORS is the mechanism a trusted website uses to tell your browser: 'Yes, you can share data with me.'",
+    "simple": "Same origin means: same protocol (https), same domain (kernal.dhurta.org), same port (443). Different origin = different any of these three. SOP rule: JavaScript can SEND cross-origin requests (with CORS or not), but can only READ the response if the server explicitly allows it via CORS headers. Without CORS: fetch('https://api.other.com/data') from your site returns a 'CORS error' — the request was sent and the server responded, but the browser blocked your JS from reading the response. Fix: the API server must add Access-Control-Allow-Origin header.",
+    "standard": "CORS works through HTTP headers. For 'simple' requests (GET/POST with simple content types), the browser adds an Origin header and checks the response for Access-Control-Allow-Origin. For 'non-simple' requests (custom headers, PUT, DELETE, JSON bodies), the browser first sends a preflight OPTIONS request to check whether the actual request is permitted — only proceeds if the preflight succeeds. CORS headers are set by the server, not the client. Setting CORS headers in your frontend code does nothing.",
+    "technical": "Preflight conditions: method is PUT/PATCH/DELETE, or Content-Type is application/json, or any custom header is present. The preflight OPTIONS response must include: Access-Control-Allow-Origin, Access-Control-Allow-Methods, Access-Control-Allow-Headers, and optionally Access-Control-Max-Age (cache duration for the preflight). Credentialed requests (cookies + CORS) require both Access-Control-Allow-Credentials: true AND the client to set credentials: 'include' in fetch options AND the server must NOT use wildcard (*) in Access-Control-Allow-Origin — it must echo back the specific origin.",
+    "deepDive": "The same-origin policy has two important exceptions: scripts loaded via <script src=''> inherit the loading page's origin, not the script file's origin — this is why CDN-hosted JavaScript can run in your page context (and why you should use Subresource Integrity for CDN scripts). Forms can submit cross-origin (POST to a different domain) but cannot read the response — this is why CSRF exists and why CSRF tokens are needed. The CORB (Cross-Origin Read Blocking) extension to SOP in Chrome blocks sensitive cross-origin responses even from same-site iframes, preventing Spectre-class attacks that use side-channel timing."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "What is an 'origin'?"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Origin definition",
+      "code": "An origin is: protocol + hostname + port\n\nhttps://kernal.dhurta.org/lessons    → origin: https://kernal.dhurta.org\nhttps://kernal.dhurta.org/roadmap    → origin: https://kernal.dhurta.org  (same)\nhttp://kernal.dhurta.org/            → DIFFERENT (http ≠ https)\nhttps://api.dhurta.org/              → DIFFERENT (different subdomain)\nhttps://kernal.dhurta.org:8080/      → DIFFERENT (different port)\nhttps://otherdomain.com/             → DIFFERENT (different domain)\n\nTwo origins are the same only if ALL THREE parts match exactly."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The Same-Origin Policy rule"
+    },
+    {
+      "type": "paragraph",
+      "text": "JavaScript running on one origin can <strong>send</strong> requests to other origins, but it can only <strong>read the response</strong> if the server explicitly permits it with CORS headers."
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "CORS error example",
+      "code": "// Running on: https://kernal.dhurta.org\n\n// ✓ ALLOWED — same origin\nconst data = await fetch('/api/lessons').then(r => r.json());\n\n// ✗ BLOCKED by SOP (unless the API adds CORS headers)\nconst weather = await fetch('https://api.weather.com/forecast').then(r => r.json());\n// → TypeError: Failed to fetch\n// → Console: 'Access to fetch at https://api.weather.com/ from origin\n//             https://kernal.dhurta.org has been blocked by CORS policy:\n//             No 'Access-Control-Allow-Origin' header is present'\n\n// ✓ ALLOWED — server added CORS header\n// Response from api.weather.com includes:\n// Access-Control-Allow-Origin: https://kernal.dhurta.org\nconst weather = await fetch('https://api.weather.com/forecast').then(r => r.json());"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "CORS: the server's opt-in"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "CORS response headers",
+      "code": "Server response to a cross-origin request:\n\nAccess-Control-Allow-Origin: https://kernal.dhurta.org\n  ↑ Only kernal.dhurta.org can read this response\n\nAccess-Control-Allow-Origin: *\n  ↑ Any origin can read (OK for public APIs, NOT for auth)\n\nAccess-Control-Allow-Methods: GET, POST, PUT, DELETE\n  ↑ These HTTP methods are allowed cross-origin\n\nAccess-Control-Allow-Headers: Content-Type, Authorization\n  ↑ These request headers are allowed\n\nAccess-Control-Allow-Credentials: true\n  ↑ Cookies will be included (requires specific origin, not *)"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Preflight requests"
+    },
+    {
+      "type": "paragraph",
+      "text": "For non-simple requests (DELETE, PUT, or any request with JSON body or custom headers), the browser sends a <strong>preflight</strong> OPTIONS request first to ask the server if the real request is allowed."
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Preflight flow",
+      "code": "// You write:\nfetch('https://api.example.com/users/5', {\n  method: 'DELETE',\n  headers: { Authorization: 'Bearer token' }\n})\n\n// Browser first sends (automatically):\nOPTIONS /users/5 HTTP/1.1\nOrigin: https://yoursite.com\nAccess-Control-Request-Method: DELETE\nAccess-Control-Request-Headers: Authorization\n\n// Server must respond:\nHTTP/1.1 204 No Content\nAccess-Control-Allow-Origin: https://yoursite.com\nAccess-Control-Allow-Methods: DELETE\nAccess-Control-Allow-Headers: Authorization\n\n// Only then does the browser send the actual DELETE request"
+    },
+    {
+      "type": "tip",
+      "text": "CORS is a <strong>server-side configuration</strong>. If you get a CORS error, the fix is on the server — add the correct headers. Nothing you do in your frontend JavaScript can bypass SOP (and you should not want to — it protects your users)."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Interactive: CORS Request Simulator",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n<style>\n  body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0;font-size:13px}\n  h3{color:#4fd1c5;margin:0 0 12px}\n  .scenario{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:10px;margin-bottom:8px;cursor:pointer;transition:border-color 0.2s}\n  .scenario:hover{border-color:#4fd1c5}\n  .scenario.active{border-color:#4fd1c5;background:#0a1a1a}\n  .s-title{font-weight:700;font-size:0.8rem;margin-bottom:3px}\n  .s-desc{font-size:0.72rem;color:#64748b}\n  .result{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:12px;margin-top:10px;font-family:monospace;font-size:0.72rem;min-height:80px;display:none}\n  .result.show{display:block}\n  .ok{color:#4ade80}.err{color:#ef4444}.muted{color:#64748b}.head{color:#fbbf24}.info{color:#93c5fd}\n</style>\n</head>\n<body>\n  <h3>CORS Scenario Simulator</h3>\n  <div id=\"scenarios\"></div>\n  <div class=\"result\" id=\"result\"></div>\n  <script>\n    const scenarios=[\n      {id:'same',title:'Same-origin fetch',desc:'kernal.dhurta.org fetches from kernal.dhurta.org/api/lessons',\n       flow:[\n         {c:'info',t:'// Running on: https://kernal.dhurta.org'},\n         {c:'info',t:\"fetch('/api/lessons')\"},\n         {c:'muted',t:'Request:'},\n         {c:'head',t:'GET /api/lessons HTTP/1.1'},\n         {c:'head',t:'Host: kernal.dhurta.org'},\n         {c:'muted',t:'Response:'},\n         {c:'ok',t:'HTTP/1.1 200 OK'},\n         {c:'ok',t:'[no CORS headers needed — same origin]'},\n         {c:'ok',t:'✓ JavaScript can read the response'},\n       ]},\n      {id:'blocked',title:'Cross-origin — no CORS headers',desc:'kernal.dhurta.org fetches from api.weather.com (no CORS configured)',\n       flow:[\n         {c:'info',t:'// Running on: https://kernal.dhurta.org'},\n         {c:'info',t:\"fetch('https://api.weather.com/forecast')\"},\n         {c:'muted',t:'Request:'},\n         {c:'head',t:'GET /forecast HTTP/1.1'},\n         {c:'head',t:'Origin: https://kernal.dhurta.org'},\n         {c:'muted',t:'Response:'},\n         {c:'ok',t:'HTTP/1.1 200 OK'},\n         {c:'ok',t:'Content-Type: application/json'},\n         {c:'ok',t:'[no Access-Control-Allow-Origin header]'},\n         {c:'err',t:'✗ Browser blocks JavaScript from reading response'},\n         {c:'err',t:'CORS error: No Access-Control-Allow-Origin header present'},\n         {c:'err',t:'Note: the request DID reach the server — browser blocked the READ'},\n       ]},\n      {id:'allowed',title:'Cross-origin — CORS allowed',desc:'api.weather.com responds with correct CORS headers',\n       flow:[\n         {c:'info',t:'// Running on: https://kernal.dhurta.org'},\n         {c:'info',t:\"fetch('https://api.weather.com/forecast')\"},\n         {c:'muted',t:'Response:'},\n         {c:'ok',t:'HTTP/1.1 200 OK'},\n         {c:'ok',t:'Access-Control-Allow-Origin: https://kernal.dhurta.org'},\n         {c:'ok',t:'Content-Type: application/json'},\n         {c:'ok',t:'✓ Browser allows JavaScript to read the response'},\n       ]},\n      {id:'preflight',title:'Preflight: DELETE with Authorization header',desc:'Non-simple request triggers preflight OPTIONS check first',\n       flow:[\n         {c:'info',t:'// Browser AUTOMATICALLY sends preflight first:'},\n         {c:'head',t:'OPTIONS /users/5 HTTP/1.1'},\n         {c:'head',t:'Origin: https://kernal.dhurta.org'},\n         {c:'head',t:'Access-Control-Request-Method: DELETE'},\n         {c:'head',t:'Access-Control-Request-Headers: Authorization'},\n         {c:'muted',t:'Preflight response:'},\n         {c:'ok',t:'HTTP/1.1 204 No Content'},\n         {c:'ok',t:'Access-Control-Allow-Origin: https://kernal.dhurta.org'},\n         {c:'ok',t:'Access-Control-Allow-Methods: DELETE'},\n         {c:'ok',t:'Access-Control-Allow-Headers: Authorization'},\n         {c:'ok',t:'Access-Control-Max-Age: 3600'},\n         {c:'info',t:'// Now browser sends the actual DELETE:'},\n         {c:'head',t:'DELETE /users/5 HTTP/1.1'},\n         {c:'head',t:'Authorization: Bearer eyJh...'},\n         {c:'ok',t:'HTTP/1.1 200 OK'},\n         {c:'ok',t:'✓ Request completed'},\n       ]},\n    ];\n    const sc=document.getElementById('scenarios');\n    scenarios.forEach(s=>{\n      const d=document.createElement('div');d.className='scenario';\n      d.innerHTML=`<div class=\"s-title\">${s.title}</div><div class=\"s-desc\">${s.desc}</div>`;\n      d.onclick=()=>show(s,d);\n      sc.appendChild(d);\n    });\n    function show(s,el){\n      document.querySelectorAll('.scenario').forEach(e=>e.classList.remove('active'));el.classList.add('active');\n      const r=document.getElementById('result');\n      r.innerHTML='';r.classList.add('show');\n      s.flow.forEach((line,i)=>{\n        setTimeout(()=>{\n          const div=document.createElement('div');div.className=line.c;div.textContent=line.t;r.appendChild(div);r.scrollTop=r.scrollHeight;\n        },i*60);\n      });\n    }\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "web-15-q1",
+          "question": "Your frontend (https://app.com) gets a CORS error fetching from https://api.com. Where is the fix?",
+          "type": "multiple-choice",
+          "options": [
+            "In the frontend fetch() call — add a 'no-cors' mode",
+            "In the browser settings — whitelist the API domain",
+            "On the API server — add Access-Control-Allow-Origin: https://app.com to responses",
+            "In the HTML — add a <meta> CORS tag to the frontend page"
+          ],
+          "correctAnswer": 2,
+          "explanation": "CORS is a server-side configuration. The API server (api.com) must add the Access-Control-Allow-Origin header to its responses. Adding 'mode: no-cors' in fetch just makes the response opaque — you cannot read the data. There is no browser setting or frontend HTML that can bypass SOP (which is the whole point)."
+        },
+        {
+          "id": "web-15-q2",
+          "question": "When does the browser send a preflight OPTIONS request before the actual request?",
+          "type": "multiple-choice",
+          "options": [
+            "For every cross-origin request without exception",
+            "Only for GET requests to check the server is alive",
+            "For non-simple requests: DELETE/PUT, custom headers, or JSON body",
+            "Only when the server requires authentication"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Simple requests (GET/POST with form data or plain text body, no custom headers) do not trigger a preflight. Non-simple requests do: PUT/DELETE/PATCH methods, requests with Content-Type: application/json, or any custom header (like Authorization). The browser sends OPTIONS first to confirm the server allows this type of cross-origin request before sending the real one."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Why does my server-to-server request work but browser fetch fails?",
+      "a": "Same-Origin Policy is a browser security mechanism — it only applies to JavaScript running in a browser. When your Node.js server, curl, or Postman makes a request, there is no browser enforcement. Only browsers enforce SOP. This is why a proxy pattern works: your frontend fetches your own API (/api/proxy), and your server makes the cross-origin request on behalf of the browser — no CORS needed."
+    },
+    {
+      "q": "Is CORS enough to secure my API?",
+      "a": "No. CORS controls which browser origins can read your responses. It does not authenticate users, authorize operations, rate-limit requests, or prevent server-to-server abuse. Think of CORS as browser-level access control only. You still need authentication (tokens, sessions), authorization (who can do what), input validation, and rate limiting."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — Cross-Origin Resource Sharing (CORS)",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS",
+      "verified": "2026-10-05"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["API configuration", "frontend-to-backend communication", "third-party integrations", "microservices"],
+    "examples": [
+      "The most common beginner error: 'CORS error' when fetching a local backend from a different port — fix by adding CORS headers in your Express/FastAPI/etc. server",
+      "Public APIs like the GitHub API return Access-Control-Allow-Origin: * so any website can fetch public data",
+      "A CORS misconfiguration (Access-Control-Allow-Origin: * with Access-Control-Allow-Credentials: true) allows any site to make credentialed requests — a serious vulnerability"
+    ]
+  }
+}

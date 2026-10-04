@@ -1,0 +1,57 @@
+[
+  {
+    "id": "web-how-it-works",
+    "title": "How the Web Works",
+    "description": "The internet, the web, clients, servers, URLs, and DNS.",
+    "order": 1,
+    "lessons": [
+      { "id": "01-what-is-the-web",   "title": "What is the Web?",            "subtitle": "Internet vs the web, clients, servers, and packets",              "difficulty": "beginner", "estimatedMinutes": 12, "status": "published" },
+      { "id": "02-browsers-and-servers","title": "Browsers and Servers",       "subtitle": "What happens when you type a URL and press Enter",                "difficulty": "beginner", "estimatedMinutes": 15, "status": "published" },
+      { "id": "03-urls-and-dns",       "title": "URLs and DNS",                "subtitle": "Anatomy of a URL, domain names, and how DNS resolves them",        "difficulty": "beginner", "estimatedMinutes": 12, "status": "published" }
+    ]
+  },
+  {
+    "id": "web-http",
+    "title": "HTTP Protocol",
+    "description": "The language browsers and servers use to talk to each other.",
+    "order": 2,
+    "lessons": [
+      { "id": "04-what-is-http",       "title": "HTTP — The Language of the Web","subtitle": "Request and response cycle, headers, and protocol basics",       "difficulty": "beginner", "estimatedMinutes": 15, "status": "published" },
+      { "id": "05-http-methods",       "title": "HTTP Methods",                "subtitle": "GET, POST, PUT, PATCH, DELETE — what they mean and when to use them","difficulty": "beginner", "estimatedMinutes": 12, "status": "published" },
+      { "id": "06-http-status-codes",  "title": "HTTP Status Codes",           "subtitle": "1xx, 2xx, 3xx, 4xx, 5xx — what every number means",              "difficulty": "beginner", "estimatedMinutes": 12, "status": "published" }
+    ]
+  },
+  {
+    "id": "web-developer-tools",
+    "title": "Developer Tools",
+    "description": "The browser tools every developer uses every single day.",
+    "order": 3,
+    "lessons": [
+      { "id": "07-browser-devtools",   "title": "Browser DevTools",            "subtitle": "Opening DevTools and navigating the panels",                      "difficulty": "beginner", "estimatedMinutes": 15, "status": "published" },
+      { "id": "08-network-tab",        "title": "The Network Panel",           "subtitle": "Inspecting HTTP requests, headers, timing, and responses",        "difficulty": "beginner", "estimatedMinutes": 15, "status": "published" },
+      { "id": "09-console-basics",     "title": "The Console",                 "subtitle": "console.log, errors, warnings, and running JavaScript live",      "difficulty": "beginner", "estimatedMinutes": 12, "status": "published" }
+    ]
+  },
+  {
+    "id": "web-rendering",
+    "title": "How Browsers Render Pages",
+    "description": "What the browser actually does with your HTML, CSS, and JavaScript.",
+    "order": 4,
+    "lessons": [
+      { "id": "10-three-layers",       "title": "The Three Layers of the Web", "subtitle": "HTML structures, CSS styles, JavaScript behaves",                 "difficulty": "beginner", "estimatedMinutes": 12, "status": "published" },
+      { "id": "11-critical-render-path","title": "The Critical Render Path",   "subtitle": "DOM, CSSOM, render tree, layout, and paint",                     "difficulty": "intermediate", "estimatedMinutes": 18, "status": "published" },
+      { "id": "12-web-performance",    "title": "Web Performance Basics",      "subtitle": "Core Web Vitals, LCP, CLS, and what makes pages fast or slow",   "difficulty": "intermediate", "estimatedMinutes": 15, "status": "published" }
+    ]
+  },
+  {
+    "id": "web-security-basics",
+    "title": "Security Basics",
+    "description": "How HTTPS, cookies, and the same-origin policy protect users.",
+    "order": 5,
+    "lessons": [
+      { "id": "13-https-and-tls",      "title": "HTTPS and TLS",               "subtitle": "How encryption protects data in transit — certificates and the padlock",  "difficulty": "beginner", "estimatedMinutes": 15, "status": "published" },
+      { "id": "14-cookies-and-storage","title": "Cookies and Browser Storage", "subtitle": "Where browsers store data — cookies, localStorage, sessionStorage, IndexedDB","difficulty": "beginner", "estimatedMinutes": 15, "status": "published" },
+      { "id": "15-same-origin-policy", "title": "Same-Origin Policy",          "subtitle": "Why browsers restrict cross-origin requests and how CORS solves it","difficulty": "intermediate", "estimatedMinutes": 15, "status": "published" }
+    ]
+  }
+]

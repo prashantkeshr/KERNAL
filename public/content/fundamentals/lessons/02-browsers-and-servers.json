@@ -1,0 +1,162 @@
+{
+  "id": "02-browsers-and-servers",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "fundamentals",
+  "technologyVersion": "1.0",
+  "module": "web-how-it-works",
+  "title": "Browsers and Servers",
+  "subtitle": "What happens when you type a URL and press Enter",
+  "difficulty": "beginner",
+  "estimatedMinutes": 15,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-05",
+  "updatedAt": "2026-10-05",
+  "lastVerified": "2026-10-05",
+  "prerequisites": ["fundamentals/01-what-is-the-web"],
+  "skillsTaught": ["web.browser-job", "web.server-job", "web.page-load-sequence"],
+  "skillsUsed": ["web.client-server", "web.packets"],
+  "relatedConcepts": ["web.http", "web.dns", "web.rendering"],
+  "whyItExists": {
+    "problem": "Developers debug network issues blind when they do not know what the browser is doing behind the scenes.",
+    "solution": "Understanding the sequence — DNS → TCP → TLS → HTTP → parse → render — gives you a mental checklist for every performance or network problem you will ever encounter.",
+    "whenToUse": "When diagnosing a slow page, a failing API call, or a blank screen. When explaining why changing a DNS record takes time to propagate.",
+    "whenNotToUse": "N/A — this is always-applicable foundational knowledge."
+  },
+  "explainModes": {
+    "beginner": "When you type google.com and press Enter, your browser quietly does about 10 things before you see anything. First it translates the name 'google.com' into a number (an IP address) — like looking up someone's address from their name. Then it opens a connection to that address. Then it asks for the page. Then it builds the page from the HTML it receives. All of this happens in under a second.",
+    "simple": "Step 1: DNS lookup — translate domain name to IP. Step 2: TCP handshake — open a connection. Step 3: TLS handshake (for HTTPS) — set up encryption. Step 4: HTTP request — ask for the page. Step 5: HTTP response — receive HTML, CSS, JS. Step 6: Parse HTML — build DOM. Step 7: Download sub-resources — images, fonts, scripts. Step 8: Run JavaScript. Step 9: Render pixels.",
+    "standard": "The browser's job is to be a user agent: fetch resources, parse them, build a DOM (HTML) and CSSOM (CSS), execute scripts, and produce pixels on screen. Modern browsers are multi-process: a browser process manages the UI, separate renderer processes handle each tab (sandbox), a GPU process accelerates compositing, and a network process handles all requests. Each navigation follows the same lifecycle: navigation → document load → interactive → complete.",
+    "technical": "The URL bar triggers a navigation: the browser checks the cache (HTTP Cache, Service Worker, Preload Cache), resolves DNS (system DNS → DoH — DNS over HTTPS — in modern browsers), performs a TCP + TLS handshake, sends an HTTP request (with cache headers like If-None-Match), receives a response. The renderer process starts 'streaming' parsing from the first byte — it does not wait for the full response. Preload scanner runs in parallel to discover sub-resources. render-blocking resources (synchronous <script>, CSS in <head>) pause the parser until they are fetched and executed.",
+    "deepDive": "Chrome's Blink renderer and Safari's WebKit use a multi-threaded architecture where the main thread handles parsing, scripting, and layout, while the compositor thread handles painting. Script execution is single-threaded (the event loop), which is why long-running JS blocks rendering. The Performance API (PerformanceTiming, PerformanceObserver) exposes each phase of page load with high-resolution timestamps. Understanding the critical path — the sequence of resources that must load before the page becomes interactive — is the foundation of web performance engineering."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "What the browser does"
+    },
+    {
+      "type": "paragraph",
+      "text": "A browser is more than a window to the web. It is a sophisticated piece of software with multiple jobs: fetching resources, parsing code, executing scripts, and turning it all into the pixels you see on screen."
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "<strong>Network layer</strong> — makes HTTP/HTTPS requests, manages caching, handles redirects",
+        "<strong>HTML parser</strong> — reads HTML top-to-bottom, builds the Document Object Model (DOM)",
+        "<strong>CSS engine</strong> — processes stylesheets, builds the CSS Object Model (CSSOM), computes styles",
+        "<strong>JavaScript engine</strong> — executes JS code (V8 in Chrome, SpiderMonkey in Firefox, JavaScriptCore in Safari)",
+        "<strong>Rendering engine</strong> — combines DOM + CSSOM into a render tree, calculates layout, paints pixels",
+        "<strong>Compositing</strong> — assembles layers (like Photoshop layers) and sends them to the GPU"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "What the server does"
+    },
+    {
+      "type": "paragraph",
+      "text": "A web server is software running on a computer that is always on, always listening for incoming connections. When a request arrives, it processes it and sends back a response."
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "<strong>Static file server</strong> — sends files exactly as they are on disk (HTML, CSS, images). Fast, simple. GitHub Pages, Netlify, and KERNAL itself work this way.",
+        "<strong>Application server</strong> — runs code to generate a response dynamically. Queries a database, applies business logic, returns JSON or HTML. Node.js, Python (Django/FastAPI), and Ruby on Rails apps do this.",
+        "<strong>Reverse proxy</strong> — sits in front of application servers, routes traffic, handles SSL termination, and caches. Nginx and Cloudflare are common examples."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The full page-load sequence"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "page-load-sequence",
+      "code": "You type: https://kernal.dhurta.org  → press Enter\n\n 1. DNS lookup\n    Browser checks cache → OS cache → Router cache → ISP DNS server\n    Result: kernal.dhurta.org → 185.199.108.153 (GitHub Pages IP)\n\n 2. TCP handshake (3 messages)\n    Browser → SYN        → Server\n    Browser ← SYN-ACK    ← Server\n    Browser → ACK        → Server\n    (Connection open. Time: ~50–200ms depending on distance)\n\n 3. TLS handshake (HTTPS)\n    Browser ↔ Server negotiate encryption keys\n    Server sends certificate proving its identity\n    (~1 additional round trip, or 0 with TLS 1.3 resumption)\n\n 4. HTTP request\n    GET / HTTP/1.1\n    Host: kernal.dhurta.org\n    Accept-Encoding: gzip, br\n\n 5. HTTP response\n    HTTP/1.1 200 OK\n    Content-Type: text/html; charset=utf-8\n    [HTML content starts streaming]\n\n 6. Browser starts parsing HTML (streaming, not waiting for full body)\n    Discovers: <link rel=\"stylesheet\" href=\"/assets/index-abc.css\">\n    Discovers: <script src=\"/assets/index-xyz.js\">\n    → Queues sub-resource requests immediately\n\n 7. Sub-resources downloaded (in parallel, HTTP/2)\n    CSS → CSSOM built\n    JS → parsed and executed\n    Images → decoded\n    Fonts → loaded\n\n 8. DOM + CSSOM → Render tree → Layout → Paint → Composite\n    Page appears on screen ✓"
+    },
+    {
+      "type": "tip",
+      "text": "You can watch every step of this happen in real time using the <strong>Network</strong> panel in your browser's DevTools (F12). You will see each request, its timing, and its response."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Interactive: Page Load Step Explorer",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n<style>\n  body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0;font-size:14px}\n  h3{color:#4fd1c5;margin:0 0 16px}\n  .steps{display:flex;flex-direction:column;gap:8px}\n  .step{display:flex;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid #2d3748;background:#1a1f2b;cursor:pointer;transition:all 0.2s;align-items:flex-start}\n  .step:hover{border-color:#4fd1c5/50}\n  .step.active{border-color:#4fd1c5;background:#1a1f2b}\n  .step-num{background:#2d3748;color:#94a3b8;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;flex-shrink:0;margin-top:1px}\n  .step.active .step-num{background:#4fd1c5;color:#0e1116}\n  .step-title{font-weight:600;font-size:0.82rem;color:#e2e8f0;margin-bottom:2px}\n  .step-time{font-family:monospace;font-size:0.7rem;color:#4fd1c5}\n  .detail{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:10px 12px;margin-top:12px;font-size:0.78rem;line-height:1.6;display:none}\n  .detail.show{display:block}\n  code{background:#1a1f2b;padding:1px 4px;border-radius:3px;font-family:monospace;font-size:0.78rem}\n</style>\n</head>\n<body>\n  <h3>Click each step to explore</h3>\n  <div class=\"steps\" id=\"steps\"></div>\n  <div class=\"detail\" id=\"detail\"></div>\n  <script>\n    const data=[\n      {n:'DNS Lookup',t:'0–50ms',d:'The browser translates <code>kernal.dhurta.org</code> into an IP address like <code>185.199.108.153</code>. It checks a chain of caches: browser cache → OS cache → router cache → ISP DNS server. The result is cached so the next visit skips this step.'},\n      {n:'TCP Handshake',t:'50–120ms',d:'Browser and server exchange 3 messages (SYN → SYN-ACK → ACK) to agree to open a connection. This takes one round-trip time (RTT). HTTP/2 keeps the connection open to reuse it for multiple requests.'},\n      {n:'TLS Handshake',t:'120–200ms',d:'For HTTPS, browser and server negotiate encryption. The server sends its <strong>certificate</strong> (proof of identity, issued by a Certificate Authority). They agree on encryption keys. TLS 1.3 does this in one round trip; older versions need two. After this, all data is encrypted.'},\n      {n:'HTTP Request',t:'200ms',d:'Browser sends: <code>GET / HTTP/1.1</code> with headers like <code>Host</code>, <code>Accept-Language</code>, and <code>Accept-Encoding: gzip, br</code> (to allow compressed responses). The request is usually just a few hundred bytes.'},\n      {n:'HTTP Response',t:'200–400ms',d:'Server replies with a status line (<code>HTTP/1.1 200 OK</code>), response headers (<code>Content-Type: text/html</code>, <code>Cache-Control</code>), and the HTML body. The browser starts reading HTML before the full response arrives.'},\n      {n:'Parse HTML',t:'400–450ms',d:'The browser reads HTML top-to-bottom, building the <strong>DOM</strong> (Document Object Model). When it finds <code>&lt;link&gt;</code> or <code>&lt;script&gt;</code> tags, a preload scanner queues those resources immediately so they download in parallel.'},\n      {n:'Load Sub-Resources',t:'400–600ms',d:'CSS, JavaScript, images, and fonts are downloaded in parallel (HTTP/2 allows many requests over one connection). CSS is render-blocking — the browser waits for it before drawing anything. JS can also block parsing if loaded without <code>defer</code> or <code>async</code>.'},\n      {n:'Render Page',t:'600ms+',d:'DOM + CSSOM → <strong>Render Tree</strong> (only visible elements). Layout calculates every element\\'s size and position. Paint draws pixels. Composite layers are handed to the GPU. The user finally sees the page.'},\n    ];\n    let active=-1;\n    const sc=document.getElementById('steps');\n    const det=document.getElementById('detail');\n    data.forEach((d,i)=>{\n      const el=document.createElement('div');\n      el.className='step';\n      el.innerHTML=`<div class=\"step-num\">${i+1}</div><div><div class=\"step-title\">${d.n}</div><div class=\"step-time\">${d.t}</div></div>`;\n      el.onclick=()=>{\n        document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));\n        el.classList.add('active');\n        det.innerHTML=d.d;\n        det.classList.add('show');\n        active=i;\n      };\n      sc.appendChild(el);\n    });\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "web-02-q1",
+          "question": "Which step happens FIRST when you navigate to a website?",
+          "type": "multiple-choice",
+          "options": [
+            "The browser sends an HTTP GET request",
+            "The browser performs a DNS lookup to get the server's IP address",
+            "The browser downloads the CSS and JavaScript files",
+            "The browser renders the HTML into pixels"
+          ],
+          "correctAnswer": 1,
+          "explanation": "DNS lookup is the very first step — the browser must translate the domain name (like example.com) into an IP address before it can make any network connection. Only after getting the IP address can it perform the TCP handshake and then send an HTTP request."
+        },
+        {
+          "id": "web-02-q2",
+          "question": "What is a 'static file server'?",
+          "type": "multiple-choice",
+          "options": [
+            "A server that never changes — it is always in the same data center",
+            "A server that generates HTML dynamically for each request using a database",
+            "A server that sends files exactly as they are on disk, without running any code",
+            "A server that only handles images and videos"
+          ],
+          "correctAnswer": 2,
+          "explanation": "A static file server sends files exactly as stored on disk — no code runs per request. HTML, CSS, JS, and images are sent as-is. GitHub Pages, Netlify, and Cloudflare Pages are all static hosts. They are fast and cheap because no computation is needed per request. The opposite is a dynamic server (Node.js, Django, etc.) that runs code to build a response."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Why does my site feel slow after a DNS change?",
+      "a": "DNS results are cached (TTL — Time To Live). When you change a DNS record, the old IP address is cached in ISP servers, routers, and browsers worldwide. Each cache expiry takes the TTL duration (often 1–24 hours). That is why DNS changes can take hours to 'propagate' worldwide."
+    },
+    {
+      "q": "What is TTFB (Time to First Byte)?",
+      "a": "TTFB is the time from making the HTTP request to receiving the first byte of the response. It measures the combined time for DNS lookup + TCP + TLS + server processing. A high TTFB usually means the server is slow (database queries, heavy computation) or the server is geographically distant from the user."
+    },
+    {
+      "q": "Can a single computer be both client and server?",
+      "a": "Yes, all the time in development. When you run npm run dev, your computer acts as the server (listening on localhost:5173) and your browser on the same machine is the client. The requests go over the network stack but never leave the machine — localhost is just a shortcut for 'this computer'."
+    }
+  ],
+  "sources": [
+    {
+      "name": "MDN — What happens when you type a URL",
+      "url": "https://developer.mozilla.org/en-US/docs/Learn/Getting_started_with_the_web/How_the_Web_works",
+      "verified": "2026-10-05"
+    },
+    {
+      "name": "web.dev — Critical Rendering Path",
+      "url": "https://web.dev/articles/critical-rendering-path",
+      "verified": "2026-10-05"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["web performance optimization", "debugging blank pages", "understanding CDNs", "API latency analysis"],
+    "examples": [
+      "When Google measures page speed, it breaks down each phase (DNS, TCP, TTFB, download) separately",
+      "A CDN reduces load time by placing servers close to users, cutting the TCP round-trip time from 200ms to 10ms",
+      "A Service Worker can intercept step 4 (HTTP request) and serve a cached response instantly — skipping the network entirely"
+    ]
+  }
+}

@@ -1,0 +1,163 @@
+{
+  "id": "12-web-performance",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "fundamentals",
+  "technologyVersion": "1.0",
+  "module": "web-rendering",
+  "title": "Web Performance & Core Web Vitals",
+  "subtitle": "LCP, CLS, INP — what Google measures and how to improve each",
+  "difficulty": "beginner",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-05",
+  "updatedAt": "2026-10-05",
+  "lastVerified": "2026-10-05",
+  "prerequisites": ["fundamentals/11-critical-render-path"],
+  "skillsTaught": ["web.core-web-vitals", "web.lcp", "web.cls", "web.inp", "web.performance-basics"],
+  "skillsUsed": ["web.render-pipeline", "web.render-blocking"],
+  "relatedConcepts": ["web.lighthouse", "web.image-optimization", "web.caching"],
+  "whyItExists": {
+    "problem": "Performance is measured differently by every developer: some use load time, some use download size, some use Lighthouse score. Without standard metrics, teams argue about what 'fast' means and Google cannot rank pages by user experience.",
+    "solution": "Core Web Vitals are three standardized metrics measured from real user sessions. They are Google Search ranking signals. They map to distinct user experiences: loading, stability, and interactivity.",
+    "whenToUse": "When measuring, improving, or reporting on page performance. When a PM asks 'how fast is our site?' — point to Core Web Vitals.",
+    "whenNotToUse": "Core Web Vitals measure the page experience, not backend performance. Server response time (TTFB) affects LCP but is a separate concern."
+  },
+  "explainModes": {
+    "beginner": "Imagine visiting a website. You care about three things: how long until you see something useful (did it load quickly?), whether things jump around while loading (did the layout shift?), and whether buttons respond immediately when you tap them (is it interactive?). Google measures exactly these three things with Largest Contentful Paint (LCP), Cumulative Layout Shift (CLS), and Interaction to Next Paint (INP). Together they are called Core Web Vitals, and they directly affect your site's Google ranking.",
+    "simple": "LCP — Largest Contentful Paint: how long until the biggest visible element is rendered? Good: < 2.5s. Usually a hero image or heading. Fix: optimize images, remove render-blocking CSS/JS, preload hero image. CLS — Cumulative Layout Shift: how much do elements move around while loading? Good: < 0.1. Cause: images without width/height, late-loading ads, FOUT (font swap). Fix: always set image dimensions, reserve space for ads, use font-display: optional. INP — Interaction to Next Paint: how long from user interaction to next frame? Good: < 200ms. Cause: long JavaScript tasks blocking the main thread. Fix: break up long tasks, defer non-critical JS.",
+    "standard": "Core Web Vitals are measured from real Chrome user sessions (CrUX — Chrome User Experience Report) and lab measurements (Lighthouse). Google Search uses the 75th percentile of CrUX field data for ranking. LCP measures the render time of the largest image or text block visible in the viewport on initial load. The LCP candidate changes as the page loads — images that load late can become the LCP element. CLS measures unexpected layout shifts — a shift is 'unexpected' if the element moved without user interaction.",
+    "technical": "INP replaced FID (First Input Delay) in March 2024. FID measured only the delay before the browser started processing the first interaction; INP measures the full duration from input to the next frame paint for all interactions during the page lifetime. The worst interaction's duration is the INP score. Long tasks (> 50ms) on the main thread directly cause high INP. Techniques: scheduler.yield() for yielding mid-task, requestIdleCallback for non-critical work, web workers for CPU-heavy computation.",
+    "deepDive": "LCP candidates include: img, svg image, video (poster), any element with a background-image, and block-level text nodes. The browser removes candidates that are removed from the DOM (e.g. splash screens). LCP attribution tells you the critical subparts: TTFB (time to first byte), resource load delay, resource load duration, element render delay. Each subpart has a specific fix: TTFB → CDN + server optimization; resource load delay → <link rel=preload>; resource load duration → compress/resize image; element render delay → remove render-blocking resources."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The three Core Web Vitals"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Core Web Vitals at a glance",
+      "code": "Metric  Full Name                    Measures             Good      Needs work  Poor\n──────  ───────────────────────────  ───────────────────  ────────  ──────────  ─────\nLCP     Largest Contentful Paint     Loading speed        < 2.5s    2.5–4.0s    > 4.0s\nCLS     Cumulative Layout Shift      Visual stability     < 0.1     0.1–0.25    > 0.25\nINP     Interaction to Next Paint    Responsiveness       < 200ms   200–500ms   > 500ms\n\nGoogle uses the 75th percentile of real user data for Search ranking.\n'Good' = 75% of page loads meet the threshold."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "LCP — Largest Contentful Paint"
+    },
+    {
+      "type": "paragraph",
+      "text": "LCP measures how long it takes to render the <strong>largest visible element</strong> in the viewport — usually a hero image, article photo, or large heading. It answers: 'When did the user see the main content?'"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "<strong>Common causes of slow LCP:</strong> Large uncompressed images, render-blocking CSS/JS delaying first paint, slow server response (high TTFB), no CDN",
+        "<strong>Fixes:</strong> Compress and resize images (WebP/AVIF format), add <code>&lt;link rel=\"preload\" as=\"image\"&gt;</code> for the hero image, use a CDN, inline critical CSS"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "CLS — Cumulative Layout Shift"
+    },
+    {
+      "type": "paragraph",
+      "text": "CLS measures how much the page <strong>jumps around</strong> while loading. A score of 0 means nothing moved. 0.1 means there was some shifting. High CLS happens when images, ads, or fonts load and push content down."
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "filename": "Preventing CLS",
+      "code": "<!-- BAD: no dimensions → image loads and pushes content down -->\n<img src=\"hero.jpg\" alt=\"Hero\">\n\n<!-- GOOD: reserve space before image loads -->\n<img src=\"hero.jpg\" alt=\"Hero\" width=\"800\" height=\"400\">\n\n<!-- GOOD: CSS aspect-ratio to reserve space -->\n<div style=\"aspect-ratio: 2/1\">\n  <img src=\"hero.jpg\" alt=\"Hero\" style=\"width:100%\">\n</div>\n\n<!-- Fonts: prevent text jumping (FOUT) -->\n<style>\n  @font-face {\n    font-family: 'MyFont';\n    src: url('font.woff2');\n    font-display: swap; /* show system font immediately, swap when loaded */\n  }\n</style>"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "INP — Interaction to Next Paint"
+    },
+    {
+      "type": "paragraph",
+      "text": "INP measures how quickly the page <strong>responds to user interactions</strong> (clicks, taps, keyboard input). A high INP means buttons feel laggy — the browser was busy with JavaScript when you clicked."
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "<strong>Cause:</strong> Long JavaScript tasks (> 50ms) blocking the main thread. Happens when you load too much JavaScript upfront or run heavy computations synchronously.",
+        "<strong>Fix:</strong> Code-split and lazy-load JavaScript. Break up long tasks with setTimeout/scheduler.yield(). Move CPU-heavy work to Web Workers."
+      ]
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Quick wins for all three metrics:</strong> Compress images to WebP, set width/height on all images, add defer to scripts, use a CDN, enable gzip/Brotli compression on your server."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Interactive: Core Web Vitals Scorer",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n<style>\n  body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0;font-size:13px}\n  h3{color:#4fd1c5;margin:0 0 12px}\n  .metric{background:#0b0e14;border:1px solid #2d3748;border-radius:8px;padding:12px;margin-bottom:10px}\n  .metric-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}\n  .metric-name{font-weight:700;font-size:0.9rem}\n  .badge{padding:3px 10px;border-radius:12px;font-size:0.72rem;font-weight:700}\n  .good{background:#166534;color:#86efac}.needs{background:#713f12;color:#fcd34d}.poor{background:#7f1d1d;color:#fca5a5}\n  .slider-wrap{display:flex;gap:8px;align-items:center;margin-bottom:6px}\n  input[type=range]{flex:1;accent-color:#4fd1c5}\n  .val{min-width:56px;text-align:right;font-family:monospace;font-size:0.8rem;color:#4fd1c5}\n  .bar-track{height:6px;border-radius:3px;background:#2d3748;position:relative;margin:4px 0 2px}\n  .bar-fill{height:100%;border-radius:3px;transition:width 0.3s,background 0.3s}\n  .thresholds{display:flex;justify-content:space-between;font-size:0.7rem;color:#4a5568}\n  .tip{margin-top:6px;font-size:0.72rem;color:#64748b;line-height:1.5;min-height:32px}\n</style>\n</head>\n<body>\n  <h3>Core Web Vitals Scorer</h3>\n  <div id=\"metrics\"></div>\n  <script>\n    const config=[\n      {id:'lcp',name:'LCP — Largest Contentful Paint',unit:'s',min:0,max:8,step:0.1,def:1.8,good:2.5,poor:4.0,fmt:v=>v.toFixed(1)+'s',\n       tips:{good:'Great! Hero image is optimized and no render-blocking resources.',needs:'Consider preloading the hero image with <link rel=\"preload\" as=\"image\">. Check for render-blocking CSS/JS.',poor:'Critical: compress hero image to WebP, add a CDN, eliminate render-blocking resources. Every 100ms improvement affects conversion rates.'}},\n      {id:'cls',name:'CLS — Cumulative Layout Shift',unit:'',min:0,max:0.6,step:0.01,def:0.05,good:0.1,poor:0.25,fmt:v=>v.toFixed(2),\n       tips:{good:'No unexpected layout shifts. Users can read and click without the page jumping.',needs:'Something shifted. Check: images without width/height, late-loading ads, font swapping. Add dimensions to all images.',poor:'Severe shifting — users click the wrong thing. Most likely cause: images without dimensions or an ad unit loading after content.'}},\n      {id:'inp',name:'INP — Interaction to Next Paint',unit:'ms',min:0,max:900,step:10,def:80,good:200,poor:500,fmt:v=>Math.round(v)+'ms',\n       tips:{good:'Interactions feel instant. Main thread is clear to respond quickly.',needs:'Some interactions feel slightly delayed. Look for JavaScript executing > 50ms. Check third-party scripts.',poor:'Page feels unresponsive. Long JavaScript tasks are blocking the main thread. Use code-splitting and defer non-critical JS.'}},\n    ];\n    config.forEach(m=>{\n      const div=document.createElement('div');div.className='metric';\n      div.innerHTML=`<div class=\"metric-header\"><span class=\"metric-name\">${m.name}</span><span class=\"badge\" id=\"b-${m.id}\"></span></div><div class=\"slider-wrap\"><input type=\"range\" min=\"${m.min}\" max=\"${m.max}\" step=\"${m.step}\" value=\"${m.def}\" id=\"s-${m.id}\" oninput=\"update('${m.id}')\"><span class=\"val\" id=\"v-${m.id}\"></span></div><div class=\"bar-track\"><div class=\"bar-fill\" id=\"f-${m.id}\"></div></div><div class=\"thresholds\"><span>Good ≤${m.fmt(m.good)}</span><span>Poor >${m.fmt(m.poor)}</span></div><div class=\"tip\" id=\"t-${m.id}\"></div>`;\n      document.getElementById('metrics').appendChild(div);\n      update(m.id);\n    });\n    function update(id){\n      const m=config.find(c=>c.id===id);\n      const v=parseFloat(document.getElementById('s-'+id).value);\n      const pct=((v-m.min)/(m.max-m.min))*100;\n      const status=v<=m.good?'good':v<=m.poor?'needs':'poor';\n      const cols={good:'#4ade80',needs:'#fbbf24',poor:'#ef4444'};\n      document.getElementById('v-'+id).textContent=m.fmt(v);\n      document.getElementById('f-'+id).style.width=pct+'%';\n      document.getElementById('f-'+id).style.background=cols[status];\n      const badge=document.getElementById('b-'+id);\n      badge.className='badge '+status;\n      badge.textContent=status==='good'?'Good':status==='needs'?'Needs Work':'Poor';\n      document.getElementById('t-'+id).textContent=m.tips[status];\n    }\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "web-12-q1",
+          "question": "Users report that clicking a 'Subscribe' button sometimes does nothing for 2 seconds. Which Core Web Vital is affected?",
+          "type": "multiple-choice",
+          "options": [
+            "LCP — the button image loaded too slowly",
+            "CLS — the button moved before the click registered",
+            "INP — the browser was busy with JavaScript and could not respond to the interaction",
+            "TTFB — the server took too long to respond"
+          ],
+          "correctAnswer": 2,
+          "explanation": "INP (Interaction to Next Paint) measures responsiveness — the time from user interaction (click, tap, key press) to when the browser renders the next frame. If the main thread is blocked by a long JavaScript task, the click event cannot be processed until the task finishes. This feels like 'the button does nothing' to the user. Fix: break up long JS tasks, defer non-critical JavaScript."
+        },
+        {
+          "id": "web-12-q2",
+          "question": "You add an <img> tag without width and height attributes. Which Core Web Vital will this hurt?",
+          "type": "multiple-choice",
+          "options": [
+            "LCP — the image will load slowly",
+            "INP — the image will block JavaScript",
+            "CLS — the image will push content down when it loads, causing a layout shift",
+            "None — image dimensions do not affect Core Web Vitals"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Without width/height on an <img>, the browser does not know how much space to reserve. When the image downloads and loads, it pushes all subsequent content down — this is a layout shift that increases CLS. Fix: always add width and height attributes matching the image's natural dimensions. The browser uses these to pre-allocate space even before the image loads."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do I measure Core Web Vitals for my site?",
+      "a": "Three ways: (1) Lighthouse in DevTools — lab measurement simulating a mid-range device on 3G. (2) PageSpeed Insights (pagespeed.web.dev) — combines lab data with real user CrUX data. (3) Google Search Console → Core Web Vitals report — shows real-world data from Chrome users visiting your site over 28 days. CrUX data is only available for pages with enough traffic."
+    },
+    {
+      "q": "Does improving Core Web Vitals actually improve Google rankings?",
+      "a": "Yes, but it is one signal among many. Google uses Page Experience signals (including Core Web Vitals) as a tiebreaker — if two pages have equivalent content quality, the faster page ranks higher. For most sites, content relevance still dominates ranking. Think of Core Web Vitals as the performance floor you should not fall below, not the primary driver of SEO."
+    }
+  ],
+  "sources": [
+    {
+      "name": "web.dev — Core Web Vitals",
+      "url": "https://web.dev/explore/metrics",
+      "verified": "2026-10-05"
+    }
+  ],
+  "realWorld": {
+    "usedIn": ["Google Search ranking", "performance monitoring", "conversion rate optimization", "user experience design"],
+    "examples": [
+      "Vodafone improved LCP by 31% and saw a 8% uplift in sales — the correlation between LCP and revenue is well-documented",
+      "CLS issues often cause users to accidentally click ads or wrong buttons — improving CLS directly reduces frustration",
+      "INP below 200ms makes a page feel 'native' — users do not perceive a delay between input and response"
+    ]
+  }
+}
