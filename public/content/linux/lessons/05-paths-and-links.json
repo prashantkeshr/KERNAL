@@ -1,0 +1,86 @@
+{
+  "id": "05-paths-and-links",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "linux",
+  "technologyVersion": "1.0",
+  "module": "filesystem",
+  "title": "Paths and Links",
+  "subtitle": "Absolute vs relative paths, symlinks, hard links, and ln",
+  "difficulty": "beginner",
+  "estimatedMinutes": 12,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-06",
+  "updatedAt": "2026-10-06",
+  "lastVerified": "2026-10-06",
+  "prerequisites": ["linux/04-permissions"],
+  "skillsTaught": ["linux.absolute-paths", "linux.relative-paths", "linux.symlinks", "linux.ln"],
+  "skillsUsed": ["linux.navigation", "linux.filesystem"],
+  "relatedConcepts": ["linux.finding-files", "linux.environment"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Absolute vs relative paths"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Path types",
+      "code": "Absolute path — starts from / (the root)\n  /home/alice/projects/myapp/src/index.js\n  /etc/nginx/nginx.conf\n  /usr/bin/python3\n\n  → Always works regardless of where you are\n  → Use in scripts and config files for reliability\n\nRelative path — starts from your current directory\n  src/index.js          (from /home/alice/projects/myapp/)\n  ./deploy.sh           (./ = current directory explicitly)\n  ../config/settings.py (../ = go up one level)\n  ../../shared/utils    (go up two levels)\n\n  → Shorter, but depends on current working directory\n  → Use in Makefiles, package.json scripts, Dockerfiles\n\nSpecial path shortcuts:\n  ~     home directory        (/home/alice)\n  .     current directory\n  ..    parent directory\n  -     previous directory (for cd -)"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Symbolic links (symlinks)"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Creating symlinks",
+      "code": "# Create a symbolic link\nln -s /usr/local/bin/python3.11  /usr/local/bin/python3\n#     TARGET (real file)          LINK (the shortcut)\n\n# Common use: version management\nln -s node_modules/.bin/webpack  webpack\n\n# Link a config file\nln -s ~/dotfiles/.bashrc ~/.bashrc   # dotfile management\n\n# See what a symlink points to\nls -la /usr/local/bin/python3\n# → /usr/local/bin/python3 -> /usr/local/bin/python3.11\n\n# Remove a symlink (do NOT use rm -rf on a dir symlink)\nrm link_name      # removes the link, not the target\nunlink link_name  # same thing, more explicit\n\n# Check if something is a symlink\nfile /usr/local/bin/python3   # 'symbolic link to ...'\nreadlink -f /usr/local/bin/python3  # print the resolved path"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Symlink vs hard link",
+      "code": "Symbolic link (soft link)          Hard link\n─────────────────────────          ──────────\nPoints to a PATH                   Points to the same inode (data)\nCan cross filesystems              Must be on same filesystem\nCan link to directories            Cannot link to directories\nBroken if target moves/deleted     Survives target being renamed/moved\nls shows l in permissions          ls shows - (regular file)\nUsed everywhere in practice        Rarely used directly"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "linux-05-q1",
+          "question": "You create: ln -s /usr/share/nginx /etc/nginx/html. What is /etc/nginx/html?",
+          "type": "multiple-choice",
+          "options": [
+            "A copy of /usr/share/nginx",
+            "A shortcut (symlink) that points to /usr/share/nginx",
+            "A hard link with its own copy of the data",
+            "An error — ln -s cannot link directories"
+          ],
+          "correctAnswer": 1,
+          "explanation": "ln -s creates a symbolic link — a pointer to another path. Accessing /etc/nginx/html will transparently redirect to /usr/share/nginx. The original files are not copied. If /usr/share/nginx is deleted, the symlink becomes 'broken' (a dangling symlink). Symlinks can point to directories, unlike hard links."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Why do I see -> in ls output?",
+      "a": "The -> shows a symlink and its target: lrwxrwxrwx 1 root root  7 Jan 1 /bin -> usr/bin means /bin is a symlink pointing to usr/bin. Many system directories (/bin, /lib, /sbin) are symlinks on modern Linux systems for historical compatibility."
+    }
+  ],
+  "sources": [
+    { "name": "ln manual", "url": "https://man7.org/linux/man-pages/man1/ln.1.html", "verified": "2026-10-06" }
+  ],
+  "realWorld": {
+    "usedIn": ["version management (nvm, pyenv)", "dotfile management", "web server config", "package managers"],
+    "examples": [
+      "nvm (Node Version Manager) uses symlinks to switch active Node.js versions: ~/.nvm/versions/node/v20.0.0/bin/node is symlinked to ~/.nvm/alias/default",
+      "Nginx's sites-enabled/ directory is symlinks pointing into sites-available/ — enabling/disabling sites by creating/removing symlinks"
+    ]
+  }
+}

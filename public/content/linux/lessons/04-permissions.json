@@ -1,0 +1,95 @@
+{
+  "id": "04-permissions",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "linux",
+  "technologyVersion": "1.0",
+  "module": "filesystem",
+  "title": "Permissions and Ownership",
+  "subtitle": "chmod, chown, rwx bits, sudo — understanding who can do what with files",
+  "difficulty": "beginner",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-06",
+  "updatedAt": "2026-10-06",
+  "lastVerified": "2026-10-06",
+  "prerequisites": ["linux/02-navigation"],
+  "skillsTaught": ["linux.chmod", "linux.chown", "linux.sudo", "linux.rwx", "linux.octal-permissions"],
+  "skillsUsed": ["linux.ls", "linux.filesystem"],
+  "relatedConcepts": ["linux.users", "linux.security"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Understanding permission bits"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Permission breakdown",
+      "code": "ls -l deploy.sh\n-rwxr-xr-x  1  alice  developers  4096  Oct 6  deploy.sh\n\nPermissions: -rwxr-xr-x\n  Position 1:     - = regular file, d = directory, l = symlink\n  Positions 2-4:  rwx = owner permissions\n  Positions 5-7:  r-x = group permissions\n  Positions 8-10: r-x = others permissions\n\n  r = read    (value: 4)\n  w = write   (value: 2)\n  x = execute (value: 1)\n  - = no permission (value: 0)\n\nOctal (numeric) notation:\n  rwx = 4+2+1 = 7\n  r-x = 4+0+1 = 5\n  r-- = 4+0+0 = 4\n  --- = 0+0+0 = 0\n\nCommon permission sets:\n  755 = rwxr-xr-x  (executable: owner full, others read+execute)\n  644 = rw-r--r--  (file: owner read+write, others read only)\n  600 = rw-------  (private file: owner only — use for SSH keys)\n  700 = rwx------  (private directory: owner only)"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "chmod — change permissions"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "chmod examples",
+      "code": "# Numeric (octal) mode\nchmod 755 deploy.sh      # rwxr-xr-x\nchmod 644 config.txt     # rw-r--r--\nchmod 600 ~/.ssh/id_rsa  # rw------- (SSH private key must be 600)\nchmod -R 755 /var/www/   # -R: apply recursively to directory\n\n# Symbolic mode\nchmod +x deploy.sh       # add execute for everyone\nchmod -w notes.txt       # remove write for everyone\nchmod u+x,g-w script.sh  # user add execute, group remove write\nchmod o-rwx secret.txt   # remove all permissions for others\n\n# Make a script executable (most common use)\nchmod +x myscript.sh\n./myscript.sh"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "sudo and chown"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "sudo and chown",
+      "code": "# sudo: run a command as the superuser (root)\nsudo apt install nginx       # install with admin rights\nsudo systemctl start nginx   # start a service\nsudo nano /etc/hosts         # edit a system file\n\n# Become root (use sparingly)\nsudo -i\n\n# chown: change ownership\nsudo chown alice file.txt           # change owner to alice\nsudo chown alice:developers dir/    # owner:group\nsudo chown -R alice:alice /home/alice/  # recursive"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>SSH keys must be 600.</strong> If your SSH private key has permissions looser than 600 (rw-------), SSH will refuse to use it with 'Permissions too open'. Fix: chmod 600 ~/.ssh/id_rsa"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "linux-04-q1",
+          "question": "What permissions does chmod 644 set?",
+          "type": "multiple-choice",
+          "options": [
+            "rwxr-xr-x — owner full access, others read+execute",
+            "rw-r--r-- — owner read+write, group and others read-only",
+            "rw-rw-rw- — everyone read+write",
+            "rwx------ — owner full, others no access"
+          ],
+          "correctAnswer": 1,
+          "explanation": "644 in octal: 6 = rw- (4+2+0), 4 = r-- (4+0+0), 4 = r-- (4+0+0). So: rw-r--r-- — the owner can read and write, everyone else can only read. This is the standard permission for regular files like config files, text files, and source code."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "When do I need sudo?",
+      "a": "When modifying system files (/etc, /var, /usr), installing packages, managing services (systemctl), or changing ownership of files not owned by you. On your own home directory and files, you do not need sudo. The rule: try without sudo first. If you get 'Permission denied', then consider if sudo is appropriate — don't sudo everything reflexively."
+    }
+  ],
+  "sources": [
+    { "name": "Linux chmod man page", "url": "https://man7.org/linux/man-pages/man1/chmod.1.html", "verified": "2026-10-06" }
+  ],
+  "realWorld": {
+    "usedIn": ["server configuration", "deployment scripts", "SSH setup", "web server file serving"],
+    "examples": [
+      "chmod 600 ~/.ssh/id_rsa is required before SSH will use a private key — a daily developer task",
+      "Web servers need chmod 755 on directories and 644 on files for Nginx/Apache to serve them correctly"
+    ]
+  }
+}

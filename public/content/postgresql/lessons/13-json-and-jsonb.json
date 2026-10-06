@@ -1,0 +1,91 @@
+{
+  "id": "13-json-and-jsonb",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "postgresql",
+  "technologyVersion": "16",
+  "module": "advanced-postgresql",
+  "title": "JSON and JSONB",
+  "subtitle": "Storing and querying semi-structured data with jsonb operators and GIN indexes",
+  "difficulty": "advanced",
+  "estimatedMinutes": 16,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-06",
+  "updatedAt": "2026-10-06",
+  "lastVerified": "2026-10-06",
+  "prerequisites": ["postgresql/03-tables-and-data-types"],
+  "skillsTaught": ["pg.jsonb", "pg.jsonb-operators", "pg.gin-index", "pg.json-vs-jsonb"],
+  "skillsUsed": ["pg.data-types", "pg.indexes"],
+  "relatedConcepts": ["pg.arrays", "pg.full-text-search"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "json vs jsonb — always use jsonb"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "json vs jsonb",
+      "code": "-- json: stored as text, validated, not indexed\n-- jsonb: stored as binary, can be indexed with GIN, faster to query\n-- Always use jsonb unless you need to preserve key order or duplicate keys\n\nCREATE TABLE products (\n  id       BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  name     TEXT NOT NULL,\n  metadata JSONB  -- dynamic attributes: color, size, material, etc.\n);\n\nINSERT INTO products (name, metadata) VALUES\n  ('T-Shirt', '{\"color\": \"red\", \"size\": \"M\", \"tags\": [\"casual\", \"summer\"]}'),\n  ('Laptop',  '{\"brand\": \"ThinkPad\", \"ram_gb\": 16, \"storage\": {\"type\": \"SSD\", \"gb\": 512}}');"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "JSONB operators"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "JSONB query operators",
+      "code": "-- -> returns JSON (object or array)\nSELECT metadata -> 'color' FROM products WHERE id = 1;  -- \"red\" (JSON string)\n\n-- ->> returns TEXT\nSELECT metadata ->> 'color' FROM products WHERE id = 1;  -- red (plain text)\n\n-- Nested access\nSELECT metadata -> 'storage' ->> 'type' FROM products WHERE id = 2;  -- SSD\n\n-- Filter by JSON value\nSELECT * FROM products WHERE metadata ->> 'color' = 'red';\nSELECT * FROM products WHERE (metadata ->> 'ram_gb')::INTEGER > 8;\n\n-- @> contains (most important for indexing)\nSELECT * FROM products WHERE metadata @> '{\"color\": \"red\"}';\nSELECT * FROM products WHERE metadata @> '{\"tags\": [\"summer\"]}';\n\n-- ? key exists\nSELECT * FROM products WHERE metadata ? 'brand';\n\n-- Update a JSONB field\nUPDATE products\n  SET metadata = metadata || '{\"price\": 29.99}'\n  WHERE id = 1;\n-- jsonb_set for nested updates:\nUPDATE products\n  SET metadata = jsonb_set(metadata, '{storage, gb}', '1024')\n  WHERE id = 2;"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "GIN index for JSONB"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "Indexing JSONB",
+      "code": "-- GIN index enables fast @> (contains) queries\nCREATE INDEX idx_products_metadata ON products USING GIN (metadata);\n\n-- This query will now use the GIN index:\nSELECT * FROM products WHERE metadata @> '{\"color\": \"red\"}';\n\n-- For specific key access (faster, smaller index)\nCREATE INDEX idx_products_color ON products ((metadata ->> 'color'));\n-- Supports: WHERE metadata ->> 'color' = 'red'"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "pg-13-q1",
+          "question": "What is the difference between -> and ->> in PostgreSQL JSONB?",
+          "type": "multiple-choice",
+          "options": [
+            "-> is for arrays, ->> is for objects",
+            "-> returns the value as JSON (preserves type), ->> returns it as TEXT",
+            "-> is faster, ->> is slower",
+            "They are identical — just aliases"
+          ],
+          "correctAnswer": 1,
+          "explanation": "-> returns the JSON value, preserving its type (e.g., a JSON string comes back as '\"red\"' with quotes). ->> returns the value as a plain text string (e.g., 'red' without quotes). Use ->> when you want to compare with a text value or cast to another type: (metadata ->> 'price')::NUMERIC."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Should I use JSONB instead of separate columns?",
+      "a": "Use columns for structured, frequently-queried data (email, price, status). Use JSONB for dynamic/optional attributes that vary by row (product metadata, user preferences, third-party API responses). JSONB is not a replacement for proper schema design — it is a complement for when the schema needs to be flexible."
+    }
+  ],
+  "sources": [
+    { "name": "PostgreSQL JSON Functions", "url": "https://www.postgresql.org/docs/current/functions-json.html", "verified": "2026-10-06" }
+  ],
+  "realWorld": {
+    "usedIn": ["product catalogs with variable attributes", "storing API responses", "user preferences", "event logs"],
+    "examples": [
+      "Shopify stores product options (size, color, material) in a JSONB column since different product types have different attributes",
+      "Logging and audit trails often use JSONB to store the full 'before' and 'after' state of a row change"
+    ]
+  }
+}

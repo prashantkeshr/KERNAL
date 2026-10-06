@@ -1,0 +1,117 @@
+{
+  "id": "01-what-is-the-shell",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "linux",
+  "technologyVersion": "1.0",
+  "module": "shell-basics",
+  "title": "What is the Shell?",
+  "subtitle": "Terminal, shell, bash, zsh — what they are and why every developer needs them",
+  "difficulty": "beginner",
+  "estimatedMinutes": 10,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-06",
+  "updatedAt": "2026-10-06",
+  "lastVerified": "2026-10-06",
+  "prerequisites": [],
+  "skillsTaught": ["linux.shell", "linux.terminal", "linux.bash", "linux.why-cli"],
+  "skillsUsed": [],
+  "relatedConcepts": ["linux.navigation", "linux.environment"],
+  "whyItExists": {
+    "problem": "Most developers learn through GUI tools — clicking buttons, dragging files. But servers have no GUI. Deployment pipelines, Docker, CI/CD, cloud infrastructure, and remote machines are all controlled through text commands. Developers who can't use the command line are limited to what their GUIs expose.",
+    "solution": "The shell is a text-based interface to your operating system. Learning it unlocks everything from simple file operations to full server administration, automation, and DevOps workflows.",
+    "whenToUse": "Whenever you are working with servers, automation, Git, Docker, package managers, build tools, or any developer tool that runs in a terminal — which is most of them.",
+    "whenNotToUse": "Opening image files, browsing the web, writing documents — GUIs are better for interactive tasks that require visual feedback."
+  },
+  "explainModes": {
+    "beginner": "A shell is a program that lets you talk to your computer by typing commands. Think of it like texting your computer: you type 'list all files in this folder' (the shell version: ls) and the computer responds with the answer. The terminal is the window where you type. The shell is the program inside that window that understands your commands.",
+    "simple": "Three terms to know: Terminal — the window (iTerm2, Terminal.app, Windows Terminal, GNOME Terminal). Shell — the program running inside the terminal that interprets commands. Common shells: bash (Bourne Again Shell — the default on most Linux systems), zsh (Z Shell — the macOS default since Catalina), fish (user-friendly shell). The shell is what processes your commands, manages variables, and runs scripts.",
+    "standard": "The shell is a REPL (Read-Eval-Print Loop): reads a line of text, parses it into a command and arguments, executes the command (as a child process or a built-in), then prints the output. The shell handles: command execution, I/O redirection (>, <, |), environment variables ($PATH, $HOME), globbing (*.js), job control (Ctrl-Z, fg, bg), and scripting (if/for/while).",
+    "technical": "On Linux, the shell forks a child process for external commands using fork()/exec(). Built-in commands (cd, export, source) run in the shell's own process because they need to modify the shell's state — a forked process cannot change the parent's working directory. The shell reads its configuration from ~/.bashrc (interactive non-login bash), ~/.bash_profile (login bash), or ~/.zshrc (zsh). /etc/shells lists valid shells; /etc/passwd specifies each user's login shell."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Terminal vs Shell — the distinction"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Terminology",
+      "code": "Terminal (the window)\n  └── Shell (the interpreter running inside)\n        └── Your commands\n\nExamples:\n  Terminal apps:  iTerm2 (macOS), Windows Terminal, GNOME Terminal, Alacritty\n  Shell programs: bash, zsh, fish, sh, dash\n\nDefault shells by OS:\n  Ubuntu/Debian Linux  → bash\n  macOS (Catalina+)    → zsh\n  Alpine Linux/Docker  → sh (dash, minimal)\n  Amazon Linux         → bash\n\nCheck your current shell:\n  echo $SHELL   # → /bin/zsh or /bin/bash\n  $SHELL --version  # → bash 5.2 or zsh 5.9"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Your first commands"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "First commands",
+      "code": "# Print text to the screen\necho \"Hello, World!\"\n\n# Show current date/time\ndate\n\n# Who am I?\nwhoami\n\n# Where am I? (current directory)\npwd\n\n# What computer is this?\nhostname\n\n# Show system info\nuname -a\n\n# Clear the screen\nclear   # or Ctrl + L"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Anatomy of a command"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Command structure",
+      "code": "command  [options/flags]  [arguments]\n\nls  -la  /home/user\n│   │    └─ argument: the path to list\n│   └──── option: -l (long format) + -a (show hidden)\n└──────── command: list directory contents\n\nConventions:\n  -l        short flag (single dash + letter)\n  --long    long flag (double dash + word)\n  --color=auto  flag with value\n\nSome commands use positional arguments:\n  cp  source  destination\n      │       └─ where to copy to\n      └───────── what to copy\n\nGet help on any command:\n  man ls        # full manual page (q to quit)\n  ls --help     # brief help\n  tldr ls       # community examples (install: npm i -g tldr)"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Essential keyboard shortcuts:</strong> Tab — autocomplete file/command names. Ctrl+C — cancel running command. Ctrl+L — clear screen. Up/Down arrow — navigate command history. Ctrl+R — search command history. Ctrl+A / Ctrl+E — jump to start/end of line."
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Interactive: Shell Command Anatomy",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n<style>\n  body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0;font-size:13px}\n  h3{color:#4fd1c5;margin:0 0 12px}\n  .cmd{font-family:monospace;font-size:1rem;letter-spacing:0.05em;margin:12px 0;padding:10px;background:#0b0e14;border-radius:6px;border:1px solid #2d3748;display:flex;gap:8px;flex-wrap:wrap;align-items:center}\n  .part{padding:3px 8px;border-radius:4px;cursor:pointer;transition:all 0.15s}\n  .part:hover{opacity:0.8}\n  .cmd-name{background:#4fd1c5;color:#0e1116;font-weight:700}\n  .flag{background:#a78bfa;color:#0e1116;font-weight:700}\n  .arg{background:#f59e0b;color:#0e1116;font-weight:700}\n  .info{margin-top:10px;padding:8px 12px;border-radius:6px;border-left:3px solid #4fd1c5;background:#1a1f2b;font-size:0.8rem;min-height:36px;line-height:1.6;display:none}\n  .info.show{display:block}\n  .legend{display:flex;gap:12px;margin-bottom:10px;flex-wrap:wrap}\n  .leg{display:flex;align-items:center;gap:6px;font-size:0.75rem}\n  .dot{width:12px;height:12px;border-radius:3px}\n</style>\n</head>\n<body>\n  <h3>Click the parts of these commands</h3>\n  <div class=\"legend\">\n    <div class=\"leg\"><div class=\"dot\" style=\"background:#4fd1c5\"></div>command</div>\n    <div class=\"leg\"><div class=\"dot\" style=\"background:#a78bfa\"></div>flag/option</div>\n    <div class=\"leg\"><div class=\"dot\" style=\"background:#f59e0b\"></div>argument</div>\n  </div>\n  <div class=\"cmd\">\n    <span class=\"part cmd-name\" onclick=\"info('ls is the list command — shows files and directories in the current folder')\">ls</span>\n    <span class=\"part flag\" onclick=\"info('-l shows the long format: permissions, owner, size, date. -a shows hidden files (those starting with a dot). Together: -la or -l -a')\">-la</span>\n    <span class=\"part arg\" onclick=\"info('/home/user is the argument — the directory to list. Without it, ls lists the current directory')\">&#47;home/user</span>\n  </div>\n  <div class=\"cmd\">\n    <span class=\"part cmd-name\" onclick=\"info('cp is the copy command')\">cp</span>\n    <span class=\"part flag\" onclick=\"info('-r (recursive) copies a directory and all its contents. Without -r, cp refuses to copy a directory')\">-r</span>\n    <span class=\"part arg\" onclick=\"info('my-project/ is the SOURCE — what to copy')\">my-project/</span>\n    <span class=\"part arg\" onclick=\"info('backup/ is the DESTINATION — where to copy to. If backup/ does not exist, cp creates it')\">backup/</span>\n  </div>\n  <div class=\"cmd\">\n    <span class=\"part cmd-name\" onclick=\"info('grep searches for text patterns inside files')\">grep</span>\n    <span class=\"part flag\" onclick=\"info('-r searches recursively through directories. -n shows line numbers. -i makes the search case-insensitive. These can be combined: -rni')\">-rn</span>\n    <span class=\"part arg\" onclick=\"info('\"TODO\" is the pattern to search for. Wrap in quotes to handle spaces and special characters')\">\"TODO\"</span>\n    <span class=\"part arg\" onclick=\"info('./src/ is the directory to search in. . means the current directory. Omitting this argument makes grep read from stdin')\">./src/</span>\n  </div>\n  <div class=\"info\" id=\"info-box\">Click a colored part above to learn what it does.</div>\n  <script>\n    document.getElementById('info-box').classList.add('show');\n    function info(msg){document.getElementById('info-box').textContent=msg;}\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "linux-01-q1",
+          "question": "What is the difference between the 'terminal' and the 'shell'?",
+          "type": "multiple-choice",
+          "options": [
+            "They are the same thing — both terms mean the command line",
+            "The terminal is the hardware keyboard; the shell is the software",
+            "The terminal is the window/app that displays output; the shell is the program inside it that interprets commands",
+            "The terminal is for Linux; the shell is for macOS"
+          ],
+          "correctAnswer": 2,
+          "explanation": "The terminal (like iTerm2, GNOME Terminal, Windows Terminal) is the application that provides a window for text input/output. The shell (like bash or zsh) is the program running inside that terminal that actually reads your commands, interprets them, and executes them. You can run different shells inside the same terminal."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Should I learn bash or zsh?",
+      "a": "They are very similar for everyday use. Learn bash syntax first — bash scripts run everywhere (all Linux servers, CI/CD systems, Docker containers). zsh adds better interactive features (better autocomplete, plugins via Oh My Zsh) but is mostly compatible with bash for scripting. Most developers use zsh interactively (it is the macOS default) but write scripts in bash for portability."
+    },
+    {
+      "q": "Is the shell different on Windows?",
+      "a": "Windows has PowerShell (Microsoft's shell) and cmd.exe (legacy). For Linux-style shell work on Windows, install WSL2 (Windows Subsystem for Linux) — it gives you a real Ubuntu/Debian environment inside Windows. Git Bash (bundled with Git for Windows) also provides bash. For development, WSL2 is the recommended approach."
+    }
+  ],
+  "sources": [
+    { "name": "GNU Bash Manual", "url": "https://www.gnu.org/software/bash/manual/", "verified": "2026-10-06" }
+  ],
+  "realWorld": {
+    "usedIn": ["server administration", "CI/CD pipelines", "Docker", "Git", "build systems", "DevOps"],
+    "examples": [
+      "Every GitHub Actions workflow runs bash scripts — the shell is the foundation of all CI/CD automation",
+      "SSH into a production server and all you have is a shell — no GUI, no IDE, just a terminal"
+    ]
+  }
+}

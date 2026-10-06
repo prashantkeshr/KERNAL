@@ -1,0 +1,91 @@
+{
+  "id": "12-views",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "postgresql",
+  "technologyVersion": "16",
+  "module": "performance",
+  "title": "Views and Materialized Views",
+  "subtitle": "CREATE VIEW, materialized views with REFRESH, CTEs with WITH",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 12,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-06",
+  "updatedAt": "2026-10-06",
+  "lastVerified": "2026-10-06",
+  "prerequisites": ["postgresql/06-aggregations"],
+  "skillsTaught": ["pg.views", "pg.materialized-views", "pg.cte"],
+  "skillsUsed": ["pg.select", "pg.aggregations"],
+  "relatedConcepts": ["pg.indexes", "pg.performance"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Views — stored queries"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "Creating and using views",
+      "code": "-- A view is a stored SELECT query — query it like a table\nCREATE OR REPLACE VIEW published_posts AS\n  SELECT\n    p.id,\n    p.title,\n    p.created_at,\n    u.username AS author\n  FROM posts p\n  JOIN users u ON u.id = p.user_id\n  WHERE p.published = TRUE;\n\n-- Use the view like a table\nSELECT * FROM published_posts ORDER BY created_at DESC LIMIT 10;\nSELECT * FROM published_posts WHERE author = 'alice';\n\n-- Views are virtual — no data stored, query runs every time\n-- DROP VIEW IF EXISTS published_posts;"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Materialized Views — cached query results"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "Materialized views",
+      "code": "-- Materialized view: stores results on disk\n-- Fast to query, but must be refreshed when data changes\nCREATE MATERIALIZED VIEW monthly_revenue AS\n  SELECT\n    DATE_TRUNC('month', created_at) AS month,\n    COUNT(*) AS orders,\n    SUM(total_price) AS revenue\n  FROM orders\n  WHERE status = 'completed'\n  GROUP BY DATE_TRUNC('month', created_at)\n  ORDER BY month;\n\n-- Create index on the materialized view\nCREATE INDEX idx_monthly_rev_month ON monthly_revenue(month);\n\n-- Query it (data is from last refresh)\nSELECT * FROM monthly_revenue WHERE month >= '2026-01-01';\n\n-- Refresh the data (blocks reads during refresh)\nREFRESH MATERIALIZED VIEW monthly_revenue;\n\n-- Non-blocking refresh (keeps old data available during refresh)\nREFRESH MATERIALIZED VIEW CONCURRENTLY monthly_revenue;\n-- Requires a UNIQUE index on the view"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "CTEs — readable complex queries"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "Common Table Expressions (WITH)",
+      "code": "-- CTEs make complex queries readable\nWITH\n  -- Step 1: get users with their order counts\n  user_orders AS (\n    SELECT user_id, COUNT(*) AS order_count\n    FROM orders\n    WHERE status = 'completed'\n    GROUP BY user_id\n  ),\n  -- Step 2: classify users\n  classified AS (\n    SELECT\n      u.id,\n      u.email,\n      uo.order_count,\n      CASE\n        WHEN uo.order_count >= 10 THEN 'VIP'\n        WHEN uo.order_count >= 3  THEN 'Regular'\n        ELSE 'New'\n      END AS tier\n    FROM users u\n    JOIN user_orders uo ON uo.user_id = u.id\n  )\nSELECT tier, COUNT(*) AS count\nFROM classified\nGROUP BY tier;"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "pg-12-q1",
+          "question": "What is the key difference between a VIEW and a MATERIALIZED VIEW?",
+          "type": "multiple-choice",
+          "options": [
+            "Views can be indexed; materialized views cannot",
+            "Views run the query every time they are queried; materialized views store the result and must be explicitly refreshed",
+            "Materialized views cannot use JOINs",
+            "There is no difference — both store query results"
+          ],
+          "correctAnswer": 1,
+          "explanation": "A VIEW is a virtual table — it re-runs the underlying SELECT query every time you query it. A MATERIALIZED VIEW stores the query result on disk — it is fast to query but shows potentially stale data until you run REFRESH MATERIALIZED VIEW. Use views for simplicity; use materialized views for expensive aggregation queries that don't need real-time freshness."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Should I use a CTE or a subquery?",
+      "a": "CTEs are better for readability when you reference the result multiple times or when the logic has multiple steps. Subqueries are fine for one-off use. PostgreSQL 12+ inlines CTEs by default (optimizes them as subqueries), so performance is usually the same."
+    }
+  ],
+  "sources": [
+    { "name": "PostgreSQL Views", "url": "https://www.postgresql.org/docs/current/sql-createview.html", "verified": "2026-10-06" }
+  ],
+  "realWorld": {
+    "usedIn": ["analytics dashboards", "report generation", "API simplification"],
+    "examples": [
+      "Materialized views are used for daily/hourly aggregations that would be too slow to compute on every page load",
+      "Views provide a stable API over tables — application code queries the view, the underlying table structure can be refactored without changing the app"
+    ]
+  }
+}

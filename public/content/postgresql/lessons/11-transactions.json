@@ -1,0 +1,90 @@
+{
+  "id": "11-transactions",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "postgresql",
+  "technologyVersion": "16",
+  "module": "performance",
+  "title": "Transactions",
+  "subtitle": "BEGIN/COMMIT/ROLLBACK, ACID properties, isolation levels, deadlocks",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-06",
+  "updatedAt": "2026-10-06",
+  "lastVerified": "2026-10-06",
+  "prerequisites": ["postgresql/10-indexes"],
+  "skillsTaught": ["pg.transactions", "pg.savepoints", "pg.isolation-levels", "pg.deadlocks"],
+  "skillsUsed": ["pg.acid", "pg.mvcc"],
+  "relatedConcepts": ["pg.locks", "pg.mvcc"],
+  "whyItExists": {
+    "problem": "Transferring $100 from Alice to Bob requires two updates: deduct from Alice AND add to Bob. If the server crashes between those two updates, Alice's balance is reduced but Bob's is not — money has disappeared. This is a real problem without transactions.",
+    "solution": "A transaction wraps multiple statements into an atomic unit. Either all statements succeed and commit, or all are rolled back as if none of them ran.",
+    "whenToUse": "Any time multiple database changes must succeed or fail together: money transfers, order creation (insert order + update inventory + create payment), user registration (insert user + send verification email log).",
+    "whenNotToUse": "Read-only queries don't need explicit transactions. Single-statement writes are automatically wrapped in an implicit transaction in PostgreSQL."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Basic transaction syntax"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "Money transfer transaction",
+      "code": "-- Transfer $100 from Alice (id=1) to Bob (id=2)\nBEGIN;\n\nUPDATE accounts SET balance = balance - 100 WHERE id = 1;\nUPDATE accounts SET balance = balance + 100 WHERE id = 2;\n\n-- Check the result (within the same transaction)\nSELECT id, balance FROM accounts WHERE id IN (1, 2);\n\nCOMMIT;  -- make it permanent\n-- Or: ROLLBACK;  -- undo everything since BEGIN\n\n-- Error handling with savepoints\nBEGIN;\n  INSERT INTO orders (user_id, total) VALUES (5, 99.99);\n  SAVEPOINT order_created;\n  INSERT INTO order_items (order_id, product_id) VALUES (currval('orders_id_seq'), 99);  -- fails\nROLLBACK TO SAVEPOINT order_created;  -- undo only to the savepoint\n  -- handle the error, try again with different product_id\nCOMMIT;"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Isolation levels"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "Isolation levels",
+      "code": "-- PostgreSQL default: READ COMMITTED\n-- Transactions see committed data at the time each statement runs\n-- Most appropriate for most web applications\n\n-- REPEATABLE READ: sees a snapshot from the start of the transaction\n-- No non-repeatable reads or phantom reads\nBEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ;\n  SELECT balance FROM accounts WHERE id = 1;  -- 1000\n  -- Even if another transaction commits between here...\n  SELECT balance FROM accounts WHERE id = 1;  -- still 1000 (same snapshot)\nCOMMIT;\n\n-- SERIALIZABLE: strongest isolation — transactions appear to run one at a time\n-- Use for financial calculations, inventory management\nBEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;\n  -- ... your queries\nCOMMIT;\n\n-- Isolation level anomalies:\n-- Dirty read: read uncommitted data from another transaction (not possible in Postgres)\n-- Non-repeatable read: same row gives different values in same transaction (possible in READ COMMITTED)\n-- Phantom read: new rows appear matching a query (possible in READ COMMITTED)"
+    },
+    {
+      "type": "tip",
+      "text": "Use READ COMMITTED (the default) for most operations. Use REPEATABLE READ when you need to do several reads that must be consistent with each other. Use SERIALIZABLE only when correctness is critical and you have retry logic for serialization failures."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "pg-11-q1",
+          "question": "Transaction A reads Alice's balance (1000), then Transaction B withdraws 200 and commits, then Transaction A reads Alice's balance again in the same transaction and sees 800. What anomaly is this?",
+          "type": "multiple-choice",
+          "options": [
+            "Dirty read",
+            "Non-repeatable read",
+            "Phantom read",
+            "Deadlock"
+          ],
+          "correctAnswer": 1,
+          "explanation": "A non-repeatable read occurs when the same row gives different values in the same transaction because another transaction committed a change between your reads. This happens at the READ COMMITTED isolation level. To prevent it, use REPEATABLE READ isolation, which snapshots the database at transaction start."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is a deadlock?",
+      "a": "A deadlock occurs when Transaction A holds a lock that B needs, and B holds a lock that A needs — both wait forever. PostgreSQL detects deadlocks and automatically cancels one transaction with ERROR: deadlock detected. Prevent deadlocks by always acquiring locks in the same order across transactions, and by keeping transactions short."
+    }
+  ],
+  "sources": [
+    { "name": "PostgreSQL Transactions", "url": "https://www.postgresql.org/docs/current/tutorial-transactions.html", "verified": "2026-10-06" }
+  ],
+  "realWorld": {
+    "usedIn": ["payment processing", "inventory management", "order creation", "financial systems"],
+    "examples": [
+      "Bank transfers always use transactions — without them, a server crash mid-transfer would destroy money",
+      "Order creation typically wraps: INSERT order + INSERT order_items + UPDATE inventory + INSERT payment_intent in a single transaction"
+    ]
+  }
+}

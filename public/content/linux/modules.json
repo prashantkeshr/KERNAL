@@ -1,0 +1,57 @@
+[
+  {
+    "id": "shell-basics",
+    "title": "Shell Basics",
+    "description": "Understand what a shell is and navigate the command line with confidence.",
+    "order": 1,
+    "lessons": [
+      { "id": "01-what-is-the-shell",   "title": "What is the Shell?",          "subtitle": "Terminal, shell, bash, zsh — what they are and why every developer needs them",  "difficulty": "beginner", "estimatedMinutes": 10, "status": "published" },
+      { "id": "02-navigation",          "title": "Navigation and Listing",      "subtitle": "pwd, ls, cd, tree — moving around the filesystem without a mouse",               "difficulty": "beginner", "estimatedMinutes": 12, "status": "published" },
+      { "id": "03-files-and-dirs",      "title": "Files and Directories",       "subtitle": "touch, mkdir, cp, mv, rm — creating, copying, moving, and deleting",            "difficulty": "beginner", "estimatedMinutes": 12, "status": "published" }
+    ]
+  },
+  {
+    "id": "filesystem",
+    "title": "The Filesystem",
+    "description": "Understand Linux file permissions, paths, and how to find anything.",
+    "order": 2,
+    "lessons": [
+      { "id": "04-permissions",         "title": "Permissions and Ownership",   "subtitle": "chmod, chown, rwx bits, sudo — understanding who can do what with files",       "difficulty": "beginner",     "estimatedMinutes": 14, "status": "published" },
+      { "id": "05-paths-and-links",     "title": "Paths and Links",             "subtitle": "Absolute vs relative paths, symlinks, hard links, and ln",                      "difficulty": "beginner",     "estimatedMinutes": 12, "status": "published" },
+      { "id": "06-finding-files",       "title": "Finding Files",               "subtitle": "find, locate, which, whereis — searching the filesystem by name and content",    "difficulty": "beginner",     "estimatedMinutes": 12, "status": "published" }
+    ]
+  },
+  {
+    "id": "text-processing",
+    "title": "Text Processing",
+    "description": "Read, search, filter, and transform text — the core of shell scripting.",
+    "order": 3,
+    "lessons": [
+      { "id": "07-viewing-text",        "title": "Viewing Text Files",          "subtitle": "cat, less, head, tail, wc — reading and measuring files from the command line",  "difficulty": "beginner",     "estimatedMinutes": 10, "status": "published" },
+      { "id": "08-grep-and-regex",      "title": "grep and Regular Expressions","subtitle": "Searching file content with grep, egrep, and basic regex patterns",             "difficulty": "intermediate", "estimatedMinutes": 16, "status": "published" },
+      { "id": "09-pipes-and-redirect",  "title": "Pipes and Redirection",       "subtitle": "| pipe, >, >>, <, 2>&1, /dev/null — composing commands with streams",           "difficulty": "intermediate", "estimatedMinutes": 14, "status": "published" }
+    ]
+  },
+  {
+    "id": "processes-and-system",
+    "title": "Processes and System",
+    "description": "Manage running programs, environment variables, and installed software.",
+    "order": 4,
+    "lessons": [
+      { "id": "10-processes",           "title": "Processes and Jobs",          "subtitle": "ps, top, kill, jobs, fg, bg — controlling what runs on your system",            "difficulty": "intermediate", "estimatedMinutes": 14, "status": "published" },
+      { "id": "11-environment",         "title": "Environment Variables",       "subtitle": "$PATH, export, .bashrc, .profile — making the shell work for you",              "difficulty": "intermediate", "estimatedMinutes": 12, "status": "published" },
+      { "id": "12-package-management",  "title": "Package Management",          "subtitle": "apt, brew, snap — installing, updating, and removing software",                 "difficulty": "beginner",     "estimatedMinutes": 10, "status": "published" }
+    ]
+  },
+  {
+    "id": "bash-scripting",
+    "title": "Bash Scripting",
+    "description": "Automate repetitive tasks by writing your own shell scripts.",
+    "order": 5,
+    "lessons": [
+      { "id": "13-script-basics",       "title": "Bash Script Basics",          "subtitle": "#!/bin/bash, variables, echo, read, exit codes, making scripts executable",     "difficulty": "intermediate", "estimatedMinutes": 14, "status": "published" },
+      { "id": "14-conditionals-loops",  "title": "Conditionals and Loops",      "subtitle": "if/elif/else, for, while, test expressions, and [[ ... ]] conditions",          "difficulty": "intermediate", "estimatedMinutes": 16, "status": "published" },
+      { "id": "15-cron-automation",     "title": "Cron and Automation",         "subtitle": "crontab syntax, scheduling tasks, logging output, and common automation patterns","difficulty": "intermediate", "estimatedMinutes": 14, "status": "published" }
+    ]
+  }
+]

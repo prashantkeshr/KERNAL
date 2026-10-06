@@ -1,0 +1,117 @@
+{
+  "id": "03-tables-and-data-types",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "postgresql",
+  "technologyVersion": "16",
+  "module": "pg-foundations",
+  "title": "Tables and Data Types",
+  "subtitle": "PostgreSQL's rich type system: integer, text, numeric, boolean, date, UUID, JSON",
+  "difficulty": "beginner",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-06",
+  "updatedAt": "2026-10-06",
+  "lastVerified": "2026-10-06",
+  "prerequisites": ["postgresql/02-connecting-and-databases"],
+  "skillsTaught": ["pg.create-table", "pg.data-types", "pg.serial", "pg.uuid", "pg.timestamps"],
+  "skillsUsed": ["pg.psql", "sql.tables"],
+  "relatedConcepts": ["pg.constraints", "pg.normalization"],
+  "whyItExists": {
+    "problem": "SQLite is weakly typed — you can store any value in any column. This leads to bugs where strings end up in numeric columns or dates are stored as text in inconsistent formats. Choosing the right data type enforces correctness, enables efficient storage, and unlocks database features like date arithmetic and JSON querying.",
+    "solution": "PostgreSQL has a rich type system. Choosing the right type for each column is part of good schema design.",
+    "whenToUse": "Every time you create or alter a table. Choosing the right type at schema design time is much cheaper than migrating types later.",
+    "whenNotToUse": "Don't over-engineer types for simple CRUD apps. Text works fine for names and descriptions. Save custom types for things that genuinely benefit from structure (enums for status fields, jsonb for dynamic attributes)."
+  },
+  "explainModes": {
+    "beginner": "Every column in a table has a type that says what kind of data it can hold. For example, an 'age' column should use an integer type (not text) so the database enforces that only numbers are stored. PostgreSQL has many built-in types: integers for whole numbers, numeric for exact decimals (money!), text for strings, boolean for true/false, date and timestamp for dates and times, and UUID for globally unique identifiers.",
+    "simple": "PostgreSQL types by category: Integers (smallint 2B, integer 4B, bigint 8B). Serial types (serial, bigserial — auto-incrementing integers). Exact decimals (numeric(precision, scale) — for money). Floating point (real, double precision — for scientific data). Text (text — unlimited length, varchar(n) — limited length, char(n) — fixed length, but just use text). Boolean (boolean — true/false/null). Date/time (date, time, timestamp, timestamptz — always use timestamptz for user-facing times). UUID (uuid — universally unique 128-bit ID). JSON (json — stored as text, jsonb — stored as binary, indexed, recommended).",
+    "standard": "PostgreSQL-specific types beyond standard SQL: SERIAL and BIGSERIAL are shorthand for creating an integer with a sequence. In PostgreSQL 10+, the preferred alternative is GENERATED ALWAYS AS IDENTITY. UUID requires the uuid-ossp extension for UUID generation functions, or use gen_random_uuid() which is built-in from PostgreSQL 13+. Arrays: integer[], text[] let you store arrays in a column — useful for tags. Enums: CREATE TYPE status AS ENUM ('pending', 'active', 'inactive') enforces a fixed set of values.",
+    "technical": "TOAST (The Oversized-Attribute Storage Technique) automatically compresses and stores large values out-of-line in a separate TOAST table. text and jsonb columns can store values up to 1GB each, with TOAST handling the overflow. Choosing varchar(n) provides no performance benefit over text — it only adds a check constraint that the length ≤ n. Use text unless you specifically need to enforce a length limit at the database level."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "CREATE TABLE with real-world types"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "Creating a users table",
+      "code": "CREATE TABLE users (\n  id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  email       TEXT NOT NULL UNIQUE,\n  username    TEXT NOT NULL UNIQUE,\n  full_name   TEXT,\n  is_active   BOOLEAN NOT NULL DEFAULT TRUE,\n  role        TEXT NOT NULL DEFAULT 'member',\n  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),\n  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);\n\nCREATE TABLE posts (\n  id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  user_id     BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,\n  title       TEXT NOT NULL,\n  body        TEXT,\n  published   BOOLEAN NOT NULL DEFAULT FALSE,\n  views       INTEGER NOT NULL DEFAULT 0,\n  published_at TIMESTAMPTZ,\n  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Key type decisions"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "Type choices with rationale",
+      "code": "-- Primary keys: BIGINT IDENTITY (not SERIAL — deprecated in modern Postgres)\n-- SERIAL is still supported but IDENTITY is the SQL standard\nid BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY\n\n-- Or UUID primary keys (better for distributed systems, no guessable IDs)\nid UUID PRIMARY KEY DEFAULT gen_random_uuid()\n\n-- Money/prices: NUMERIC, never FLOAT\n-- FLOAT has rounding errors: 0.1 + 0.2 ≠ 0.3\nprice NUMERIC(10, 2)  -- up to 99999999.99, exactly 2 decimal places\n\n-- Timestamps: always TIMESTAMPTZ (with timezone)\n-- Without TZ: stored as local time — breaks across DST changes and server moves\ncreated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n\n-- Status fields: TEXT with CHECK or a custom enum\nstatus TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'closed'))\n-- Or as an enum:\nCREATE TYPE order_status AS ENUM ('pending', 'processing', 'shipped', 'delivered', 'cancelled');\nstatus order_status NOT NULL DEFAULT 'pending'"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Always use TIMESTAMPTZ, never TIMESTAMP.</strong> TIMESTAMP stores a 'wall clock' time with no timezone info — it is ambiguous when DST changes or servers move between regions. TIMESTAMPTZ stores UTC internally and converts to local time on output."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "PostgreSQL type reference"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Type quick reference",
+      "code": "Integers:\n  smallint     2 bytes   -32,768 to 32,767\n  integer      4 bytes   -2.1B to 2.1B           ← use for counts, ages, IDs\n  bigint       8 bytes   ±9.2 quadrillion         ← use for IDs in large tables\n\nExact numeric:\n  numeric(p,s)  variable  exact decimal            ← use for money\n  decimal       alias for numeric\n\nFloating point (imprecise — not for money):\n  real          4 bytes   6 decimal digits\n  double        8 bytes   15 decimal digits\n\nText:\n  text          unlimited  no padding              ← use this\n  varchar(n)    ≤n chars   with length check\n  char(n)       n chars    space-padded (avoid)\n\nBoolean:  boolean  true/false/null\n\nDate/Time:\n  date          4 bytes   YYYY-MM-DD\n  time          8 bytes   HH:MM:SS.ssssss\n  timestamp     8 bytes   date+time, NO timezone  (avoid)\n  timestamptz   8 bytes   date+time, WITH timezone ← use this\n  interval      16 bytes  '3 days', '2 hours 30 minutes'\n\nIdentifiers:\n  uuid          16 bytes  550e8400-e29b-41d4-a716-446655440000\n\nJSON:\n  json          text       stored as-is, validated\n  jsonb         binary     indexed, queryable       ← use this"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Interactive: PostgreSQL Type Picker",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n<style>\n  body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0;font-size:13px}\n  h3{color:#4fd1c5;margin:0 0 12px}\n  .question{margin-bottom:14px}\n  .q{font-weight:600;font-size:0.85rem;margin-bottom:6px;color:#e2e8f0}\n  .opts{display:flex;flex-wrap:wrap;gap:6px}\n  .opt{padding:5px 12px;border-radius:6px;border:1px solid #2d3748;background:#1a1f2b;cursor:pointer;font-size:0.75rem;color:#94a3b8;transition:all 0.15s}\n  .opt:hover{border-color:#4fd1c5;color:#4fd1c5}\n  .opt.correct{background:#166534;border-color:#4ade80;color:#86efac}\n  .opt.wrong{background:#7f1d1d;border-color:#f87171;color:#fca5a5}\n  .expl{margin-top:6px;font-size:0.75rem;color:#64748b;display:none;padding:6px 8px;background:#0b0e14;border-radius:4px;border-left:2px solid #4fd1c5;line-height:1.5}\n  .expl.show{display:block}\n</style>\n</head>\n<body>\n  <h3>Choose the Right PostgreSQL Type</h3>\n  <div id=\"qs\"></div>\n  <script>\n    const questions=[\n      {q:'Storing a product price like $9.99',opts:['real','numeric(10,2)','integer','text'],correct:1,expl:'Use numeric for money — floating point types like real have rounding errors. numeric(10,2) stores exactly 2 decimal places.'},\n      {q:'A user ID that will have millions of rows',opts:['smallint','integer','bigint','uuid'],correct:2,expl:'bigint (8 bytes) handles up to 9.2 quadrillion values. integer (4 bytes) overflows at ~2 billion — fine for most tables, but bigint is safer for high-traffic apps.'},\n      {q:'Recording when a user registered (across timezones)',opts:['date','timestamp','timestamptz','text'],correct:2,expl:'timestamptz stores UTC internally and converts to local time on output. timestamp has no timezone info — it breaks when servers move between regions or DST changes.'},\n      {q:'Storing a user profile photo URL',opts:['bytea','text','varchar(255)','char(255)'],correct:1,expl:'URLs are strings — use text. varchar(255) is a MySQL habit; PostgreSQL has no performance benefit to varchar over text. bytea would store the actual binary — you want a URL, not the file itself.'},\n      {q:'A status field with values: pending, active, closed',opts:['integer','boolean','text with CHECK','real'],correct:2,expl:\"TEXT with a CHECK constraint (CHECK (status IN ('pending', 'active', 'closed'))) works well. A custom ENUM (CREATE TYPE) is also good — it enforces the constraint at the type level and saves storage.\"},\n    ];\n    questions.forEach((q,qi)=>{\n      const div=document.createElement('div');div.className='question';\n      const opts=q.opts.map((o,i)=>`<button class=\"opt\" onclick=\"answer(${qi},${i})\">${o}</button>`).join('');\n      div.innerHTML=`<div class=\"q\">${qi+1}. ${q.q}</div><div class=\"opts\">${opts}</div><div class=\"expl\" id=\"e${qi}\">${q.expl}</div>`;\n      document.getElementById('qs').appendChild(div);\n    });\n    function answer(qi,i){\n      const q=questions[qi];\n      const opts=document.querySelectorAll(`.question:nth-child(${qi+1}) .opt`);\n      opts.forEach((o,j)=>{\n        if(j===q.correct)o.classList.add('correct');\n        else if(j===i&&i!==q.correct)o.classList.add('wrong');\n        o.onclick=null;\n      });\n      document.getElementById('e'+qi).classList.add('show');\n    }\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "pg-03-q1",
+          "question": "You are storing product prices. A developer suggests using 'real' (floating point). What is the problem?",
+          "type": "multiple-choice",
+          "options": [
+            "real is too large for prices",
+            "real has rounding errors — 0.1 + 0.2 might equal 0.30000000000000004, not 0.3",
+            "real does not support negative numbers",
+            "real is not supported in PostgreSQL"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Floating point types (real, double precision) use binary representation that cannot exactly represent most decimal fractions. 0.1 in binary is a repeating fraction, like 1/3 in decimal. For money, use numeric(p,s) which stores exact decimal values. This is not academic — floating point money has caused real financial discrepancies in production systems."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Should I use SERIAL or IDENTITY for auto-increment?",
+      "a": "Use GENERATED ALWAYS AS IDENTITY (or GENERATED BY DEFAULT AS IDENTITY). SERIAL is a shorthand that creates a hidden sequence and sets a default — it works but is not SQL-standard. IDENTITY columns are the SQL standard (PostgreSQL 10+) and behave more predictably, especially when copying data between databases. For existing SERIAL columns, no need to migrate — both work fine."
+    },
+    {
+      "q": "When should I use UUID vs BIGINT for primary keys?",
+      "a": "BIGINT is simpler and more efficient for most applications. UUID is better when you: need IDs to be unguessable (security), need to generate IDs client-side before database insert, or are merging data from multiple databases/shards. The downside of UUID is larger index size and slightly slower B-tree operations."
+    }
+  ],
+  "sources": [
+    { "name": "PostgreSQL Data Types", "url": "https://www.postgresql.org/docs/current/datatype.html", "verified": "2026-10-06" }
+  ],
+  "realWorld": {
+    "usedIn": ["schema design", "database migrations", "ORM model definitions"],
+    "examples": [
+      "Django, Rails, and Prisma all generate BIGINT or BIGSERIAL primary keys by default — this matches PostgreSQL best practices",
+      "The timestamptz mistake: teams storing timestamp without timezone regularly hit bugs around daylight saving time transitions, especially in apps serving users across multiple timezones"
+    ]
+  }
+}

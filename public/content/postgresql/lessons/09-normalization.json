@@ -1,0 +1,102 @@
+{
+  "id": "09-normalization",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "postgresql",
+  "technologyVersion": "16",
+  "module": "data-modeling",
+  "title": "Normalization",
+  "subtitle": "1NF, 2NF, 3NF in plain English — and when to intentionally denormalize",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-06",
+  "updatedAt": "2026-10-06",
+  "lastVerified": "2026-10-06",
+  "prerequisites": ["postgresql/08-constraints-and-defaults"],
+  "skillsTaught": ["pg.1nf", "pg.2nf", "pg.3nf", "pg.denormalization", "pg.schema-design"],
+  "skillsUsed": ["pg.foreign-keys", "pg.constraints"],
+  "relatedConcepts": ["pg.joins", "pg.indexes"],
+  "whyItExists": {
+    "problem": "Poorly designed schemas store duplicated data: the same customer's address in every order row. When the customer moves, you must update hundreds of rows — miss one and your data is inconsistent. Normalization eliminates redundancy by organizing data into separate tables with relationships.",
+    "solution": "Normalization rules (normal forms) define progressively stricter requirements for how data should be organized. Higher normal forms eliminate more types of data redundancy.",
+    "whenToUse": "Start normalized. Add denormalization only where you have measured performance problems and confirmed that the query is a bottleneck.",
+    "whenNotToUse": "Analytics and reporting databases (data warehouses) are intentionally denormalized with wide 'star schema' tables — they optimize for read performance over write integrity."
+  },
+  "explainModes": {
+    "beginner": "Normalization is about not repeating yourself in your database. If the customer's city is stored in every order row, and the customer moves, you have to update every single order. That is error-prone. Better design: store the city once in a customers table and reference it from orders with a customer_id. Now updating the city means changing one row.",
+    "standard": "1NF: each column holds a single atomic value — no comma-separated lists in a column, no repeating column groups. 2NF: in a table with a composite primary key, every non-key column must depend on the WHOLE primary key (not just part of it). 3NF: every non-key column depends on the primary key, not on another non-key column (no transitive dependencies). Practical: BCNF (Boyce-Codd Normal Form) is slightly stricter than 3NF and handles edge cases around overlapping candidate keys.",
+    "technical": "In practice, aim for 3NF for OLTP applications. The tradeoffs: more normalized = less storage, less update anomalies, more JOINs. The JOINs are usually fast with proper indexes. Denormalization is a performance optimization: adding a denormalized column (e.g., post.comment_count) trades consistency for faster reads. Maintain it with triggers or periodic background jobs."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "First Normal Form (1NF)"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "1NF violations and fixes",
+      "code": "-- VIOLATION: comma-separated tags in one column\nCREATE TABLE posts_bad (\n  id    INTEGER PRIMARY KEY,\n  title TEXT,\n  tags  TEXT  -- 'postgresql,database,sql' — wrong!\n);\n-- Problem: cannot query by tag, cannot count tags, ordering is ambiguous\n\n-- FIXED: separate tags table with a junction table\nCREATE TABLE tags (\n  id   BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  name TEXT NOT NULL UNIQUE\n);\nCREATE TABLE post_tags (\n  post_id BIGINT REFERENCES posts(id) ON DELETE CASCADE,\n  tag_id  BIGINT REFERENCES tags(id)  ON DELETE CASCADE,\n  PRIMARY KEY (post_id, tag_id)\n);\n\n-- VIOLATION: repeating groups\nCREATE TABLE orders_bad (\n  id       INTEGER PRIMARY KEY,\n  product1 TEXT,\n  qty1     INTEGER,\n  product2 TEXT,   -- repeating group — wrong!\n  qty2     INTEGER\n);"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Third Normal Form (3NF) — the practical target"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "3NF violation and fix",
+      "code": "-- VIOLATION: customer data stored in every order (update anomaly)\nCREATE TABLE orders_bad (\n  order_id       INTEGER PRIMARY KEY,\n  customer_id    INTEGER,\n  customer_name  TEXT,    -- depends on customer_id, not order_id!\n  customer_email TEXT,    -- same problem\n  customer_city  TEXT,    -- same problem\n  total          NUMERIC\n);\n-- If customer changes email, must update every order row\n-- If you miss one, data is inconsistent\n\n-- FIXED: customer data in customers table, reference by ID\nCREATE TABLE customers (\n  id    BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  name  TEXT NOT NULL,\n  email TEXT NOT NULL UNIQUE,\n  city  TEXT\n);\nCREATE TABLE orders (\n  id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  customer_id BIGINT NOT NULL REFERENCES customers(id),\n  total       NUMERIC(10,2) NOT NULL,\n  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "When to denormalize"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "Intentional denormalization",
+      "code": "-- posts.comment_count is denormalized for fast display\n-- Instead of: SELECT COUNT(*) FROM comments WHERE post_id = 1 (on every page load)\n-- Store it: posts.comment_count INTEGER DEFAULT 0\n\n-- Maintain with a trigger:\nCREATE OR REPLACE FUNCTION update_comment_count()\nRETURNS TRIGGER AS $$\nBEGIN\n  IF TG_OP = 'INSERT' THEN\n    UPDATE posts SET comment_count = comment_count + 1 WHERE id = NEW.post_id;\n  ELSIF TG_OP = 'DELETE' THEN\n    UPDATE posts SET comment_count = comment_count - 1 WHERE id = OLD.post_id;\n  END IF;\n  RETURN NULL;\nEND;\n$$ LANGUAGE plpgsql;\n\nCREATE TRIGGER trg_comment_count\nAFTER INSERT OR DELETE ON comments\nFOR EACH ROW EXECUTE FUNCTION update_comment_count();"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "pg-09-q1",
+          "question": "An orders table stores customer_name and customer_email in every row. When a customer changes their email, hundreds of order rows must be updated. What normal form does this violate?",
+          "type": "multiple-choice",
+          "options": [
+            "1NF — the columns have non-atomic values",
+            "2NF — columns depend on part of the primary key",
+            "3NF — non-key columns depend on another non-key column (customer_id), not the primary key",
+            "BCNF — overlapping candidate keys"
+          ],
+          "correctAnswer": 2,
+          "explanation": "3NF requires that every non-key column depends only on the primary key — not on another non-key column. customer_name and customer_email depend on customer_id, not on order_id (the primary key). This is a transitive dependency — the fix is to move customer data to a separate customers table and reference it by customer_id."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Do I need to know all the normal forms?",
+      "a": "In practice, aim for 3NF and you'll catch most problems. The rules simplify to: (1) no comma-separated values in a single column, (2) no repeating column groups, (3) each table represents one entity, (4) non-key columns describe the primary key and nothing else. These four rules will get you to 3NF on most schemas."
+    }
+  ],
+  "sources": [
+    { "name": "PostgreSQL Database Design", "url": "https://www.postgresql.org/docs/current/ddl.html", "verified": "2026-10-06" }
+  ],
+  "realWorld": {
+    "usedIn": ["schema design", "data migration", "refactoring legacy databases"],
+    "examples": [
+      "E-commerce order history intentionally stores a snapshot of product price at order time (denormalized) — you want the historical price, not the current one",
+      "User activity feeds are often intentionally denormalized for read speed — a normalized query with multiple JOINs per user would be too slow at scale"
+    ]
+  }
+}

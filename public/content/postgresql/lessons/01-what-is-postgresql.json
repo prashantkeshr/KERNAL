@@ -1,0 +1,136 @@
+{
+  "id": "01-what-is-postgresql",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "postgresql",
+  "technologyVersion": "16",
+  "module": "pg-foundations",
+  "title": "What is PostgreSQL?",
+  "subtitle": "ACID, MVCC, and why Postgres is the world's most advanced open-source database",
+  "difficulty": "beginner",
+  "estimatedMinutes": 10,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-06",
+  "updatedAt": "2026-10-06",
+  "lastVerified": "2026-10-06",
+  "prerequisites": ["sql/01-what-is-sql"],
+  "skillsTaught": ["pg.what-is-postgresql", "pg.acid", "pg.mvcc", "pg.use-cases"],
+  "skillsUsed": ["sql.basics"],
+  "relatedConcepts": ["sql.databases", "pg.transactions"],
+  "whyItExists": {
+    "problem": "SQLite is great for development and embedded use, but falls apart under concurrent writes. MySQL has quirks that surprise developers. Every serious production web application needs a database that handles multiple simultaneous users, complex queries, and guarantees that data stays correct even when things go wrong.",
+    "solution": "PostgreSQL (Postgres) is a full-featured, battle-tested relational database that has been in development since 1986. It is ACID-compliant, handles thousands of concurrent connections, and offers features that go far beyond basic SQL: full-text search, JSONB, geospatial data, custom types, and more.",
+    "whenToUse": "For any production application that stores user data. PostgreSQL is the go-to database for startups, enterprises, and everything in between.",
+    "whenNotToUse": "SQLite is better for single-user apps, mobile apps, or development environments where you want zero configuration. Redis/Memcached are better for caching. If you need to store files, use S3 or similar — not a relational database."
+  },
+  "explainModes": {
+    "beginner": "Think of PostgreSQL as a very advanced filing cabinet for your app's data. Regular SQL databases like SQLite are like a single filing cabinet — fine when you're alone, but if several people try to file documents at once, things get confused. PostgreSQL is like a professional records room with a librarian who ensures that multiple people can work simultaneously, no file ever gets lost, and every change is properly logged.",
+    "simple": "PostgreSQL is an open-source relational database management system (RDBMS). It stores data in tables with rows and columns — same concept as SQLite or MySQL, but with far more features and reliability. Key advantages: true ACID transactions (Atomicity, Consistency, Isolation, Durability), excellent performance at scale, rich SQL extensions, and MVCC (Multi-Version Concurrency Control) so readers never block writers.",
+    "standard": "PostgreSQL uses MVCC (Multi-Version Concurrency Control) for concurrency. Instead of locking rows when one transaction reads them, Postgres keeps multiple versions of each row. A transaction sees a snapshot of the database at the time it started — readers never block writers, writers never block readers. This gives high throughput with strong consistency.",
+    "technical": "Postgres processes each connection as a separate OS process (not a thread), coordinating through shared memory. The buffer pool manager, WAL (Write-Ahead Log), and MVCC transaction manager together implement ACID at the storage level. The WAL ensures crash recovery: every change is first written to the WAL in sequence, then applied to heap pages. On crash, Postgres replays the WAL from the last checkpoint. The query planner uses cost-based optimization with statistics from ANALYZE to choose efficient execution plans.",
+    "deepDive": "The MVCC implementation in Postgres assigns every transaction a transaction ID (XID). Each row has xmin (transaction that created it) and xmax (transaction that deleted/updated it). A transaction can see a row only if xmin < its snapshot XID and xmax is either 0 (not yet deleted) or > its snapshot XID. Vacuum reclaims storage by removing row versions that no transaction can ever see again. This is why you need autovacuum running — without it, tables grow unboundedly with dead row versions."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "PostgreSQL vs SQLite vs MySQL"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Database comparison",
+      "code": "SQLite\n  ✓ Zero configuration — just a file on disk\n  ✓ Perfect for development, testing, mobile apps\n  ✗ One writer at a time — bad for concurrent web apps\n  ✗ Limited SQL: no stored procedures, limited ALTER TABLE\n\nMySQL\n  ✓ Fast reads, widely used in LAMP stacks\n  ✗ Surprising behavior: silent truncation, non-strict mode defaults\n  ✗ Weaker SQL standard compliance\n\nPostgreSQL\n  ✓ ACID-compliant — data is never silently wrong\n  ✓ Full SQL standard compliance\n  ✓ MVCC — readers and writers don't block each other\n  ✓ Rich type system: UUID, JSON, arrays, enums, ranges\n  ✓ Extensible: PostGIS for geography, pgvector for ML embeddings\n  ✓ Horizontal read scaling with logical replication\n  ✗ More configuration needed than SQLite"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "ACID — what it guarantees"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "<strong>Atomicity</strong> — A transaction is all-or-nothing. If you transfer $100 from account A to B, both the debit and the credit succeed, or neither does. Partial failures leave no trace.",
+        "<strong>Consistency</strong> — Every transaction takes the database from one valid state to another. Constraints (foreign keys, CHECK, NOT NULL) are enforced — corrupt data cannot be written.",
+        "<strong>Isolation</strong> — Concurrent transactions behave as if they ran sequentially. One transaction's in-progress changes are invisible to others until committed.",
+        "<strong>Durability</strong> — Once a transaction commits, it is permanent. Even if the server crashes immediately after COMMIT, the data is safe on disk thanks to the WAL."
+      ]
+    },
+    {
+      "type": "tip",
+      "text": "ACID is not just a buzzword. It is the difference between a database you can trust with money, health records, and user data versus one where you spend weekends investigating why numbers don't add up."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "MVCC — why reads don't block writes"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "MVCC in action",
+      "code": "Time →\n\nTransaction A (reads users table):\n  BEGIN;\n  SELECT * FROM users;  -- sees 1000 rows, snapshot at T1\n  ... (takes 5 seconds)\n  SELECT * FROM users;  -- still sees 1000 rows (same snapshot)\n  COMMIT;\n\nTransaction B (inserts, runs concurrently with A):\n  BEGIN;\n  INSERT INTO users VALUES (...);\n  COMMIT;               -- 1001 rows in DB now\n\nTransaction C (starts after B commits):\n  SELECT COUNT(*) FROM users;  -- sees 1001 rows\n\n→ A sees a consistent snapshot from T1\n→ B's write doesn't block A's read\n→ C sees B's committed write"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Interactive: PostgreSQL vs SQLite Feature Comparison",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n<style>\n  body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0;font-size:13px}\n  h3{color:#4fd1c5;margin:0 0 12px}\n  .tabs{display:flex;gap:4px;margin-bottom:12px}\n  .tab{padding:5px 14px;border-radius:6px 6px 0 0;font-size:0.75rem;font-weight:600;cursor:pointer;border:1px solid #2d3748;border-bottom:none;background:#1a1f2b;color:#64748b}\n  .tab.active{background:#336791;color:#fff;border-color:#336791}\n  .panel{display:none;background:#0b0e14;border:1px solid #2d3748;border-radius:0 6px 6px 6px;padding:12px}\n  .panel.active{display:block}\n  .row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:6px 0;border-bottom:1px solid #1e2533;font-size:0.75rem}\n  .row:last-child{border-bottom:none}\n  .hdr{color:#64748b;font-weight:700;font-size:0.72rem;padding-bottom:4px}\n  .yes{color:#4ade80}.no{color:#f87171}.part{color:#fbbf24}\n</style>\n</head>\n<body>\n  <h3>PostgreSQL Feature Explorer</h3>\n  <div class=\"tabs\">\n    <div class=\"tab active\" onclick=\"show('concurrency')\">Concurrency</div>\n    <div class=\"tab\" onclick=\"show('types')\">Data Types</div>\n    <div class=\"tab\" onclick=\"show('sql')\">SQL Features</div>\n    <div class=\"tab\" onclick=\"show('scale')\">Scale</div>\n  </div>\n  <div id=\"concurrency\" class=\"panel active\">\n    <div class=\"row hdr\"><span>Feature</span><span>SQLite</span><span>PostgreSQL</span></div>\n    <div class=\"row\"><span>Multiple writers</span><span class=\"no\">✗ one at a time</span><span class=\"yes\">✓ MVCC</span></div>\n    <div class=\"row\"><span>Readers block writers</span><span class=\"part\">sometimes</span><span class=\"yes\">✓ never</span></div>\n    <div class=\"row\"><span>Connection pooling</span><span class=\"no\">✗</span><span class=\"yes\">✓ pgBouncer</span></div>\n    <div class=\"row\"><span>Streaming replication</span><span class=\"no\">✗</span><span class=\"yes\">✓ built-in</span></div>\n  </div>\n  <div id=\"types\" class=\"panel\">\n    <div class=\"row hdr\"><span>Type</span><span>SQLite</span><span>PostgreSQL</span></div>\n    <div class=\"row\"><span>UUID</span><span class=\"part\">text only</span><span class=\"yes\">✓ native uuid</span></div>\n    <div class=\"row\"><span>JSON</span><span class=\"part\">text only</span><span class=\"yes\">✓ json + jsonb</span></div>\n    <div class=\"row\"><span>Arrays</span><span class=\"no\">✗</span><span class=\"yes\">✓ int[], text[]</span></div>\n    <div class=\"row\"><span>Enum</span><span class=\"no\">✗</span><span class=\"yes\">✓ CREATE TYPE</span></div>\n    <div class=\"row\"><span>Date/Time with TZ</span><span class=\"part\">limited</span><span class=\"yes\">✓ timestamptz</span></div>\n    <div class=\"row\"><span>Geographic</span><span class=\"no\">✗</span><span class=\"yes\">✓ PostGIS ext.</span></div>\n  </div>\n  <div id=\"sql\" class=\"panel\">\n    <div class=\"row hdr\"><span>Feature</span><span>SQLite</span><span>PostgreSQL</span></div>\n    <div class=\"row\"><span>Window functions</span><span class=\"part\">basic</span><span class=\"yes\">✓ full</span></div>\n    <div class=\"row\"><span>CTEs (WITH)</span><span class=\"yes\">✓</span><span class=\"yes\">✓</span></div>\n    <div class=\"row\"><span>Stored procedures</span><span class=\"no\">✗</span><span class=\"yes\">✓ PL/pgSQL</span></div>\n    <div class=\"row\"><span>Triggers</span><span class=\"part\">limited</span><span class=\"yes\">✓ full</span></div>\n    <div class=\"row\"><span>Full-text search</span><span class=\"no\">✗</span><span class=\"yes\">✓ tsvector</span></div>\n  </div>\n  <div id=\"scale\" class=\"panel\">\n    <div class=\"row hdr\"><span>Metric</span><span>SQLite</span><span>PostgreSQL</span></div>\n    <div class=\"row\"><span>Max DB size</span><span class=\"part\">281 TB</span><span class=\"yes\">unlimited</span></div>\n    <div class=\"row\"><span>Concurrent connections</span><span class=\"no\">~1 writer</span><span class=\"yes\">thousands</span></div>\n    <div class=\"row\"><span>Table partitioning</span><span class=\"no\">✗</span><span class=\"yes\">✓ native</span></div>\n    <div class=\"row\"><span>Parallel queries</span><span class=\"no\">✗</span><span class=\"yes\">✓ built-in</span></div>\n  </div>\n  <script>\n    function show(id){\n      document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));\n      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));\n      document.getElementById(id).classList.add('active');\n      event.target.classList.add('active');\n    }\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "pg-01-q1",
+          "question": "In PostgreSQL's MVCC, what happens when Transaction A is reading rows and Transaction B inserts a new row?",
+          "type": "multiple-choice",
+          "options": [
+            "Transaction A blocks until Transaction B commits",
+            "Transaction B fails because A is reading",
+            "Transaction A sees the new row immediately",
+            "Transaction A's snapshot is from when it started — it does not see B's new row"
+          ],
+          "correctAnswer": 3,
+          "explanation": "MVCC (Multi-Version Concurrency Control) gives each transaction a consistent snapshot of the database from when the transaction started. Transaction A sees only rows that existed when it began — it does not see B's uncommitted or even B's committed changes (unless A starts a new transaction after B commits). This is what makes 'readers don't block writers' possible."
+        },
+        {
+          "id": "pg-01-q2",
+          "question": "Which ACID property ensures that if a server crashes immediately after COMMIT, the committed data survives?",
+          "type": "multiple-choice",
+          "options": [
+            "Atomicity",
+            "Consistency",
+            "Isolation",
+            "Durability"
+          ],
+          "correctAnswer": 3,
+          "explanation": "Durability guarantees that committed transactions survive system failures. PostgreSQL implements this with the WAL (Write-Ahead Log): every change is written to the WAL before being applied to the actual data pages. On crash recovery, Postgres replays the WAL from the last checkpoint to restore all committed transactions."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is PostgreSQL free?",
+      "a": "Yes. PostgreSQL is open-source under the PostgreSQL License, which is similar to BSD/MIT — you can use it in commercial products for free. Managed hosting (AWS RDS, Supabase, Neon) costs money but that is the hosting, not the database software."
+    },
+    {
+      "q": "Should I use PostgreSQL or MySQL?",
+      "a": "PostgreSQL for anything new. It has stricter SQL standard compliance (no silent data truncation), better types, MVCC concurrency, and a more active development community for modern features. MySQL's main advantage is that some legacy tools or hosting providers only support MySQL. For greenfield projects, choose PostgreSQL."
+    }
+  ],
+  "sources": [
+    { "name": "PostgreSQL Documentation", "url": "https://www.postgresql.org/docs/current/intro-whatis.html", "verified": "2026-10-06" }
+  ],
+  "realWorld": {
+    "usedIn": ["Supabase", "Railway", "Heroku", "AWS RDS", "Instagram", "Spotify", "GitHub"],
+    "examples": [
+      "Instagram used PostgreSQL at massive scale — their feed, relationships, and media metadata all live in Postgres",
+      "Supabase is entirely built on PostgreSQL, offering a Firebase-like API on top of Postgres",
+      "GitLab migrated from MySQL to PostgreSQL to gain better SQL features and reliability"
+    ]
+  }
+}

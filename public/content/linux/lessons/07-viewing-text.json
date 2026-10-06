@@ -1,0 +1,84 @@
+{
+  "id": "07-viewing-text",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "linux",
+  "technologyVersion": "1.0",
+  "module": "text-processing",
+  "title": "Viewing Text Files",
+  "subtitle": "cat, less, head, tail, wc — reading and measuring files from the command line",
+  "difficulty": "beginner",
+  "estimatedMinutes": 10,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-06",
+  "updatedAt": "2026-10-06",
+  "lastVerified": "2026-10-06",
+  "prerequisites": ["linux/03-files-and-dirs"],
+  "skillsTaught": ["linux.cat", "linux.less", "linux.head", "linux.tail", "linux.wc"],
+  "skillsUsed": ["linux.navigation", "linux.filesystem"],
+  "relatedConcepts": ["linux.grep", "linux.pipes"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "cat, less, head, tail"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Viewing file contents",
+      "code": "# cat: print entire file to screen (best for small files)\ncat README.md\ncat file1.txt file2.txt      # concatenate multiple files\ncat -n README.md             # show line numbers\n\n# less: paginated viewer (best for large files)\nless /var/log/syslog\n# Navigation in less:\n#   Space / f  = next page\n#   b          = previous page\n#   g / G      = go to start / end\n#   /search    = search forward\n#   n / N      = next / prev search match\n#   q          = quit\n\n# head: first N lines (default: 10)\nhead config.yml          # first 10 lines\nhead -n 20 config.yml    # first 20 lines\nhead -20 config.yml      # same thing\n\n# tail: last N lines (default: 10)\ntail server.log          # last 10 lines\ntail -n 50 server.log    # last 50 lines\ntail -f server.log       # -f: follow (live updates — great for logs!)\ntail -f /var/log/nginx/access.log  # watch live web traffic"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "wc — word/line/character count"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "wc usage",
+      "code": "wc README.md           # lines  words  bytes  filename\n# → 42  318  2048  README.md\n\nwc -l README.md        # line count only: 42\nwc -w essay.txt        # word count only: 1284\nwc -c binary.dat       # byte count: 4096\n\n# Count lines in multiple files\nwc -l *.js\n# → 120 index.js\n# → 85  utils.js\n# → 205 total\n\n# Count all source files' lines\nfind . -name '*.py' | xargs wc -l | tail -1  # total lines of Python"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>tail -f is indispensable for debugging.</strong> It follows a log file in real-time, printing new lines as they are written. Use tail -f /var/log/nginx/error.log while testing your app to see errors as they happen. Ctrl+C to stop following."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "linux-07-q1",
+          "question": "A log file is 50,000 lines. You want to see the last 20 lines and then watch for new entries in real-time. Which command?",
+          "type": "multiple-choice",
+          "options": [
+            "cat -n server.log | tail",
+            "tail -n 20 -f server.log",
+            "less +G server.log",
+            "head -r -n 20 server.log"
+          ],
+          "correctAnswer": 1,
+          "explanation": "tail -n 20 -f server.log shows the last 20 lines and then enters 'follow' mode (-f), printing new lines as they are appended to the file. This is the standard way to monitor live logs. Ctrl+C exits. Less +G goes to the end but doesn't follow by default."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between cat and less?",
+      "a": "cat prints the entire file to the terminal at once — fine for small files, but large files will flood the screen. less shows one page at a time and lets you scroll and search. Always use less for files larger than a few screens. less is a pager: its name is a pun on 'more' (the older pager tool)."
+    }
+  ],
+  "sources": [
+    { "name": "GNU Coreutils", "url": "https://www.gnu.org/software/coreutils/manual/coreutils.html", "verified": "2026-10-06" }
+  ],
+  "realWorld": {
+    "usedIn": ["log monitoring", "config inspection", "debugging", "code review"],
+    "examples": [
+      "tail -f /var/log/nginx/error.log is the first command developers run when debugging a 500 error on a live server",
+      "wc -l *.js gives a quick metrics view of codebase size across JavaScript files"
+    ]
+  }
+}

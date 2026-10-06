@@ -1,0 +1,90 @@
+{
+  "id": "08-constraints-and-defaults",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "postgresql",
+  "technologyVersion": "16",
+  "module": "data-modeling",
+  "title": "Constraints and Defaults",
+  "subtitle": "NOT NULL, UNIQUE, CHECK, DEFAULT, and generated columns",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 12,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-06",
+  "updatedAt": "2026-10-06",
+  "lastVerified": "2026-10-06",
+  "prerequisites": ["postgresql/07-primary-and-foreign-keys"],
+  "skillsTaught": ["pg.not-null", "pg.unique", "pg.check", "pg.defaults", "pg.generated-columns"],
+  "skillsUsed": ["pg.tables", "pg.foreign-keys"],
+  "relatedConcepts": ["pg.normalization", "pg.indexes"],
+  "whyItExists": {
+    "problem": "Application code is fallible — bugs, race conditions, or direct database access can insert invalid data. Constraints enforce data rules at the database level, regardless of how data is inserted.",
+    "solution": "Constraints and defaults ensure data validity without relying solely on application logic.",
+    "whenToUse": "Whenever a business rule can be expressed as a constraint, put it in the database too — defense in depth.",
+    "whenNotToUse": "Very complex validation logic (ML model outputs, cross-system rules) belongs in application code. Constraints shine for simple invariants: not null, valid range, unique, valid enum value."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "NOT NULL, UNIQUE, and CHECK"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "Constraint types",
+      "code": "CREATE TABLE products (\n  id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  sku         TEXT NOT NULL UNIQUE,              -- no nulls, no duplicates\n  name        TEXT NOT NULL,\n  price       NUMERIC(10,2) NOT NULL,\n  quantity    INTEGER NOT NULL DEFAULT 0,\n  discount    NUMERIC(5,2) DEFAULT 0\n    CHECK (discount >= 0 AND discount <= 100),  -- inline CHECK\n  category    TEXT NOT NULL\n    CHECK (category IN ('electronics', 'clothing', 'food', 'other')),\n  weight_kg   NUMERIC(8,2)\n    CHECK (weight_kg > 0),\n  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);\n\n-- Named constraint (appears in error messages)\nALTER TABLE products\n  ADD CONSTRAINT chk_price_positive CHECK (price > 0);\n\n-- Multi-column UNIQUE constraint\nALTER TABLE team_memberships\n  ADD CONSTRAINT uq_team_user UNIQUE (team_id, user_id);"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Generated columns (PostgreSQL 12+)"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "Generated columns",
+      "code": "CREATE TABLE orders (\n  id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  quantity      INTEGER NOT NULL,\n  unit_price    NUMERIC(10,2) NOT NULL,\n  -- Automatically computed, stored on disk\n  total_price   NUMERIC(10,2) GENERATED ALWAYS AS (quantity * unit_price) STORED,\n  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);\n\n-- You cannot INSERT into a generated column\nINSERT INTO orders (quantity, unit_price) VALUES (3, 29.99);\n-- total_price is automatically 89.97\nSELECT total_price FROM orders WHERE id = 1;  -- 89.97"
+    },
+    {
+      "type": "tip",
+      "text": "Give constraints meaningful names. An unnamed CHECK constraint shows as 'orders_price_check' in errors — a named one shows as 'chk_positive_price', making error messages self-documenting."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "pg-08-q1",
+          "question": "You want to ensure 'email' is unique per user per organization. Which constraint?",
+          "type": "multiple-choice",
+          "options": [
+            "UNIQUE (email) on each column separately",
+            "PRIMARY KEY (org_id, email)",
+            "UNIQUE (org_id, email) — multi-column unique",
+            "CHECK (email != '') "
+          ],
+          "correctAnswer": 2,
+          "explanation": "A multi-column UNIQUE constraint (org_id, email) ensures the combination is unique — the same email can appear in different organizations, but not twice within the same organization. UNIQUE on email alone would prevent the same email across all organizations."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Can CHECK constraints reference other tables?",
+      "a": "No — CHECK constraints can only reference columns within the same row. For cross-table validation, use triggers or application code. Example: CHECK that an order's total equals the sum of its line items requires a trigger, not a CHECK constraint."
+    }
+  ],
+  "sources": [
+    { "name": "PostgreSQL Constraints", "url": "https://www.postgresql.org/docs/current/ddl-constraints.html", "verified": "2026-10-06" }
+  ],
+  "realWorld": {
+    "usedIn": ["schema design", "data validation", "business rule enforcement"],
+    "examples": [
+      "E-commerce: CHECK (price > 0), CHECK (quantity >= 0) prevent negative prices and stock counts at the DB level",
+      "SaaS: UNIQUE (organization_id, email) ensures unique emails per organization, allowing the same email in different orgs"
+    ]
+  }
+}

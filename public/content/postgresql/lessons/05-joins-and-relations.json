@@ -1,0 +1,108 @@
+{
+  "id": "05-joins-and-relations",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "postgresql",
+  "technologyVersion": "16",
+  "module": "querying-data",
+  "title": "JOINs and Relations",
+  "subtitle": "INNER JOIN, LEFT JOIN, self-joins, and joining multiple tables",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 16,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-06",
+  "updatedAt": "2026-10-06",
+  "lastVerified": "2026-10-06",
+  "prerequisites": ["postgresql/04-select-and-filtering"],
+  "skillsTaught": ["pg.inner-join", "pg.left-join", "pg.self-join", "pg.multi-table-joins"],
+  "skillsUsed": ["pg.select", "pg.foreign-keys"],
+  "relatedConcepts": ["pg.foreign-keys", "pg.indexes"],
+  "whyItExists": {
+    "problem": "Data in a relational database is split across multiple tables to avoid duplication (normalization). To answer questions that span multiple tables — 'show me all posts with the author's name' — you need to combine those tables. JOINs are the fundamental operation for combining related rows.",
+    "solution": "SQL JOINs combine rows from two or more tables based on a related column. INNER JOIN returns only rows that match in both tables. LEFT JOIN returns all rows from the left table plus matching rows from the right (with NULLs where no match exists).",
+    "whenToUse": "Any time data you need lives in more than one table — which is most of the time in a normalized database.",
+    "whenNotToUse": "JOINs across tables with millions of rows without indexes on the join columns will be slow. Always ensure foreign key columns (which you join on) are indexed."
+  },
+  "explainModes": {
+    "beginner": "Imagine you have two spreadsheets: one with users (id, name, email) and one with posts (id, user_id, title). To get a list of posts with the author's name, you need to 'join' them: for each post, find the user whose id matches the post's user_id. That is an INNER JOIN. If you also want to include users who have no posts yet, you use a LEFT JOIN.",
+    "standard": "INNER JOIN returns rows where both tables have a matching row. If a user has no posts, they are not in the result. LEFT JOIN returns every row from the left table; if no match exists in the right table, the right table columns are NULL. RIGHT JOIN is the mirror image (rarely used — rewrite as LEFT JOIN). FULL OUTER JOIN returns all rows from both tables, with NULLs where no match exists. CROSS JOIN returns every combination (Cartesian product — rarely used intentionally).",
+    "technical": "PostgreSQL chooses between Nested Loop, Hash Join, and Merge Join based on the query planner's cost estimates. Nested Loop is efficient when one table is small and the join column is indexed. Hash Join builds a hash table from one side and probes it with the other — better for large, unindexed joins. Merge Join requires both sides to be sorted on the join key — it can use existing sorted indexes. EXPLAIN ANALYZE shows which join algorithm was chosen and why."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "INNER JOIN — only matching rows"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "INNER JOIN example",
+      "code": "-- Tables:\n--   users (id, email, username)\n--   posts (id, user_id, title, published)\n\n-- Get all published posts with author info\nSELECT\n  posts.id,\n  posts.title,\n  users.username AS author,\n  users.email    AS author_email\nFROM posts\nINNER JOIN users ON posts.user_id = users.id\nWHERE posts.published = TRUE\nORDER BY posts.created_at DESC;\n\n-- Using table aliases (cleaner syntax)\nSELECT\n  p.id,\n  p.title,\n  u.username AS author\nFROM posts p\nJOIN users u ON p.user_id = u.id  -- INNER JOIN = JOIN\nWHERE p.published = TRUE;"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "LEFT JOIN — all rows from the left table"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "LEFT JOIN example",
+      "code": "-- Show all users even if they have no posts\nSELECT\n  u.id,\n  u.username,\n  COUNT(p.id) AS post_count\nFROM users u\nLEFT JOIN posts p ON p.user_id = u.id\nGROUP BY u.id, u.username\nORDER BY post_count DESC;\n\n-- Result:\n--   alice  | 12\n--   bob    |  3\n--   carol  |  0  ← included because LEFT JOIN, post_count is COUNT(p.id) = 0 for no matches\n\n-- Find users who have NEVER posted (anti-join pattern)\nSELECT u.id, u.username\nFROM users u\nLEFT JOIN posts p ON p.user_id = u.id\nWHERE p.id IS NULL;  -- no matching post exists"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Joining multiple tables"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "Multi-table JOIN",
+      "code": "-- Tables: users, posts, comments, tags, post_tags\n-- Get posts with author, comment count, and tags\nSELECT\n  p.id,\n  p.title,\n  u.username     AS author,\n  COUNT(DISTINCT c.id) AS comment_count,\n  ARRAY_AGG(DISTINCT t.name ORDER BY t.name) AS tags\nFROM posts p\nJOIN users u          ON u.id = p.user_id\nLEFT JOIN comments c  ON c.post_id = p.id\nLEFT JOIN post_tags pt ON pt.post_id = p.id\nLEFT JOIN tags t      ON t.id = pt.tag_id\nWHERE p.published = TRUE\nGROUP BY p.id, p.title, u.username\nORDER BY p.created_at DESC\nLIMIT 20;"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Self-join — joining a table to itself"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "Self-join: employee manager hierarchy",
+      "code": "-- employees: id, name, manager_id (references employees.id)\nSELECT\n  e.name         AS employee,\n  m.name         AS manager\nFROM employees e\nLEFT JOIN employees m ON e.manager_id = m.id\nORDER BY m.name NULLS LAST, e.name;"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "pg-05-q1",
+          "question": "You have users and orders tables. You want to list ALL users, including those with no orders, showing their order count as 0. Which JOIN type?",
+          "type": "multiple-choice",
+          "options": ["INNER JOIN", "LEFT JOIN users + COUNT", "RIGHT JOIN", "CROSS JOIN"],
+          "correctAnswer": 1,
+          "explanation": "LEFT JOIN returns every row from the left table (users) regardless of whether a match exists in the right table (orders). Users with no orders will have NULL for the orders columns. COUNT(orders.id) counts non-NULL values, so it returns 0 for users with no orders — exactly what you want."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "When should I use a subquery vs a JOIN?",
+      "a": "JOINs are usually faster and the query planner optimizes them well. Use subqueries when: you need to filter on an aggregate result (EXISTS/NOT EXISTS), the subquery is used in a scalar context (returning one value), or the logic is clearer as a subquery. Correlated subqueries (referencing the outer query) run once per row and can be very slow — often rewritable as a JOIN."
+    }
+  ],
+  "sources": [
+    { "name": "PostgreSQL JOIN types", "url": "https://www.postgresql.org/docs/current/queries-table-expressions.html", "verified": "2026-10-06" }
+  ],
+  "realWorld": {
+    "usedIn": ["API endpoints fetching related data", "admin dashboards", "reporting queries", "analytics"],
+    "examples": [
+      "Almost every web app JOIN: SELECT posts.*, users.name FROM posts JOIN users ON posts.user_id = users.id",
+      "The anti-join pattern (LEFT JOIN ... WHERE right.id IS NULL) is used to find orphaned records, users who haven't placed orders, or items not in a category"
+    ]
+  }
+}

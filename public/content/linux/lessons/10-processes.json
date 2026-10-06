@@ -1,0 +1,91 @@
+{
+  "id": "10-processes",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "linux",
+  "technologyVersion": "1.0",
+  "module": "processes-and-system",
+  "title": "Processes and Jobs",
+  "subtitle": "ps, top, kill, jobs, fg, bg — controlling what runs on your system",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-06",
+  "updatedAt": "2026-10-06",
+  "lastVerified": "2026-10-06",
+  "prerequisites": ["linux/09-pipes-and-redirect"],
+  "skillsTaught": ["linux.ps", "linux.kill", "linux.top", "linux.jobs", "linux.background-processes"],
+  "skillsUsed": ["linux.pipes", "linux.grep"],
+  "relatedConcepts": ["linux.environment", "linux.bash-scripts"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Viewing processes"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "ps and top",
+      "code": "# ps: snapshot of current processes\nps              # your processes in current terminal\nps aux          # ALL processes from ALL users\nps aux | grep nginx   # find nginx processes\nps aux | grep -v grep | grep node   # find Node.js (exclude grep itself)\n\n# ps output columns:\n# USER  PID  %CPU  %MEM  VSZ   RSS  TTY  STAT  START  TIME  COMMAND\n# root  1234  0.0   0.1  1024  512  ?    Ss    10:00  0:00  nginx\n# PID = process ID (unique number for each process)\n\n# top: live process viewer (q to quit)\ntop\ntop -u alice      # only alice's processes\ntop -p 1234       # watch specific PID\n\n# htop: better version of top (may need to install)\nhtop\n\n# pgrep: find PID by name\npgrep nginx       # print PIDs of nginx processes\npgrep -la node    # PIDs + command names"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Killing processes"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "kill signals",
+      "code": "# kill sends a signal to a process by PID\nkill 1234         # SIGTERM (15): graceful shutdown (please stop)\nkill -9 1234      # SIGKILL (9): force kill (cannot be ignored)\nkill -HUP 1234    # SIGHUP (1): reload config (for servers like nginx)\n\n# pkill: kill by name\npkill nginx       # kill nginx gracefully\npkill -9 node     # force kill all node processes\n\n# killall: same as pkill\nkillall -9 node\n\n# Keyboard shortcuts\n# Ctrl+C = send SIGINT to foreground process (graceful interrupt)\n# Ctrl+Z = suspend foreground process (not kill — pauses it)"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Background and foreground jobs"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Job control",
+      "code": "# Run a command in the background with &\npython3 server.py &      # starts in background, prints PID\nnpm run dev &\n\n# jobs: list background jobs in current shell\njobs\n# [1]  Running    python3 server.py &\n# [2]+ Stopped    vim notes.txt\n\n# fg: bring a job to foreground\nfg        # bring most recent job to foreground\nfg %1     # bring job #1 to foreground\n\n# bg: resume a stopped job in background\nbg %1     # resume job #1 in background\n\n# Typical workflow:\nnpm run dev &         # start dev server in background\ngit add . && git commit -m \"feat: ...\"  # do other work\nfg                    # bring dev server back if needed\n\n# nohup: keep running after terminal closes\nnohup python3 server.py > server.log 2>&1 &"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "linux-10-q1",
+          "question": "A process is frozen and not responding to kill 1234 (SIGTERM). What do you do next?",
+          "type": "multiple-choice",
+          "options": [
+            "kill -1 1234 (SIGHUP)",
+            "kill -9 1234 (SIGKILL)",
+            "kill -15 1234 (same as kill)",
+            "pkill 1234"
+          ],
+          "correctAnswer": 1,
+          "explanation": "kill -9 sends SIGKILL, which cannot be caught or ignored by the process — the kernel terminates it immediately. Regular kill sends SIGTERM (15), which the process can ignore or delay acting on. Use -9 as a last resort after SIGTERM fails, since SIGKILL doesn't let the process clean up (close files, flush buffers, etc.)."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do I find what is using port 3000?",
+      "a": "lsof -i :3000 — lists all processes with an open socket on port 3000. Or ss -tlnp | grep :3000 (faster). Then kill the PID shown. On macOS: lsof -ti :3000 | xargs kill -9 (one-liner to kill the process using port 3000)."
+    }
+  ],
+  "sources": [
+    { "name": "Linux ps manual", "url": "https://man7.org/linux/man-pages/man1/ps.1.html", "verified": "2026-10-06" }
+  ],
+  "realWorld": {
+    "usedIn": ["server administration", "debugging hung processes", "DevOps", "development workflows"],
+    "examples": [
+      "kill -HUP $(pgrep nginx) — reload nginx config without downtime, used in deployments",
+      "ps aux | grep Z — find 'zombie' processes (finished but not cleaned up, shown with Z in STAT)"
+    ]
+  }
+}

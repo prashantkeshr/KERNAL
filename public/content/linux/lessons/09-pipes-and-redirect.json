@@ -1,0 +1,97 @@
+{
+  "id": "09-pipes-and-redirect",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "linux",
+  "technologyVersion": "1.0",
+  "module": "text-processing",
+  "title": "Pipes and Redirection",
+  "subtitle": "| pipe, >, >>, <, 2>&1, /dev/null — composing commands with streams",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-06",
+  "updatedAt": "2026-10-06",
+  "lastVerified": "2026-10-06",
+  "prerequisites": ["linux/08-grep-and-regex"],
+  "skillsTaught": ["linux.pipe", "linux.stdout-redirect", "linux.stderr-redirect", "linux.stdin-redirect", "linux.dev-null"],
+  "skillsUsed": ["linux.grep", "linux.viewing-text"],
+  "relatedConcepts": ["linux.processes", "linux.bash-scripts"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Standard streams"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "stdin, stdout, stderr",
+      "code": "Every process has three streams:\n  0: stdin  (standard input)  — where it reads data from\n  1: stdout (standard output) — where normal output goes (usually screen)\n  2: stderr (standard error)  — where error messages go (usually screen)\n\nBy default, both stdout and stderr appear in your terminal.\nRedirection lets you send them to files or other commands."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Output redirection"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Redirect stdout and stderr",
+      "code": "# > redirects stdout to a file (OVERWRITES)\nls -la > filelist.txt       # save output to file\necho \"Hello\" > greeting.txt\n\n# >> appends to a file (does not overwrite)\necho \"line 1\" > log.txt\necho \"line 2\" >> log.txt    # adds to log.txt\n\n# 2> redirects stderr (errors) to a file\ncommand 2> errors.log\n\n# &> or 2>&1 redirects both stdout and stderr\ncommand > output.log 2>&1         # both to same file\ncommand &> output.log             # shorthand (bash)\n\n# Discard output (/dev/null is a black hole)\ncommand > /dev/null              # discard stdout\ncommand 2> /dev/null             # discard errors\ncommand > /dev/null 2>&1         # discard everything"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The pipe — composing commands"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Pipe examples",
+      "code": "# | sends stdout of left command to stdin of right command\nls -la | grep \".json\"           # list only JSON files\ncat access.log | grep \"ERROR\"   # same as: grep \"ERROR\" access.log\nps aux | grep nginx             # find nginx processes\n\n# Chain multiple pipes\ncat access.log | grep \"404\" | wc -l          # count 404 errors\nls -lS | head -10                            # 10 largest files\ncat /etc/passwd | cut -d: -f1 | sort         # sorted list of users\nhistory | grep \"git\" | tail -20              # last 20 git commands\n\n# sort and uniq for frequency analysis\ncat access.log | awk '{print $1}' | sort | uniq -c | sort -rn | head -10\n# → top 10 IPs by request count\n\n# xargs: pass stdin as arguments to a command\nfind . -name \"*.log\" | xargs rm          # delete found files\necho \"file1 file2 file3\" | xargs touch  # create multiple files"
+    },
+    {
+      "type": "playground",
+      "lang": "html",
+      "title": "Interactive: Build a Pipeline",
+      "starterCode": "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" />\n<style>\n  body{background:#0e1116;color:#e2e8f0;font-family:sans-serif;padding:16px;margin:0;font-size:13px}\n  h3{color:#4fd1c5;margin:0 0 12px}\n  .log{font-family:monospace;font-size:0.8rem;background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:10px;margin-bottom:10px;max-height:120px;overflow-y:auto;line-height:1.6}\n  .pipeline{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:12px}\n  .cmd-btn{padding:5px 12px;background:#1a1f2b;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;cursor:pointer;font-family:monospace;font-size:0.78rem;transition:all 0.15s}\n  .cmd-btn:hover{border-color:#4fd1c5;color:#4fd1c5}\n  .cmd-btn.active{background:#4fd1c5;color:#0e1116;border-color:#4fd1c5;font-weight:700}\n  .pipe-sym{color:#4fd1c5;font-weight:700;font-family:monospace}\n  .result{background:#0b0e14;border:1px solid #2d3748;border-radius:6px;padding:10px;font-family:monospace;font-size:0.78rem;min-height:60px;white-space:pre;line-height:1.6}\n  .label{font-size:0.72rem;color:#64748b;margin-bottom:4px}\n</style>\n</head>\n<body>\n  <h3>Build a Pipeline Step by Step</h3>\n  <div class=\"label\">Sample log data:</div>\n  <div class=\"log\" id=\"rawlog\"></div>\n  <div class=\"label\">Add stages to your pipeline:</div>\n  <div class=\"pipeline\">\n    <button class=\"cmd-btn\" onclick=\"addStage('grep ERROR')\">grep ERROR</button>\n    <button class=\"cmd-btn\" onclick=\"addStage('grep 404')\">grep 404</button>\n    <button class=\"cmd-btn\" onclick=\"addStage('wc -l')\">wc -l</button>\n    <button class=\"cmd-btn\" onclick=\"addStage('sort')\">sort</button>\n    <button class=\"cmd-btn\" onclick=\"addStage('uniq')\">uniq</button>\n    <button class=\"cmd-btn\" onclick=\"addStage('head -3')\">head -3</button>\n    <button class=\"cmd-btn\" onclick=\"reset()\">🔄 Reset</button>\n  </div>\n  <div class=\"label\">Current pipeline:</div>\n  <div id=\"pipe-display\" style=\"font-family:monospace;font-size:0.82rem;margin-bottom:8px;color:#94a3b8\">cat server.log</div>\n  <div class=\"label\">Output:</div>\n  <div class=\"result\" id=\"output\"></div>\n  <script>\n    const logs=['2026-10-01 GET /api/users 200 12ms','2026-10-01 GET /api/posts 404 5ms','2026-10-01 POST /login 200 45ms','2026-10-01 GET /api/admin 403 3ms','2026-10-01 ERROR Database connection failed','2026-10-01 GET /api/users 200 8ms','2026-10-01 ERROR Timeout after 5000ms','2026-10-01 GET /missing 404 2ms','2026-10-01 DELETE /api/post/1 200 22ms','2026-10-01 ERROR Out of memory','2026-10-02 GET /api/users 200 10ms'];\n    document.getElementById('rawlog').textContent=logs.join('\\n');\n    let stages=[];\n    function process(data,stage){\n      if(stage==='grep ERROR')return data.filter(l=>l.includes('ERROR'));\n      if(stage==='grep 404')return data.filter(l=>l.includes('404'));\n      if(stage==='wc -l')return [data.length+' (lines)'];\n      if(stage==='sort')return [...data].sort();\n      if(stage==='uniq')return [...new Set(data)];\n      if(stage==='head -3')return data.slice(0,3);\n      return data;\n    }\n    function run(){\n      let data=[...logs];\n      for(const s of stages)data=process(data,s);\n      document.getElementById('output').textContent=data.join('\\n')||'(no output)';\n      document.getElementById('pipe-display').innerHTML='cat server.log'+(stages.length?' <span style=\"color:#4fd1c5\">|</span> '+stages.join(' <span style=\"color:#4fd1c5\">|</span> '):' ');\n    }\n    function addStage(s){stages.push(s);run();}\n    function reset(){stages=[];run();}\n    run();\n  </script>\n</body>\n</html>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "linux-09-q1",
+          "question": "You run: command > output.log 2>&1. What does this do?",
+          "type": "multiple-choice",
+          "options": [
+            "Saves stdout to output.log and shows errors on screen",
+            "Saves both stdout and stderr to output.log",
+            "Saves stderr to output.log and discards stdout",
+            "Runs the command twice"
+          ],
+          "correctAnswer": 1,
+          "explanation": "2>&1 redirects stderr (file descriptor 2) to wherever stdout (file descriptor 1) currently points. Since stdout is already redirected to output.log, stderr also goes there. Order matters: write > output.log BEFORE 2>&1. The shorthand &> output.log does the same thing in bash."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is /dev/null?",
+      "a": "/dev/null is a special file that discards anything written to it and returns EOF when read. It is used to silence output: command > /dev/null discards stdout, 2>/dev/null discards errors. Useful in cron jobs and scripts where you want commands to run silently unless they fail."
+    }
+  ],
+  "sources": [
+    { "name": "Bash Reference Manual — Redirections", "url": "https://www.gnu.org/software/bash/manual/bash.html#Redirections", "verified": "2026-10-06" }
+  ],
+  "realWorld": {
+    "usedIn": ["log analysis", "data processing", "scripting", "build systems"],
+    "examples": [
+      "ps aux | grep nginx | grep -v grep — find running Nginx processes, excluding the grep process itself",
+      "cat access.log | awk '{print $9}' | sort | uniq -c | sort -rn — count HTTP status codes in a web server log"
+    ]
+  }
+}

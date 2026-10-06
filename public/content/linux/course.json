@@ -1,0 +1,19 @@
+{
+  "id": "linux",
+  "name": "Linux & Shell",
+  "description": "Command-line mastery from navigation and file operations to bash scripting, process management, and cron automation.",
+  "version": "1.0.0",
+  "icon": "terminal",
+  "color": "#f8c300",
+  "difficulty": "beginner",
+  "estimatedHours": 20,
+  "modules": [
+    "shell-basics",
+    "filesystem",
+    "text-processing",
+    "processes-and-system",
+    "bash-scripting"
+  ],
+  "prerequisites": [],
+  "certificationAvailable": true
+}

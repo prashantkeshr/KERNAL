@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import * as storage from '@/lib/storage';
+import type { Certificate } from '@/types/storage';
 
 interface KernalState {
   // UI
@@ -20,6 +21,9 @@ interface KernalState {
   // Preferences
   fontSize: number;
 
+  // Certifications
+  certifications: Certificate[];
+
   // Actions
   setTheme: (t: 'dark' | 'light') => void;
   setMode: (m: 'learn' | 'reference') => void;
@@ -34,6 +38,7 @@ interface KernalState {
   toggleBookmark: (id: string) => void;
   updateStreak: () => void;
   setFontSize: (size: number) => void;
+  earnCertificate: (techId: string, techName: string, total: number) => void;
   hydrate: () => void;
 }
 
@@ -48,6 +53,7 @@ export const useStore = create<KernalState>((set, get) => ({
   badges: [],
   bookmarks: [],
   fontSize: 16,
+  certifications: [],
 
   setTheme: (theme) => {
     storage.setTheme(theme);
@@ -118,6 +124,19 @@ export const useStore = create<KernalState>((set, get) => ({
     set({ fontSize });
   },
 
+  earnCertificate: (techId, techName, total) => {
+    const cert: Certificate = {
+      id: `cert-${techId}-${new Date().toISOString().slice(0, 10)}`,
+      techId,
+      techName,
+      earnedAt: new Date().toISOString(),
+      lessonsCompleted: total,
+      totalLessons: total,
+    };
+    storage.addCertification(cert);
+    set({ certifications: storage.getCertifications() });
+  },
+
   hydrate: () => {
     const theme = storage.getTheme();
     const root = document.documentElement;
@@ -131,7 +150,8 @@ export const useStore = create<KernalState>((set, get) => ({
       streak:     storage.getStreak(),
       badges:     storage.getBadges(),
       bookmarks:  storage.getBookmarks(),
-      fontSize:   storage.getPrefs().fontSize,
+      fontSize:        storage.getPrefs().fontSize,
+      certifications:  storage.getCertifications(),
     });
   },
 }));

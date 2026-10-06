@@ -1,0 +1,130 @@
+{
+  "id": "02-connecting-and-databases",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "postgresql",
+  "technologyVersion": "16",
+  "module": "pg-foundations",
+  "title": "Connecting and Databases",
+  "subtitle": "psql CLI, pgAdmin, CREATE DATABASE, roles and superusers",
+  "difficulty": "beginner",
+  "estimatedMinutes": 12,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-06",
+  "updatedAt": "2026-10-06",
+  "lastVerified": "2026-10-06",
+  "prerequisites": ["postgresql/01-what-is-postgresql"],
+  "skillsTaught": ["pg.psql", "pg.create-database", "pg.roles", "pg.connection-strings"],
+  "skillsUsed": ["pg.what-is-postgresql"],
+  "relatedConcepts": ["pg.tables", "pg.permissions"],
+  "whyItExists": {
+    "problem": "PostgreSQL is a server process — unlike SQLite (a file), it runs separately and you connect to it. Understanding how to connect, what a database is versus a schema versus a table, and how users/roles work is essential before writing a single query.",
+    "solution": "PostgreSQL uses a client-server model. You connect using a connection string or the psql CLI. Each server can have multiple databases. Each database can have multiple schemas. Roles control who can do what.",
+    "whenToUse": "Whenever you are setting up a new project or connecting to an existing PostgreSQL database for the first time.",
+    "whenNotToUse": "You do not need to understand the full role system for development environments — the default superuser (postgres) is sufficient for getting started."
+  },
+  "explainModes": {
+    "beginner": "PostgreSQL is a server — it runs in the background waiting for connections. To talk to it, you use a client: psql (a terminal app), pgAdmin (a graphical app), or a library in your code (like pg for Node.js). You need to tell the client where the server is (host and port), which database to connect to, and your username and password. By default, PostgreSQL has a superuser called 'postgres'.",
+    "simple": "Connection string format: postgresql://username:password@host:port/database. Default: postgresql://postgres:yourpassword@localhost:5432/postgres. Key concepts: database (an isolated container for tables — usually one per app), schema (a namespace inside a database — 'public' by default), role (PostgreSQL's word for 'user' — roles can own databases and have permissions).",
+    "standard": "PostgreSQL roles are unified — there is no distinction between 'users' and 'groups'. A role can log in (LOGIN) or not (group role). Use GRANT to give a role permissions. CREATE DATABASE creates a new isolated database with its own tables and schemas. Schemas within a database let you organize tables and avoid name collisions — the search_path setting controls which schema is checked first when you write an unqualified table name.",
+    "technical": "PostgreSQL identifies connections by (host, port, database, username). The pg_hba.conf file (host-based authentication) controls which hosts and users can connect and by which authentication method (trust, md5, scram-sha-256, peer). For local development, 'trust' authentication is common. For production, use scram-sha-256. Connection poolers (PgBouncer) sit in front of PostgreSQL to multiplex many app connections into fewer actual server connections, since each Postgres connection is a separate OS process with ~5–10MB memory overhead."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The connection string"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Connection string format",
+      "code": "postgresql://username:password@host:port/database\n\nExamples:\n  postgresql://postgres:secret@localhost:5432/myapp\n  postgresql://app_user:pass@db.example.com:5432/production\n\nEnvironment variable (conventional):\n  DATABASE_URL=postgresql://postgres:secret@localhost:5432/myapp\n\nDefault values:\n  host      = localhost\n  port      = 5432\n  username  = postgres (the default superuser)\n  database  = same as username if omitted"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "psql — the PostgreSQL CLI"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "psql commands",
+      "code": "# Connect to a database\npsql postgresql://postgres:secret@localhost:5432/myapp\n\n# Or with flags\npsql -h localhost -p 5432 -U postgres -d myapp\n\n# Meta-commands (no semicolon needed)\n\\l                  -- list databases\n\\c myapp            -- connect to a database\n\\dt                 -- list tables in current schema\n\\d users            -- describe table 'users'\n\\dn                 -- list schemas\n\\du                 -- list roles/users\n\\q                  -- quit\n\n# Run a SQL file\n\\i /path/to/script.sql"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Creating databases and roles"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "Setup commands",
+      "code": "-- Create a database for your app\nCREATE DATABASE myapp;\n\n-- Create a role (user) with a password\nCREATE ROLE app_user WITH LOGIN PASSWORD 'strongpassword';\n\n-- Grant all privileges on the database to the role\nGRANT ALL PRIVILEGES ON DATABASE myapp TO app_user;\n\n-- Connect to the new database\n\\c myapp\n\n-- Grant usage on the public schema (needed in Postgres 15+)\nGRANT USAGE ON SCHEMA public TO app_user;\nGRANT CREATE ON SCHEMA public TO app_user;\n\n-- Delete a database (all data gone)\nDROP DATABASE IF EXISTS myapp;"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Database vs schema vs table"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Hierarchy",
+      "code": "PostgreSQL Server\n├── Database: myapp          (isolated — cross-DB queries need foreign data wrappers)\n│   ├── Schema: public       (default schema — most tables go here)\n│   │   ├── Table: users\n│   │   ├── Table: posts\n│   │   └── Table: comments\n│   └── Schema: analytics    (separate namespace for reporting tables)\n│       └── Table: events\n└── Database: myapp_test     (separate DB for test environment)"
+    },
+    {
+      "type": "tip",
+      "text": "For most applications: one database per application, one schema (public). Use multiple schemas if you need multi-tenant isolation or want to separate application and analytics tables cleanly."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "pg-02-q1",
+          "question": "What is the default port for PostgreSQL?",
+          "type": "multiple-choice",
+          "options": ["3306", "5432", "27017", "6379"],
+          "correctAnswer": 1,
+          "explanation": "5432 is PostgreSQL's default port. (3306 is MySQL, 27017 is MongoDB, 6379 is Redis.) The port is rarely changed in development but you may encounter different ports on managed hosting services."
+        },
+        {
+          "id": "pg-02-q2",
+          "question": "In PostgreSQL, what is the difference between a 'database' and a 'schema'?",
+          "type": "multiple-choice",
+          "options": [
+            "They are the same thing — just different words",
+            "A database is a collection of schemas; a schema is a namespace of tables within a database",
+            "A schema is a collection of databases; a database is a namespace of tables",
+            "A database holds data; a schema holds only metadata"
+          ],
+          "correctAnswer": 1,
+          "explanation": "A PostgreSQL server holds multiple databases. Each database is isolated — cross-database queries are not possible without special extensions. Within a database, schemas provide namespaces: the same table name (e.g. 'users') can exist in different schemas without conflict. The default schema is 'public'. Most applications use a single database and a single schema."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What GUI tools exist for PostgreSQL?",
+      "a": "pgAdmin 4 is the official free GUI. TablePlus, DataGrip (JetBrains), DBeaver, and Postico (macOS) are popular commercial/freemium options. Most developers use a mix: GUI tools for exploration and schema inspection, CLI (psql) for quick queries and scripting."
+    },
+    {
+      "q": "How do I connect to PostgreSQL from Node.js?",
+      "a": "Use the 'pg' npm package: const { Pool } = require('pg'); const pool = new Pool({ connectionString: process.env.DATABASE_URL }); const result = await pool.query('SELECT * FROM users'); — or use an ORM like Prisma or Drizzle that manages connections for you."
+    }
+  ],
+  "sources": [
+    { "name": "PostgreSQL — Getting Started", "url": "https://www.postgresql.org/docs/current/tutorial-start.html", "verified": "2026-10-06" }
+  ],
+  "realWorld": {
+    "usedIn": ["every PostgreSQL-backed application", "database migrations", "DevOps scripts", "CI/CD pipelines"],
+    "examples": [
+      "DATABASE_URL is the conventional environment variable name used by Heroku, Railway, Render, and most PaaS platforms",
+      "PgBouncer connection pooling is standard practice in production — without it, 500 simultaneous app workers each hold a Postgres connection, consuming ~5GB of RAM for connections alone"
+    ]
+  }
+}

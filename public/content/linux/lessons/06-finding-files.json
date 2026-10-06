@@ -1,0 +1,84 @@
+{
+  "id": "06-finding-files",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "linux",
+  "technologyVersion": "1.0",
+  "module": "filesystem",
+  "title": "Finding Files",
+  "subtitle": "find, locate, which, whereis — searching the filesystem by name and content",
+  "difficulty": "beginner",
+  "estimatedMinutes": 12,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-06",
+  "updatedAt": "2026-10-06",
+  "lastVerified": "2026-10-06",
+  "prerequisites": ["linux/05-paths-and-links"],
+  "skillsTaught": ["linux.find", "linux.which", "linux.locate", "linux.find-exec"],
+  "skillsUsed": ["linux.navigation", "linux.paths"],
+  "relatedConcepts": ["linux.grep", "linux.pipes"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "find — search by name, type, size, time"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "find examples",
+      "code": "# Find by name\nfind . -name \"*.json\"              # all .json files from current dir\nfind /var/log -name \"*.log\"        # all .log files in /var/log\nfind . -name \"index.html\" -type f  # only files, not dirs named index.html\nfind . -type d -name \"node_modules\"  # find node_modules directories\n\n# Case-insensitive\nfind . -iname \"readme*\"            # matches README.md, readme.txt, Readme\n\n# By size\nfind . -size +100M                 # files larger than 100MB\nfind . -size -1k                   # files smaller than 1KB\n\n# By modification time\nfind . -mtime -7                   # modified in last 7 days\nfind . -mtime +30                  # not modified in 30 days\n\n# Execute a command on each found file\nfind . -name \"*.log\" -exec rm {} \\;        # delete all .log files\nfind . -name \"*.sh\" -exec chmod +x {} \\;   # make all .sh executable\nfind . -name \"*.png\" -exec ls -lh {} \\;    # show sizes of all PNGs\n\n# Exclude directories\nfind . -name \"*.js\" -not -path \"*/node_modules/*\""
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "which, whereis — locating commands"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "which and whereis",
+      "code": "# Find where a command is installed\nwhich python3       # /usr/bin/python3\nwhich node          # /usr/local/bin/node\nwhich git           # /usr/bin/git\n\n# whereis: find binary, source, and man pages\nwhereis python3     # python3: /usr/bin/python3 /usr/lib/python3 ...\n\n# type: shows what a command is (builtin, function, alias, or path)\ntype cd             # cd is a shell builtin\ntype ls             # ls is aliased to 'ls --color=auto'\ntype python3        # python3 is /usr/bin/python3"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>find is powerful but slow for large filesystems.</strong> locate uses a pre-built database and is much faster for searching by filename: locate '*.conf'. Update the database with: sudo updatedb. Use find for fresh results and complex criteria."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "linux-06-q1",
+          "question": "You want to find all Python files in the current directory tree but skip the .venv/ folder. Which command works?",
+          "type": "multiple-choice",
+          "options": [
+            "find . -name '*.py'",
+            "find . -name '*.py' -not -path '*/.venv/*'",
+            "find . -name '*.py' --exclude .venv",
+            "locate '*.py' -skip .venv"
+          ],
+          "correctAnswer": 1,
+          "explanation": "find's -not -path pattern excludes paths matching the pattern. -path '*/.venv/*' matches any path containing /.venv/, and -not inverts it. The pattern must use * wildcards that match across directories. find has no --exclude flag — use -not -path or -prune."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do I search for text inside files?",
+      "a": "Use grep, not find. find locates files by metadata (name, size, date). grep searches file contents: grep -r 'TODO' ./src/ searches all files in src/ for the text 'TODO'. Combine them: find . -name '*.js' | xargs grep 'console.log' to grep only JS files."
+    }
+  ],
+  "sources": [
+    { "name": "find manual", "url": "https://man7.org/linux/man-pages/man1/find.1.html", "verified": "2026-10-06" }
+  ],
+  "realWorld": {
+    "usedIn": ["cleanup scripts", "build systems", "code audits", "disk space analysis"],
+    "examples": [
+      "find . -name '*.log' -mtime +7 -delete — delete log files older than 7 days, a common cron job on servers",
+      "find . -name 'node_modules' -type d -exec rm -rf {} + — remove all node_modules recursively from a monorepo"
+    ]
+  }
+}

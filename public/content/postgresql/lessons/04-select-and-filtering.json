@@ -1,0 +1,106 @@
+{
+  "id": "04-select-and-filtering",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "postgresql",
+  "technologyVersion": "16",
+  "module": "querying-data",
+  "title": "SELECT and Filtering",
+  "subtitle": "WHERE, ORDER BY, LIMIT, OFFSET, ILIKE, and pattern matching",
+  "difficulty": "beginner",
+  "estimatedMinutes": 12,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-06",
+  "updatedAt": "2026-10-06",
+  "lastVerified": "2026-10-06",
+  "prerequisites": ["postgresql/03-tables-and-data-types", "sql/03-select-basics"],
+  "skillsTaught": ["pg.select", "pg.where-clauses", "pg.ilike", "pg.pagination", "pg.null-handling"],
+  "skillsUsed": ["sql.select", "pg.tables"],
+  "relatedConcepts": ["pg.indexes", "pg.query-planner"],
+  "whyItExists": {
+    "problem": "Basic SQL SELECT works the same everywhere, but PostgreSQL extends it with case-insensitive ILIKE, more powerful BETWEEN, NULL-safe comparisons, and specific behaviors around ORDER BY and LIMIT that developers need to know to write correct pagination queries.",
+    "solution": "PostgreSQL's SELECT follows the SQL standard closely with useful extensions. Understanding WHERE conditions, NULL behavior, and proper pagination patterns prevents many common bugs.",
+    "whenToUse": "Every query. SELECT is the most common SQL statement — getting these right is foundational.",
+    "whenNotToUse": "No exceptions — these fundamentals apply to all SELECT queries."
+  },
+  "explainModes": {
+    "beginner": "SELECT is how you ask the database to show you data. WHERE filters which rows you get. ORDER BY sorts them. LIMIT says how many to return. It is like asking a librarian: 'Show me (SELECT) all books (FROM books) written after 2020 (WHERE year > 2020), sorted by title (ORDER BY title), and just give me the first 10 (LIMIT 10).'",
+    "standard": "PostgreSQL SELECT evaluation order (important for aliases): FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT/OFFSET. This means you cannot use a SELECT alias in WHERE — WHERE is evaluated before SELECT. NULL behavior: any comparison with NULL returns NULL (unknown), not true or false. Use IS NULL / IS NOT NULL to check for NULLs. ILIKE is PostgreSQL's case-insensitive LIKE. LIMIT + OFFSET pagination has a performance problem: OFFSET 10000 still reads 10001 rows and discards the first 10000. Use keyset pagination (WHERE id > last_seen_id) for large offsets.",
+    "technical": "EXPLAIN ANALYZE reveals the query plan. A Seq Scan scans every row — fine for small tables or when filtering returns a large fraction of rows. An Index Scan uses a B-tree index to jump directly to matching rows — fast when filtering is selective. EXPLAIN does not run the query; EXPLAIN ANALYZE runs it and shows real timing. Use EXPLAIN (ANALYZE, BUFFERS) to also see buffer cache hits vs disk reads."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "SELECT fundamentals"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "SELECT patterns",
+      "code": "-- Select all columns\nSELECT * FROM users;\n\n-- Select specific columns with aliases\nSELECT\n  id,\n  email,\n  created_at AS registered_at\nFROM users;\n\n-- Filter with WHERE\nSELECT * FROM users\nWHERE is_active = TRUE\n  AND created_at > '2026-01-01'\n  AND role IN ('admin', 'moderator');\n\n-- NOT IN\nSELECT * FROM users\nWHERE role NOT IN ('banned', 'suspended');\n\n-- BETWEEN (inclusive on both ends)\nSELECT * FROM orders\nWHERE total_price BETWEEN 10.00 AND 100.00;\n\n-- Sort and paginate\nSELECT * FROM posts\nWHERE published = TRUE\nORDER BY created_at DESC\nLIMIT 20 OFFSET 40;  -- page 3 (0-indexed), 20 per page"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "NULL — the three-valued logic trap"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "NULL handling",
+      "code": "-- NULL comparisons always return NULL (not TRUE or FALSE)\nSELECT * FROM users WHERE deleted_at = NULL;     -- returns 0 rows! (wrong)\nSELECT * FROM users WHERE deleted_at IS NULL;    -- correct\nSELECT * FROM users WHERE deleted_at IS NOT NULL;\n\n-- COALESCE returns the first non-null value\nSELECT\n  id,\n  COALESCE(display_name, username, 'Anonymous') AS name\nFROM users;\n\n-- NULLIF returns NULL if two values are equal (useful to avoid divide-by-zero)\nSELECT total_revenue / NULLIF(order_count, 0) AS avg_order_value\nFROM sales_summary;"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Text search: LIKE and ILIKE"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "Pattern matching",
+      "code": "-- LIKE is case-sensitive\nSELECT * FROM products WHERE name LIKE 'Apple%';   -- starts with 'Apple'\nSELECT * FROM products WHERE name LIKE '%phone%';  -- contains 'phone'\nSELECT * FROM products WHERE name LIKE '_hone';    -- any char then 'hone'\n\n-- ILIKE is case-insensitive (PostgreSQL extension)\nSELECT * FROM products WHERE name ILIKE '%iphone%'; -- matches 'iPhone', 'IPHONE', 'iphone'\n\n-- % matches zero or more characters\n-- _ matches exactly one character\n\n-- For full-text search on large tables, use tsvector/tsquery (not ILIKE)\nSELECT * FROM articles\nWHERE to_tsvector('english', content) @@ to_tsquery('english', 'postgresql & performance');"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Pagination with OFFSET is slow at large offsets.</strong> OFFSET 10000 makes Postgres read 10001 rows and discard 10000. For 'load more' or infinite scroll: use WHERE id > :last_id ORDER BY id LIMIT 20 (keyset pagination). For page numbers, OFFSET is fine up to a few thousand rows."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "pg-04-q1",
+          "question": "You run: SELECT * FROM users WHERE deleted_at = NULL. You expect rows where deleted_at is NULL, but get 0 results. Why?",
+          "type": "multiple-choice",
+          "options": [
+            "NULL cannot be stored in timestamptz columns",
+            "= NULL always evaluates to NULL, not TRUE — use IS NULL instead",
+            "You need to wrap it: WHERE deleted_at = 'NULL'",
+            "= NULL works in MySQL but not PostgreSQL"
+          ],
+          "correctAnswer": 1,
+          "explanation": "In SQL, NULL represents 'unknown'. Any comparison with NULL (including = NULL) returns NULL, not TRUE or FALSE. Since WHERE only returns rows where the condition is TRUE (not NULL), = NULL returns nothing. Always use IS NULL and IS NOT NULL to check for null values."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between WHERE and HAVING?",
+      "a": "WHERE filters individual rows before grouping. HAVING filters groups after GROUP BY. Example: WHERE age > 18 removes individual rows; HAVING COUNT(*) > 5 removes groups with fewer than 5 rows. You cannot use aggregate functions (COUNT, SUM) in WHERE — that is what HAVING is for."
+    }
+  ],
+  "sources": [
+    { "name": "PostgreSQL SELECT", "url": "https://www.postgresql.org/docs/current/sql-select.html", "verified": "2026-10-06" }
+  ],
+  "realWorld": {
+    "usedIn": ["every database-backed application", "reporting", "admin dashboards", "API endpoints"],
+    "examples": [
+      "The ILIKE operator powers search bars in many web apps — though for serious search, tsvector full-text search or Elasticsearch is used",
+      "The OFFSET pagination anti-pattern is common in tutorials but causes page-load slowdowns as users navigate deeper — keyset pagination is the production solution"
+    ]
+  }
+}

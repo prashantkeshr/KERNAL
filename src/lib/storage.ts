@@ -1,4 +1,4 @@
-import { STORAGE_KEYS, UserPreferences, StreakData, QuizScore, SkillEvidenceEntry, PortfolioItem, DeviceProfile } from '@/types/storage';
+import { STORAGE_KEYS, UserPreferences, StreakData, QuizScore, SkillEvidenceEntry, PortfolioItem, DeviceProfile, Certificate } from '@/types/storage';
 
 function get<T>(key: string, fallback: T): T {
   try {
@@ -109,6 +109,17 @@ export const setSkillEvidence  = (id: string, entry: SkillEvidenceEntry) =>
 export const getPortfolio      = () => get<PortfolioItem[]>(STORAGE_KEYS.PORTFOLIO, []);
 export const addPortfolioItem  = (item: PortfolioItem) => set(STORAGE_KEYS.PORTFOLIO, [...getPortfolio(), item]);
 export const removePortfolioItem = (id: string) => set(STORAGE_KEYS.PORTFOLIO, getPortfolio().filter(p => p.id !== id));
+
+/* ─── Certifications ─────────────────────────────────────── */
+export const getCertifications  = () => get<Certificate[]>(STORAGE_KEYS.CERTIFICATIONS, []);
+export const hasCertification   = (techId: string) => getCertifications().some(c => c.techId === techId);
+export const addCertification   = (cert: Certificate) => {
+  if (!hasCertification(cert.techId)) set(STORAGE_KEYS.CERTIFICATIONS, [...getCertifications(), cert]);
+};
+
+/* ─── User Name ──────────────────────────────────────────── */
+export const getUserName = () => get<string>(STORAGE_KEYS.USER_NAME, '');
+export const setUserName = (name: string) => set(STORAGE_KEYS.USER_NAME, name);
 
 /* ─── Recent Searches ────────────────────────────────────── */
 export const getRecentSearches = () => get<string[]>(STORAGE_KEYS.SEARCHES, []);

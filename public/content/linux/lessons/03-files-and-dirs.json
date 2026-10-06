@@ -1,0 +1,95 @@
+{
+  "id": "03-files-and-dirs",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "linux",
+  "technologyVersion": "1.0",
+  "module": "shell-basics",
+  "title": "Files and Directories",
+  "subtitle": "touch, mkdir, cp, mv, rm — creating, copying, moving, and deleting",
+  "difficulty": "beginner",
+  "estimatedMinutes": 12,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-06",
+  "updatedAt": "2026-10-06",
+  "lastVerified": "2026-10-06",
+  "prerequisites": ["linux/02-navigation"],
+  "skillsTaught": ["linux.touch", "linux.mkdir", "linux.cp", "linux.mv", "linux.rm"],
+  "skillsUsed": ["linux.navigation", "linux.paths"],
+  "relatedConcepts": ["linux.permissions", "linux.finding-files"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Creating files and directories"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "touch and mkdir",
+      "code": "# Create an empty file (or update its timestamp if it exists)\ntouch notes.txt\ntouch index.html style.css app.js   # create multiple files\n\n# Create a directory\nmkdir projects\nmkdir -p projects/myapp/src         # -p creates parent dirs as needed\nmkdir -p {images,css,js}            # brace expansion: creates 3 dirs\n\n# Check what was created\nls -la"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Copying and moving"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "cp and mv",
+      "code": "# Copy a file\ncp README.md README.md.bak          # copy to same directory with new name\ncp notes.txt ~/Documents/           # copy to a different directory\ncp -r src/ backup/                  # -r: copy directory recursively\n\n# Move (also used for renaming)\nmv oldname.txt newname.txt          # rename\nmv notes.txt ~/Documents/           # move to different directory\nmv *.log /var/log/archive/          # move all .log files\n\n# Move multiple files into a directory\nmv file1.txt file2.txt destination/"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Deleting files — be careful, no Trash"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "rm commands",
+      "code": "# Delete a file\nrm notes.txt\n\n# Delete multiple files\nrm file1.txt file2.txt file3.txt\n\n# Delete a directory and its contents\nrm -r myproject/         # recursive delete\nrm -rf node_modules/     # force + recursive (no prompts)\n\n# Safer: interactive delete (asks before each file)\nrm -i *.log\n\n# Delete an empty directory\nrmdir empty_folder/"
+    },
+    {
+      "type": "warning",
+      "text": "<strong>rm is permanent — there is no Trash.</strong> There is no undo. rm -rf / would delete everything on the system. Always double-check the path before running rm -rf. Consider using trash-cli (a safe alternative) or adding an alias: alias rm='rm -i' in your .bashrc."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "linux-03-q1",
+          "question": "You run: mv report.pdf reports/. What happens?",
+          "type": "multiple-choice",
+          "options": [
+            "report.pdf is copied into reports/ and the original remains",
+            "report.pdf is moved into the reports/ directory (original location is empty)",
+            "A file named 'reports/' is created",
+            "Error — mv cannot move files into directories"
+          ],
+          "correctAnswer": 1,
+          "explanation": "mv moves the file — the original is gone, and reports/report.pdf now exists. Unlike cp (which copies and keeps the original), mv transfers the file. The trailing / on reports/ is optional but makes it clear you mean the directory, not a file named 'reports'."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do I rename a directory?",
+      "a": "mv old_name/ new_name/ — mv works for both files and directories. You don't need -r to rename (only to copy with cp -r). Example: mv my-project/ kernal-app/"
+    }
+  ],
+  "sources": [
+    { "name": "GNU Coreutils", "url": "https://www.gnu.org/software/coreutils/manual/coreutils.html", "verified": "2026-10-06" }
+  ],
+  "realWorld": {
+    "usedIn": ["project setup", "deployment scripts", "file organization", "build pipelines"],
+    "examples": [
+      "mkdir -p src/components src/pages src/utils is how you scaffold a new React project structure from the command line",
+      "rm -rf node_modules && npm install is the standard 'nuclear option' for fixing dependency issues"
+    ]
+  }
+}

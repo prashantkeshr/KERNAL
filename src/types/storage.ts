@@ -57,6 +57,15 @@ export interface DeviceProfile {
   detectedAt: string;
 }
 
+export interface Certificate {
+  id: string;
+  techId: string;
+  techName: string;
+  earnedAt: string;
+  lessonsCompleted: number;
+  totalLessons: number;
+}
+
 // All localStorage keys
 export const STORAGE_KEYS = {
   THEME:          'kernal_theme',
@@ -74,6 +83,8 @@ export const STORAGE_KEYS = {
   ADAPTIVE_STATE: 'kernal_adaptiveState',
   AI_TIER:        'kernal_aiTier',
   LANGUAGE:       'kernal_language',
-  SKILL_EVIDENCE: 'kernal_skillEvidence',
-  PORTFOLIO:      'kernal_portfolio',
+  SKILL_EVIDENCE:   'kernal_skillEvidence',
+  PORTFOLIO:        'kernal_portfolio',
+  CERTIFICATIONS:   'kernal_certifications',
+  USER_NAME:        'kernal_username',
 } as const;

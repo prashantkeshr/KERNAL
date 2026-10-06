@@ -1,0 +1,57 @@
+[
+  {
+    "id": "pg-foundations",
+    "title": "PostgreSQL Foundations",
+    "description": "Install, connect, and understand what makes PostgreSQL different from SQLite.",
+    "order": 1,
+    "lessons": [
+      { "id": "01-what-is-postgresql",       "title": "What is PostgreSQL?",             "subtitle": "ACID, MVCC, and why Postgres is the world's most advanced open-source database", "difficulty": "beginner",     "estimatedMinutes": 10, "status": "published" },
+      { "id": "02-connecting-and-databases",  "title": "Connecting and Databases",        "subtitle": "psql CLI, pgAdmin, CREATE DATABASE, roles and superusers",                         "difficulty": "beginner",     "estimatedMinutes": 12, "status": "published" },
+      { "id": "03-tables-and-data-types",     "title": "Tables and Data Types",           "subtitle": "PostgreSQL's rich type system: integer, text, numeric, boolean, date, UUID, JSON", "difficulty": "beginner",     "estimatedMinutes": 14, "status": "published" }
+    ]
+  },
+  {
+    "id": "querying-data",
+    "title": "Querying Data",
+    "description": "Master SELECT, JOINs, and aggregations for real-world queries.",
+    "order": 2,
+    "lessons": [
+      { "id": "04-select-and-filtering",      "title": "SELECT and Filtering",            "subtitle": "WHERE, ORDER BY, LIMIT, OFFSET, ILIKE, and pattern matching",                       "difficulty": "beginner",     "estimatedMinutes": 12, "status": "published" },
+      { "id": "05-joins-and-relations",       "title": "JOINs and Relations",             "subtitle": "INNER JOIN, LEFT JOIN, self-joins, and joining multiple tables",                     "difficulty": "intermediate", "estimatedMinutes": 16, "status": "published" },
+      { "id": "06-aggregations",              "title": "Aggregations and Grouping",       "subtitle": "GROUP BY, COUNT/SUM/AVG/MAX/MIN, HAVING, window functions intro",                    "difficulty": "intermediate", "estimatedMinutes": 14, "status": "published" }
+    ]
+  },
+  {
+    "id": "data-modeling",
+    "title": "Data Modeling",
+    "description": "Design schemas that stay correct as your application grows.",
+    "order": 3,
+    "lessons": [
+      { "id": "07-primary-and-foreign-keys",  "title": "Primary and Foreign Keys",        "subtitle": "Entity relationships, ON DELETE CASCADE/SET NULL, and referential integrity",       "difficulty": "intermediate", "estimatedMinutes": 14, "status": "published" },
+      { "id": "08-constraints-and-defaults",  "title": "Constraints and Defaults",        "subtitle": "NOT NULL, UNIQUE, CHECK, DEFAULT, and generated columns",                           "difficulty": "intermediate", "estimatedMinutes": 12, "status": "published" },
+      { "id": "09-normalization",             "title": "Normalization",                   "subtitle": "1NF, 2NF, 3NF in plain English — and when to intentionally denormalize",            "difficulty": "intermediate", "estimatedMinutes": 14, "status": "published" }
+    ]
+  },
+  {
+    "id": "performance",
+    "title": "Indexing and Performance",
+    "description": "Make queries fast. Understand how PostgreSQL executes them.",
+    "order": 4,
+    "lessons": [
+      { "id": "10-indexes",                   "title": "Indexes",                         "subtitle": "B-tree, EXPLAIN ANALYZE, partial indexes, and when not to index",                    "difficulty": "intermediate", "estimatedMinutes": 16, "status": "published" },
+      { "id": "11-transactions",              "title": "Transactions",                    "subtitle": "BEGIN/COMMIT/ROLLBACK, ACID properties, isolation levels, deadlocks",               "difficulty": "intermediate", "estimatedMinutes": 14, "status": "published" },
+      { "id": "12-views",                     "title": "Views and Materialized Views",    "subtitle": "CREATE VIEW, materialized views with REFRESH, CTEs with WITH",                      "difficulty": "intermediate", "estimatedMinutes": 12, "status": "published" }
+    ]
+  },
+  {
+    "id": "advanced-postgresql",
+    "title": "Advanced PostgreSQL",
+    "description": "JSONB storage, stored functions, and production deployment patterns.",
+    "order": 5,
+    "lessons": [
+      { "id": "13-json-and-jsonb",            "title": "JSON and JSONB",                  "subtitle": "Storing and querying semi-structured data with jsonb operators and GIN indexes",    "difficulty": "advanced",     "estimatedMinutes": 16, "status": "published" },
+      { "id": "14-functions-and-triggers",    "title": "Functions and Triggers",          "subtitle": "PL/pgSQL stored functions, trigger functions, and row-level automation",            "difficulty": "advanced",     "estimatedMinutes": 16, "status": "published" },
+      { "id": "15-backup-and-production",     "title": "Backup and Production",           "subtitle": "pg_dump, connection pooling, VACUUM, ANALYZE, and production configuration",       "difficulty": "advanced",     "estimatedMinutes": 14, "status": "published" }
+    ]
+  }
+]

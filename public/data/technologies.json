@@ -139,7 +139,7 @@
     "order": 11,
     "stage": 11,
     "playground": "sql",
-    "enabled": false,
+    "enabled": true,
     "description": "Advanced SQL, indexing, transactions, and relational data modeling",
     "estimatedHours": 20
   },
@@ -175,7 +175,7 @@
     "order": 14,
     "stage": 12,
     "playground": "terminal",
-    "enabled": false,
+    "enabled": true,
     "description": "Command line mastery, bash scripting, and system administration",
     "estimatedHours": 20
   },

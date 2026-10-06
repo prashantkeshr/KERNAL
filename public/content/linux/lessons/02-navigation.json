@@ -1,0 +1,95 @@
+{
+  "id": "02-navigation",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "linux",
+  "technologyVersion": "1.0",
+  "module": "shell-basics",
+  "title": "Navigation and Listing",
+  "subtitle": "pwd, ls, cd, tree — moving around the filesystem without a mouse",
+  "difficulty": "beginner",
+  "estimatedMinutes": 12,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-06",
+  "updatedAt": "2026-10-06",
+  "lastVerified": "2026-10-06",
+  "prerequisites": ["linux/01-what-is-the-shell"],
+  "skillsTaught": ["linux.pwd", "linux.ls", "linux.cd", "linux.filesystem-layout"],
+  "skillsUsed": ["linux.shell"],
+  "relatedConcepts": ["linux.paths", "linux.permissions"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Linux filesystem layout"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Directory tree",
+      "code": "/               root of the filesystem\n├── bin/        essential command binaries (ls, cp, bash)\n├── etc/        configuration files\n├── home/       user home directories\n│   ├── alice/  alice's home: ~\n│   └── bob/    bob's home\n├── usr/        user programs (most installed software)\n│   └── bin/    non-essential binaries (most commands you run)\n├── var/        variable data (logs, databases)\n│   └── log/    system logs\n├── tmp/        temporary files (cleared on reboot)\n├── opt/        optional/third-party software\n├── proc/       virtual filesystem: running processes info\n└── dev/        device files"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Navigation commands"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "pwd, ls, cd",
+      "code": "# Where am I?\npwd          # Print Working Directory → /home/alice/projects\n\n# List directory contents\nls            # basic list\nls -l         # long format: permissions, owner, size, date\nls -la        # include hidden files (dotfiles)\nls -lh        # human-readable sizes (K, M, G)\nls -lt        # sort by modification time (newest first)\nls -lS        # sort by size (largest first)\nls /var/log   # list a specific directory\n\n# Change directory\ncd projects          # relative: go into 'projects' in current dir\ncd /home/alice       # absolute: go to exact path\ncd ~                 # home directory\ncd                   # same as cd ~ (no argument = home)\ncd ..                # up one level (parent directory)\ncd ../..             # up two levels\ncd -                 # go back to previous directory\n\n# Quick tip: Tab completes directory names\ncd proj<Tab>         # autocompletes to 'projects' if unique"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Understanding ls -l output"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "ls -l explained",
+      "code": "drwxr-xr-x  3  alice  staff   96  Oct  6 10:30  projects/\n-rw-r--r--  1  alice  staff  1234  Oct  5 14:22  README.md\n-rwxr-xr-x  1  alice  staff  4096  Oct  4 09:15  deploy.sh\n\n│          │  │     │       │     │              └─ filename\n│          │  │     │       │     └─ modification date\n│          │  │     │       └─ file size in bytes\n│          │  │     └─ group owner\n│          │  └─ user owner\n│          └─ number of hard links\n└─ permissions (d=directory, -=file, l=symlink, then rwxrwxrwx)\n\nPermissions breakdown: drwxr-xr-x\n  d         = directory\n  rwx       = owner can read, write, execute\n  r-x       = group can read, execute (not write)\n  r-x       = others can read, execute"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>~ is your home directory.</strong> It expands to /home/username (Linux) or /Users/username (macOS). Use ~ in paths: cd ~/projects, ls ~/Downloads. . means current directory, .. means parent directory."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "linux-02-q1",
+          "question": "You are in /home/alice/projects/myapp/src. What does 'cd ../../..' do?",
+          "type": "multiple-choice",
+          "options": [
+            "Goes to the root /",
+            "Goes to /home/alice",
+            "Goes to /home/alice/projects",
+            "Error — too many dots"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Each .. goes up one level. Starting from /home/alice/projects/myapp/src: first .. → /home/alice/projects/myapp, second .. → /home/alice/projects, third .. → /home/alice. So cd ../../.. takes you to /home/alice (your home directory)."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is a dotfile?",
+      "a": "Files and directories whose names start with a dot (.) are hidden by default — ls doesn't show them without -a. Dotfiles are used for configuration: ~/.bashrc (bash config), ~/.gitconfig (git config), ~/.ssh/ (SSH keys). The convention is that dotfiles are config files that shouldn't clutter normal directory listings."
+    }
+  ],
+  "sources": [
+    { "name": "Linux Filesystem Hierarchy Standard", "url": "https://refspecs.linuxfoundation.org/FHS_3.0/fhs/index.html", "verified": "2026-10-06" }
+  ],
+  "realWorld": {
+    "usedIn": ["server navigation", "deployment scripts", "Docker containers", "CI/CD pipelines"],
+    "examples": [
+      "Every Docker Dockerfile starts with WORKDIR /app — setting the working directory, equivalent to cd /app",
+      "cd - (go back to previous directory) is invaluable when switching between two directories repeatedly during development"
+    ]
+  }
+}

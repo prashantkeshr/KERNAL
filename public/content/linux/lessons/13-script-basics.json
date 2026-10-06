@@ -1,0 +1,95 @@
+{
+  "id": "13-script-basics",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "linux",
+  "technologyVersion": "1.0",
+  "module": "bash-scripting",
+  "title": "Bash Script Basics",
+  "subtitle": "#!/bin/bash, variables, echo, read, exit codes, making scripts executable",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-06",
+  "updatedAt": "2026-10-06",
+  "lastVerified": "2026-10-06",
+  "prerequisites": ["linux/11-environment"],
+  "skillsTaught": ["linux.shebang", "linux.bash-variables", "linux.exit-codes", "linux.script-structure"],
+  "skillsUsed": ["linux.shell", "linux.permissions", "linux.env-vars"],
+  "relatedConcepts": ["linux.conditionals", "linux.cron"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Your first bash script"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "hello.sh",
+      "code": "#!/bin/bash\n# The shebang line tells the OS which interpreter to use\n# #!/bin/bash  — bash\n# #!/bin/sh    — POSIX sh (more portable, fewer features)\n# #!/usr/bin/env bash  — find bash in PATH (recommended)\n\n# Comment: lines starting with # are comments\necho \"Hello, World!\"\n\n# Variables (no spaces around =)\nNAME=\"Alice\"\nAGE=30\nGREETING=\"Hello, $NAME! You are $AGE years old.\"\necho $GREETING\n\n# Command substitution: capture command output\nCURRENT_DATE=$(date +%Y-%m-%d)\nFILE_COUNT=$(ls | wc -l)\necho \"Today is $CURRENT_DATE, files: $FILE_COUNT\"\n\n# Read user input\necho -n \"Enter your name: \"   # -n: no newline\nread USER_NAME\necho \"Hello, $USER_NAME!\""
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Making scripts executable and running them"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Running scripts",
+      "code": "# Make it executable\nchmod +x hello.sh\n\n# Run it\n./hello.sh          # ./ required (not just hello.sh)\nbash hello.sh       # run with bash explicitly (no chmod needed)\nsh hello.sh         # run with sh\n\n# Pass arguments to a script\n./greet.sh Alice 30\n\n# Inside the script, access arguments:\n# $1 = first argument ('Alice')\n# $2 = second argument ('30')\n# $@ = all arguments\n# $# = number of arguments\n# $0 = script name"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Exit codes and $?"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Exit codes",
+      "code": "#!/usr/bin/env bash\n\n# Every command returns an exit code: 0 = success, 1-255 = error\n\nls /existing/path   # exit code 0\necho \"Exit: $?\"     # → 0\n\nls /nonexistent     # exit code 2\necho \"Exit: $?\"     # → 2 (non-zero = failure)\n\n# exit: set script's exit code\nif [ ! -f config.txt ]; then\n  echo \"Error: config.txt not found\" >&2   # write error to stderr\n  exit 1  # non-zero = failure\nfi\n\necho \"Config found\"\nexit 0   # success (optional — scripts exit 0 if they reach the end)\n\n# Use exit codes in pipelines\nif grep -q \"ERROR\" server.log; then\n  echo \"Errors found in log!\"\nfi\n# grep returns 0 if match found, 1 if not, 2 if error"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Start scripts with set -euo pipefail.</strong> -e exits on error, -u treats unset variables as errors, -o pipefail makes pipelines fail if any command fails. This catches bugs that would otherwise silently continue."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "linux-13-q1",
+          "question": "What does the shebang line #!/usr/bin/env bash do?",
+          "type": "multiple-choice",
+          "options": [
+            "It is a comment — all lines starting with # are ignored",
+            "It tells the OS to use bash as the interpreter, finding it via PATH",
+            "It imports bash functionality into sh",
+            "It sets the script's exit code to 0"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The shebang (#!) on the very first line tells the OS which interpreter to use to execute the script. /usr/bin/env bash uses the env command to find bash in the system PATH — more portable than #!/bin/bash (which only works if bash is installed at /bin/bash). Without a shebang, the OS uses the user's default shell, which may not be bash."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Why do I need ./ before the script name?",
+      "a": "For security, the shell does not look in the current directory (.) when searching for commands — only in $PATH directories. ./hello.sh explicitly says 'run hello.sh in the current directory.' Without ./, the shell would search $PATH and not find hello.sh. You can add . to $PATH but it is a security risk (a malicious ls script in any directory you visit would run)."
+    }
+  ],
+  "sources": [
+    { "name": "Bash Scripting Guide", "url": "https://www.gnu.org/software/bash/manual/bash.html", "verified": "2026-10-06" }
+  ],
+  "realWorld": {
+    "usedIn": ["deployment automation", "CI/CD pipelines", "server setup scripts", "development workflows"],
+    "examples": [
+      "Every GitHub Actions step that runs bash code is a mini-script — understanding bash scripting lets you write complex CI/CD logic",
+      "deploy.sh scripts wrap git pull, docker build, docker-compose up — combining multiple commands into one reusable script"
+    ]
+  }
+}

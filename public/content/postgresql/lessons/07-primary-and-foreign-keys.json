@@ -1,0 +1,95 @@
+{
+  "id": "07-primary-and-foreign-keys",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "postgresql",
+  "technologyVersion": "16",
+  "module": "data-modeling",
+  "title": "Primary and Foreign Keys",
+  "subtitle": "Entity relationships, ON DELETE CASCADE/SET NULL, and referential integrity",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-06",
+  "updatedAt": "2026-10-06",
+  "lastVerified": "2026-10-06",
+  "prerequisites": ["postgresql/03-tables-and-data-types"],
+  "skillsTaught": ["pg.primary-keys", "pg.foreign-keys", "pg.referential-integrity", "pg.on-delete"],
+  "skillsUsed": ["pg.tables", "pg.joins"],
+  "relatedConcepts": ["pg.constraints", "pg.normalization"],
+  "whyItExists": {
+    "problem": "Without foreign keys, any code can insert a comment referencing a post that does not exist, or leave orphaned records when a parent row is deleted. Data integrity requires the database to enforce relationships — not just application code.",
+    "solution": "Primary keys uniquely identify each row. Foreign keys create enforced relationships between tables. ON DELETE CASCADE/SET NULL/RESTRICT controls what happens to child rows when a parent is deleted.",
+    "whenToUse": "Always. Foreign keys should be the default unless you have a specific reason to skip them (e.g., very high write throughput in a logging table where you accept orphaned rows).",
+    "whenNotToUse": "Some large-scale apps disable foreign key checks for bulk imports then re-enable them. Some NoSQL-influenced schemas skip foreign keys intentionally. But for most OLTP applications, foreign keys prevent a whole class of data bugs."
+  },
+  "explainModes": {
+    "beginner": "A primary key is a unique identifier for each row — like a student ID number. A foreign key is a reference from one table to another's primary key — like a class roster that lists student IDs rather than copying each student's full name. The database ensures the foreign key always points to a real row — you cannot reference a student that does not exist.",
+    "standard": "PRIMARY KEY = NOT NULL + UNIQUE. Foreign keys use REFERENCES tablename(column). ON DELETE options: RESTRICT (prevent deleting parent if children exist), CASCADE (delete children when parent is deleted), SET NULL (set child's foreign key to NULL when parent is deleted), SET DEFAULT (set to default value). ON UPDATE CASCADE propagates primary key changes to foreign keys (rare in practice since PKs should not change).",
+    "technical": "PostgreSQL automatically creates an index on the primary key column. Foreign key columns do NOT get an automatic index — you must create one manually for join and lookup performance. Without an index on user_id in posts, a DELETE FROM users WHERE id = 1 requires a sequential scan of all posts to enforce the foreign key constraint. DEFERRABLE INITIALLY DEFERRED allows constraint checking to be deferred to the end of a transaction — useful for circular references."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Primary keys"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "Primary key patterns",
+      "code": "-- Single column primary key (most common)\nCREATE TABLE users (\n  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  email TEXT NOT NULL UNIQUE\n);\n\n-- UUID primary key\nCREATE TABLE products (\n  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n  name TEXT NOT NULL\n);\n\n-- Composite primary key (many-to-many junction table)\nCREATE TABLE post_tags (\n  post_id BIGINT REFERENCES posts(id) ON DELETE CASCADE,\n  tag_id  BIGINT REFERENCES tags(id) ON DELETE CASCADE,\n  PRIMARY KEY (post_id, tag_id)\n);"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Foreign keys and ON DELETE behavior"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "Foreign key options",
+      "code": "CREATE TABLE posts (\n  id      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,\n  -- ON DELETE CASCADE: when the user is deleted, all their posts are deleted\n  title   TEXT NOT NULL\n);\n\nCREATE TABLE comments (\n  id      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,\n  user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,\n  -- ON DELETE SET NULL: if the commenting user is deleted, keep the comment but null out user_id\n  body    TEXT NOT NULL\n);\n\nCREATE TABLE orders (\n  id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  customer_id BIGINT NOT NULL REFERENCES customers(id) ON DELETE RESTRICT,\n  -- ON DELETE RESTRICT: prevent deleting a customer who has orders\n  total       NUMERIC(10,2)\n);\n\n-- Always index foreign key columns for join performance\nCREATE INDEX idx_posts_user_id    ON posts(user_id);\nCREATE INDEX idx_comments_post_id ON comments(post_id);"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Always create indexes on foreign key columns.</strong> PostgreSQL does NOT automatically index foreign keys. Without an index, DELETE operations on the parent table are slow (sequential scan of child table) and JOINs are slow on large tables."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "pg-07-q1",
+          "question": "A user with 500 posts gets deleted. The posts table has: user_id BIGINT REFERENCES users(id) ON DELETE SET NULL. What happens?",
+          "type": "multiple-choice",
+          "options": [
+            "The DELETE fails — the user has posts",
+            "All 500 posts are deleted along with the user",
+            "The 500 posts remain but user_id becomes NULL on each",
+            "The foreign key constraint is ignored"
+          ],
+          "correctAnswer": 2,
+          "explanation": "ON DELETE SET NULL sets the foreign key column (user_id) to NULL on all child rows when the parent row is deleted. The posts survive with user_id = NULL — useful for soft-deleting authors while preserving their content. The user_id column must allow NULL for this to work."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Should I always use foreign keys?",
+      "a": "For OLTP apps (web apps, APIs, business software): yes, always. Foreign keys prevent an entire category of data corruption bugs that are expensive to fix after the fact. For analytics/data warehouse tables with billions of rows or high-volume logging, foreign key checks add overhead — teams sometimes skip them there and use application-level consistency checks instead."
+    }
+  ],
+  "sources": [
+    { "name": "PostgreSQL Constraints", "url": "https://www.postgresql.org/docs/current/ddl-constraints.html", "verified": "2026-10-06" }
+  ],
+  "realWorld": {
+    "usedIn": ["every relational database schema", "ORM migrations", "schema version control"],
+    "examples": [
+      "ON DELETE CASCADE is standard for user→posts, post→comments — cascade-deleting a user removes all their content",
+      "ON DELETE RESTRICT is standard for order→customer — you should not delete a customer with purchase history"
+    ]
+  }
+}

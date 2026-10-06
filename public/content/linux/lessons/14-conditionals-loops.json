@@ -1,0 +1,91 @@
+{
+  "id": "14-conditionals-loops",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "linux",
+  "technologyVersion": "1.0",
+  "module": "bash-scripting",
+  "title": "Conditionals and Loops",
+  "subtitle": "if/elif/else, for, while, test expressions, and [[ ... ]] conditions",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 16,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-06",
+  "updatedAt": "2026-10-06",
+  "lastVerified": "2026-10-06",
+  "prerequisites": ["linux/13-script-basics"],
+  "skillsTaught": ["linux.if-else", "linux.for-loop", "linux.while-loop", "linux.test-expressions"],
+  "skillsUsed": ["linux.bash-scripts", "linux.exit-codes"],
+  "relatedConcepts": ["linux.cron", "linux.functions"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "if / elif / else"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Conditionals",
+      "code": "#!/usr/bin/env bash\n\n# [[ ]] is the modern bash conditional (prefer over [ ])\nFILE=\"config.txt\"\n\nif [[ -f \"$FILE\" ]]; then\n  echo \"$FILE exists and is a regular file\"\nelif [[ -d \"$FILE\" ]]; then\n  echo \"$FILE is a directory\"\nelse\n  echo \"$FILE does not exist\"\nfi\n\n# Common file tests:\n# -f  file exists and is a regular file\n# -d  directory exists\n# -e  file/directory exists\n# -r  readable, -w  writable, -x  executable\n# -s  file exists and is not empty\n\n# String comparisons:\nif [[ \"$NAME\" == \"Alice\" ]]; then echo \"Hi Alice\"; fi\nif [[ \"$NAME\" != \"\" ]]; then echo \"Name is set\"; fi\nif [[ -z \"$NAME\" ]]; then echo \"Name is empty\"; fi   # -z = zero length\nif [[ -n \"$NAME\" ]]; then echo \"Name is set\"; fi     # -n = non-empty\n\n# Number comparisons:\nif [[ $AGE -gt 18 ]]; then echo \"Adult\"; fi\n# -gt greater than, -lt less than, -ge >=, -le <=, -eq ==, -ne !="
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "for loops"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "for loop examples",
+      "code": "#!/usr/bin/env bash\n\n# Loop over a list\nfor NAME in Alice Bob Carol; do\n  echo \"Hello, $NAME!\"\ndone\n\n# Loop over files\nfor FILE in *.log; do\n  echo \"Processing: $FILE\"\n  gzip \"$FILE\"     # compress each log file\ndone\n\n# Loop over a range of numbers\nfor i in {1..5}; do\n  echo \"Iteration $i\"\ndone\n\n# C-style for loop\nfor (( i=0; i<5; i++ )); do\n  echo \"$i\"\ndone\n\n# Loop over command output\nfor FILE in $(find . -name '*.json'); do\n  echo \"Found: $FILE\"\ndone\n\n# Loop over script arguments\nfor ARG in \"$@\"; do\n  echo \"Arg: $ARG\"\ndone"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "while loops"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "while loop examples",
+      "code": "#!/usr/bin/env bash\n\n# while: loop while condition is true\nCOUNT=0\nwhile [[ $COUNT -lt 5 ]]; do\n  echo \"Count: $COUNT\"\n  (( COUNT++ ))   # increment\ndone\n\n# Read file line by line\nwhile IFS= read -r LINE; do\n  echo \"Line: $LINE\"\ndone < input.txt\n\n# Wait for a service to be ready\nuntil curl -s http://localhost:3000/health; do\n  echo \"Waiting for server...\"\n  sleep 2\ndone\necho \"Server is ready!\"\n\n# Infinite loop with break\nwhile true; do\n  if [[ -f /tmp/stop ]]; then\n    break\n  fi\n  echo \"Running...\"\n  sleep 10\ndone"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "linux-14-q1",
+          "question": "You want to check if a variable $ENVIRONMENT equals 'production'. Which is correct bash syntax?",
+          "type": "multiple-choice",
+          "options": [
+            "if ( $ENVIRONMENT == 'production' )",
+            "if [[ $ENVIRONMENT == \"production\" ]]; then",
+            "if $ENVIRONMENT = production; then",
+            "if test $ENVIRONMENT = production"
+          ],
+          "correctAnswer": 1,
+          "explanation": "In bash, [[ ... ]] is the modern conditional test. Use == for string comparison inside [[ ]]. The spaces before and after == are required. The semicolon before then is required (or put then on the next line). Single = is assignment in shell, not comparison (though it also works in old [ ] style tests for historical reasons)."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between [ ] and [[ ]]?",
+      "a": "[ ] is the POSIX test command — works in all shells but has edge cases with spaces in variable names (use quotes: [ \"$VAR\" ]). [[ ]] is a bash/zsh keyword — safer (no word splitting), supports &&/||/=~, and doesn't require quoting variables for most comparisons. Always use [[ ]] in bash scripts."
+    }
+  ],
+  "sources": [
+    { "name": "Bash Conditional Expressions", "url": "https://www.gnu.org/software/bash/manual/bash.html#Bash-Conditional-Expressions", "verified": "2026-10-06" }
+  ],
+  "realWorld": {
+    "usedIn": ["deployment scripts", "CI/CD pipelines", "data processing scripts", "server health checks"],
+    "examples": [
+      "for ENV in staging production; do ssh $ENV 'sudo systemctl restart app'; done — restart across multiple environments",
+      "while ! pg_isready; do sleep 1; done — wait for PostgreSQL to be ready in Docker Compose startup scripts"
+    ]
+  }
+}

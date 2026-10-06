@@ -1,0 +1,90 @@
+{
+  "id": "10-indexes",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "postgresql",
+  "technologyVersion": "16",
+  "module": "performance",
+  "title": "Indexes",
+  "subtitle": "B-tree, EXPLAIN ANALYZE, partial indexes, and when not to index",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 16,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-06",
+  "updatedAt": "2026-10-06",
+  "lastVerified": "2026-10-06",
+  "prerequisites": ["postgresql/07-primary-and-foreign-keys"],
+  "skillsTaught": ["pg.btree-index", "pg.explain-analyze", "pg.partial-index", "pg.composite-index"],
+  "skillsUsed": ["pg.select", "pg.tables"],
+  "relatedConcepts": ["pg.query-planner", "pg.vacuum"],
+  "whyItExists": {
+    "problem": "A table with 10 million rows and no index on the email column requires PostgreSQL to read all 10 million rows to find one user by email — a sequential scan. This takes seconds. With a B-tree index, the same lookup takes milliseconds by jumping directly to the matching row.",
+    "solution": "Indexes are separate data structures that let PostgreSQL find rows quickly without scanning the whole table. The tradeoff: indexes make reads faster but writes slower (the index must be updated too).",
+    "whenToUse": "Index foreign key columns, columns used in WHERE clauses, columns used in ORDER BY when combined with LIMIT, and columns used as JOIN keys.",
+    "whenNotToUse": "Small tables (< ~1000 rows) — sequential scan is fast enough. Columns with very low cardinality (boolean, small enum) where the index would select half the table anyway. Write-heavy tables with minimal reads."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Creating indexes"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "Index creation",
+      "code": "-- Basic index on a single column\nCREATE INDEX idx_users_email ON users(email);\n\n-- Concurrent index creation (does not lock the table)\nCREATE INDEX CONCURRENTLY idx_posts_user_id ON posts(user_id);\n\n-- Composite index (order matters)\nCREATE INDEX idx_orders_user_status ON orders(user_id, status);\n-- Useful for: WHERE user_id = 1 AND status = 'pending'\n-- Also useful for: WHERE user_id = 1 (uses the leftmost column)\n-- NOT useful for: WHERE status = 'pending' only (skips leftmost column)\n\n-- Partial index — index only a subset of rows\nCREATE INDEX idx_orders_pending ON orders(created_at)\n  WHERE status = 'pending';\n-- Much smaller, much faster for: WHERE status = 'pending' ORDER BY created_at\n\n-- Index on expression\nCREATE INDEX idx_users_email_lower ON users(LOWER(email));\n-- Supports: WHERE LOWER(email) = 'alice@example.com'"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "EXPLAIN ANALYZE — reading query plans"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "EXPLAIN ANALYZE",
+      "code": "-- See the query plan without running\nEXPLAIN SELECT * FROM users WHERE email = 'alice@example.com';\n\n-- Run the query and show actual timing\nEXPLAIN ANALYZE SELECT * FROM users WHERE email = 'alice@example.com';\n\n-- Show buffer usage (cache hits vs disk reads)\nEXPLAIN (ANALYZE, BUFFERS) SELECT * FROM users WHERE email = 'alice@example.com';\n\n-- Reading the output:\n--   Seq Scan  → reading every row (bad for large tables + selective filter)\n--   Index Scan → using an index to find rows (fast for selective queries)\n--   Index Only Scan → all needed data is in the index itself (fastest)\n--   Bitmap Heap Scan → fetches blocks of matching rows (batch of index lookups)\n\n-- Cost format: (startup cost..total cost) (rows=estimate) (width=bytes per row)\n-- Index Scan using idx_users_email on users  (cost=0.42..8.44 rows=1 width=136)\n--   (actual time=0.045..0.046 rows=1 loops=1)"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>The most impactful indexes:</strong> (1) Foreign key columns, (2) columns in WHERE clauses on large tables, (3) columns in ORDER BY when used with LIMIT. Adding all three will fix the majority of slow queries in a typical web application."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "pg-10-q1",
+          "question": "You have a composite index on (user_id, status). Which query CAN use this index?",
+          "type": "multiple-choice",
+          "options": [
+            "WHERE status = 'active' (only the second column)",
+            "WHERE user_id = 5 (only the first column)",
+            "WHERE email = 'a@b.com' (not in the index)",
+            "ORDER BY created_at (not in the index)"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Composite indexes can be used for queries on the leftmost column(s). WHERE user_id = 5 uses the first column of (user_id, status) and will use the index. WHERE status = 'active' alone skips the leftmost column and will NOT use this index (PostgreSQL will do a Seq Scan unless another index exists on status)."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do I find which queries are slow?",
+      "a": "Enable pg_stat_statements (CREATE EXTENSION pg_stat_statements) to track query performance statistics. Query: SELECT query, calls, mean_exec_time FROM pg_stat_statements ORDER BY mean_exec_time DESC LIMIT 10; — shows the slowest average queries. Then run EXPLAIN ANALYZE on those queries to see what plan they are using."
+    }
+  ],
+  "sources": [
+    { "name": "PostgreSQL Indexes", "url": "https://www.postgresql.org/docs/current/indexes.html", "verified": "2026-10-06" }
+  ],
+  "realWorld": {
+    "usedIn": ["production query optimization", "database migrations", "performance tuning"],
+    "examples": [
+      "A startup's 'user lookup by email' query went from 2 seconds to 0.5ms after adding CREATE INDEX idx_users_email ON users(email) — single most impactful database change",
+      "Partial indexes on status columns are common: WHERE status != 'completed' indexes only active records, staying small even as the completed orders table grows to millions of rows"
+    ]
+  }
+}

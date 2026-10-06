@@ -1,0 +1,85 @@
+{
+  "id": "12-package-management",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "linux",
+  "technologyVersion": "1.0",
+  "module": "processes-and-system",
+  "title": "Package Management",
+  "subtitle": "apt, brew, snap — installing, updating, and removing software",
+  "difficulty": "beginner",
+  "estimatedMinutes": 10,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-06",
+  "updatedAt": "2026-10-06",
+  "lastVerified": "2026-10-06",
+  "prerequisites": ["linux/04-permissions"],
+  "skillsTaught": ["linux.apt", "linux.brew", "linux.package-managers"],
+  "skillsUsed": ["linux.sudo", "linux.shell"],
+  "relatedConcepts": ["linux.environment", "linux.processes"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "apt — Debian/Ubuntu package manager"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "apt commands",
+      "code": "# Update package lists (do this before installing)\nsudo apt update\n\n# Upgrade installed packages\nsudo apt upgrade\nsudo apt update && sudo apt upgrade -y   # update + upgrade in one\n\n# Install a package\nsudo apt install nginx\nsudo apt install git curl wget vim       # multiple packages\nsudo apt install -y nginx               # -y: no confirmation prompt\n\n# Remove a package\nsudo apt remove nginx          # remove but keep config files\nsudo apt purge nginx           # remove + delete config files\nsudo apt autoremove            # remove unused dependencies\n\n# Search for packages\napt search \"text editor\"\napt show vim                   # package details\n\n# List installed packages\napt list --installed\ndpkg -l | grep nginx           # check if nginx is installed"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Homebrew — macOS (and Linux) package manager"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "brew commands",
+      "code": "# Install Homebrew\n/bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"\n\n# Install a package\nbrew install node\nbrew install git postgresql wget\n\n# Install a GUI app (cask)\nbrew install --cask visual-studio-code\nbrew install --cask docker\n\n# Update and upgrade\nbrew update              # update brew formula list\nbrew upgrade             # upgrade all packages\nbrew upgrade node        # upgrade specific package\n\n# Remove\nbrew uninstall node\nbrew cleanup             # remove old versions\n\n# Search\nbrew search redis\nbrew info postgresql     # package details"
+    },
+    {
+      "type": "tip",
+      "text": "Always run <code>sudo apt update</code> before <code>sudo apt install</code> — without it, apt uses a stale package list and may install outdated versions or fail to find new packages."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "linux-12-q1",
+          "question": "You want to install nginx on Ubuntu and ensure it starts automatically. Which sequence?",
+          "type": "multiple-choice",
+          "options": [
+            "install nginx → apt start nginx",
+            "sudo apt update → sudo apt install nginx → sudo systemctl enable nginx",
+            "brew install nginx → nginx --start",
+            "sudo apt install nginx (it starts automatically)"
+          ],
+          "correctAnswer": 1,
+          "explanation": "sudo apt update refreshes the package list, sudo apt install nginx installs it, and sudo systemctl enable nginx configures it to start on boot. apt install starts the service immediately on Ubuntu but doesn't enable it for future reboots — enable does that. sudo systemctl start nginx starts it right now."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Which package manager should I use on macOS?",
+      "a": "Homebrew (brew) is the standard. It installs into /opt/homebrew (Apple Silicon) or /usr/local (Intel) and does not require sudo for most operations. Install it first, then use brew install for command-line tools and brew install --cask for GUI apps."
+    }
+  ],
+  "sources": [
+    { "name": "Ubuntu apt documentation", "url": "https://ubuntu.com/server/docs/package-management", "verified": "2026-10-06" },
+    { "name": "Homebrew", "url": "https://brew.sh", "verified": "2026-10-06" }
+  ],
+  "realWorld": {
+    "usedIn": ["server setup", "development environment configuration", "CI/CD Docker images"],
+    "examples": [
+      "Dockerfiles almost always use apt-get update && apt-get install -y package to install dependencies in containers",
+      "sudo apt update && sudo apt upgrade -y is the first command every developer runs after provisioning a new server"
+    ]
+  }
+}

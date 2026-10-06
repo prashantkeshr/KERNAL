@@ -1,0 +1,19 @@
+{
+  "id": "postgresql",
+  "name": "PostgreSQL",
+  "description": "Advanced SQL, indexing, transactions, JSONB, and production-ready relational database design with PostgreSQL.",
+  "version": "1.0.0",
+  "icon": "database",
+  "color": "#336791",
+  "difficulty": "intermediate",
+  "estimatedHours": 20,
+  "modules": [
+    "pg-foundations",
+    "querying-data",
+    "data-modeling",
+    "performance",
+    "advanced-postgresql"
+  ],
+  "prerequisites": ["sql"],
+  "certificationAvailable": true
+}

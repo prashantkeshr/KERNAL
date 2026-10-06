@@ -1,0 +1,84 @@
+{
+  "id": "14-functions-and-triggers",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "postgresql",
+  "technologyVersion": "16",
+  "module": "advanced-postgresql",
+  "title": "Functions and Triggers",
+  "subtitle": "PL/pgSQL stored functions, trigger functions, and row-level automation",
+  "difficulty": "advanced",
+  "estimatedMinutes": 16,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-06",
+  "updatedAt": "2026-10-06",
+  "lastVerified": "2026-10-06",
+  "prerequisites": ["postgresql/11-transactions"],
+  "skillsTaught": ["pg.plpgsql", "pg.stored-functions", "pg.triggers", "pg.new-old"],
+  "skillsUsed": ["pg.transactions", "pg.tables"],
+  "relatedConcepts": ["pg.normalization", "pg.constraints"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "PL/pgSQL stored functions"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "Function syntax",
+      "code": "-- A simple function returning a value\nCREATE OR REPLACE FUNCTION calculate_tax(price NUMERIC, rate NUMERIC)\nRETURNS NUMERIC AS $$\nBEGIN\n  RETURN ROUND(price * rate / 100, 2);\nEND;\n$$ LANGUAGE plpgsql;\n\n-- Call it\nSELECT calculate_tax(99.99, 10);  -- 10.00\n\n-- Function with conditional logic\nCREATE OR REPLACE FUNCTION get_user_tier(total_spent NUMERIC)\nRETURNS TEXT AS $$\nBEGIN\n  IF total_spent >= 1000 THEN\n    RETURN 'platinum';\n  ELSIF total_spent >= 500 THEN\n    RETURN 'gold';\n  ELSIF total_spent >= 100 THEN\n    RETURN 'silver';\n  ELSE\n    RETURN 'bronze';\n  END IF;\nEND;\n$$ LANGUAGE plpgsql;\n\n-- SQL functions (simpler, for single expressions)\nCREATE OR REPLACE FUNCTION full_name(first TEXT, last TEXT)\nRETURNS TEXT AS $$\n  SELECT first || ' ' || last;\n$$ LANGUAGE sql IMMUTABLE;"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Triggers — automatic row actions"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "Trigger for updated_at",
+      "code": "-- Most common trigger: auto-update updated_at timestamp\nCREATE OR REPLACE FUNCTION set_updated_at()\nRETURNS TRIGGER AS $$\nBEGIN\n  NEW.updated_at = NOW();\n  RETURN NEW;  -- RETURN NEW applies the modified row\nEND;\n$$ LANGUAGE plpgsql;\n\n-- Attach to any table that has updated_at\nCREATE TRIGGER trg_users_updated_at\nBEFORE UPDATE ON users\nFOR EACH ROW EXECUTE FUNCTION set_updated_at();\n\nCREATE TRIGGER trg_posts_updated_at\nBEFORE UPDATE ON posts\nFOR EACH ROW EXECUTE FUNCTION set_updated_at();\n\n-- Now: UPDATE users SET email = 'new@example.com' WHERE id = 1;\n-- automatically sets updated_at = NOW() without the app needing to\n\n-- Trigger to log changes\nCREATE TABLE audit_log (\n  id         BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  table_name TEXT,\n  operation  TEXT,\n  old_data   JSONB,\n  new_data   JSONB,\n  changed_at TIMESTAMPTZ DEFAULT NOW()\n);\n\nCREATE OR REPLACE FUNCTION log_changes()\nRETURNS TRIGGER AS $$\nBEGIN\n  INSERT INTO audit_log (table_name, operation, old_data, new_data)\n  VALUES (\n    TG_TABLE_NAME,\n    TG_OP,\n    CASE WHEN TG_OP != 'INSERT' THEN to_jsonb(OLD) END,\n    CASE WHEN TG_OP != 'DELETE' THEN to_jsonb(NEW) END\n  );\n  RETURN NULL;  -- AFTER trigger, return value ignored\nEND;\n$$ LANGUAGE plpgsql;"
+    },
+    {
+      "type": "tip",
+      "text": "The <code>NEW</code> record holds the new row values (for INSERT/UPDATE). <code>OLD</code> holds the previous values (for UPDATE/DELETE). <code>TG_OP</code> is 'INSERT', 'UPDATE', or 'DELETE'. Return NEW from BEFORE triggers to apply changes; return NULL from AFTER triggers (value ignored)."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "pg-14-q1",
+          "question": "You write a BEFORE UPDATE trigger. In the trigger function, you modify NEW.updated_at = NOW() and then RETURN NEW. What happens?",
+          "type": "multiple-choice",
+          "options": [
+            "The trigger fails — you cannot modify NEW",
+            "The update proceeds with the original data, trigger changes are ignored",
+            "The update proceeds with the modified row — updated_at is set to NOW()",
+            "The update is cancelled"
+          ],
+          "correctAnswer": 2,
+          "explanation": "In a BEFORE trigger, the returned value is what actually gets written to the table. RETURN NEW applies the (possibly modified) new row. RETURN NULL cancels the operation. So modifying NEW.updated_at = NOW() and returning NEW means the row is saved with the updated timestamp — the calling application does not need to set it explicitly."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Should I use triggers or application code?",
+      "a": "Triggers are good for: (1) updating audit logs, (2) maintaining denormalized data (comment_count), (3) setting updated_at — logic that must happen regardless of how data is modified. Application code is better for complex business logic, sending emails, calling external APIs. Triggers are invisible to the application — both a feature (always runs) and a risk (hard to debug when you don't know they exist)."
+    }
+  ],
+  "sources": [
+    { "name": "PostgreSQL Triggers", "url": "https://www.postgresql.org/docs/current/trigger-definition.html", "verified": "2026-10-06" }
+  ],
+  "realWorld": {
+    "usedIn": ["audit logging", "automatic timestamp management", "data synchronization", "caches"],
+    "examples": [
+      "The set_updated_at() trigger pattern is used in nearly every production PostgreSQL schema — ORMs like Prisma generate it automatically",
+      "Supabase uses triggers to fire webhook events when rows change, enabling real-time subscriptions"
+    ]
+  }
+}

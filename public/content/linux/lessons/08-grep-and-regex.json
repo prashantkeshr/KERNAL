@@ -1,0 +1,84 @@
+{
+  "id": "08-grep-and-regex",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "linux",
+  "technologyVersion": "1.0",
+  "module": "text-processing",
+  "title": "grep and Regular Expressions",
+  "subtitle": "Searching file content with grep, egrep, and basic regex patterns",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 16,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-06",
+  "updatedAt": "2026-10-06",
+  "lastVerified": "2026-10-06",
+  "prerequisites": ["linux/07-viewing-text"],
+  "skillsTaught": ["linux.grep", "linux.regex-basics", "linux.grep-flags"],
+  "skillsUsed": ["linux.pipes", "linux.find"],
+  "relatedConcepts": ["linux.pipes", "linux.sed"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "grep essentials"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "grep usage",
+      "code": "# Basic: search for a pattern in a file\ngrep \"ERROR\" server.log            # lines containing ERROR\ngrep \"error\" server.log            # case-sensitive\ngrep -i \"error\" server.log         # -i: case-insensitive\ngrep -n \"ERROR\" server.log         # -n: show line numbers\ngrep -c \"ERROR\" server.log         # -c: count matching lines\ngrep -v \"DEBUG\" server.log         # -v: invert (lines NOT matching)\ngrep -l \"TODO\" *.js                # -l: only print filenames\n\n# Search recursively in a directory\ngrep -r \"console.log\" ./src/       # -r: recursive\ngrep -rn \"TODO\" ./src/             # with line numbers\ngrep -ri \"password\" ./config/      # recursive + case-insensitive\n\n# Context lines\ngrep -A 3 \"ERROR\" server.log       # 3 lines After match\ngrep -B 2 \"ERROR\" server.log       # 2 lines Before match\ngrep -C 5 \"ERROR\" server.log       # 5 lines Context (before + after)\n\n# Exact word match\ngrep -w \"log\" server.log           # 'log' not 'logging' or 'changelog'"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Basic regular expressions"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "grep with regex",
+      "code": "# . matches any single character\ngrep \"e.g\" file.txt     # matches 'egg', 'e-g', 'e g'\n\n# ^ matches start of line, $ matches end of line\ngrep \"^Error\" file.txt  # lines starting with 'Error'\ngrep \"done$\" file.txt   # lines ending with 'done'\ngrep \"^$\" file.txt      # empty lines\n\n# * matches zero or more of the preceding char\ngrep \"colou*r\" file.txt # matches 'color', 'colour', 'colouur'\n\n# [] matches any character in the set\ngrep \"[0-9]\" file.txt   # lines with at least one digit\ngrep \"[A-Z]\" file.txt   # lines with uppercase letters\ngrep \"[^a-z]\" file.txt  # lines with non-lowercase chars\n\n# Extended regex with -E (or use egrep)\ngrep -E \"error|warning|fatal\" server.log   # OR\ngrep -E \"^[0-9]{4}-\" timestamps.txt        # starts with 4 digits + dash\ngrep -E \"https?://\" urls.txt              # http or https\ngrep -E \"\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}\\b\" text.txt  # email"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Use grep -E for extended regex</strong> (alternation |, +, ?, {n})  and <code>grep -P</code> for Perl-compatible regex (\\d, \\w, \\s). Quote your patterns in single quotes to prevent the shell from interpreting special characters."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "linux-08-q1",
+          "question": "You want to find all lines in access.log that do NOT contain '200' (success responses). Which command?",
+          "type": "multiple-choice",
+          "options": [
+            "grep '200' access.log",
+            "grep -v '200' access.log",
+            "grep -n '!200' access.log",
+            "grep --not '200' access.log"
+          ],
+          "correctAnswer": 1,
+          "explanation": "grep -v (invert match) prints lines that do NOT match the pattern. grep -v '200' access.log shows all lines where '200' does not appear — useful for finding error responses (4xx, 5xx) in web server logs."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between grep, egrep, and fgrep?",
+      "a": "grep uses basic regex. egrep (same as grep -E) uses extended regex with |, +, ?, {}. fgrep (same as grep -F) treats the pattern as a literal string (no regex) — faster when searching for fixed strings like file paths or error codes. In modern scripts, prefer grep -E and grep -F flags over the egrep/fgrep aliases."
+    }
+  ],
+  "sources": [
+    { "name": "grep manual", "url": "https://man7.org/linux/man-pages/man1/grep.1.html", "verified": "2026-10-06" }
+  ],
+  "realWorld": {
+    "usedIn": ["log analysis", "code search", "text processing", "security audits"],
+    "examples": [
+      "grep -rn 'process.env' ./src | grep -v '.test.' — find all env var usages in source, excluding test files",
+      "grep -E '\"status\":\\s*[45][0-9]{2}' api.log — find all 4xx/5xx responses in a JSON API log"
+    ]
+  }
+}

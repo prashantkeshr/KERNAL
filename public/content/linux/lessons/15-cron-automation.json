@@ -1,0 +1,119 @@
+{
+  "id": "15-cron-automation",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "linux",
+  "technologyVersion": "1.0",
+  "module": "bash-scripting",
+  "title": "Cron and Automation",
+  "subtitle": "crontab syntax, scheduling tasks, @daily/@weekly, logging cron output",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-06",
+  "updatedAt": "2026-10-06",
+  "lastVerified": "2026-10-06",
+  "prerequisites": ["linux/14-conditionals-loops"],
+  "skillsTaught": ["linux.cron", "linux.crontab", "linux.scheduling", "linux.automation"],
+  "skillsUsed": ["linux.bash-scripts", "linux.redirect"],
+  "relatedConcepts": ["linux.processes", "linux.bash-scripts"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "What is cron?"
+    },
+    {
+      "type": "paragraph",
+      "text": "Cron is the classic Unix job scheduler — a background daemon that runs commands at a specific time or interval. Every user has their own crontab (cron table), a file listing what to run and when. It is built into every Linux distribution and macOS."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Crontab commands"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Managing your crontab",
+      "code": "# Edit your crontab (opens in $EDITOR)\ncrontab -e\n\n# List current crontab entries\ncrontab -l\n\n# Remove your entire crontab (careful!)\ncrontab -r\n\n# Edit crontab for a specific user (root only)\ncrontab -u alice -e\n\n# View cron logs (Ubuntu/Debian)\ngrep CRON /var/log/syslog\n\n# View cron logs (macOS)\nlog show --predicate 'process == \"cron\"' --last 1h"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Cron syntax"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Crontab field format",
+      "code": "# Format:\n# ┌─────────── minute       (0-59)\n# │ ┌───────── hour         (0-23)\n# │ │ ┌─────── day of month (1-31)\n# │ │ │ ┌───── month        (1-12)\n# │ │ │ │ ┌─── day of week  (0-7, 0 and 7 = Sunday)\n# │ │ │ │ │\n# * * * * *  command to run\n\n# Special values:\n# *   = every (every minute, every hour, etc.)\n# ,   = list  (1,5,10 = at 1, 5, and 10)\n# -   = range (1-5 = 1 through 5)\n# /   = step  (*/15 = every 15 minutes)\n\n# Examples:\n# Run at 2:30am every day:\n30 2 * * * /home/alice/backup.sh\n\n# Run every 15 minutes:\n*/15 * * * * /usr/bin/check_health.sh\n\n# Run at 9am Monday through Friday:\n0 9 * * 1-5 /home/alice/send_report.sh\n\n# Run at midnight on the 1st of every month:\n0 0 1 * * /home/alice/monthly_cleanup.sh\n\n# Run every hour:\n0 * * * * /home/alice/sync.sh"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "@shortcuts — readable aliases"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Cron @shortcuts",
+      "code": "# Instead of cryptic timing, use @shortcuts:\n@reboot  /home/alice/startup.sh         # run once at system boot\n@hourly  /home/alice/check.sh           # = 0 * * * *\n@daily   /home/alice/backup.sh          # = 0 0 * * *  (midnight)\n@weekly  /home/alice/cleanup.sh         # = 0 0 * * 0  (Sunday midnight)\n@monthly /home/alice/report.sh          # = 0 0 1 * *\n@yearly  /home/alice/annual.sh          # = 0 0 1 1 *\n\n# @reboot is especially useful for starting services\n# after a reboot without systemd"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Logging and debugging cron jobs"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Cron output and debugging",
+      "code": "# By default, cron emails output to the user (often silently discarded)\n# Always redirect output explicitly:\n\n# Redirect both stdout and stderr to a log file\n30 2 * * * /home/alice/backup.sh >> /home/alice/logs/backup.log 2>&1\n\n# Discard all output (use only when you're sure the script works)\n30 2 * * * /home/alice/backup.sh > /dev/null 2>&1\n\n# Log with timestamps using tee\n30 2 * * * /home/alice/backup.sh 2>&1 | tee -a /home/alice/logs/backup.log\n\n# Important: cron runs with a minimal PATH (/usr/bin:/bin)\n# If your script uses tools like node, python, git — use FULL paths\n# or set PATH at the top of your crontab:\nPATH=/usr/local/bin:/usr/bin:/bin:/home/alice/.local/bin\n30 2 * * * backup.sh  # now can find node, git, etc.\n\n# Or use full path inside the script:\n/usr/local/bin/node /home/alice/app/sync.js\n\n# Tip: always test the script manually first before scheduling it:\nbash /home/alice/backup.sh"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Use full paths for commands in crontab entries.</strong> Cron runs with a very minimal PATH — commands like <code>node</code>, <code>python3</code>, or <code>git</code> that work in your terminal won't be found by cron unless you specify their full path (e.g., <code>/usr/local/bin/node</code>) or set a <code>PATH=</code> variable at the top of the crontab file."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "linux-15-q1",
+          "question": "You want to run /home/alice/backup.sh every day at 3:30am. Which crontab entry is correct?",
+          "type": "multiple-choice",
+          "options": [
+            "30 3 * * * /home/alice/backup.sh",
+            "3 30 * * * /home/alice/backup.sh",
+            "* * 3 30 * /home/alice/backup.sh",
+            "@daily 3:30 /home/alice/backup.sh"
+          ],
+          "correctAnswer": 0,
+          "explanation": "Cron fields are: minute hour day month weekday. So 30 3 * * * means minute 30, hour 3, every day of the month, every month, every day of the week — i.e., 3:30am daily. Option B reverses minute and hour (would run at 3am on the 30th minute of every hour). @daily always runs at midnight and doesn't take a time argument."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "My cron job works when I run the script manually but not as a cron job. Why?",
+      "a": "Cron runs with a minimal environment: no .bashrc, no .profile, and a very limited PATH. Fixes: (1) Use full absolute paths for all commands. (2) Add PATH=/usr/local/bin:/usr/bin:/bin and any other directories at the top of your crontab. (3) Source your profile at the start of the script: source /home/user/.bashrc. Always redirect output to a log file to see what error cron is reporting."
+    },
+    {
+      "q": "What is the difference between cron and systemd timers?",
+      "a": "systemd timers are the modern Linux alternative. They support: missed-run catchup (runs a job even if the system was off at the scheduled time), per-job logging in the systemd journal (journalctl -u mytimer.timer), better error handling, and dependency management. For new Linux services, prefer systemd timers. For macOS, use launchd plist files (or a modern wrapper like launchd-crontab). Cron is still widely used for its simplicity and cross-platform availability."
+    }
+  ],
+  "sources": [
+    { "name": "crontab(5) manual", "url": "https://man7.org/linux/man-pages/man5/crontab.5.html", "verified": "2026-10-06" }
+  ],
+  "realWorld": {
+    "usedIn": ["database backups", "log rotation", "report generation", "cache warming", "health checks"],
+    "examples": [
+      "0 2 * * * pg_dump myapp | gzip > /backups/myapp-$(date +%Y%m%d).sql.gz — automated nightly database backup",
+      "@reboot sleep 10 && /home/deploy/app/start.sh — auto-start a custom app after every system reboot, with a 10s delay for networking to initialize"
+    ]
+  }
+}

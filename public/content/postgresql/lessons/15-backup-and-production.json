@@ -1,0 +1,98 @@
+{
+  "id": "15-backup-and-production",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "postgresql",
+  "technologyVersion": "16",
+  "module": "advanced-postgresql",
+  "title": "Backup and Production",
+  "subtitle": "pg_dump, connection pooling, VACUUM, ANALYZE, and production configuration",
+  "difficulty": "advanced",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-06",
+  "updatedAt": "2026-10-06",
+  "lastVerified": "2026-10-06",
+  "prerequisites": ["postgresql/11-transactions"],
+  "skillsTaught": ["pg.pg-dump", "pg.vacuum", "pg.connection-pooling", "pg.production-config"],
+  "skillsUsed": ["pg.transactions", "pg.mvcc"],
+  "relatedConcepts": ["pg.wal", "pg.autovacuum"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Backups with pg_dump"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "pg_dump commands",
+      "code": "# Dump a database to SQL text file\npg_dump -h localhost -U postgres myapp > myapp_backup.sql\n\n# Compressed backup (preferred for large databases)\npg_dump -h localhost -U postgres -F c myapp > myapp_backup.dump\n\n# Restore from SQL file\npsql -h localhost -U postgres -d myapp_restore < myapp_backup.sql\n\n# Restore from compressed dump\npg_restore -h localhost -U postgres -d myapp_restore myapp_backup.dump\n\n# Automated daily backups (crontab -e)\n# 0 2 * * * pg_dump -U postgres myapp | gzip > /backups/myapp_$(date +\\%Y\\%m\\%d).sql.gz\n\n# Dump only the schema (no data)\npg_dump --schema-only -h localhost -U postgres myapp > schema.sql\n\n# Dump only data (no schema)\npg_dump --data-only -h localhost -U postgres myapp > data.sql"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "VACUUM and ANALYZE"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "VACUUM and ANALYZE",
+      "code": "-- VACUUM reclaims storage from dead rows (MVCC cleanup)\n-- autovacuum runs this automatically — manual VACUUM rarely needed\nVACUUM users;\nVACUUM VERBOSE users;  -- shows statistics\nVACUUM FULL users;     -- reclaims disk space (locks table — use sparingly)\n\n-- ANALYZE updates query planner statistics\n-- Run after bulk inserts/updates for accurate query plans\nANALYZE users;\nANALYZE;  -- analyze all tables\n\n-- Check autovacuum status\nSELECT\n  schemaname,\n  tablename,\n  last_vacuum,\n  last_autovacuum,\n  last_analyze,\n  n_dead_tup\nFROM pg_stat_user_tables\nORDER BY n_dead_tup DESC;"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Production configuration checklist"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "<strong>Use a connection pooler</strong> — PgBouncer between your app and PostgreSQL. Each Postgres connection is a process (~5-10MB). 500 app connections → 500 Postgres processes without pooling.",
+        "<strong>Set max_connections</strong> — default 100. Increase to 200-400 with PgBouncer pooling. Formula: available RAM / 10MB per connection.",
+        "<strong>Enable pg_stat_statements</strong> — query performance tracking. Add to postgresql.conf: shared_preload_libraries = 'pg_stat_statements'",
+        "<strong>Configure shared_buffers</strong> — set to 25% of system RAM. The most impactful memory setting.",
+        "<strong>Regular backups</strong> — pg_dump or continuous WAL archiving (point-in-time recovery). Test restores regularly.",
+        "<strong>Use TIMESTAMPTZ everywhere</strong> — set timezone = 'UTC' in postgresql.conf so NOW() returns UTC.",
+        "<strong>Enable SSL</strong> — ssl = on in postgresql.conf. Require SSL in pg_hba.conf for remote connections."
+      ]
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "pg-15-q1",
+          "question": "Your PostgreSQL server has 8GB of RAM and 200 application workers, each maintaining a persistent connection. Why is this a problem without connection pooling?",
+          "type": "multiple-choice",
+          "options": [
+            "PostgreSQL only allows 10 connections",
+            "200 Postgres processes × ~10MB each = 2GB used just for connection overhead, leaving less RAM for data caching",
+            "Only one connection can write at a time",
+            "pg_dump does not work with many connections"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Each PostgreSQL connection is a separate OS process, using ~5-10MB of memory for the connection itself (before any query work). 200 connections × 10MB = 2GB — 25% of your 8GB consumed just for connection overhead. A connection pooler (PgBouncer) multiplexes many app connections to a few actual Postgres connections, keeping connection overhead low."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How often should I run pg_dump?",
+      "a": "For production: daily minimum, with automated rotation keeping 7-30 days of backups. Store backups off-server (S3, a different data center). For critical data, consider continuous WAL archiving (point-in-time recovery) so you can restore to any point in time, not just a daily snapshot."
+    }
+  ],
+  "sources": [
+    { "name": "PostgreSQL pg_dump", "url": "https://www.postgresql.org/docs/current/app-pgdump.html", "verified": "2026-10-06" }
+  ],
+  "realWorld": {
+    "usedIn": ["production database management", "disaster recovery", "database migrations", "staging environments"],
+    "examples": [
+      "A startup lost months of user data because they had never tested restoring from their pg_dump backups — the dumps were running but the process was silently failing",
+      "PgBouncer is the standard production setup — Supabase, Railway, and most PaaS providers configure it automatically"
+    ]
+  }
+}

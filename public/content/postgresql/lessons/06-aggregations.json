@@ -1,0 +1,113 @@
+{
+  "id": "06-aggregations",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "postgresql",
+  "technologyVersion": "16",
+  "module": "querying-data",
+  "title": "Aggregations and Grouping",
+  "subtitle": "GROUP BY, COUNT/SUM/AVG/MAX/MIN, HAVING, window functions intro",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-06",
+  "updatedAt": "2026-10-06",
+  "lastVerified": "2026-10-06",
+  "prerequisites": ["postgresql/05-joins-and-relations"],
+  "skillsTaught": ["pg.group-by", "pg.aggregate-functions", "pg.having", "pg.window-functions"],
+  "skillsUsed": ["pg.select", "pg.joins"],
+  "relatedConcepts": ["pg.indexes", "pg.cte"],
+  "whyItExists": {
+    "problem": "Raw SELECT returns individual rows. But business questions are often about groups: 'how many orders per customer?', 'what is the average order value per month?', 'which product category has the highest revenue?'. Aggregations summarize sets of rows into single values.",
+    "solution": "GROUP BY splits rows into groups. Aggregate functions (COUNT, SUM, AVG, MAX, MIN) compute a value for each group. HAVING filters groups after aggregation. Window functions compute aggregates without collapsing rows.",
+    "whenToUse": "Any time you need a summary: totals, counts, averages, rankings. Dashboard metrics, reporting, analytics queries.",
+    "whenNotToUse": "Don't aggregate in the database what you can calculate from a single row. And don't aggregate in the database what you can precalculate into a summary table for frequently-run expensive aggregations."
+  },
+  "explainModes": {
+    "beginner": "GROUP BY is like sorting your rows into buckets, then calculating something about each bucket. 'How many orders per customer?' — put all orders in buckets by customer, then COUNT each bucket. 'What is the total revenue per month?' — bucket orders by month, then SUM the revenue in each bucket.",
+    "standard": "Aggregate functions operate on a set of rows and return a single value per group. NULL values are ignored by aggregate functions (except COUNT(*)). COUNT(*) counts rows including NULLs; COUNT(column) counts non-NULL values. HAVING is like WHERE but for groups — it filters after GROUP BY. Window functions (OVER) compute aggregates across a sliding window without collapsing rows — perfect for running totals, rankings, and comparing each row to its neighbors.",
+    "technical": "The query planner implements GROUP BY with either a HashAggregate (builds a hash table of group keys) or a GroupAggregate (uses sorted input). HashAggregate is faster for low-cardinality groups; GroupAggregate is used when the input is already sorted. Window functions run after GROUP BY but before ORDER BY — they see the full result of aggregations. FILTER (WHERE ...) on aggregate functions allows conditional aggregation without a CASE expression."
+  },
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Aggregate functions"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "Aggregate functions",
+      "code": "-- Count all rows\nSELECT COUNT(*) FROM orders;\n\n-- Count non-null values in a column\nSELECT COUNT(coupon_code) FROM orders;  -- only counts rows with a coupon\n\n-- Sum, average, min, max\nSELECT\n  SUM(total_price)    AS revenue,\n  AVG(total_price)    AS avg_order,\n  MIN(total_price)    AS smallest_order,\n  MAX(total_price)    AS largest_order\nFROM orders\nWHERE status = 'completed';"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "GROUP BY — aggregating into groups"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "GROUP BY examples",
+      "code": "-- Orders per customer\nSELECT\n  user_id,\n  COUNT(*) AS order_count,\n  SUM(total_price) AS total_spent\nFROM orders\nGROUP BY user_id\nORDER BY total_spent DESC;\n\n-- Revenue by month\nSELECT\n  DATE_TRUNC('month', created_at) AS month,\n  COUNT(*) AS orders,\n  SUM(total_price) AS revenue\nFROM orders\nWHERE created_at >= '2026-01-01'\nGROUP BY DATE_TRUNC('month', created_at)\nORDER BY month;\n\n-- Group by multiple columns\nSELECT\n  category,\n  status,\n  COUNT(*) AS count\nFROM products\nGROUP BY category, status\nORDER BY category, count DESC;"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "HAVING — filtering groups"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "HAVING vs WHERE",
+      "code": "-- WHERE filters rows before grouping\n-- HAVING filters groups after grouping\n\n-- Find customers who spent more than $500 total\nSELECT\n  user_id,\n  SUM(total_price) AS total_spent\nFROM orders\nWHERE status = 'completed'          -- filter rows first\nGROUP BY user_id\nHAVING SUM(total_price) > 500.00    -- then filter groups\nORDER BY total_spent DESC;"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Window functions — aggregates without collapsing rows"
+    },
+    {
+      "type": "code",
+      "lang": "sql",
+      "filename": "Window functions",
+      "code": "-- Running total of revenue\nSELECT\n  id,\n  created_at,\n  total_price,\n  SUM(total_price) OVER (ORDER BY created_at) AS running_total\nFROM orders\nWHERE status = 'completed';\n\n-- Rank customers by total spending\nSELECT\n  user_id,\n  SUM(total_price) AS total_spent,\n  RANK() OVER (ORDER BY SUM(total_price) DESC) AS spending_rank\nFROM orders\nGROUP BY user_id;\n\n-- Each order as a % of the customer's total\nSELECT\n  id,\n  user_id,\n  total_price,\n  ROUND(\n    100.0 * total_price / SUM(total_price) OVER (PARTITION BY user_id), 2\n  ) AS pct_of_customer_total\nFROM orders;"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "pg-06-q1",
+          "question": "You want to find all categories that have more than 10 products. Which clause filters by this condition?",
+          "type": "multiple-choice",
+          "options": [
+            "WHERE COUNT(*) > 10",
+            "HAVING COUNT(*) > 10",
+            "FILTER (WHERE COUNT(*) > 10)",
+            "GROUP BY category LIMIT 10"
+          ],
+          "correctAnswer": 1,
+          "explanation": "HAVING filters groups after GROUP BY. You cannot use aggregate functions in WHERE because WHERE is evaluated before grouping. The correct query: SELECT category, COUNT(*) FROM products GROUP BY category HAVING COUNT(*) > 10."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between COUNT(*) and COUNT(column)?",
+      "a": "COUNT(*) counts every row including those with NULL values. COUNT(column) counts only the rows where that column is NOT NULL. Example: if 5 of 100 orders have no coupon, COUNT(*) returns 100 but COUNT(coupon_code) returns 95."
+    }
+  ],
+  "sources": [
+    { "name": "PostgreSQL Aggregate Functions", "url": "https://www.postgresql.org/docs/current/functions-aggregate.html", "verified": "2026-10-06" }
+  ],
+  "realWorld": {
+    "usedIn": ["analytics dashboards", "business intelligence", "reporting APIs", "user activity summaries"],
+    "examples": [
+      "DATE_TRUNC('month', timestamp) is used to group time-series data by month or week in analytics dashboards",
+      "Window functions power leaderboards, ranking pages, and 'top N per category' queries that would otherwise require complex subqueries"
+    ]
+  }
+}

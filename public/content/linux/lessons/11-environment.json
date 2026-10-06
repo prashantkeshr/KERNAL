@@ -1,0 +1,95 @@
+{
+  "id": "11-environment",
+  "version": "1.0.0",
+  "contentVersion": "1.0.0",
+  "technology": "linux",
+  "technologyVersion": "1.0",
+  "module": "processes-and-system",
+  "title": "Environment Variables",
+  "subtitle": "$PATH, export, .bashrc, .profile — making the shell work for you",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 12,
+  "status": "published",
+  "author": "KERNAL Team",
+  "reviewer": "KERNAL Team",
+  "createdAt": "2026-10-06",
+  "updatedAt": "2026-10-06",
+  "lastVerified": "2026-10-06",
+  "prerequisites": ["linux/10-processes"],
+  "skillsTaught": ["linux.env-vars", "linux.path", "linux.export", "linux.bashrc", "linux.dotfiles"],
+  "skillsUsed": ["linux.shell", "linux.filesystem"],
+  "relatedConcepts": ["linux.bash-scripts", "linux.processes"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Environment variables"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Working with env vars",
+      "code": "# Read a variable\necho $HOME          # /home/alice\necho $USER          # alice\necho $SHELL         # /bin/bash\necho $PATH          # /usr/local/bin:/usr/bin:/bin:...\n\n# Set a variable (only current shell session)\nNAME=\"Alice\"\necho $NAME          # Alice\n\n# export: make a variable available to child processes\nexport DATABASE_URL=\"postgresql://localhost/myapp\"\nexport NODE_ENV=\"development\"\n\n# View all environment variables\nenv\nprintenv\nprintenv PATH       # print just one variable\n\n# Unset a variable\nunset DATABASE_URL\n\n# Set for a single command\nNODE_ENV=production node app.js    # only sets for that command"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "$PATH — how the shell finds commands"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "$PATH explained",
+      "code": "# PATH is a colon-separated list of directories\necho $PATH\n# /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/home/alice/.local/bin\n\n# When you type 'node', the shell searches each PATH dir in order\n# and runs the first 'node' it finds\nwhich node    # /usr/local/bin/node\n\n# Add a directory to PATH\nexport PATH=\"$HOME/.local/bin:$PATH\"   # prepend (higher priority)\nexport PATH=\"$PATH:/opt/myapp/bin\"     # append (lower priority)\n\n# Common additions to PATH:\n# ~/.local/bin  — user-installed tools\n# ~/.cargo/bin  — Rust (cargo install)\n# ~/go/bin      — Go binaries\n# /opt/homebrew/bin — macOS Homebrew (Apple Silicon)"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": ".bashrc and .profile — persisting configuration"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Shell config files",
+      "code": "# .bashrc — loaded for every interactive non-login bash shell\n# Put: aliases, functions, PATH additions, prompt customization\n\n# .bash_profile / .profile — loaded for login shells\n# Put: environment variables, PATH (loaded once at login)\n\n# .zshrc — same as .bashrc but for zsh\n\n# Edit your .bashrc:\nnano ~/.bashrc\n# Add:\nexport PATH=\"$HOME/.local/bin:$PATH\"\nexport EDITOR=\"vim\"\nalias ll='ls -la'\nalias gs='git status'\nalias gp='git push'\n\n# Reload without opening a new terminal\nsource ~/.bashrc   # or: . ~/.bashrc"
+    },
+    {
+      "type": "tip",
+      "text": "Put <code>export</code> statements (env vars, PATH) in <code>~/.profile</code> or <code>~/.bash_profile</code> so they load once at login. Put aliases and functions in <code>~/.bashrc</code> for interactive sessions. Both files are loaded in most setups — when in doubt, use <code>~/.bashrc</code>."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "linux-11-q1",
+          "question": "You add export PATH=\"$HOME/.local/bin:$PATH\" to your .bashrc and run source ~/.bashrc. You then open a new terminal. Is the PATH change permanent?",
+          "type": "multiple-choice",
+          "options": [
+            "No — source only affects the current session temporarily",
+            "Yes — .bashrc is loaded on every new interactive bash session",
+            "No — you need to put it in /etc/environment for it to persist",
+            "No — environment variables are always reset on new sessions"
+          ],
+          "correctAnswer": 1,
+          "explanation": ".bashrc is executed every time you open a new interactive non-login shell (every new terminal window/tab). So changes to ~/.bashrc persist permanently — every new terminal will load it. source ~/.bashrc applies the change to the current session without needing to open a new one."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Where should I store sensitive environment variables (API keys)?",
+      "a": "Not in .bashrc — that file gets committed to git by accident. Use a .env file in your project (and add .env to .gitignore), then load it with a tool like direnv (automatic per-directory env) or explicitly with export $(cat .env | xargs) in your session. For production, use your hosting platform's secret management (Heroku config vars, Railway variables, Kubernetes secrets)."
+    }
+  ],
+  "sources": [
+    { "name": "Bash Environment Variables", "url": "https://www.gnu.org/software/bash/manual/bash.html#Bash-Variables", "verified": "2026-10-06" }
+  ],
+  "realWorld": {
+    "usedIn": ["application configuration", "CI/CD secrets", "development environment setup", "tool installation"],
+    "examples": [
+      "DATABASE_URL, SECRET_KEY, API_KEY — the standard way to configure 12-factor apps without hardcoding secrets in source code",
+      "$PATH manipulation is done by every version manager: nvm, rbenv, pyenv — they prepend their bin directory to $PATH to shadow system versions"
+    ]
+  }
+}
