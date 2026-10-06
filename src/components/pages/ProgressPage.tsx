@@ -19,7 +19,6 @@ interface TechProgressData {
   percent: number;
 }
 
-const TECH_LESSON_COUNT = 15;
 
 export default function ProgressPage() {
   const { streak, badges, progress, quizScores, earnCertificate } = useStore();
