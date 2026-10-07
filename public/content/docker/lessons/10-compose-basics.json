@@ -1,0 +1,84 @@
+{
+  "id": "10-compose-basics",
+  "version": "1.0.0",
+  "technology": "docker",
+  "module": "docker-compose",
+  "title": "Docker Compose Basics",
+  "subtitle": "Define and run multi-container applications with a single YAML file",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 16,
+  "status": "published",
+  "prerequisites": ["docker/09-networking"],
+  "skillsTaught": ["docker.compose", "docker.compose-yaml", "docker.services", "docker.depends-on"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "What is Docker Compose?"
+    },
+    {
+      "type": "paragraph",
+      "text": "Running a modern application typically means running several containers together: an API server, a database, a cache, a message queue. Typing five <code>docker run</code> commands with all their flags is tedious, error-prone, and impossible to share. Docker Compose lets you define your entire multi-service stack in a single <code>docker-compose.yml</code> file, then start everything with one command: <code>docker compose up</code>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "A complete docker-compose.yml"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "docker-compose.yml",
+      "code": "# docker-compose.yml — a full-stack web app: API + PostgreSQL + Redis\nservices:\n\n  # ── API server ────────────────────────────────────────────\n  api:\n    build: .                        # build from Dockerfile in current dir\n    image: myapp-api:dev            # name the built image\n    container_name: myapp-api\n    ports:\n      - \"3000:3000\"                  # host:container\n    environment:\n      NODE_ENV: development\n      DATABASE_URL: postgres://postgres:secret@postgres:5432/myapp\n      REDIS_URL: redis://redis:6379\n    env_file:\n      - .env.local                  # override with local env file\n    volumes:\n      - ./src:/app/src               # bind mount for hot reload\n    depends_on:\n      postgres:\n        condition: service_healthy   # wait until postgres passes healthcheck\n      redis:\n        condition: service_started\n    restart: unless-stopped\n\n  # ── PostgreSQL database ───────────────────────────────────\n  postgres:\n    image: postgres:16-alpine\n    container_name: myapp-postgres\n    environment:\n      POSTGRES_USER: postgres\n      POSTGRES_PASSWORD: secret\n      POSTGRES_DB: myapp\n    volumes:\n      - postgres-data:/var/lib/postgresql/data  # named volume — data persists\n      - ./init.sql:/docker-entrypoint-initdb.d/init.sql  # auto-run on first start\n    healthcheck:\n      test: [\"CMD-SHELL\", \"pg_isready -U postgres\"]\n      interval: 5s\n      timeout: 5s\n      retries: 5\n    restart: unless-stopped\n\n  # ── Redis cache ───────────────────────────────────────────\n  redis:\n    image: redis:7-alpine\n    container_name: myapp-redis\n    volumes:\n      - redis-data:/data\n    restart: unless-stopped\n\n# Named volumes (persists data across compose down/up)\nvolumes:\n  postgres-data:\n  redis-data:"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Essential Compose commands"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Docker Compose commands",
+      "code": "# Start all services (in background)\ndocker compose up -d\n\n# Start and rebuild images (after Dockerfile changes)\ndocker compose up -d --build\n\n# Start specific services only\ndocker compose up -d api redis\n\n# Stop all services (containers stop, data preserved)\ndocker compose down\n\n# Stop AND delete volumes (nuclear — deletes all data!)\ndocker compose down -v\n\n# View logs for all services\ndocker compose logs -f\n\n# View logs for a specific service\ndocker compose logs -f api\n\n# Open a shell in a running service\ndocker compose exec api sh\ndocker compose exec postgres psql -U postgres myapp\n\n# List running services\ndocker compose ps\n\n# Run a one-off command in a service\ndocker compose run --rm api npm run migrate"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>docker compose vs docker-compose:</strong> The old standalone <code>docker-compose</code> (v1, Python) is deprecated. Use <code>docker compose</code> (space, no hyphen) — the v2 plugin built into Docker CLI. It's faster, has better error messages, and supports the latest features."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "docker-10-q1",
+          "question": "Your API service has 'depends_on: postgres'. You run docker compose up. What does this guarantee?",
+          "type": "multiple-choice",
+          "options": [
+            "The API will not start until PostgreSQL is fully ready to accept connections",
+            "Docker starts postgres before api, but does NOT wait for PostgreSQL to be ready — the API may still fail to connect if PG is slow to start",
+            "The API service will retry connecting to postgres until it succeeds",
+            "Docker Compose won't start at all until postgres is healthy"
+          ],
+          "correctAnswer": 1,
+          "explanation": "By default, depends_on only controls START ORDER — not readiness. Docker starts postgres first, then api, but if PostgreSQL takes 3 seconds to initialize, the API might crash. To wait for readiness, use 'depends_on: condition: service_healthy' with a healthcheck defined on the postgres service."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do services reach each other in Compose?",
+      "a": "Docker Compose automatically creates a custom network for all services and makes each service reachable by its service name as a hostname. In the example above, the api service reaches PostgreSQL at 'postgres:5432' — no network: config needed. This is one of Compose's biggest conveniences."
+    }
+  ],
+  "sources": [
+    { "name": "Docker Compose file reference", "url": "https://docs.docker.com/compose/compose-file/", "verified": "2026-10-07" }
+  ],
+  "realWorld": {
+    "usedIn": ["local development stacks", "CI/CD test environments", "integration testing", "staging environments"],
+    "examples": [
+      "Most open-source projects ship a docker-compose.yml so contributors can run the full stack in one command — no manual database setup",
+      "CI pipelines use 'docker compose up -d' to spin up dependencies (postgres, redis, elasticsearch) before running integration tests"
+    ]
+  }
+}

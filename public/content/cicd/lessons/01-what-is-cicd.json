@@ -1,0 +1,98 @@
+{
+  "id": "01-what-is-cicd",
+  "version": "1.0.0",
+  "technology": "cicd",
+  "module": "cicd-fundamentals",
+  "title": "What is CI/CD?",
+  "subtitle": "Continuous Integration, Delivery, and Deployment — the philosophy and the pipeline",
+  "difficulty": "beginner",
+  "estimatedMinutes": 12,
+  "status": "published",
+  "prerequisites": ["git/04-github-workflow"],
+  "skillsTaught": ["cicd.ci-vs-cd", "cicd.pipeline-stages", "cicd.devops-culture"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The 'works on my machine' problem — at scale"
+    },
+    {
+      "type": "paragraph",
+      "text": "In the early 2000s, software teams integrated code once every few weeks — or months. Every integration was a painful, risky event: merge conflicts piled up, tests hadn't run in weeks, and the release process involved days of manual steps. Bugs that could have been caught in minutes festered for weeks. <strong>CI/CD was invented to solve this</strong>: make integration frequent, make testing automatic, and make deployment a non-event."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "CI, CD (Delivery), CD (Deployment) — the three terms"
+    },
+    {
+      "type": "definition",
+      "term": "Continuous Integration (CI)",
+      "definition": "Every code push automatically triggers: build the project, run all tests, check code quality. If anything fails, the developer is notified immediately — while the context is fresh. Goal: always keep the main branch in a deployable state."
+    },
+    {
+      "type": "definition",
+      "term": "Continuous Delivery (CD)",
+      "definition": "After CI passes, the code is automatically packaged and deployed to a staging environment, ready for production at the push of a button. The deployment to production is a manual trigger — but the process is fully automated."
+    },
+    {
+      "type": "definition",
+      "term": "Continuous Deployment (CD)",
+      "definition": "Goes one step further: if all checks pass, code is deployed to production automatically — no human in the loop. This is what companies like Netflix, Etsy, and Shopify do — deploying hundreds of times per day."
+    },
+    {
+      "type": "playground",
+      "title": "Pipeline Stages — Interactive Flow",
+      "code": "<!DOCTYPE html><html><head><style>:root{--bg:#0e1116;--surface:#1a1f2b;--accent:#4fd1c5;--text:#e2e8f0;--muted:#8892a4;--border:#2d3448;--green:#34d399;--red:#f87171;--yellow:#fbbf24;--blue:#60a5fa}*{box-sizing:border-box;margin:0;padding:0}body{background:var(--bg);color:var(--text);font-family:-apple-system,sans-serif;padding:16px}.title{font-size:12px;color:var(--accent);letter-spacing:.08em;text-transform:uppercase;margin-bottom:16px}.trigger{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px}.trigger-icon{font-size:20px}.trigger-text{font-size:13px;font-weight:600}.trigger-sub{font-size:11px;color:var(--muted);margin-top:2px}.arrow{text-align:center;color:var(--muted);font-size:18px;margin:4px 0}.stages{display:flex;flex-direction:column;gap:8px}.stage{border-radius:8px;overflow:hidden;border:1px solid var(--border);cursor:pointer;transition:border-color .2s}.stage.active{border-color:var(--accent)}.stage-head{padding:12px 16px;display:flex;align-items:center;gap:12px;background:var(--surface)}.stage-num{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}.stage-title{font-size:13px;font-weight:600;flex:1}.stage-status{font-size:11px;padding:3px 8px;border-radius:4px;font-weight:600}.stage-body{padding:14px 16px;background:#141920;border-top:1px solid var(--border);display:none;font-size:12px;color:var(--muted);line-height:1.7}.stage.active .stage-body{display:block}.step{display:flex;align-items:center;gap:8px;padding:4px 0}.step-icon{width:16px;text-align:center;flex-shrink:0}.run-btn{margin-top:16px;background:var(--accent);color:var(--bg);border:none;padding:10px 20px;border-radius:6px;font-weight:600;font-size:13px;cursor:pointer;width:100%}.run-btn:disabled{opacity:.5;cursor:default}</style></head><body><div class='title'>CI/CD Pipeline Simulation</div><div class='trigger'><div class='trigger-icon'>⚡</div><div><div class='trigger-text'>git push origin main</div><div class='trigger-sub'>Developer pushes code → pipeline triggers automatically</div></div></div><div class='stages' id='stages'><div class='stage' id='s1'><div class='stage-head' onclick='toggle(1)'><div class='stage-num' style='background:rgba(96,165,250,.2);color:#60a5fa'>1</div><div class='stage-title'>Checkout & Install</div><div class='stage-status' id='st1' style='background:rgba(248,180,0,.1);color:#fbbf24'>PENDING</div></div><div class='stage-body'><div class='step'><span class='step-icon'>📥</span> Checkout code from repository</div><div class='step'><span class='step-icon'>📦</span> npm ci (clean install from lock file)</div><div class='step'><span class='step-icon'>💾</span> Cache node_modules for future runs</div></div></div><div class='stage' id='s2'><div class='stage-head' onclick='toggle(2)'><div class='stage-num' style='background:rgba(167,139,250,.2);color:#a78bfa'>2</div><div class='stage-title'>Test</div><div class='stage-status' id='st2' style='background:rgba(248,180,0,.1);color:#fbbf24'>PENDING</div></div><div class='stage-body'><div class='step'><span class='step-icon'>🧪</span> npm test (unit tests + integration)</div><div class='step'><span class='step-icon'>📊</span> Generate coverage report</div><div class='step'><span class='step-icon'>❌</span> Fail pipeline if coverage &lt; 80%</div></div></div><div class='stage' id='s3'><div class='stage-head' onclick='toggle(3)'><div class='stage-num' style='background:rgba(79,209,197,.2);color:#4fd1c5'>3</div><div class='stage-title'>Lint & Type Check</div><div class='stage-status' id='st3' style='background:rgba(248,180,0,.1);color:#fbbf24'>PENDING</div></div><div class='stage-body'><div class='step'><span class='step-icon'>🔍</span> ESLint — check code style and patterns</div><div class='step'><span class='step-icon'>📝</span> Prettier — check formatting</div><div class='step'><span class='step-icon'>🏷️</span> tsc --noEmit — TypeScript type checking</div></div></div><div class='stage' id='s4'><div class='stage-head' onclick='toggle(4)'><div class='stage-num' style='background:rgba(251,191,36,.2);color:#fbbf24'>4</div><div class='stage-title'>Build</div><div class='stage-status' id='st4' style='background:rgba(248,180,0,.1);color:#fbbf24'>PENDING</div></div><div class='stage-body'><div class='step'><span class='step-icon'>🏗️</span> npm run build (vite/webpack production build)</div><div class='step'><span class='step-icon'>🐳</span> docker build -t myapp:$SHA .</div><div class='step'><span class='step-icon'>📤</span> docker push to registry</div></div></div><div class='stage' id='s5'><div class='stage-head' onclick='toggle(5)'><div class='stage-num' style='background:rgba(248,113,113,.2);color:#f87171'>5</div><div class='stage-title'>Deploy to Staging</div><div class='stage-status' id='st5' style='background:rgba(248,180,0,.1);color:#fbbf24'>PENDING</div></div><div class='stage-body'><div class='step'><span class='step-icon'>🚀</span> Pull new image on staging server</div><div class='step'><span class='step-icon'>🔄</span> docker compose up -d (rolling restart)</div><div class='step'><span class='step-icon'>✅</span> Smoke test staging URL</div></div></div></div><button class='run-btn' id='runBtn' onclick='runPipeline()'>▶ Run Pipeline</button><script>let active=null;function toggle(n){let el=document.getElementById('s'+n);if(active===n){el.classList.remove('active');active=null;}else{if(active)document.getElementById('s'+active).classList.remove('active');el.classList.add('active');active=n;}}const stages=['s1','s2','s3','s4','s5'];const statuses=['st1','st2','st3','st4','st5'];function runPipeline(){document.getElementById('runBtn').disabled=true;document.getElementById('runBtn').textContent='Pipeline running...';stages.forEach((s,i)=>{setTimeout(()=>{let head=document.getElementById(s).querySelector('.stage-head');head.style.background='rgba(79,209,197,.05)';let st=document.getElementById(statuses[i]);st.textContent='RUNNING';st.style.background='rgba(251,191,36,.15)';st.style.color='#fbbf24';setTimeout(()=>{st.textContent='✓ PASSED';st.style.background='rgba(52,211,153,.15)';st.style.color='#34d399';document.getElementById(s).classList.add('active');active=i+1;if(i===4){document.getElementById('runBtn').textContent='✓ Pipeline Passed — Deployed to Staging';document.getElementById('runBtn').style.background='#34d399';}},1200);},i*2000+500);})};</script></body></html>"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Why CI/CD changes how teams work"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "<strong>Smaller, safer changes</strong> — when deploying is easy, you deploy often. Small changes are easier to review, test, and roll back.",
+        "<strong>Faster feedback</strong> — a bug caught in CI minutes after push is 10× cheaper to fix than one found in production weeks later.",
+        "<strong>No 'integration hell'</strong> — merging frequently means conflicts are small and frequent instead of large and catastrophic.",
+        "<strong>Confidence</strong> — developers can refactor fearlessly when tests run automatically on every push."
+      ]
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "cicd-01-q1",
+          "question": "What is the key difference between Continuous Delivery and Continuous Deployment?",
+          "type": "multiple-choice",
+          "options": [
+            "Continuous Delivery uses Docker; Continuous Deployment does not",
+            "Continuous Delivery deploys to production manually after automated checks pass; Continuous Deployment deploys to production automatically",
+            "Continuous Delivery is for frontend apps; Continuous Deployment is for backend",
+            "They are the same thing — different teams just use different terms"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Continuous Delivery automates everything up to production — a human still clicks 'deploy to prod'. Continuous Deployment removes that final human gate — if all checks pass, it goes to production automatically. Both require high confidence in automated tests. Most teams start with Continuous Delivery and move toward Deployment as test coverage grows."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Do I need CI/CD for my personal project?",
+      "a": "Yes — even a simple GitHub Actions workflow that runs tests and deploys on push saves time and prevents embarrassing bugs from reaching production. The setup takes 30 minutes and pays back immediately. Even a one-person project benefits from 'the tests passed' confidence before every deploy."
+    }
+  ],
+  "sources": [
+    { "name": "GitHub Actions documentation", "url": "https://docs.github.com/en/actions", "verified": "2026-10-07" }
+  ],
+  "realWorld": {
+    "usedIn": ["every modern engineering team", "open source projects", "startups", "enterprise"],
+    "examples": [
+      "Etsy deployments: from 2 deploys per week in 2009 to 50+ per day in 2013 after adopting CI/CD — this is a canonical DevOps case study",
+      "Every pull request on this KERNAL platform itself goes through a CI pipeline: build check → type check → deploy — you've seen it in the GitHub Actions tab"
+    ]
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "id": "13-debugging-containers",
+  "version": "1.0.0",
+  "technology": "docker",
+  "module": "real-world-docker",
+  "title": "Debugging Containers",
+  "subtitle": "Logs, exec, inspect, stats — the complete toolkit for diagnosing containerised applications",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 13,
+  "status": "published",
+  "prerequisites": ["docker/12-compose-production"],
+  "skillsTaught": ["docker.logs", "docker.exec", "docker.inspect", "docker.stats", "docker.debugging"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Reading container logs"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "docker logs",
+      "code": "# View all logs since container started\ndocker logs my-api\n\n# Follow (stream) logs in real time\ndocker logs -f my-api\n\n# Show only last 50 lines\ndocker logs --tail 50 my-api\n\n# Show logs with timestamps\ndocker logs -t my-api\n\n# Show logs since a specific time\ndocker logs --since 1h my-api       # last hour\ndocker logs --since 2024-01-15 my-api\n\n# Combine: tail + follow with timestamps\ndocker logs -f -t --tail 100 my-api\n\n# With Docker Compose:\ndocker compose logs -f api\ndocker compose logs -f --tail 50 api postgres"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "exec — run commands inside a running container"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "docker exec",
+      "code": "# Open an interactive shell (bash)\ndocker exec -it my-api bash\n\n# Alpine-based images use sh not bash\ndocker exec -it my-api sh\n\n# Run a single command and exit\ndocker exec my-api node --version\ndocker exec my-api cat /app/config.json\ndocker exec my-api env | sort          # see all environment variables\n\n# Connect to PostgreSQL inside its container\ndocker exec -it my-postgres psql -U postgres myapp\n\n# Connect to Redis CLI\ndocker exec -it my-redis redis-cli\n\n# With Compose:\ndocker compose exec api sh\ndocker compose exec postgres psql -U postgres myapp\n\n# Debugging: what processes are running inside?\ndocker exec my-api ps aux\n\n# Check disk usage inside container\ndocker exec my-api df -h"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "inspect and stats — container internals"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "inspect and stats",
+      "code": "# Full JSON dump of a container's config\ndocker inspect my-api\n\n# Extract specific fields with --format (Go template)\ndocker inspect my-api --format '{{.State.Status}}'\ndocker inspect my-api --format '{{.State.ExitCode}}'\ndocker inspect my-api --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'\ndocker inspect my-api --format '{{json .HostConfig.PortBindings}}'\n\n# Live resource usage for all containers\ndocker stats\n# CONTAINER     CPU %   MEM USAGE / LIMIT   MEM %   NET I/O   BLOCK I/O\n# my-api        2.3%    128MiB / 512MiB     25%     1.2MB/...  0B\n# my-postgres   0.1%    67MiB / 1GiB        6.5%    ...\n\n# One-shot snapshot (no live update)\ndocker stats --no-stream"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Debugging a crashed container"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Investigating crash loops",
+      "code": "# See ALL containers including stopped ones\ndocker ps -a\n# STATUS: Exited (1) 2 minutes ago  ← non-zero exit = crash\n\n# Read the crash logs\ndocker logs my-api\n# Error: ECONNREFUSED — database not ready yet\n\n# Check exit code\ndocker inspect my-api --format '{{.State.ExitCode}}'\n# 1 = general error, 137 = OOM killed, 143 = SIGTERM (clean stop)\n\n# Common exit codes:\n# 0 = clean exit\n# 1 = application error\n# 137 = OOM kill (increase --memory limit)\n# 139 = segfault\n# 143 = SIGTERM received\n\n# Debug a container that exits immediately:\n# Override the CMD to keep it open\ndocker run --rm -it --entrypoint sh myapp\n# Now you're inside — diagnose manually"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Add a /health endpoint to every service.</strong> A simple GET /health route that returns 200 gives you a compose healthcheck target, lets load balancers route traffic away from unhealthy instances, and is the first thing to check when debugging: <code>docker exec my-api curl -s localhost:3000/health</code>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "docker-13-q1",
+          "question": "A container keeps restarting. docker ps shows 'Restarting (137) X seconds ago'. What does exit code 137 mean and what should you check?",
+          "type": "multiple-choice",
+          "options": [
+            "The application threw a JavaScript error — check the source code",
+            "The container was OOM-killed (Out Of Memory) — increase the --memory limit or find a memory leak",
+            "The container received SIGTERM — check your restart policy",
+            "A dependency service wasn't ready — add depends_on with healthcheck"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Exit code 137 = 128 + 9 (SIGKILL signal number). This happens when the kernel's OOM killer terminates the container because it exceeded its memory limit. Check docker stats to see memory usage. Either increase the memory limit (--memory 1g) or profile the application for memory leaks."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do I debug a container that doesn't have bash or sh installed?",
+      "a": "Use 'docker run --pid=container:<id> --network=container:<id> --privileged nicolaka/netshoot' — a debug container that shares the target container's PID and network namespace, giving you curl, dig, tcpdump, and many other tools without modifying your production image. Or use 'docker debug' (Docker Desktop feature) which attaches a debug shell to any container."
+    }
+  ],
+  "sources": [
+    { "name": "Docker logs reference", "url": "https://docs.docker.com/reference/cli/docker/container/logs/", "verified": "2026-10-07" }
+  ],
+  "realWorld": {
+    "usedIn": ["production incident response", "CI failure investigation", "performance profiling"],
+    "examples": [
+      "docker logs --since 5m my-api | grep ERROR — quickly find recent errors in production without SSH-ing to the server",
+      "docker stats --no-stream | sort -k4 -h — sort all containers by memory usage to find the memory hog"
+    ]
+  }
+}

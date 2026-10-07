@@ -1,0 +1,21 @@
+{
+  "id": "cicd",
+  "title": "CI/CD & DevOps — Automated Pipelines",
+  "subtitle": "Automate testing, quality, and deployment with GitHub Actions",
+  "description": "Go from manual deployments to fully automated CI/CD pipelines. You'll learn GitHub Actions from scratch, automate testing and code quality, build and push Docker images in CI, deploy to cloud platforms, and set up release automation — the exact workflow used at top engineering teams. Every lesson is practical and immediately applicable to your own projects.",
+  "icon": "settings",
+  "color": "#2088ff",
+  "difficulty": "intermediate",
+  "estimatedHours": 15,
+  "prerequisites": ["git", "linux", "docker"],
+  "certificationAvailable": true,
+  "stage": 12,
+  "version": "1.0.0",
+  "modules": [
+    { "id": "cicd-fundamentals", "title": "CI/CD Fundamentals", "order": 1 },
+    { "id": "workflow-essentials", "title": "Workflow Essentials", "order": 2 },
+    { "id": "testing-and-quality", "title": "Testing & Quality", "order": 3 },
+    { "id": "deployment-pipelines", "title": "Deployment Pipelines", "order": 4 },
+    { "id": "advanced-cicd", "title": "Advanced CI/CD", "order": 5 }
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "id": "07-automated-testing",
+  "version": "1.0.0",
+  "technology": "cicd",
+  "module": "testing-and-quality",
+  "title": "Automated Testing in CI",
+  "subtitle": "Run unit tests, integration tests, upload coverage, and fail the pipeline on regressions",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "prerequisites": ["cicd/06-matrix-builds"],
+  "skillsTaught": ["cicd.testing", "cicd.coverage", "cicd.test-artifacts", "cicd.test-reporters"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Running tests in CI — the complete setup"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": ".github/workflows/test.yml",
+      "code": "name: Tests\non:\n  push:\n    branches: [main]\n  pull_request:\n\njobs:\n  unit-tests:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-node@v4\n        with: { node-version: '20', cache: 'npm' }\n      - run: npm ci\n\n      # Run tests with coverage\n      - name: Run unit tests\n        run: npm test -- --coverage --coverageReporters=json-summary --coverageReporters=lcov\n\n      # Upload coverage to Codecov (free for open source)\n      - name: Upload to Codecov\n        uses: codecov/codecov-action@v4\n        with:\n          token: ${{ secrets.CODECOV_TOKEN }}\n          files: ./coverage/lcov.info\n          fail_ci_if_error: true\n\n      # Upload coverage report as artifact\n      - name: Archive coverage\n        uses: actions/upload-artifact@v4\n        with:\n          name: coverage-report\n          path: coverage/\n          retention-days: 7\n\n  integration-tests:\n    runs-on: ubuntu-latest\n    # Start a PostgreSQL service container alongside the test runner\n    services:\n      postgres:\n        image: postgres:16-alpine\n        env:\n          POSTGRES_PASSWORD: testpass\n          POSTGRES_DB: testdb\n        ports:\n          - 5432:5432\n        options: >-\n          --health-cmd pg_isready\n          --health-interval 10s\n          --health-timeout 5s\n          --health-retries 5\n\n      redis:\n        image: redis:7-alpine\n        ports:\n          - 6379:6379\n\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-node@v4\n        with: { node-version: '20', cache: 'npm' }\n      - run: npm ci\n\n      - name: Run integration tests\n        env:\n          DATABASE_URL: postgres://postgres:testpass@localhost:5432/testdb\n          REDIS_URL: redis://localhost:6379\n        run: npm run test:integration"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Enforcing coverage thresholds"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "Failing on low coverage",
+      "code": "# In package.json / vitest.config.ts:\n# coverage: { thresholds: { lines: 80, functions: 80, branches: 70 } }\n# Test command fails with non-zero exit if thresholds aren't met\n\n# In workflow:\n- name: Test with coverage check\n  run: npm test -- --coverage\n  # Exits 1 if below threshold → step fails → job fails → PR is blocked\n\n# For a more nuanced approach: check the JSON summary in the workflow\n- name: Check coverage threshold\n  run: |\n    COVERAGE=$(node -e \"const c = require('./coverage/coverage-summary.json'); \\\n      console.log(c.total.lines.pct)\")\n    echo \"Line coverage: $COVERAGE%\"\n    node -e \"if ($COVERAGE < 80) { console.error('Coverage below 80%!'); process.exit(1); }\""
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Test result annotations"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "Test reporters for GitHub PR annotations",
+      "code": "- name: Run tests\n  run: npm test -- --reporter=json --outputFile=test-results.json\n\n# Publish test results as PR check with inline annotations\n- name: Publish test results\n  uses: dorny/test-reporter@v1\n  if: always()   # run even if tests fail\n  with:\n    name: Test Results\n    path: test-results.json\n    reporter: jest-json\n    # Now failing tests show as inline PR annotations\n    # and a 'Test Results' check appears in the PR"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Use <code>if: always()</code> for artifact uploads and reports.</strong> By default, later steps are skipped if an earlier step fails. But you want to upload test results even when tests fail — that's exactly when you need the report. Adding <code>if: always()</code> to the upload step ensures it runs regardless of test outcome."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "cicd-07-q1",
+          "question": "Your integration tests need a PostgreSQL database. What is the cleanest way to provide it in GitHub Actions?",
+          "type": "multiple-choice",
+          "options": [
+            "Install PostgreSQL with apt-get in a run step",
+            "Use 'services:' in the job definition — GitHub spins up a postgres service container alongside the runner",
+            "Connect to a shared test database hosted externally",
+            "Mock all database calls so no real database is needed"
+          ],
+          "correctAnswer": 1,
+          "explanation": "GitHub Actions 'services:' runs Docker containers alongside the runner for the duration of the job. They're configured with health checks so your tests don't start until the database is ready. They use the same network as the runner, so you connect at localhost. This is the cleanest, most isolated approach — no external dependencies, no cleanup needed."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Should I run tests on every commit or only on PRs?",
+      "a": "Both. Run a fast subset (unit tests only, ~30s) on every push to any branch — instant feedback. Run the full suite including integration and E2E tests on PRs targeting main — thorough validation before merge. This gives speed on developer branches and safety before merging."
+    }
+  ],
+  "sources": [
+    { "name": "GitHub Actions services", "url": "https://docs.github.com/en/actions/using-containerized-services/about-service-containers", "verified": "2026-10-07" }
+  ],
+  "realWorld": {
+    "usedIn": ["PR quality gates", "regression prevention", "coverage reporting"],
+    "examples": [
+      "Codecov integrates with GitHub PRs to show coverage change per file: '+2.3% coverage' or '-1.1% coverage' as a PR comment — makes coverage visible in code review",
+      "Services containers eliminate the 'but my local DB has different data' problem — every CI run starts with a clean, identical database"
+    ]
+  }
+}

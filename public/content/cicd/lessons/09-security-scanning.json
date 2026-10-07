@@ -1,0 +1,107 @@
+{
+  "id": "09-security-scanning",
+  "version": "1.0.0",
+  "technology": "cicd",
+  "module": "testing-and-quality",
+  "title": "Security Scanning in CI",
+  "subtitle": "Dependabot, CodeQL, Trivy image scanning, and supply chain security — catch vulnerabilities before they reach production",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "prerequisites": ["cicd/08-code-quality"],
+  "skillsTaught": ["cicd.dependabot", "cicd.codeql", "cicd.trivy", "cicd.npm-audit", "cicd.supply-chain"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The three layers of security scanning"
+    },
+    {
+      "type": "paragraph",
+      "text": "Security scanning in CI operates at three levels: <strong>dependency vulnerabilities</strong> (known CVEs in your npm packages), <strong>code vulnerabilities</strong> (SQL injection, XSS, hardcoded secrets in your own code), and <strong>container vulnerabilities</strong> (vulnerable OS packages and binaries in Docker images). Automated tools cover all three — no security expertise required."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Dependabot — automated dependency updates"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": ".github/dependabot.yml",
+      "code": "# Dependabot is not a workflow — it's a GitHub configuration file\n# Place it at: .github/dependabot.yml\n\nversion: 2\nupdates:\n  # Keep npm dependencies up to date\n  - package-ecosystem: 'npm'\n    directory: '/'\n    schedule:\n      interval: 'weekly'    # or 'daily', 'monthly'\n      day: 'monday'\n      time: '09:00'\n    # Group minor/patch updates into one PR (less noise)\n    groups:\n      non-major:\n        update-types:\n          - 'minor'\n          - 'patch'\n    # Ignore major updates to specific packages (breaking changes)\n    ignore:\n      - dependency-name: 'react'\n        update-types: ['version-update:semver-major']\n\n  # Keep GitHub Actions up to date\n  - package-ecosystem: 'github-actions'\n    directory: '/'\n    schedule:\n      interval: 'monthly'"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "npm audit in CI"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "Vulnerability check in workflow",
+      "code": "- name: Audit dependencies\n  run: npm audit --audit-level=high\n  # Levels: low, moderate, high, critical\n  # Fails only for high/critical severity vulnerabilities\n  # 'npm audit fix' auto-fixes where possible (run locally)\n\n# Alternative: use 'audit-ci' for more control\n- name: Audit with audit-ci\n  run: npx audit-ci --high\n  # audit-ci allows allowlisting specific CVEs with a reason:\n  # audit-ci.json: { \"allowlist\": [\"GHSA-xxxx-xxxx-xxxx\"] }"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "CodeQL — static analysis for your code"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": ".github/workflows/codeql.yml",
+      "code": "name: CodeQL Analysis\non:\n  push:\n    branches: [main]\n  pull_request:\n  schedule:\n    - cron: '0 12 * * 1'   # weekly scan\n\njobs:\n  analyze:\n    name: Analyze\n    runs-on: ubuntu-latest\n    permissions:\n      security-events: write\n      contents: read\n\n    steps:\n      - uses: actions/checkout@v4\n\n      # Initialize CodeQL for JavaScript/TypeScript\n      - name: Initialize CodeQL\n        uses: github/codeql-action/init@v3\n        with:\n          languages: javascript-typescript\n          # CodeQL checks for:\n          # - XSS vulnerabilities\n          # - SQL injection\n          # - Path traversal\n          # - Prototype pollution\n          # - Hardcoded credentials\n          # Results appear in: Security → Code scanning alerts\n\n      # Auto-build (CodeQL traces the build)\n      - uses: github/codeql-action/autobuild@v3\n\n      # Run the analysis and upload results\n      - name: Perform CodeQL Analysis\n        uses: github/codeql-action/analyze@v3\n        with:\n          category: '/language:javascript-typescript'"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Trivy — scan Docker images for CVEs"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "Trivy image scanning",
+      "code": "- name: Build Docker image\n  run: docker build -t myapp:${{ github.sha }} .\n\n- name: Scan image with Trivy\n  uses: aquasecurity/trivy-action@master\n  with:\n    image-ref: myapp:${{ github.sha }}\n    format: sarif\n    output: trivy-results.sarif\n    # Fail the job on HIGH or CRITICAL CVEs:\n    exit-code: '1'\n    severity: 'HIGH,CRITICAL'\n    ignore-unfixed: true   # skip CVEs with no available fix\n\n- name: Upload Trivy SARIF\n  if: always()\n  uses: github/codeql-action/upload-sarif@v3\n  with:\n    sarif_file: trivy-results.sarif\n  # Results appear in Security → Code scanning alerts as inline annotations"
+    },
+    {
+      "type": "warning",
+      "text": "<strong>Pinning action versions is critical for supply chain security.</strong> Using <code>uses: some-action@main</code> or <code>uses: some-action@v3</code> means any push to that repo's main branch or any new v3 tag can silently change the code your workflow runs. Instead, pin to a full commit SHA: <code>uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683</code>. Then use Dependabot to keep the SHA up-to-date — you get reproducibility AND updates."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "cicd-09-q1",
+          "question": "Dependabot opens a PR to update 'lodash' from 4.17.19 to 4.17.21. npm audit reports a Prototype Pollution vulnerability in 4.17.19. What should you do?",
+          "type": "multiple-choice",
+          "options": [
+            "Close the Dependabot PR — the vulnerability is too low severity to worry about",
+            "Merge the Dependabot PR promptly — it patches the CVE",
+            "Wait for the next major version of lodash before updating",
+            "Remove lodash entirely since it has security issues"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Dependabot's patch update directly addresses the vulnerability. Merging it is the correct action — the upgrade is a patch version (4.17.x → 4.17.x) meaning no API changes, so there's virtually no risk of breakage. Your CI will run tests on the Dependabot PR branch. If they pass, merge. This is exactly what Dependabot is designed for: making security updates safe and easy to apply."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "CodeQL flagged something as a vulnerability but I believe it's a false positive. What do I do?",
+      "a": "Go to Security → Code scanning alerts on GitHub, open the alert, and click 'Dismiss alert' with a reason ('False positive' or 'Won't fix'). Add a comment explaining why. Dismissed alerts don't count against your security posture metrics and won't re-alert on the same location. This is better than disabling the query globally."
+    }
+  ],
+  "sources": [
+    { "name": "GitHub CodeQL", "url": "https://docs.github.com/en/code-security/code-scanning/using-codeql-code-scanning", "verified": "2026-10-07" },
+    { "name": "Trivy", "url": "https://trivy.dev", "verified": "2026-10-07" }
+  ],
+  "realWorld": {
+    "usedIn": ["production pipelines", "compliance requirements", "open source projects"],
+    "examples": [
+      "The Log4Shell vulnerability (CVE-2021-44228) affected thousands of companies in 2021. Dependabot auto-opened PRs for every affected project on GitHub within hours of the CVE being published — teams with automated security scanning patched in days, not weeks",
+      "GitHub's Advanced Security (CodeQL) is free for public repositories — every open source project can have enterprise-grade static analysis at no cost"
+    ]
+  }
+}

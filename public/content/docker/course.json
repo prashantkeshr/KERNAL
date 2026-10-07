@@ -1,0 +1,21 @@
+{
+  "id": "docker",
+  "title": "Docker — Containers & Containerization",
+  "subtitle": "Build, ship, and run applications anywhere with containers",
+  "description": "Master Docker from first principles. You'll understand why containers exist, build production-grade images, orchestrate multi-service applications with Compose, and learn the security and operational patterns used in real production deployments. Every concept builds on the last — from a single docker run to a complete containerized stack.",
+  "icon": "docker",
+  "color": "#2496ed",
+  "difficulty": "intermediate",
+  "estimatedHours": 20,
+  "prerequisites": ["linux"],
+  "certificationAvailable": true,
+  "stage": 12,
+  "version": "1.0.0",
+  "modules": [
+    { "id": "container-fundamentals", "title": "Container Fundamentals", "order": 1 },
+    { "id": "building-images", "title": "Building Images", "order": 2 },
+    { "id": "containers-in-depth", "title": "Containers in Depth", "order": 3 },
+    { "id": "docker-compose", "title": "Docker Compose", "order": 4 },
+    { "id": "real-world-docker", "title": "Real-World Docker", "order": 5 }
+  ]
+}

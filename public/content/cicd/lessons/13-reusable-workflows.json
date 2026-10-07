@@ -1,0 +1,95 @@
+{
+  "id": "13-reusable-workflows",
+  "version": "1.0.0",
+  "technology": "cicd",
+  "module": "advanced-cicd",
+  "title": "Reusable Workflows & Composite Actions",
+  "subtitle": "DRY your CI — define a workflow once and call it from any repository or multiple workflows",
+  "difficulty": "advanced",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "prerequisites": ["cicd/12-docker-in-cicd"],
+  "skillsTaught": ["cicd.workflow-call", "cicd.reusable-workflow", "cicd.composite-actions", "cicd.shared-ci"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The problem: copy-pasted workflows"
+    },
+    {
+      "type": "paragraph",
+      "text": "When you have 5 repositories that all deploy Node.js APIs, you end up with the same 80-line workflow file copy-pasted 5 times. When you need to update the Node.js version or add a new security step, you have to update all 5 files. Reusable workflows solve this: define the workflow once in a shared repository, call it from every other repo. Update in one place, applied everywhere."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Defining a reusable workflow"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": ".github/workflows/shared-deploy.yml (in your 'shared-workflows' repo)",
+      "code": "name: Shared Deploy Workflow\n\n# workflow_call makes this workflow callable by other workflows\non:\n  workflow_call:\n    # Inputs the caller provides\n    inputs:\n      environment:\n        required: true\n        type: string\n        description: 'Deployment target (staging | production)'\n      image_tag:\n        required: true\n        type: string\n      node_version:\n        required: false\n        type: string\n        default: '20'\n\n    # Secrets the caller must pass through\n    # They are never exposed — just forwarded\n    secrets:\n      DEPLOY_TOKEN:\n        required: true\n      DATABASE_URL:\n        required: false\n\n    # Outputs the caller can use\n    outputs:\n      deployment_url:\n        description: 'The deployed application URL'\n        value: ${{ jobs.deploy.outputs.url }}\n\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    environment: ${{ inputs.environment }}\n    outputs:\n      url: ${{ steps.deploy.outputs.url }}\n\n    steps:\n      - uses: actions/checkout@v4\n\n      - uses: actions/setup-node@v4\n        with:\n          node-version: ${{ inputs.node_version }}\n          cache: 'npm'\n\n      - run: npm ci\n      - run: npm test\n\n      - name: Deploy\n        id: deploy\n        env:\n          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}\n          ENVIRONMENT: ${{ inputs.environment }}\n          IMAGE_TAG: ${{ inputs.image_tag }}\n        run: |\n          URL=$(./scripts/deploy.sh $ENVIRONMENT $IMAGE_TAG)\n          echo \"url=$URL\" >> $GITHUB_OUTPUT"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Calling the reusable workflow"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": ".github/workflows/deploy.yml (in any other repo)",
+      "code": "name: Deploy\nон:\n  push:\n    branches: [main]\n\njobs:\n  deploy-staging:\n    uses: myorg/shared-workflows/.github/workflows/shared-deploy.yml@main\n    # ↑ org/repo/path@ref — can be a branch, tag, or SHA\n    with:\n      environment: staging\n      image_tag: ${{ github.sha }}\n      node_version: '22'\n    secrets:\n      DEPLOY_TOKEN: ${{ secrets.STAGING_DEPLOY_TOKEN }}\n\n  deploy-production:\n    needs: deploy-staging\n    uses: myorg/shared-workflows/.github/workflows/shared-deploy.yml@main\n    with:\n      environment: production\n      image_tag: ${{ github.sha }}\n    secrets:\n      DEPLOY_TOKEN: ${{ secrets.PROD_DEPLOY_TOKEN }}\n      DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}\n\n  notify:\n    needs: deploy-production\n    runs-on: ubuntu-latest\n    steps:\n      - run: |\n          echo \"Deployed to: ${{ needs.deploy-production.outputs.deployment_url }}\""
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Composite actions — reusable steps"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": ".github/actions/setup-project/action.yml",
+      "code": "# A composite action bundles multiple steps into one reusable action\n# Useful for the 'checkout + setup-node + npm ci' boilerplate\n\nname: Setup Project\ndescription: Checkout, setup Node.js, and install dependencies\n\ninputs:\n  node-version:\n    description: 'Node.js version'\n    default: '20'\n\nruns:\n  using: composite\n  steps:\n    - uses: actions/checkout@v4\n\n    - uses: actions/setup-node@v4\n      with:\n        node-version: ${{ inputs.node-version }}\n        cache: 'npm'\n\n    - name: Install dependencies\n      shell: bash\n      run: npm ci\n\n---\n# Using the composite action in any workflow:\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: ./.github/actions/setup-project\n        with:\n          node-version: '22'\n      # Now directly run build/test — setup is handled\n      - run: npm run build"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Reusable workflows run as separate jobs; composite actions run as steps within a job.</strong> Use reusable workflows when you want an independent, isolated execution with its own environment and permissions. Use composite actions when you want to group steps within a job — they share the runner environment, can access files created by previous steps, and don't add job overhead."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "cicd-13-q1",
+          "question": "You have 10 repos that all use the same CI workflow. You update the reusable workflow to add a security scan step. What happens to those 10 repos?",
+          "type": "multiple-choice",
+          "options": [
+            "Nothing — they keep using the old version until manually updated",
+            "They get the update on their next workflow run, because they reference @main which always points to the latest commit",
+            "GitHub sends a PR to each repo with the updated workflow",
+            "The calling workflows break and must be re-saved to pick up changes"
+          ],
+          "correctAnswer": 1,
+          "explanation": "When you reference a reusable workflow with @main (a branch), callers always use the latest commit on that branch. Update the shared workflow, push to main, and the next time any caller workflow runs, it uses the new version automatically — including your new security step. This is the power of centralized reusable workflows. If you want stability instead, callers can pin to a specific tag like @v2.0.0 and only update deliberately."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Can a reusable workflow call another reusable workflow?",
+      "a": "Yes — reusable workflows can be nested up to 4 levels deep. You can have a 'deploy' workflow that calls a 'build' workflow and a 'notify' workflow. However, each level adds job overhead. For simple step reuse, composite actions are lighter. Use nested workflow_call for genuinely independent, multi-job phases."
+    }
+  ],
+  "sources": [
+    { "name": "Reusing workflows", "url": "https://docs.github.com/en/actions/using-workflows/reusing-workflows", "verified": "2026-10-07" }
+  ],
+  "realWorld": {
+    "usedIn": ["platform engineering", "large organizations", "monorepos with shared CI"],
+    "examples": [
+      "Large tech companies maintain a 'platform' repository with organization-wide reusable workflows for security scanning, testing, and deployment. Every team's repo calls these — compliance and best practices are enforced automatically without each team needing to understand them",
+      "The @main reference is both a feature and a risk: updating the shared workflow instantly affects all 10 repos. Organizations often maintain @v1, @v2 tags and give teams control over when to migrate, just like a public npm package"
+    ]
+  }
+}

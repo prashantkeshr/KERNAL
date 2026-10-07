@@ -1,0 +1,111 @@
+{
+  "id": "15-docker-in-production",
+  "version": "1.0.0",
+  "technology": "docker",
+  "module": "real-world-docker",
+  "title": "Docker in Production",
+  "subtitle": "Deployment patterns, logging strategies, and knowing when to move beyond Docker Compose",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 15,
+  "status": "published",
+  "prerequisites": ["docker/14-security-best-practices"],
+  "skillsTaught": ["docker.production-deployment", "docker.logging", "docker.deployment-patterns", "docker.orchestration-overview"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The deployment spectrum"
+    },
+    {
+      "type": "paragraph",
+      "text": "Not every application needs Kubernetes. Understanding the deployment spectrum helps you choose the right tool for where you are now — and know when to upgrade:"
+    },
+    {
+      "type": "list",
+      "ordered": true,
+      "items": [
+        "<strong>Bare server + docker compose</strong> — 1 server, simple stack, &lt;100k users. Perfect for side projects, MVPs, internal tools. One SSH + docker compose pull + docker compose up -d for deploys.",
+        "<strong>Docker Swarm</strong> — multi-server, built into Docker, simple replicas and rolling updates. Great for teams that need HA without Kubernetes complexity.",
+        "<strong>Managed container platforms</strong> — Fly.io, Railway, Render, Google Cloud Run. They handle orchestration; you give them a Dockerfile. Best for teams that want to focus on product.",
+        "<strong>Kubernetes</strong> — full orchestration, self-healing, auto-scaling, service mesh. Right when you have 10+ services, multiple teams, or complex operational requirements."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Zero-downtime deployment on a single server"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "deploy.sh — simple rolling deploy",
+      "code": "#!/usr/bin/env bash\nset -euo pipefail\n\nIMAGE=\"ghcr.io/myorg/api\"\nTAG=${1:-latest}  # pass tag as argument, default to latest\n\necho \"Deploying $IMAGE:$TAG...\"\n\n# 1. Pull the new image\ndocker pull $IMAGE:$TAG\n\n# 2. Start a new container on a different port\ndocker run -d \\\n  --name api-new \\\n  --network app-network \\\n  -p 3001:3000 \\\n  --env-file /etc/myapp/.env \\\n  --restart unless-stopped \\\n  $IMAGE:$TAG\n\n# 3. Health check the new container\nfor i in $(seq 1 30); do\n  if curl -sf http://localhost:3001/health; then\n    echo \"New container healthy!\"\n    break\n  fi\n  sleep 2\ndone\n\n# 4. Update nginx to point to new container\ndocker exec nginx nginx -s reload\n\n# 5. Stop and remove old container\ndocker stop api-old && docker rm api-old\n\n# 6. Rename new to old for next deploy\ndocker rename api-new api-old\n\necho \"Deploy complete: $IMAGE:$TAG\""
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Production logging strategy"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "Logging configuration in Compose",
+      "code": "services:\n  api:\n    image: myapi\n    # Docker's default json-file driver with rotation\n    logging:\n      driver: json-file\n      options:\n        max-size: \"10m\"    # rotate at 10 MB\n        max-file: \"5\"       # keep 5 files = max 50 MB per container\n\n  # For production: forward logs to a central service\n  # driver: loki (Grafana Loki)\n  # driver: fluentd\n  # driver: awslogs (CloudWatch)\n  nginx:\n    logging:\n      driver: loki\n      options:\n        loki-url: \"http://loki:3100/loki/api/v1/push\"\n        loki-labels: \"job=nginx,env=production\"\n\n# BEST PRACTICE:\n# Apps should log to stdout/stderr ONLY — no log files inside containers\n# Docker captures stdout/stderr and routes them to the logging driver\n# This keeps the container stateless and lets you centralise logs"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Production checklist"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Images built with multi-stage builds — minimal size, no build tools in production",
+        "Images tagged with git SHA — reproducible, traceable, rollback-able",
+        "Non-root user in Dockerfile — reduced breach impact",
+        "No secrets in image layers — passed via env_file or secrets at runtime",
+        "Healthcheck defined on every service — enables proper depends_on and load balancer routing",
+        "restart: unless-stopped on all long-running services — survives crashes and server reboots",
+        "Named volumes for all persistent data — never in container writable layer",
+        "Log rotation configured — prevents disk fill from runaway logging",
+        "Resource limits set — one container can't starve the server",
+        "Regular base image updates — patch known CVEs in the OS and runtime"
+      ]
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "docker-15-q1",
+          "question": "Your application logs to a file at /app/logs/app.log inside the container. What's wrong with this and how should you fix it?",
+          "type": "multiple-choice",
+          "options": [
+            "Nothing — logging to a file inside a container is the standard approach",
+            "The log file grows unbounded and fills the container's writable layer; fix by logging to stdout/stderr instead",
+            "Docker can't read files from inside containers — use volumes",
+            "The file is not accessible unless you run docker exec first"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Logging to files inside the container's writable layer has two problems: (1) the file grows unbounded until it fills disk, (2) logs are lost when the container is removed. The Docker way is to log to stdout/stderr — Docker captures these streams, applies rotation, and routes them to your logging driver. This keeps the container stateless and centralises log collection."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "When should I move from Docker Compose to Kubernetes?",
+      "a": "When you need: (1) multiple replicas with automatic failover across servers, (2) rolling deployments with zero downtime at scale, (3) horizontal autoscaling based on CPU/memory/custom metrics, (4) 10+ microservices that need independent scaling. For most teams, a managed platform like Fly.io or Cloud Run is the right step before bare Kubernetes — you get orchestration without operating the control plane."
+    }
+  ],
+  "sources": [
+    { "name": "Docker production guide", "url": "https://docs.docker.com/config/containers/logging/", "verified": "2026-10-07" }
+  ],
+  "realWorld": {
+    "usedIn": ["VPS deployment", "startup infrastructure", "DigitalOcean Droplets", "Hetzner servers"],
+    "examples": [
+      "Pieter Levels (maker of Nomad List, Remote OK) runs everything on a single Hetzner server with Docker Compose — millions in revenue, zero Kubernetes",
+      "A $6/month VPS + Caddy (reverse proxy) + docker compose is sufficient for most side projects until they reach tens of thousands of daily users"
+    ]
+  }
+}

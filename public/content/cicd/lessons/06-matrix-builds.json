@@ -1,0 +1,80 @@
+{
+  "id": "06-matrix-builds",
+  "version": "1.0.0",
+  "technology": "cicd",
+  "module": "workflow-essentials",
+  "title": "Matrix Builds",
+  "subtitle": "Test across multiple Node versions, OS, and configurations in parallel with one job definition",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 11,
+  "status": "published",
+  "prerequisites": ["cicd/05-environment-and-secrets"],
+  "skillsTaught": ["cicd.matrix", "cicd.matrix-strategy", "cicd.include-exclude", "cicd.fail-fast"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "What is a matrix build?"
+    },
+    {
+      "type": "paragraph",
+      "text": "A matrix build runs the same job multiple times with different values — simultaneously, in parallel. Instead of writing three separate jobs to test on Node 18, 20, and 22, you define one job with a matrix of three values and GitHub creates three parallel jobs automatically."
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "Basic matrix — multiple Node.js versions",
+      "code": "jobs:\n  test:\n    runs-on: ubuntu-latest\n    strategy:\n      matrix:\n        node-version: [18, 20, 22]\n      # fail-fast: false means all matrix jobs complete even if one fails\n      # Good for finding ALL compatibility issues, not just the first\n      fail-fast: false\n\n    name: Test on Node ${{ matrix.node-version }}\n\n    steps:\n      - uses: actions/checkout@v4\n\n      - name: Setup Node ${{ matrix.node-version }}\n        uses: actions/setup-node@v4\n        with:\n          node-version: ${{ matrix.node-version }}\n          cache: 'npm'\n\n      - run: npm ci\n      - run: npm test"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "Multi-dimensional matrix — OS × Node version",
+      "code": "jobs:\n  test:\n    strategy:\n      matrix:\n        os: [ubuntu-latest, windows-latest, macos-latest]\n        node: [18, 20]\n      # Creates 3 OS × 2 Node = 6 parallel jobs:\n      # ubuntu-18, ubuntu-20, windows-18, windows-20, mac-18, mac-20\n\n    runs-on: ${{ matrix.os }}\n\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-node@v4\n        with:\n          node-version: ${{ matrix.node }}\n      - run: npm ci\n      - run: npm test"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "include and exclude — fine-grained control",
+      "code": "jobs:\n  test:\n    strategy:\n      matrix:\n        node: [18, 20, 22]\n        os: [ubuntu-latest, windows-latest]\n\n        # include: ADD extra jobs with additional properties\n        include:\n          # Run Node 20 on macOS too (not in the base matrix)\n          - node: 20\n            os: macos-latest\n          # Add an extra env var only for Node 22 jobs\n          - node: 22\n            experimental: true\n\n        # exclude: REMOVE specific combinations\n        exclude:\n          # Skip Node 18 on Windows\n          - node: 18\n            os: windows-latest\n\n    runs-on: ${{ matrix.os }}\n\n    # Mark experimental jobs so failure doesn't fail the whole workflow\n    continue-on-error: ${{ matrix.experimental == true }}\n\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-node@v4\n        with: { node-version: '${{ matrix.node }}' }\n      - run: npm ci && npm test"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Keep matrices focused.</strong> A 3×3×3 matrix = 27 parallel jobs. Each uses CI minutes and contributes to runner queue wait time. For most projects, testing on the LTS Node version on Ubuntu is sufficient for PRs, with a broader matrix on release branches. Don't matrix for the sake of it."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "cicd-06-q1",
+          "question": "A matrix job has node: [18, 20] and os: [ubuntu, windows, macos]. fail-fast: true (default). The Node 18 + Windows job fails. What happens?",
+          "type": "multiple-choice",
+          "options": [
+            "All 6 jobs finish — fail-fast only affects sequential jobs",
+            "The remaining in-progress jobs continue, but no new matrix jobs start. The job reports failure.",
+            "GitHub immediately cancels all 5 remaining matrix jobs",
+            "Only the failed job is re-run automatically"
+          ],
+          "correctAnswer": 1,
+          "explanation": "With fail-fast: true (the default), when any matrix job fails: GitHub cancels all jobs that haven't started yet, but lets already-running jobs finish. Then the whole matrix job reports failure. With fail-fast: false, ALL matrix jobs run to completion regardless of failures — useful to see all failing combinations at once."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Can I use a matrix for deployment targets?",
+      "a": "Yes — matrix: environment: [staging, eu-west, us-east] lets you deploy to multiple regions in parallel. Combine with environment protection rules to require approval for each. This pattern is common for multi-region global deployments."
+    }
+  ],
+  "sources": [
+    { "name": "Matrix strategy", "url": "https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs", "verified": "2026-10-07" }
+  ],
+  "realWorld": {
+    "usedIn": ["library/SDK compatibility testing", "cross-platform apps", "multi-region deploys"],
+    "examples": [
+      "Every major npm package (express, lodash, zod) tests against multiple Node.js versions in CI to guarantee compatibility before publishing",
+      "Electron apps test on Windows, macOS, and Linux in matrix builds — native code behaves differently on each OS"
+    ]
+  }
+}

@@ -187,7 +187,7 @@
     "order": 15,
     "stage": 12,
     "playground": "terminal",
-    "enabled": false,
+    "enabled": true,
     "description": "Containers, images, Dockerfile, and Docker Compose",
     "estimatedHours": 15
   },
@@ -199,7 +199,7 @@
     "order": 16,
     "stage": 12,
     "playground": "terminal",
-    "enabled": false,
+    "enabled": true,
     "description": "GitHub Actions, automated testing, and deployment pipelines",
     "estimatedHours": 12
   },

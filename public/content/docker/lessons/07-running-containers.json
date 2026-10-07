@@ -1,0 +1,103 @@
+{
+  "id": "07-running-containers",
+  "version": "1.0.0",
+  "technology": "docker",
+  "module": "containers-in-depth",
+  "title": "Running Containers",
+  "subtitle": "Master docker run flags — environment variables, port mapping, restart policies, resource limits",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "prerequisites": ["docker/06-image-registry"],
+  "skillsTaught": ["docker.run-flags", "docker.environment-vars", "docker.restart-policy", "docker.resource-limits"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The full docker run flag toolkit"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "docker run — all important flags",
+      "code": "docker run \\\n  -d \\\n  --name my-api \\\n  -p 3000:3000 \\\n  -e DATABASE_URL=\"postgres://localhost/mydb\" \\\n  -e NODE_ENV=production \\\n  --env-file .env \\\n  -v /data/uploads:/app/uploads \\\n  --restart unless-stopped \\\n  --memory 512m \\\n  --cpus 1.0 \\\n  myapi:1.4\n\n# Flag breakdown:\n# -d                      run in background (detached)\n# --name my-api           give the container a name\n# -p 3000:3000            host:container port mapping\n# -e KEY=value            set an environment variable\n# --env-file .env         load all vars from a .env file\n# -v /host/path:/c/path   mount a host directory as a volume\n# --restart unless-stopped restart automatically (except manual stop)\n# --memory 512m           cap RAM at 512 MB\n# --cpus 1.0              limit to 1 CPU core"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Environment variables — the right way"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Passing config to containers",
+      "code": "# ❌ Never bake secrets into an image:\n# ENV DATABASE_PASSWORD=mysecret  ← visible in docker history, image layers\n\n# ✅ Pass secrets at runtime:\ndocker run -e DATABASE_URL=\"postgres://user:pass@db:5432/myapp\" myapi\n\n# ✅ Even better — use an .env file:\n# .env file contents:\n# DATABASE_URL=postgres://user:pass@db:5432/myapp\n# REDIS_URL=redis://redis:6379\n# JWT_SECRET=supersecret123\n\ndocker run --env-file .env myapi\n\n# ✅ Best for teams — Docker secrets or external secret managers:\n# (AWS Secrets Manager, HashiCorp Vault, GitHub Actions secrets)"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Restart policies"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "<strong>no</strong> (default) — never restart. Use for one-off containers.",
+        "<strong>always</strong> — always restart, even after docker daemon restarts. Use for critical services.",
+        "<strong>unless-stopped</strong> — restart always, except when manually stopped. Best for most production services.",
+        "<strong>on-failure[:max-retries]</strong> — restart only on non-zero exit code. Good for job containers."
+      ]
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Restart policies in practice",
+      "code": "# Production web server — should always be up\ndocker run -d --restart unless-stopped -p 80:80 nginx\n\n# Database — restart on crash, max 5 times\ndocker run -d --restart on-failure:5 postgres:16\n\n# One-off data migration script — don't restart\ndocker run --restart no my-migration-script\n\n# Check restart policy of a running container\ndocker inspect my-api --format '{{.HostConfig.RestartPolicy.Name}}'"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Container lifecycle"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Lifecycle states",
+      "code": "# States: created → running → paused | stopped | exited\n\n# Created (not started)\ndocker create --name my-app -p 3000:3000 myapi\n\n# Start\ndocker start my-app\n\n# Pause (freeze all processes — RAM preserved)\ndocker pause my-app\ndocker unpause my-app\n\n# Stop gracefully (SIGTERM → 10s grace → SIGKILL)\ndocker stop my-app\ndocker stop --time 30 my-app   # extend grace period to 30s\n\n# Force kill immediately\ndocker kill my-app\n\n# Remove (must be stopped first)\ndocker rm my-app\ndocker rm -f my-app   # force: stop + remove in one"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "docker-07-q1",
+          "question": "A container runs a web server that sometimes crashes. You want it to auto-restart, but stop if you manually docker stop it. Which restart policy?",
+          "type": "multiple-choice",
+          "options": [
+            "--restart always",
+            "--restart unless-stopped",
+            "--restart on-failure",
+            "--restart no"
+          ],
+          "correctAnswer": 1,
+          "explanation": "'unless-stopped' restarts the container automatically on crash or daemon restart, but respects a manual 'docker stop'. 'always' would restart even after a manual stop. 'on-failure' only restarts on non-zero exit, which misses crashes that exit cleanly. 'unless-stopped' is the right default for long-running services."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do I see the resource usage of all running containers?",
+      "a": "docker stats — shows a live, htop-style view of CPU%, MEM USAGE, NET I/O, and BLOCK I/O for all running containers. Add a container name to watch just one: docker stats my-api. Add --no-stream for a one-shot snapshot."
+    }
+  ],
+  "sources": [
+    { "name": "docker run reference", "url": "https://docs.docker.com/reference/cli/docker/container/run/", "verified": "2026-10-07" }
+  ],
+  "realWorld": {
+    "usedIn": ["production deployments", "server configuration", "resource management"],
+    "examples": [
+      "--memory and --cpus are essential in shared servers — without limits, one runaway container can starve all others",
+      "docker run --env-file .env is the standard pattern for 12-factor apps — config comes from the environment, never from the image"
+    ]
+  }
+}

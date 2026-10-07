@@ -1,0 +1,92 @@
+{
+  "id": "11-compose-volumes-networks",
+  "version": "1.0.0",
+  "technology": "docker",
+  "module": "docker-compose",
+  "title": "Volumes & Networks in Compose",
+  "subtitle": "Explicit network segmentation, named volumes, and multi-service data sharing patterns",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 13,
+  "status": "published",
+  "prerequisites": ["docker/10-compose-basics"],
+  "skillsTaught": ["docker.compose-networks", "docker.compose-volumes", "docker.network-segmentation"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Explicit networks in Compose"
+    },
+    {
+      "type": "paragraph",
+      "text": "By default, all services in a Compose file share one network — every service can reach every other. For production-style security, you create explicit networks and attach only the services that need to communicate. A frontend and database should never share a network."
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "docker-compose.yml — network segmentation",
+      "code": "services:\n\n  # nginx reverse proxy — on both networks so it can route traffic\n  nginx:\n    image: nginx:alpine\n    ports:\n      - \"80:80\"\n    networks:\n      - frontend\n      - backend\n    volumes:\n      - ./nginx.conf:/etc/nginx/conf.d/default.conf\n\n  # API server — only on backend network\n  api:\n    build: .\n    networks:\n      - backend\n    environment:\n      DATABASE_URL: postgres://postgres:secret@db:5432/myapp\n\n  # Database — only on backend network (never reachable from frontend)\n  db:\n    image: postgres:16-alpine\n    networks:\n      - backend\n    environment:\n      POSTGRES_PASSWORD: secret\n    volumes:\n      - db-data:/var/lib/postgresql/data\n\n# Define networks explicitly\nnetworks:\n  frontend:\n    driver: bridge\n  backend:\n    driver: bridge\n\nvolumes:\n  db-data:"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Volume patterns in Compose"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "docker-compose.yml — volume patterns",
+      "code": "services:\n  app:\n    image: myapp\n    volumes:\n      # Bind mount — great for dev hot-reload\n      - ./src:/app/src\n      # Named volume — persistent data\n      - app-data:/app/data\n      # Read-only bind mount — config file\n      - ./config.json:/app/config.json:ro\n      # Shared volume between two services\n      - shared-uploads:/app/uploads\n\n  worker:\n    image: myworker\n    volumes:\n      # Same named volume — both services access the same uploads\n      - shared-uploads:/worker/uploads\n\nvolumes:\n  app-data:\n    # driver options for custom storage backends\n    driver: local\n  shared-uploads:\n    # External volume: must exist before compose up\n    # external: true\n    # name: my-existing-volume"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Compose override files — dev vs prod"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "docker-compose.override.yml (auto-merged in development)",
+      "code": "# docker-compose.yml — base (shared between dev and prod)\n# docker-compose.override.yml — auto-loaded in development\n# docker-compose.prod.yml — explicit production overrides\n\n# docker-compose.yml (base)\nservices:\n  api:\n    image: myapp-api\n    environment:\n      PORT: 3000\n\n---\n# docker-compose.override.yml (dev additions — auto-merged)\nservices:\n  api:\n    build: .\n    volumes:\n      - ./src:/app/src   # hot reload\n    environment:\n      NODE_ENV: development\n    ports:\n      - \"3000:3000\"\n\n---\n# docker-compose.prod.yml (production)\nservices:\n  api:\n    image: ghcr.io/myorg/api:1.4.2\n    environment:\n      NODE_ENV: production\n    deploy:\n      replicas: 3\n      resources:\n        limits:\n          memory: 512m"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Using override files",
+      "code": "# Development (auto-merges docker-compose.override.yml)\ndocker compose up -d\n\n# Production (explicitly specify files)\ndocker compose -f docker-compose.yml -f docker-compose.prod.yml up -d"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "docker-11-q1",
+          "question": "You have 'api' and 'database' services. You define two networks: 'frontend' and 'backend'. You put 'api' on both, 'database' only on 'backend'. Can database reach api?",
+          "type": "multiple-choice",
+          "options": [
+            "No — database is only on backend and api straddles both networks",
+            "Yes — they share the backend network, so they can communicate",
+            "No — services can only communicate on the frontend network",
+            "Only if you add -p to the database service"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Both services share the 'backend' network, so they can communicate with each other using their service names as hostnames. 'api' can reach 'database' at 'database:5432'. The frontend network is just for nginx-to-api traffic. Network membership is checked per network — if two services share ANY network, they can communicate."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What happens to named volumes when I run docker compose down?",
+      "a": "Named volumes are preserved by default — 'docker compose down' stops and removes containers but keeps volumes. Your database data survives. To also delete volumes, run 'docker compose down -v' — but this permanently deletes all data in named volumes. Never run -v without knowing what data you're destroying."
+    }
+  ],
+  "sources": [
+    { "name": "Compose networking", "url": "https://docs.docker.com/compose/networking/", "verified": "2026-10-07" }
+  ],
+  "realWorld": {
+    "usedIn": ["microservices security", "dev/prod parity", "shared storage between services"],
+    "examples": [
+      "Monorepos with separate frontend/backend services use network segmentation in Compose so the React dev server can't directly query the database",
+      "Two workers processing uploaded files use a shared named volume so file-upload service and thumbnail-generator service both access /uploads"
+    ]
+  }
+}

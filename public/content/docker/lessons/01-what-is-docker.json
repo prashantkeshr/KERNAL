@@ -1,0 +1,110 @@
+{
+  "id": "01-what-is-docker",
+  "version": "1.0.0",
+  "technology": "docker",
+  "module": "container-fundamentals",
+  "title": "What is Docker?",
+  "subtitle": "From 'it works on my machine' to running anywhere — the why behind containers",
+  "difficulty": "beginner",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "prerequisites": ["linux/02-navigation"],
+  "skillsTaught": ["docker.containers", "docker.images", "docker.why-docker"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The problem Docker solves"
+    },
+    {
+      "type": "paragraph",
+      "text": "Picture this: a developer builds an app on macOS, tests it, ships it — and it crashes on the Linux production server because of a different Node.js version, missing system library, or incompatible Python package. This 'works on my machine' problem is older than Docker. Docker solves it by packaging the application <em>together with everything it needs to run</em> — the runtime, libraries, config, and code — into a single portable unit called a <strong>container</strong>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "VMs vs Containers — a crucial distinction"
+    },
+    {
+      "type": "definition",
+      "term": "Virtual Machine (VM)",
+      "definition": "Emulates a complete computer — CPU, RAM, disk, and a full OS kernel. Heavy (gigabytes), slow to start (minutes), but fully isolated. Used for running different operating systems on one host."
+    },
+    {
+      "type": "definition",
+      "term": "Container",
+      "definition": "Shares the host OS kernel but isolates processes using Linux namespaces and cgroups. Lightweight (megabytes), starts in milliseconds, and portable. Used for packaging and running applications."
+    },
+    {
+      "type": "playground",
+      "title": "VM vs Container — Interactive Comparison",
+      "code": "<!DOCTYPE html><html><head><style>:root{--bg:#0e1116;--surface:#1a1f2b;--surface2:#222837;--accent:#4fd1c5;--text:#e2e8f0;--muted:#8892a4;--border:#2d3448;--blue:#60a5fa;--green:#34d399;--orange:#fbbf24}*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);padding:20px;min-height:100vh}.title{font-size:13px;font-weight:600;color:var(--accent);letter-spacing:.08em;text-transform:uppercase;margin-bottom:16px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}.card-head{padding:14px 16px;background:var(--surface2);border-bottom:1px solid var(--border);font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px}.vm-head{color:var(--orange)}.container-head{color:var(--blue)}.stack{padding:12px 16px;display:flex;flex-direction:column;gap:6px}.layer{padding:8px 12px;border-radius:6px;font-size:12px;text-align:center;font-weight:500;border:1px solid transparent}.layer-app{background:rgba(79,209,197,.15);border-color:rgba(79,209,197,.3);color:var(--accent)}.layer-rt{background:rgba(96,165,250,.12);border-color:rgba(96,165,250,.25);color:var(--blue)}.layer-os{background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.2);color:var(--orange)}.layer-hyp{background:rgba(167,139,250,.1);border-color:rgba(167,139,250,.2);color:#a78bfa}.layer-hw{background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.2);color:var(--green)}.layer-host{background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.2);color:var(--green)}.layer-shared{background:rgba(52,211,153,.06);border-color:rgba(52,211,153,.15);color:var(--green);font-size:11px}.arrow{text-align:center;font-size:11px;color:var(--muted);margin:2px 0}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px}.stat{background:var(--surface2);border-radius:8px;padding:10px;text-align:center}.stat-val{font-size:18px;font-weight:700;margin-bottom:2px}.stat-label{font-size:10px;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}.vm-stat{color:var(--orange)}.c-stat{color:var(--blue)}.comparison{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}.comparison h3{font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}.row{display:grid;grid-template-columns:130px 1fr 1fr;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;align-items:center}.row:last-child{border-bottom:none}.row-label{color:var(--muted);font-weight:500}.val{padding:4px 8px;border-radius:4px;text-align:center}.vm-val{background:rgba(251,191,36,.1);color:var(--orange)}.c-val{background:rgba(96,165,250,.1);color:var(--blue)}</style></head><body><div class='title'>VM vs Container Architecture</div><div class='grid'><div class='card'><div class='card-head vm-head'>⬜ Virtual Machine</div><div class='stack'><div class='layer layer-app'>Your App</div><div class='arrow'>↓</div><div class='layer layer-os'>Guest OS (full Linux/Windows)</div><div class='arrow'>↓</div><div class='layer layer-hyp'>Hypervisor (VMware / VirtualBox / KVM)</div><div class='arrow'>↓</div><div class='layer layer-hw'>Host Hardware</div><div class='stats'><div class='stat'><div class='stat-val vm-stat'>~GB</div><div class='stat-label'>Size</div></div><div class='stat'><div class='stat-val vm-stat'>mins</div><div class='stat-label'>Start</div></div><div class='stat'><div class='stat-val vm-stat'>High</div><div class='stat-label'>Overhead</div></div></div></div></div><div class='card'><div class='card-head container-head'>📦 Container</div><div class='stack'><div class='layer layer-app'>Your App</div><div class='arrow'>↓</div><div class='layer layer-rt'>Runtime (Node/Python/Java…)</div><div class='arrow'>↓</div><div class='layer layer-shared'>Shared Host OS Kernel (namespaces + cgroups)</div><div class='arrow'>↓</div><div class='layer layer-hw'>Host Hardware</div><div class='stats'><div class='stat'><div class='stat-val c-stat'>~MB</div><div class='stat-label'>Size</div></div><div class='stat'><div class='stat-val c-stat'>~ms</div><div class='stat-label'>Start</div></div><div class='stat'><div class='stat-val c-stat'>Low</div><div class='stat-label'>Overhead</div></div></div></div></div></div><div class='comparison'><h3>Side by Side</h3><div class='row'><div class='row-label'>Isolation</div><div class='val vm-val'>Full OS isolation</div><div class='val c-val'>Process isolation</div></div><div class='row'><div class='row-label'>Startup time</div><div class='val vm-val'>1–5 minutes</div><div class='val c-val'>Milliseconds</div></div><div class='row'><div class='row-label'>Disk size</div><div class='val vm-val'>4–40 GB</div><div class='val c-val'>50 MB–1 GB</div></div><div class='row'><div class='row-label'>OS kernel</div><div class='val vm-val'>Own full OS</div><div class='val c-val'>Shares host kernel</div></div><div class='row'><div class='row-label'>Best for</div><div class='val vm-val'>Different OS on one host</div><div class='val c-val'>Packaging apps portably</div></div></div></body></html>"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Images vs Containers"
+    },
+    {
+      "type": "paragraph",
+      "text": "These two words are used constantly and it's critical to keep them straight. An <strong>image</strong> is a blueprint — a read-only, layered snapshot of a filesystem. A <strong>container</strong> is a running instance of an image — a live process with its own isolated environment. The analogy is exact: image is to container as class is to object in programming, or recipe is to meal in cooking."
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Image vs Container",
+      "code": "# An IMAGE is a static blueprint (read-only)\ndocker images\n# REPOSITORY   TAG      IMAGE ID       SIZE\n# nginx        latest   904b8cb13b93   187MB\n# node         20-alpine 1d46ed2a75d7   55MB\n\n# A CONTAINER is a running instance of an image\ndocker ps\n# CONTAINER ID  IMAGE   COMMAND                CREATED   STATUS   PORTS\n# a3f2c1d4e5b6  nginx   \"/docker-entrypoint…\" 3s ago    Up 2s    80/tcp\n\n# You can run MANY containers from ONE image\ndocker run -d nginx   # container 1\ndocker run -d nginx   # container 2  (same image, different container)\ndocker run -d nginx   # container 3"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Mental model:</strong> Images live in a registry (like Docker Hub) — they are downloaded once and cached locally. Containers are ephemeral — they start, run, and can be deleted. Always treat containers as throwaway; put anything you need to keep in a volume."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "How Docker actually works"
+    },
+    {
+      "type": "paragraph",
+      "text": "Docker uses three Linux kernel features to create containers: <strong>namespaces</strong> isolate what a process can see (its own filesystem, network, users, process IDs); <strong>cgroups</strong> (control groups) limit what resources a process can use (CPU, RAM, disk I/O); and a <strong>union filesystem</strong> layers image layers on top of each other efficiently. You don't need to understand all of this to use Docker — but knowing it exists explains why containers are so lightweight."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "docker-01-q1",
+          "question": "A colleague asks: 'Are containers the same as virtual machines?' What's the most accurate answer?",
+          "type": "multiple-choice",
+          "options": [
+            "Yes — both isolate applications from the host system",
+            "No — VMs virtualise hardware and run a full OS; containers share the host kernel and isolate at the process level",
+            "No — containers are older than VMs",
+            "Yes — both run a complete operating system"
+          ],
+          "correctAnswer": 1,
+          "explanation": "VMs emulate hardware and boot a full guest OS (gigabytes, minutes to start). Containers share the host OS kernel and use Linux namespaces/cgroups to isolate processes (megabytes, milliseconds to start). Both provide isolation, but at completely different levels."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Does Docker work on Windows and macOS?",
+      "a": "Yes — Docker Desktop runs on both. Since containers use the Linux kernel, Docker Desktop runs a lightweight Linux VM invisibly on Mac and Windows to host containers. Your containers still behave identically to production Linux. On Linux, Docker runs natively without a VM."
+    },
+    {
+      "q": "Is Docker the only container technology?",
+      "a": "No — containerd (which Docker itself uses internally), Podman (rootless, daemonless), and LXC/LXD also create containers. But Docker has the largest ecosystem, best tooling, and is what 90%+ of tutorials, courses, and job descriptions reference. Learn Docker first."
+    }
+  ],
+  "sources": [
+    { "name": "Docker overview", "url": "https://docs.docker.com/get-started/overview/", "verified": "2026-10-07" }
+  ],
+  "realWorld": {
+    "usedIn": ["microservices", "CI/CD pipelines", "development environments", "cloud deployment", "data engineering"],
+    "examples": [
+      "Every GitHub Actions runner is a fresh container — your CI jobs run in an isolated Docker container that's destroyed after the job",
+      "Netflix, Google, Spotify — all run thousands of microservices as containers, allowing teams to deploy independently without affecting each other"
+    ]
+  }
+}

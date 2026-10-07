@@ -1,0 +1,104 @@
+{
+  "id": "08-volumes-and-data",
+  "version": "1.0.0",
+  "technology": "docker",
+  "module": "containers-in-depth",
+  "title": "Volumes and Data",
+  "subtitle": "Persisting data beyond container lifetimes — named volumes, bind mounts, and when to use each",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "prerequisites": ["docker/07-running-containers"],
+  "skillsTaught": ["docker.volumes", "docker.bind-mounts", "docker.data-persistence", "docker.volume-commands"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Why containers lose data by default"
+    },
+    {
+      "type": "paragraph",
+      "text": "Containers are ephemeral by design. When a container stops and is removed, every file written inside it disappears — the container's writable layer is deleted with it. This is intentional: it makes containers stateless and reproducible. But databases, user uploads, logs, and configuration need to survive. Docker solves this with <strong>volumes</strong>."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Three ways to mount data"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Volume types",
+      "code": "# ── 1. Named Volumes (RECOMMENDED for databases and persistent data) ──\n# Docker manages the storage location (usually /var/lib/docker/volumes/)\ndocker run -d \\\n  -v postgres-data:/var/lib/postgresql/data \\\n  postgres:16\n# 'postgres-data' is the named volume; /var/lib/postgresql/data is where\n# PostgreSQL stores its data inside the container.\n# Volume survives container deletion and is reused when container is recreated.\n\n# ── 2. Bind Mounts (BEST for development) ──\n# Mount a specific host directory into the container\ndocker run -d \\\n  -v $(pwd)/src:/app/src \\\n  -p 3000:3000 \\\n  myapp:dev\n# Changes to ./src on your host are immediately visible inside the container.\n# Perfect for local dev with hot-reload.\n\n# ── 3. tmpfs Mounts (in-memory, non-persistent) ──\n# Stored in host RAM only — perfect for secrets or temp files\ndocker run --tmpfs /app/tmp:size=100m myapp"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Managing named volumes"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Volume lifecycle commands",
+      "code": "# Create a volume explicitly\ndocker volume create postgres-data\n\n# List volumes\ndocker volume ls\n# DRIVER    VOLUME NAME\n# local     postgres-data\n# local     redis-data\n\n# Inspect a volume (see where Docker stores it on the host)\ndocker volume inspect postgres-data\n# \"Mountpoint\": \"/var/lib/docker/volumes/postgres-data/_data\"\n\n# Remove a volume (data is PERMANENTLY deleted)\ndocker volume rm postgres-data\n\n# Remove all unused volumes\ndocker volume prune\n\n# Back up a volume to a tar file\ndocker run --rm \\\n  -v postgres-data:/source \\\n  -v $(pwd):/backup \\\n  alpine tar czf /backup/postgres-backup.tar.gz -C /source ."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Choosing the right mount type"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "<strong>Named volume</strong> → database data, user uploads, any data that must persist between container restarts",
+        "<strong>Bind mount</strong> → local development: mount your source code so changes reflect instantly without rebuilding",
+        "<strong>tmpfs</strong> → sensitive data that should never touch disk (tokens, temp secrets), or high-speed scratch space"
+      ]
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Real development setup with bind mounts",
+      "code": "# Mount source code for hot-reload development\ndocker run -d \\\n  --name dev-server \\\n  -p 3000:3000 \\\n  -v $(pwd):/app \\\n  -v /app/node_modules \\\n  -e NODE_ENV=development \\\n  node:20-alpine \\\n  sh -c \"npm install && npm run dev\"\n\n# The '-v /app/node_modules' trick:\n# - $(pwd):/app mounts your code (overwriting /app in the container)\n# - -v /app/node_modules creates an ANONYMOUS volume for node_modules\n# This prevents your host (possibly empty) node_modules from\n# overwriting the container's installed packages"
+    },
+    {
+      "type": "warning",
+      "text": "<strong>Never store database data in the container's writable layer.</strong> If you run postgres without a volume and the container is removed (e.g. <code>docker rm -f</code>), all your data is gone permanently. Always use a named volume: <code>-v postgres-data:/var/lib/postgresql/data</code>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "docker-08-q1",
+          "question": "You're running a PostgreSQL container without any volume flag. You docker rm -f the container and recreate it. What happens to the data?",
+          "type": "multiple-choice",
+          "options": [
+            "The data is preserved in a hidden Docker cache",
+            "The data is lost — it was in the container's writable layer which is deleted with the container",
+            "The data moves to /var/lib/postgresql on the host automatically",
+            "Docker prompts you before deleting data"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Without a volume, all data written by the container lives in the container's writable layer — which is deleted when the container is removed. docker rm -f gives no warning. This is why databases MUST use named volumes. The data only persists if stored outside the container's writable layer."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the --mount syntax vs -v?",
+      "a": "--mount is the newer, more explicit syntax: --mount type=volume,source=mydata,target=/data/. The -v shorthand is shorter and more common. Docker recommends --mount for clarity in scripts and compose files. Both do the same thing."
+    }
+  ],
+  "sources": [
+    { "name": "Docker storage", "url": "https://docs.docker.com/storage/", "verified": "2026-10-07" }
+  ],
+  "realWorld": {
+    "usedIn": ["databases", "file uploads", "local development", "log persistence"],
+    "examples": [
+      "All managed database services (RDS, Cloud SQL) use volume-equivalent persistent block storage — Docker volumes are the self-hosted equivalent",
+      "Local dev with bind mounts: docker run -v $(pwd):/app ... is how teams share a single Dockerfile for both dev and production while getting hot-reload in development"
+    ]
+  }
+}

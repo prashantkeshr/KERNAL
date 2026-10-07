@@ -1,0 +1,96 @@
+{
+  "id": "02-github-actions-intro",
+  "version": "1.0.0",
+  "technology": "cicd",
+  "module": "cicd-fundamentals",
+  "title": "GitHub Actions Introduction",
+  "subtitle": ".github/workflows/, YAML structure, jobs, steps, runners — the anatomy of a workflow",
+  "difficulty": "beginner",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "prerequisites": ["cicd/01-what-is-cicd"],
+  "skillsTaught": ["cicd.workflow-syntax", "cicd.jobs", "cicd.steps", "cicd.runners", "cicd.contexts"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "What is GitHub Actions?"
+    },
+    {
+      "type": "paragraph",
+      "text": "GitHub Actions is GitHub's built-in CI/CD platform — free for public repos, generous free tier for private ones. Workflows are defined in YAML files inside <code>.github/workflows/</code>. When events happen (push, PR, schedule), GitHub spins up a fresh virtual machine (a <strong>runner</strong>), clones your repo, and runs your workflow. No server to configure, no plugins to install."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Anatomy of a workflow file"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": ".github/workflows/ci.yml",
+      "code": "# Every workflow has a name (shown in GitHub UI)\nname: CI\n\n# ── on: TRIGGER ──────────────────────────────────────────\n# When should this workflow run?\non:\n  push:\n    branches: [main, dev]          # on push to these branches\n  pull_request:\n    branches: [main]               # on PR targeting main\n  workflow_dispatch:               # manual trigger from GitHub UI\n\n# ── jobs ─────────────────────────────────────────────────\n# Jobs run in PARALLEL by default (unless needs: is specified)\njobs:\n\n  # Job 1: run tests\n  test:\n    # The OS to run on — ubuntu-latest is the most common\n    runs-on: ubuntu-latest\n\n    # ── steps: the actual commands ──────────────────────\n    steps:\n      # Every workflow starts by checking out your code\n      - name: Checkout code\n        uses: actions/checkout@v4\n\n      # Set up Node.js\n      - name: Set up Node.js\n        uses: actions/setup-node@v4\n        with:\n          node-version: '20'\n          cache: 'npm'              # cache node_modules between runs\n\n      # Install dependencies\n      - name: Install dependencies\n        run: npm ci\n\n      # Run tests\n      - name: Run tests\n        run: npm test\n\n  # Job 2: lint (runs in parallel with test)\n  lint:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-node@v4\n        with: { node-version: '20', cache: 'npm' }\n      - run: npm ci\n      - run: npm run lint\n\n  # Job 3: only runs if test AND lint pass\n  build:\n    needs: [test, lint]             # wait for both jobs to succeed\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-node@v4\n        with: { node-version: '20', cache: 'npm' }\n      - run: npm ci\n      - run: npm run build"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Key concepts"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "<strong>Workflow</strong> — the YAML file. One repo can have multiple workflows (ci.yml, deploy.yml, release.yml).",
+        "<strong>Job</strong> — a group of steps that run on one runner. Jobs run in parallel by default.",
+        "<strong>Step</strong> — a single task: either a shell command (<code>run:</code>) or a pre-built action (<code>uses:</code>).",
+        "<strong>Action</strong> — a reusable step from the GitHub Marketplace. <code>actions/checkout@v4</code> clones your repo. <code>actions/setup-node@v4</code> installs Node.js.",
+        "<strong>Runner</strong> — the VM that executes the job. <code>ubuntu-latest</code>, <code>windows-latest</code>, <code>macos-latest</code> are GitHub-hosted. You can also self-host.",
+        "<strong>Context</strong> — runtime data available via <code>${{ }}</code>: <code>${{ github.sha }}</code>, <code>${{ github.actor }}</code>, <code>${{ secrets.MY_SECRET }}</code>."
+      ]
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "Using contexts and expressions",
+      "code": "steps:\n  - name: Print useful context values\n    run: |\n      echo \"Branch: ${{ github.ref_name }}\"\n      echo \"Commit SHA: ${{ github.sha }}\"\n      echo \"Actor (who triggered): ${{ github.actor }}\"\n      echo \"Event: ${{ github.event_name }}\"\n      echo \"Repo: ${{ github.repository }}\"\n\n  # Conditional step — only on main branch\n  - name: Deploy (only on main)\n    if: github.ref == 'refs/heads/main'\n    run: ./deploy.sh\n\n  # Environment-specific step\n  - name: Set image tag\n    run: echo \"IMAGE_TAG=${{ github.sha }}\" >> $GITHUB_ENV\n\n  - name: Use the tag set above\n    run: echo \"Building image:$IMAGE_TAG\""
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Always pin action versions.</strong> Use <code>actions/checkout@v4</code> not <code>actions/checkout@latest</code>. Pinning to a major version (v4) protects you from breaking changes while still getting patches. For maximum security, pin to a full SHA: <code>actions/checkout@9bb56186c3edbf8a20b5...@v4</code>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "cicd-02-q1",
+          "question": "In a workflow with jobs 'test', 'lint', and 'build' (with needs: [test, lint]), how do the jobs execute?",
+          "type": "multiple-choice",
+          "options": [
+            "All three run sequentially: test → lint → build",
+            "test and lint run in parallel; build only starts after both succeed",
+            "test and lint run in parallel; build runs immediately in parallel too",
+            "Only the first job runs, then the others are skipped"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Jobs without 'needs:' run in parallel. 'build' has needs: [test, lint], so it waits for both to complete successfully. If either test or lint fails, build is skipped. This lets you run independent checks in parallel (faster) while still ensuring build only runs after validation passes."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How much does GitHub Actions cost?",
+      "a": "Public repositories: completely free, unlimited minutes. Private repositories: 2,000 minutes/month free on GitHub Free, 3,000 on Pro, 50,000 on Teams. ubuntu-latest uses 1 minute of quota per minute of compute. macOS uses 10× (10 minutes quota per minute). Most projects stay within the free tier."
+    }
+  ],
+  "sources": [
+    { "name": "GitHub Actions workflow syntax", "url": "https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions", "verified": "2026-10-07" }
+  ],
+  "realWorld": {
+    "usedIn": ["every GitHub-hosted project", "open source CI", "startup engineering"],
+    "examples": [
+      "actions/checkout@v4 is one of the most-used software packages in the world — it runs in millions of CI pipelines daily",
+      "KERNAL's own .github/workflows/deploy.yml is a real GitHub Actions workflow — what you're learning here is exactly what runs every time code is pushed to this project"
+    ]
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "id": "09-networking",
+  "version": "1.0.0",
+  "technology": "docker",
+  "module": "containers-in-depth",
+  "title": "Container Networking",
+  "subtitle": "How containers communicate — bridge networks, DNS, port binding, and container-to-container traffic",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "prerequisites": ["docker/08-volumes-and-data"],
+  "skillsTaught": ["docker.networks", "docker.bridge", "docker.dns", "docker.port-binding", "docker.container-dns"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Docker's network drivers"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Network types",
+      "code": "# List available networks\ndocker network ls\n# NETWORK ID   NAME      DRIVER    SCOPE\n# 1234abcd     bridge    bridge    local\n# 5678efgh     host      host      local\n# 9012ijkl     none      null      local\n\n# bridge (default): containers get their own network namespace;\n#                   can reach each other by IP; host reaches them via -p ports\n# host:   container shares the host's network stack (no isolation);\n#         fastest, but loses network isolation\n# none:   no networking at all (fully isolated)"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The problem with the default bridge"
+    },
+    {
+      "type": "paragraph",
+      "text": "When you run containers on the default bridge network, they can technically reach each other by IP — but the IPs are assigned dynamically and change on restart. Worse, the default bridge has no built-in DNS. You can't reach a container by name."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Custom networks — the right way to connect containers"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Container-to-container communication",
+      "code": "# Create a custom bridge network\ndocker network create myapp-network\n\n# Run containers on the same network\ndocker run -d \\\n  --name postgres \\\n  --network myapp-network \\\n  -e POSTGRES_PASSWORD=secret \\\n  postgres:16\n\ndocker run -d \\\n  --name api \\\n  --network myapp-network \\\n  -p 3000:3000 \\\n  -e DATABASE_URL=\"postgres://postgres:secret@postgres:5432/mydb\" \\\n  myapi:latest\n\n# Key insight: on a custom network, containers can reach each other\n# by their --name as a DNS hostname.\n# 'api' container connects to 'postgres:5432' — Docker DNS resolves 'postgres'\n# to that container's IP automatically.\n\n# Verify connectivity\ndocker exec api ping postgres\ndocker exec api nslookup postgres\n\n# Remove the network when done\ndocker network rm myapp-network"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Port binding — reaching containers from outside"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Port mapping patterns",
+      "code": "# -p hostPort:containerPort\ndocker run -p 80:80 nginx          # host:80 → container:80\ndocker run -p 8080:80 nginx        # host:8080 → container:80\ndocker run -p 127.0.0.1:3000:3000 myapi  # bind ONLY to localhost (not 0.0.0.0)\n\n# Map a random available host port (useful in CI)\ndocker run -p 0:80 nginx\ndocker port container-id          # see what port was assigned\n\n# Multiple ports\ndocker run -p 80:80 -p 443:443 nginx\n\n# -P (uppercase): publish ALL exposed ports to random host ports\ndocker run -P nginx\n\n# See active port mappings\ndocker port my-nginx\n# 80/tcp -> 0.0.0.0:80"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Container-to-container traffic never needs -p.</strong> The <code>-p</code> flag only exposes a port <em>to the host</em>. When two containers are on the same Docker network, they communicate directly on any port without exposing it to the outside world. This is how you keep databases internal: no <code>-p</code> on the database container."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "docker-09-q1",
+          "question": "You have a 'web' container that needs to connect to a 'database' container. Both are on the same custom Docker network called 'app-net'. What hostname should the web container use to reach the database?",
+          "type": "multiple-choice",
+          "options": [
+            "localhost",
+            "The database container's Docker IP address (e.g. 172.17.0.2)",
+            "The --name of the database container (e.g. 'database')",
+            "The host machine's IP address"
+          ],
+          "correctAnswer": 2,
+          "explanation": "On a custom Docker network, Docker's built-in DNS resolves container names to IPs. You can reach the 'database' container by the hostname 'database'. This is more reliable than using IPs (which change on restart) and is exactly how Docker Compose wires services together."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How can I connect a container to multiple networks?",
+      "a": "docker network connect <network> <container> — adds a container to an additional network while it's running. Useful when a reverse-proxy needs to reach multiple app networks: docker network connect frontend-net nginx; docker network connect backend-net nginx."
+    }
+  ],
+  "sources": [
+    { "name": "Docker networking", "url": "https://docs.docker.com/network/", "verified": "2026-10-07" }
+  ],
+  "realWorld": {
+    "usedIn": ["microservices isolation", "database security", "reverse proxy configuration"],
+    "examples": [
+      "Production pattern: web and api containers share one network; api and database share another; only the web container has -p 80:80 — the database is never directly reachable from the internet",
+      "Docker Compose automatically creates a custom network per project, so all services in a compose file can reach each other by service name"
+    ]
+  }
+}

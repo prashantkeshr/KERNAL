@@ -1,0 +1,86 @@
+{
+  "id": "04-triggers-and-events",
+  "version": "1.0.0",
+  "technology": "cicd",
+  "module": "workflow-essentials",
+  "title": "Triggers and Events",
+  "subtitle": "push, pull_request, schedule, workflow_dispatch, paths, and branches filters",
+  "difficulty": "beginner",
+  "estimatedMinutes": 12,
+  "status": "published",
+  "prerequisites": ["cicd/03-first-workflow"],
+  "skillsTaught": ["cicd.triggers", "cicd.push", "cicd.pull-request", "cicd.schedule", "cicd.paths-filter"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Every way to trigger a workflow"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "Trigger reference",
+      "code": "on:\n\n  # ── Code events ────────────────────────────────────────\n\n  # Push to specific branches\n  push:\n    branches:\n      - main\n      - 'release/**'      # wildcard: release/1.0, release/2.0\n      - '!dev/**'         # ! = exclude this pattern\n    tags:\n      - 'v*'              # any tag starting with v (v1.0, v2.3.1)\n    paths:\n      - 'src/**'          # only trigger if src/ files changed\n      - '!src/**/*.test.ts'  # but NOT test files\n\n  # Pull request events\n  pull_request:\n    types: [opened, synchronize, reopened]   # default\n    branches: [main]\n\n  # ── Manual triggers ─────────────────────────────────────\n\n  # Manual run from GitHub UI or API\n  workflow_dispatch:\n    inputs:\n      environment:\n        description: 'Deploy target'\n        required: true\n        default: 'staging'\n        type: choice\n        options: [staging, production]\n      dry_run:\n        description: 'Dry run only (no actual deploy)'\n        type: boolean\n        default: false\n\n  # Called by another workflow\n  workflow_call:\n    inputs:\n      image_tag:\n        required: true\n        type: string\n\n  # ── Scheduled triggers ──────────────────────────────────\n\n  # Cron syntax (UTC): daily at 2:30am\n  schedule:\n    - cron: '30 2 * * *'        # daily at 2:30 UTC\n    - cron: '0 9 * * 1'         # every Monday at 9am UTC\n\n  # ── Other useful events ─────────────────────────────────\n\n  release:\n    types: [published]     # runs when a GitHub Release is published\n\n  issues:\n    types: [opened]        # run on new issue\n\n  repository_dispatch:     # external HTTP call triggers this\n    types: [deploy]"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Practical trigger patterns"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "Common workflow configurations",
+      "code": "# ── Pattern 1: PR check (validate before merge) ──────────\nname: PR Check\non:\n  pull_request:\n    branches: [main]\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npm ci && npm test\n\n---\n# ── Pattern 2: Deploy on push to main ────────────────────\nname: Deploy\non:\n  push:\n    branches: [main]\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: ./deploy.sh\n\n---\n# ── Pattern 3: Nightly dependency audit ─────────────────\nname: Security Audit\non:\n  schedule:\n    - cron: '0 6 * * *'   # 6am UTC daily\njobs:\n  audit:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npm audit --audit-level=high\n\n---\n# ── Pattern 4: Only run when relevant files change ───────\nname: Backend CI\non:\n  push:\n    paths:\n      - 'server/**'\n      - 'packages/api/**'\n      - '!**/*.md'        # ignore markdown changes"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Using workflow_dispatch inputs"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "Manual deploy with inputs",
+      "code": "name: Manual Deploy\non:\n  workflow_dispatch:\n    inputs:\n      environment:\n        type: choice\n        options: [staging, production]\n        required: true\n      image_tag:\n        description: 'Docker image tag to deploy'\n        required: true\n        default: 'latest'\n\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    environment: ${{ inputs.environment }}  # requires manual approval if set up\n    steps:\n      - name: Deploy\n        run: |\n          echo \"Deploying tag: ${{ inputs.image_tag }}\"\n          echo \"Target: ${{ inputs.environment }}\"\n          ./scripts/deploy.sh \\\n            --env ${{ inputs.environment }} \\\n            --tag ${{ inputs.image_tag }}"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Use paths filtering to speed up monorepos.</strong> In a monorepo with frontend and backend packages, add <code>paths: ['server/**']</code> to the backend workflow so backend CI only runs when backend files change. Without this, a README fix in the frontend triggers the entire backend test suite — wasting minutes of CI time on every commit."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "cicd-04-q1",
+          "question": "You want a workflow to run tests on every PR, but deploy only when code is pushed to main. How do you configure this?",
+          "type": "multiple-choice",
+          "options": [
+            "Create two separate workflow files — one for PR (pull_request trigger), one for deploy (push: branches: [main] trigger)",
+            "Use a single file with 'on: push' and add an 'if: github.ref == main' condition on the deploy job",
+            "Either of the above work — separate files is cleaner; if-conditions work in one file",
+            "You must use workflow_call to link them"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Both approaches work. Separate files (ci.yml and deploy.yml) is cleaner and more maintainable. A single file with job-level if conditions works too. The separate-file approach is preferred for most teams because each workflow has a clear single purpose and separate status checks in GitHub's PR UI."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do I trigger a workflow from another workflow?",
+      "a": "Two ways: (1) workflow_call — defines a reusable workflow that other workflows call with 'uses: ./.github/workflows/shared.yml'. (2) repository_dispatch — one workflow makes an HTTP POST to the GitHub API to trigger another. workflow_call is preferred for same-repo orchestration."
+    }
+  ],
+  "sources": [
+    { "name": "GitHub Actions events reference", "url": "https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows", "verified": "2026-10-07" }
+  ],
+  "realWorld": {
+    "usedIn": ["PR validation", "scheduled audits", "release automation", "manual deploys"],
+    "examples": [
+      "on: release: types: [published] — publishes an npm package automatically when a GitHub Release is created; used by most open-source npm packages",
+      "on: schedule: cron — used for nightly database backups, dependency vulnerability scans, and freshness checks on links/APIs"
+    ]
+  }
+}

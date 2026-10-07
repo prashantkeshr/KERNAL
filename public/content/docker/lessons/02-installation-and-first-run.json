@@ -1,0 +1,97 @@
+{
+  "id": "02-installation-and-first-run",
+  "version": "1.0.0",
+  "technology": "docker",
+  "module": "container-fundamentals",
+  "title": "Installation & First Run",
+  "subtitle": "Install Docker, run your first container, and understand the core commands",
+  "difficulty": "beginner",
+  "estimatedMinutes": 12,
+  "status": "published",
+  "prerequisites": ["docker/01-what-is-docker"],
+  "skillsTaught": ["docker.docker-run", "docker.docker-ps", "docker.container-lifecycle", "docker.pull"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Installing Docker"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Installation",
+      "code": "# macOS / Windows:\n# Install Docker Desktop from https://docker.com/products/docker-desktop\n# It includes: Docker Engine, Docker CLI, Docker Compose, and a GUI\n\n# Ubuntu/Debian Linux:\ncurl -fsSL https://get.docker.com | sh      # official install script\nsudo usermod -aG docker $USER               # run docker without sudo\nnewgrp docker                               # activate without logout\n\n# Verify installation\ndocker --version\n# Docker version 27.0.3, build 7d4bcd8\n\ndocker run hello-world                      # the classic smoke test"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Your first real container"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "First container",
+      "code": "# Run an nginx web server in a container\ndocker run -d -p 8080:80 --name my-nginx nginx\n\n# Breaking it down:\n# docker run     — create and start a container\n# -d             — detached mode (runs in background)\n# -p 8080:80     — map host port 8080 to container port 80\n# --name my-nginx — give it a memorable name\n# nginx           — the image to use (pulled from Docker Hub if not local)\n\n# Now visit http://localhost:8080 — nginx is serving!\n\n# See running containers\ndocker ps\n# CONTAINER ID  IMAGE  COMMAND                CREATED  STATUS   PORTS\n# a3f2c1d4e5b6  nginx  \"/docker-entrypoint…\" 5s ago   Up 4s    0.0.0.0:8080->80/tcp\n\n# Stop and remove it\ndocker stop my-nginx\ndocker rm my-nginx\n\n# Stop + remove in one step\ndocker rm -f my-nginx"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Essential daily commands"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Core Docker commands",
+      "code": "# ── IMAGES ──────────────────────────────────────────────\ndocker images                  # list local images\ndocker pull node:20-alpine     # download image without running\ndocker rmi node:20-alpine      # delete an image\ndocker image prune             # delete all dangling (untagged) images\n\n# ── CONTAINERS ──────────────────────────────────────────\ndocker ps                      # running containers\ndocker ps -a                   # ALL containers (including stopped)\ndocker start my-app            # start a stopped container\ndocker stop my-app             # graceful stop (SIGTERM, 10s grace)\ndocker kill my-app             # immediate stop (SIGKILL)\ndocker rm my-app               # delete a stopped container\ndocker container prune         # delete all stopped containers\n\n# ── INSPECT ─────────────────────────────────────────────\ndocker logs my-app             # view stdout/stderr\ndocker logs -f my-app          # follow (tail -f equivalent)\ndocker exec -it my-app bash    # open shell inside running container\ndocker inspect my-app          # full JSON config dump\ndocker stats                   # live CPU/RAM/network usage\n\n# ── CLEANUP (nuclear option) ─────────────────────────────\ndocker system prune -a         # remove everything unused"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>The --rm flag is your friend.</strong> Add <code>--rm</code> to <code>docker run</code> and the container is automatically deleted when it stops. Perfect for one-off tasks like running a script or testing a command — no cleanup needed: <code>docker run --rm node:20-alpine node -e 'console.log(\"hello\")'</code>"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Interactive vs detached mode"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Interactive vs detached",
+      "code": "# -d (detached): runs in background, returns you to the shell\ndocker run -d nginx\n\n# -it (interactive + TTY): gives you a shell inside the container\ndocker run -it ubuntu bash\n# Now you're INSIDE the container!\n# root@a3f2c1d4:/# ls\n# root@a3f2c1d4:/# apt-get install -y curl\n# root@a3f2c1d4:/# exit   ← container stops when you exit\n\n# Useful for debugging — run a shell in the alpine image\ndocker run --rm -it alpine sh\n\n# Or exec into an already-running container\ndocker exec -it my-nginx bash"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "docker-02-q1",
+          "question": "You run: docker run -d -p 3000:8080 myapp. What does -p 3000:8080 mean?",
+          "type": "multiple-choice",
+          "options": [
+            "The container uses 3000 MB of RAM with 8080 as a limit",
+            "Port 3000 on the host maps to port 8080 inside the container",
+            "Port 8080 on the host maps to port 3000 inside the container",
+            "The app listens on both port 3000 and 8080"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The -p flag is host:container. So -p 3000:8080 means 'traffic arriving at localhost:3000 on the host is forwarded to port 8080 inside the container.' Your app inside the container thinks it's on port 8080, but you reach it from your browser at port 3000."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is Docker Hub?",
+      "a": "Docker Hub (hub.docker.com) is the default public registry — a library of pre-built images. When you run 'docker run nginx', Docker looks for nginx locally first, then pulls it from Docker Hub automatically. Official images (nginx, node, postgres, python) are maintained by their respective projects and safe to use as base images."
+    }
+  ],
+  "sources": [
+    { "name": "Docker CLI reference", "url": "https://docs.docker.com/reference/cli/docker/", "verified": "2026-10-07" }
+  ],
+  "realWorld": {
+    "usedIn": ["local development", "testing", "one-off tasks", "experimenting with tools"],
+    "examples": [
+      "docker run --rm -it postgres:16 psql — try PostgreSQL without installing it; container deleted when you exit",
+      "docker run --rm -v $(pwd):/app node:20-alpine sh -c 'cd /app && npm install' — install dependencies without Node installed locally"
+    ]
+  }
+}

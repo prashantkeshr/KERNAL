@@ -1,0 +1,86 @@
+{
+  "id": "03-first-workflow",
+  "version": "1.0.0",
+  "technology": "cicd",
+  "module": "cicd-fundamentals",
+  "title": "Your First Workflow",
+  "subtitle": "Build a real CI workflow — checkout, setup, install, test, lint, and build in one file",
+  "difficulty": "beginner",
+  "estimatedMinutes": 15,
+  "status": "published",
+  "prerequisites": ["cicd/02-github-actions-intro"],
+  "skillsTaught": ["cicd.first-workflow", "cicd.caching", "cicd.artifacts", "cicd.step-outputs"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "A complete CI workflow — step by step"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": ".github/workflows/ci.yml — production-grade CI",
+      "code": "name: CI\n\non:\n  push:\n    branches: [main]\n  pull_request:\n    branches: [main]\n\n# Cancel in-progress runs on new push (saves CI minutes)\nconcurrency:\n  group: ${{ github.workflow }}-${{ github.ref }}\n  cancel-in-progress: true\n\njobs:\n  ci:\n    name: Test, Lint & Build\n    runs-on: ubuntu-latest\n\n    steps:\n      # Step 1: Get the code\n      - name: Checkout\n        uses: actions/checkout@v4\n\n      # Step 2: Install Node.js with npm caching\n      - name: Setup Node.js 20\n        uses: actions/setup-node@v4\n        with:\n          node-version: '20'\n          cache: 'npm'   # automatically caches ~/.npm between runs\n\n      # Step 3: Install dependencies (ci is faster + reproducible from lock file)\n      - name: Install dependencies\n        run: npm ci\n\n      # Step 4: TypeScript type check\n      - name: Type check\n        run: npx tsc --noEmit\n\n      # Step 5: ESLint\n      - name: Lint\n        run: npm run lint\n\n      # Step 6: Unit tests with coverage\n      - name: Test\n        run: npm test -- --coverage\n\n      # Step 7: Upload coverage report as artifact (viewable in GitHub UI)\n      - name: Upload coverage\n        uses: actions/upload-artifact@v4\n        with:\n          name: coverage-report\n          path: coverage/\n          retention-days: 7\n\n      # Step 8: Build (only if all above pass)\n      - name: Build\n        run: npm run build\n\n      # Step 9: Upload build output as artifact\n      - name: Upload build\n        uses: actions/upload-artifact@v4\n        with:\n          name: dist\n          path: dist/\n          retention-days: 1   # short — used by next deploy job"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Caching — the most impactful optimization"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "Manual cache control (when auto-cache isn't enough)",
+      "code": "steps:\n  - uses: actions/checkout@v4\n\n  # actions/cache saves and restores a directory between runs\n  # Cache key: if package-lock.json changes, the cache is invalidated\n  - name: Cache node_modules\n    uses: actions/cache@v4\n    with:\n      path: ~/.npm\n      key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}\n      restore-keys: |\n        ${{ runner.os }}-node-\n\n  # With Turbo (monorepo):\n  - name: Cache Turborepo\n    uses: actions/cache@v4\n    with:\n      path: .turbo\n      key: ${{ runner.os }}-turbo-${{ github.sha }}\n      restore-keys: |\n        ${{ runner.os }}-turbo-\n\n  - run: npm ci\n  - run: npm run build   # turbo uses .turbo cache — only rebuilds what changed"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Working with step outputs and environment"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "Passing data between steps",
+      "code": "steps:\n  # Set an environment variable for all subsequent steps\n  - name: Set build vars\n    run: |\n      echo \"BUILD_DATE=$(date -u +%Y-%m-%d)\" >> $GITHUB_ENV\n      echo \"IMAGE_TAG=${{ github.sha }}\" >> $GITHUB_ENV\n\n  # Now $IMAGE_TAG is available as a normal shell variable\n  - name: Build Docker image\n    run: docker build -t myapp:$IMAGE_TAG .\n\n  # Step outputs (pass data to later steps in same job)\n  - name: Get version\n    id: version    # give the step an id to reference its output\n    run: echo \"version=$(cat package.json | jq -r .version)\" >> $GITHUB_OUTPUT\n\n  - name: Print version\n    run: echo \"Version is ${{ steps.version.outputs.version }}\""
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Use <code>concurrency</code> to cancel stale runs.</strong> When you push 5 commits quickly, you don't want 5 CI runs to complete — only the latest matters. The <code>concurrency</code> block cancels any in-progress run for the same branch when a new one starts. This can cut your CI bill by 60% on fast-moving branches."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "cicd-03-q1",
+          "question": "Why use 'npm ci' instead of 'npm install' in CI?",
+          "type": "multiple-choice",
+          "options": [
+            "npm ci is faster because it skips the audit check",
+            "npm ci installs from the lock file and fails if package.json and package-lock.json are out of sync — guaranteeing reproducible installs",
+            "npm install doesn't work in CI environments",
+            "npm ci automatically caches node_modules in the runner"
+          ],
+          "correctAnswer": 1,
+          "explanation": "npm ci (clean install) always installs from package-lock.json, deletes node_modules first, and fails if the lockfile is out of date. npm install may update the lockfile or make different resolution decisions. In CI you want reproducible builds — same packages every run. npm ci guarantees this."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do I view workflow run results?",
+      "a": "Go to your repository on GitHub → Actions tab → click a workflow run → click a job → expand each step to see output and logs. You can also see the real-time stream while a workflow is running. Artifacts appear at the bottom of the workflow run summary page."
+    }
+  ],
+  "sources": [
+    { "name": "actions/cache", "url": "https://github.com/actions/cache", "verified": "2026-10-07" }
+  ],
+  "realWorld": {
+    "usedIn": ["every pull request", "main branch protection", "nightly builds"],
+    "examples": [
+      "Most GitHub repos enable 'Require status checks to pass before merging' — PRs can't be merged until the CI workflow passes, preventing broken code from reaching main",
+      "The concurrency block alone reduced CI costs by ~50% at many companies that had developers pushing frequently during active development"
+    ]
+  }
+}

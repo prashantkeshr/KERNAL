@@ -1,0 +1,96 @@
+{
+  "id": "12-docker-in-cicd",
+  "version": "1.0.0",
+  "technology": "cicd",
+  "module": "deployment-pipelines",
+  "title": "Docker in CI/CD",
+  "subtitle": "Build, tag, and push Docker images to GHCR in GitHub Actions — with layer caching, multi-platform builds, and secure secrets",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 15,
+  "status": "published",
+  "prerequisites": ["cicd/11-deploy-to-cloud", "docker/06-image-registry"],
+  "skillsTaught": ["cicd.docker-build", "cicd.ghcr", "cicd.build-cache", "cicd.multi-platform", "cicd.build-secrets"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Build and push to GitHub Container Registry"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": ".github/workflows/docker.yml — complete setup",
+      "code": "name: Build and Push Docker Image\n\non:\n  push:\n    branches: [main]\n    tags: ['v*']      # also build on version tags\n  pull_request:\n    branches: [main]\n\njobs:\n  build:\n    runs-on: ubuntu-latest\n    permissions:\n      contents: read\n      packages: write   # required to push to GHCR\n\n    steps:\n      - uses: actions/checkout@v4\n\n      # Set up BuildKit (Docker's modern build engine — faster, more features)\n      - name: Set up Docker Buildx\n        uses: docker/setup-buildx-action@v3\n\n      # Log in to GitHub Container Registry using GITHUB_TOKEN\n      # No secret setup needed — GITHUB_TOKEN works automatically\n      - name: Log in to GHCR\n        uses: docker/login-action@v3\n        with:\n          registry: ghcr.io\n          username: ${{ github.actor }}\n          password: ${{ secrets.GITHUB_TOKEN }}\n\n      # Generate image tags:\n      # - ghcr.io/owner/repo:main (branch name)\n      # - ghcr.io/owner/repo:sha-abc1234 (commit SHA)\n      # - ghcr.io/owner/repo:v1.2.3 (semver tag)\n      # - ghcr.io/owner/repo:latest (only on tagged releases)\n      - name: Extract metadata\n        id: meta\n        uses: docker/metadata-action@v5\n        with:\n          images: ghcr.io/${{ github.repository }}\n          tags: |\n            type=ref,event=branch\n            type=sha,prefix=sha-,format=short\n            type=semver,pattern={{version}}\n            type=semver,pattern={{major}}.{{minor}}\n            type=raw,value=latest,enable=${{ github.ref_type == 'tag' }}\n\n      # Build and push with GitHub Actions cache\n      - name: Build and push\n        uses: docker/build-push-action@v6\n        with:\n          context: .\n          # Only push on main/tags, not on PR builds\n          push: ${{ github.event_name != 'pull_request' }}\n          tags: ${{ steps.meta.outputs.tags }}\n          labels: ${{ steps.meta.outputs.labels }}\n          # GitHub Actions cache — reuse layers between runs\n          cache-from: type=gha\n          cache-to: type=gha,mode=max"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Layer caching explained"
+    },
+    {
+      "type": "paragraph",
+      "text": "Without caching, every CI run downloads base images and reinstalls all dependencies from scratch — a Node.js app might take 3-4 minutes. With <code>type=gha</code> (GitHub Actions cache), BuildKit stores each Dockerfile layer after the first run. Subsequent runs that hit the cache take 30 seconds. The cache key is the layer content hash — if you change <code>package.json</code>, only the <code>npm install</code> layer and everything after it is rebuilt."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Multi-platform builds"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "Build for AMD64 and ARM64 simultaneously",
+      "code": "# Why: Apple Silicon Macs, AWS Graviton, Raspberry Pi all use ARM64\n# Building multi-platform on GitHub's AMD64 runners uses QEMU emulation\n\n- name: Set up QEMU\n  uses: docker/setup-qemu-action@v3\n  # QEMU allows running ARM64 code on AMD64 runners (slower but compatible)\n\n- name: Set up Docker Buildx\n  uses: docker/setup-buildx-action@v3\n\n- name: Build and push\n  uses: docker/build-push-action@v6\n  with:\n    context: .\n    platforms: linux/amd64,linux/arm64\n    push: true\n    tags: ghcr.io/myorg/myapp:latest\n    cache-from: type=gha\n    cache-to: type=gha,mode=max\n  # Creates a single image manifest that works on both architectures\n  # docker pull ghcr.io/myorg/myapp:latest → gets the right architecture automatically"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Passing build secrets securely"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "BuildKit secrets — never in image layers",
+      "code": "- name: Build with secret\n  uses: docker/build-push-action@v6\n  with:\n    context: .\n    push: true\n    tags: ghcr.io/myorg/myapp:latest\n    secrets: |\n      npm_token=${{ secrets.NPM_TOKEN }}\n      github_token=${{ secrets.GITHUB_TOKEN }}\n    # In Dockerfile, use the secret without it being stored in layers:\n    # RUN --mount=type=secret,id=npm_token \\\n    #     npm config set //registry.npmjs.org/:_authToken=$(cat /run/secrets/npm_token) && \\\n    #     npm ci && \\\n    #     npm config delete //registry.npmjs.org/:_authToken"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Don't push on pull request builds.</strong> The workflow uses <code>push: ${{ github.event_name != 'pull_request' }}</code>. On PRs, the image is built and verified (you catch Dockerfile errors) but not pushed to the registry. This prevents untrusted code from PRs writing to your image registry, and avoids polluting the registry with thousands of PR build images."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "cicd-12-q1",
+          "question": "You use 'cache-from: type=gha, cache-to: type=gha,mode=max'. Your package.json changes. Which Dockerfile layers are rebuilt?",
+          "type": "multiple-choice",
+          "options": [
+            "All layers — any file change invalidates the entire cache",
+            "Only the 'COPY package.json' layer and all layers after it (RUN npm ci, COPY src, etc.)",
+            "Only the final layer — Docker is smart enough to rebuild only what's needed",
+            "No layers — caching prevents any rebuilding"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Docker layer caching is sequential: each layer depends on all previous layers. When 'COPY package.json .' changes, that layer's cache is invalidated, and so is every layer that follows it (because they might depend on it). Layers before the COPY — like 'FROM node:20-alpine' and 'WORKDIR /app' — are still cached. This is why Dockerfile instruction order matters: 'COPY package.json → RUN npm ci → COPY src' is much faster to cache than 'COPY . → RUN npm ci'."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Should I use Docker Hub or GHCR for my images?",
+      "a": "GHCR (ghcr.io) is the better default for GitHub-hosted projects: it's free, uses GITHUB_TOKEN (no separate secret setup), is colocated with your source code, and has no rate limits on pulls from GitHub Actions runners. Use Docker Hub if you need images accessible to non-GitHub users, or if you have existing infrastructure that already pulls from Docker Hub."
+    }
+  ],
+  "sources": [
+    { "name": "docker/build-push-action", "url": "https://github.com/docker/build-push-action", "verified": "2026-10-07" },
+    { "name": "GitHub Container Registry", "url": "https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry", "verified": "2026-10-07" }
+  ],
+  "realWorld": {
+    "usedIn": ["microservices CI", "Kubernetes deployments", "Docker Swarm", "production container builds"],
+    "examples": [
+      "The 'type=gha' build cache cut Docker build times from 4 minutes to 25 seconds for a Node.js API at a SaaS startup — just by adding two lines to the workflow",
+      "Multi-platform builds with QEMU are used by every major open source project (PostgreSQL, Redis, Node.js) to publish images that run on both Intel servers and ARM cloud instances without users needing to know the difference"
+    ]
+  }
+}

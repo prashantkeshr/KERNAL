@@ -1,0 +1,107 @@
+{
+  "id": "11-deploy-to-cloud",
+  "version": "1.0.0",
+  "technology": "cicd",
+  "module": "deployment-pipelines",
+  "title": "Deploy to Cloud Platforms",
+  "subtitle": "Automate deployments to Vercel, Railway, and Fly.io — preview deployments on every PR, production on merge",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 15,
+  "status": "published",
+  "prerequisites": ["cicd/10-deploy-to-pages"],
+  "skillsTaught": ["cicd.vercel", "cicd.railway", "cicd.flyio", "cicd.preview-deploys", "cicd.cloud-deploy"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Preview deployments — the game-changer"
+    },
+    {
+      "type": "paragraph",
+      "text": "A <em>preview deployment</em> is a unique, temporary URL for every PR. When you open a PR, CI builds your app and deploys it to a real environment at a URL like <code>my-app-pr-42.vercel.app</code>. Reviewers can click the link and test the actual running app — not look at code and imagine what it does. When the PR is closed, the preview is automatically deleted. This workflow has become standard in modern web development."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Vercel — zero-config deployment"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": ".github/workflows/vercel.yml",
+      "code": "name: Vercel Deploy\n\non:\n  push:\n    branches: [main]\n  pull_request:\n\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n\n      - name: Deploy to Vercel\n        uses: amondnet/vercel-action@v25\n        with:\n          vercel-token: ${{ secrets.VERCEL_TOKEN }}\n          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}\n          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}\n          # On PRs: deploys to a preview URL\n          # On main: deploys to production with --prod\n          vercel-args: ${{ github.ref == 'refs/heads/main' && '--prod' || '' }}\n\n      # Post the preview URL as a PR comment\n      - name: Comment PR with preview URL\n        if: github.event_name == 'pull_request'\n        uses: actions/github-script@v7\n        with:\n          script: |\n            const url = '${{ steps.deploy.outputs.preview-url }}';\n            github.rest.issues.createComment({\n              issue_number: context.issue.number,\n              owner: context.repo.owner,\n              repo: context.repo.repo,\n              body: `🚀 Preview deployed: ${url}`\n            });"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Railway — deploy Docker or code directly"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "Railway deployment via CLI",
+      "code": "- name: Install Railway CLI\n  run: npm install -g @railway/cli\n\n- name: Deploy to Railway\n  env:\n    RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}\n  run: |\n    # Deploy to a specific environment\n    railway up --service my-api --environment production\n    # Railway auto-detects the framework and builds it\n    # Or deploy a Docker image:\n    railway up --image myapp:${{ github.sha }}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Fly.io — global edge deployment"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "Fly.io deployment",
+      "code": "- name: Deploy to Fly.io\n  uses: superfly/flyctl-actions/setup-flyctl@master\n\n- name: Deploy\n  env:\n    FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}\n  run: |\n    # fly.toml must exist in the repo (run 'fly launch' once locally)\n    flyctl deploy --remote-only\n    # --remote-only: builds the Docker image on Fly's servers\n    # No local Docker needed — fast even on small runners\n\n# fly.toml specifies regions, VM size, auto-scaling, health checks\n# Fly automatically deploys to multiple regions for low latency globally"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Smoke test after deployment"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "Verify the deployment worked",
+      "code": "- name: Deploy\n  id: deploy\n  run: |\n    flyctl deploy --remote-only\n    # Get the app URL\n    echo \"url=$(flyctl info --json | jq -r .hostname)\" >> $GITHUB_OUTPUT\n\n- name: Smoke test\n  run: |\n    URL=\"https://${{ steps.deploy.outputs.url }}\"\n    echo \"Testing $URL\"\n\n    # Wait for the deployment to be ready (max 60s)\n    for i in $(seq 1 12); do\n      STATUS=$(curl -s -o /dev/null -w '%{http_code}' $URL/health)\n      if [ $STATUS -eq 200 ]; then\n        echo \"✓ App is up and healthy\"\n        exit 0\n      fi\n      echo \"Attempt $i: got $STATUS, retrying...\"\n      sleep 5\n    done\n\n    echo \"✗ App failed to become healthy\"\n    exit 1"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Always smoke test after deploying.</strong> A successful deployment step means the files were transferred and the container started — it doesn't mean the app is actually responding. A smoke test (HTTP request to <code>/health</code> or the homepage) catches configuration errors, missing environment variables, and startup crashes that only manifest in production. It takes 10 seconds to add and has caught real production outages before anyone noticed."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "cicd-11-q1",
+          "question": "You want to give reviewers a live preview of PR changes for a full-stack app (React frontend + Node.js API). What is the best approach?",
+          "type": "multiple-choice",
+          "options": [
+            "GitHub Pages for both — it supports Node.js with serverless functions",
+            "Deploy the frontend to Vercel (preview URL per PR) and the API to Railway (preview environment per PR), link them",
+            "Only deploy the frontend for preview; reviewers don't need to test the API",
+            "Use a single VPS and manually deploy each PR"
+          ],
+          "correctAnswer": 1,
+          "explanation": "GitHub Pages is static only — no Node.js. For a full-stack preview, you need both tiers: a frontend CDN (Vercel) and a backend platform (Railway/Fly.io). Both support preview environments. The workflow deploys both, links the frontend preview to the backend preview URL, and posts both links as a PR comment. This gives reviewers a fully functional preview of the complete system."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do I avoid deploying preview environments on every trivial commit (docs, README fixes)?",
+      "a": "Use paths filtering: 'on: pull_request: paths: [src/**, package.json, ...]'. Preview deployments only trigger when source code changes, not docs or config. You can also add a label-based gate: only deploy if the PR has a 'preview' label, using 'if: contains(github.event.pull_request.labels.*.name, \"preview\")'."
+    }
+  ],
+  "sources": [
+    { "name": "Vercel GitHub Action", "url": "https://github.com/amondnet/vercel-action", "verified": "2026-10-07" },
+    { "name": "Fly.io GitHub Actions", "url": "https://fly.io/docs/launch/continuous-deployment-with-github-actions/", "verified": "2026-10-07" }
+  ],
+  "realWorld": {
+    "usedIn": ["SaaS products", "agency workflows", "open source contributions"],
+    "examples": [
+      "Vercel pioneered preview deployments and it transformed how web teams review code. Code review without a live preview requires reviewers to mentally simulate the UI — with a preview URL, they test it directly. PR review time at Vercel customers dropped by 30-50%.",
+      "Fly.io's 'remote-only' build runs in their infrastructure — no Docker daemon needed on the GitHub runner, keeping secrets out of the build environment and making CI runners lighter"
+    ]
+  }
+}

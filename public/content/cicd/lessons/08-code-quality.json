@@ -1,0 +1,90 @@
+{
+  "id": "08-code-quality",
+  "version": "1.0.0",
+  "technology": "cicd",
+  "module": "testing-and-quality",
+  "title": "Code Quality Gates",
+  "subtitle": "ESLint, Prettier, TypeScript strict checks, and SonarCloud integration — automated code quality in every PR",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 13,
+  "status": "published",
+  "prerequisites": ["cicd/07-automated-testing"],
+  "skillsTaught": ["cicd.eslint", "cicd.prettier", "cicd.typescript", "cicd.sonarcloud", "cicd.quality-gates"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Why code quality belongs in CI"
+    },
+    {
+      "type": "paragraph",
+      "text": "Code reviews are expensive human time. Code quality tools catch whole categories of issues <em>before</em> a human even opens the PR — unused variables, inconsistent formatting, type errors, and known anti-patterns. In CI, these tools become gates: the PR simply cannot merge until the code passes. They also make reviews more productive: reviewers focus on logic and design, not style nits."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "ESLint + Prettier in one job"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": ".github/workflows/quality.yml",
+      "code": "name: Code Quality\non:\n  pull_request:\n  push:\n    branches: [main]\n\njobs:\n  quality:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-node@v4\n        with: { node-version: '20', cache: 'npm' }\n      - run: npm ci\n\n      # TypeScript strict type checking\n      - name: Type check\n        run: npx tsc --noEmit\n\n      # ESLint — fail on any error (warnings allowed)\n      - name: Lint\n        run: npx eslint . --max-warnings=0\n        # --max-warnings=0: even warnings fail the job\n        # Adjust to a positive number during a codebase cleanup\n\n      # Prettier — check formatting without changing files\n      - name: Format check\n        run: npx prettier --check .\n        # Fails if any file would be reformatted\n        # Fix locally: npx prettier --write .\n\n      # Report ESLint results as GitHub annotations (inline in PR diff)\n      - name: ESLint with annotations\n        if: always()\n        run: |\n          npx eslint . --format=@microsoft/eslint-formatter-sarif \\\n            --output-file eslint-results.sarif || true\n\n      - name: Upload ESLint SARIF\n        if: always()\n        uses: github/codeql-action/upload-sarif@v3\n        with:\n          sarif_file: eslint-results.sarif\n          wait-for-processing: true"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "SonarCloud — deep quality analysis"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "SonarCloud integration",
+      "code": "# SonarCloud is free for open source projects\n# Setup: sonarcloud.io → link your GitHub repo → get SONAR_TOKEN\n\n- name: SonarCloud scan\n  uses: SonarSource/sonarcloud-github-action@master\n  env:\n    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}\n    SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}\n  # SonarCloud checks:\n  # - Code coverage (fails if below configured threshold)\n  # - Code smells (anti-patterns, complexity)\n  # - Duplicate code\n  # - Security hotspots\n  # - Bugs found by static analysis\n  # All configurable in sonar-project.properties"
+    },
+    {
+      "type": "code",
+      "lang": "ini",
+      "filename": "sonar-project.properties",
+      "code": "sonar.projectKey=myorg_myrepo\nsonar.organization=myorg\n\n# Source files to analyse\nsonar.sources=src\nsonar.exclusions=**/*.test.ts,**/node_modules/**\n\n# Coverage reports\nsonar.javascript.lcov.reportPaths=coverage/lcov.info\n\n# Quality Gate: fails the PR if coverage drops below 80%\n# or if new code has any bugs/vulnerabilities\n# Configure the threshold in SonarCloud project settings"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Fix the root cause, not the symptom.</strong> When ESLint flags an error, understand why the rule exists. <code>@typescript-eslint/no-floating-promises</code> exists because unawaited promises silently swallow errors. <code>no-console</code> exists because console.log in production apps pollutes log infrastructure. Disabling a rule with <code>// eslint-disable-next-line</code> should be a last resort with a comment explaining why."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "cicd-08-q1",
+          "question": "A developer wants to skip the Prettier format check for one file. What is the correct approach?",
+          "type": "multiple-choice",
+          "options": [
+            "Add the file to .gitignore so CI doesn't see it",
+            "Add the file path to .prettierignore — Prettier and the CI check will both skip it",
+            "Disable the format check step with 'if: false' in the workflow",
+            "Run 'prettier --write' on the file to auto-format it and commit the result"
+          ],
+          "correctAnswer": 3,
+          "explanation": "The correct fix is to run 'prettier --write' locally, let Prettier reformat the file, and commit the formatted result. This keeps the file consistently formatted. .prettierignore is for files that genuinely shouldn't be formatted (generated code, binary-like text, vendor files). Adding to .gitignore would remove the file from source control entirely. Disabling the CI step defeats the purpose for everyone."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "ESLint reports thousands of errors in a legacy codebase. How do we adopt it gradually?",
+      "a": "Start with --max-warnings=9999 (very permissive) and commit a baseline. Then use eslint-baseline (or lint-staged for new files only) to only fail on NEW violations. Ratchet the threshold down over time. This lets you adopt quality gates without stopping all development while you fix historical issues."
+    }
+  ],
+  "sources": [
+    { "name": "SonarCloud GitHub Action", "url": "https://github.com/SonarSource/sonarcloud-github-action", "verified": "2026-10-07" }
+  ],
+  "realWorld": {
+    "usedIn": ["PR quality gates", "code review automation", "technical debt tracking"],
+    "examples": [
+      "Google's internal codebase runs automated linters and formatters on every commit — no human reviewer ever debates semicolons or indentation; all of that is decided by the tool",
+      "SonarCloud's 'Quality Gate' can block a PR from merging if test coverage drops even 1% — teams use this to prevent gradual erosion of coverage over time"
+    ]
+  }
+}

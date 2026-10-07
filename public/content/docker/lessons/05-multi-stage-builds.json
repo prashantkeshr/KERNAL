@@ -1,0 +1,91 @@
+{
+  "id": "05-multi-stage-builds",
+  "version": "1.0.0",
+  "technology": "docker",
+  "module": "building-images",
+  "title": "Multi-Stage Builds",
+  "subtitle": "Build in a fat image, ship in a tiny one — the professional way to minimize production images",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "prerequisites": ["docker/04-dockerfile-basics"],
+  "skillsTaught": ["docker.multi-stage", "docker.builder-pattern", "docker.production-images"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The build-time vs runtime problem"
+    },
+    {
+      "type": "paragraph",
+      "text": "To build a React app you need Node.js, npm, webpack, TypeScript, and dozens of devDependencies — all totaling hundreds of megabytes. But to <em>run</em> the app in production, you only need the compiled HTML/CSS/JS files served by nginx (~200 MB). Without multi-stage builds, you'd ship the entire build environment to production. Multi-stage builds solve this by using multiple FROM statements in one Dockerfile — each stage can use a different base image, and you can selectively copy files between stages."
+    },
+    {
+      "type": "code",
+      "lang": "dockerfile",
+      "filename": "Dockerfile — React app (single-stage, bloated)",
+      "code": "# ❌ NAIVE — ships node_modules and build tools to production\nFROM node:20\nWORKDIR /app\nCOPY . .\nRUN npm install && npm run build\n# Image size: ~1.2 GB (node + all devDependencies + source)\nCMD [\"npm\", \"start\"]  # serves static files — wasteful"
+    },
+    {
+      "type": "code",
+      "lang": "dockerfile",
+      "filename": "Dockerfile — React app (multi-stage, production-grade)",
+      "code": "# ✅ MULTI-STAGE — build with Node, serve with nginx\n\n# ── Stage 1: Build ───────────────────────────────────────\n# Name this stage 'builder'\nFROM node:20-alpine AS builder\nWORKDIR /app\n\n# Leverage layer cache: install deps first\nCOPY package*.json ./\nRUN npm ci\n\n# Copy source and build\nCOPY . .\nRUN npm run build\n# /app/dist now contains the compiled static files\n\n# ── Stage 2: Production ──────────────────────────────────\n# Fresh base — nothing from the builder stage carries over\nFROM nginx:alpine\n\n# COPY --from=builder: copy ONLY the built output from stage 1\nCOPY --from=builder /app/dist /usr/share/nginx/html\n\n# Optional: custom nginx config\nCOPY nginx.conf /etc/nginx/conf.d/default.conf\n\nEXPOSE 80\nCMD [\"nginx\", \"-g\", \"daemon off;\"]"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Results",
+      "code": "docker build -t myapp:prod .\ndocker images myapp\n# REPOSITORY  TAG    SIZE\n# myapp       prod   24.5MB   ← only nginx + static files!\n\n# Compare:\n# Single-stage approach: ~1.2 GB\n# Multi-stage:           ~25 MB\n# That's a 48× reduction"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Multi-stage for a Node.js API"
+    },
+    {
+      "type": "code",
+      "lang": "dockerfile",
+      "filename": "Dockerfile — Node.js API (multi-stage with TypeScript)",
+      "code": "# Stage 1: compile TypeScript\nFROM node:20-alpine AS builder\nWORKDIR /app\nCOPY package*.json tsconfig.json ./\nRUN npm ci\nCOPY src/ ./src/\nRUN npm run build         # tsc → compiles to /app/dist\n\n# Stage 2: production — only compiled JS and prod deps\nFROM node:20-alpine AS production\nWORKDIR /app\nENV NODE_ENV=production\n\n# Install ONLY production dependencies (no devDeps, no TypeScript)\nCOPY package*.json ./\nRUN npm ci --omit=dev\n\n# Copy compiled output from builder\nCOPY --from=builder /app/dist ./dist\n\n# Run as non-root user\nRUN addgroup -S appgroup && adduser -S appuser -G appgroup\nUSER appuser\n\nEXPOSE 3000\nCMD [\"node\", \"dist/server.js\"]"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Target a specific stage during development:</strong> <code>docker build --target builder -t myapp:dev .</code> — this builds only the build stage, great for debugging the build step without running the full pipeline."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "docker-05-q1",
+          "question": "In a multi-stage build, which files from stage 1 (the builder) are available in stage 2 (production)?",
+          "type": "multiple-choice",
+          "options": [
+            "All files — stages share a filesystem",
+            "Only files explicitly copied with COPY --from=builder",
+            "No files — stages are completely isolated",
+            "All files except node_modules"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Each FROM starts a completely fresh filesystem — nothing carries over automatically. You must explicitly copy what you want using COPY --from=<stage-name> <src> <dest>. This is the entire point: you control exactly what ends up in the final image, leaving build tools, test files, and source maps behind."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Can I have more than two stages?",
+      "a": "Yes — you can have as many stages as you need. Common patterns: a 'test' stage that runs unit tests, a 'builder' stage that compiles, and a 'production' stage that only has the runtime. CI can target the test stage to run tests without building the full production image."
+    }
+  ],
+  "sources": [
+    { "name": "Multi-stage builds", "url": "https://docs.docker.com/build/building/multi-stage/", "verified": "2026-10-07" }
+  ],
+  "realWorld": {
+    "usedIn": ["React/Next.js deployments", "TypeScript APIs", "Go/Rust microservices", "CI/CD pipelines"],
+    "examples": [
+      "Go applications compile to a single static binary — FROM golang:1.22 AS builder / RUN go build -o app / FROM scratch / COPY --from=builder /app . — final image is ~10 MB",
+      "Vercel, Railway, and Fly.io all use multi-stage builds internally to produce minimal deployment images from your source code"
+    ]
+  }
+}

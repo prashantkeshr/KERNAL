@@ -1,0 +1,101 @@
+{
+  "id": "14-release-automation",
+  "version": "1.0.0",
+  "technology": "cicd",
+  "module": "advanced-cicd",
+  "title": "Release Automation",
+  "subtitle": "Semantic versioning, conventional commits, auto-generated changelogs, and GitHub Releases — ship with confidence",
+  "difficulty": "advanced",
+  "estimatedMinutes": 15,
+  "status": "published",
+  "prerequisites": ["cicd/13-reusable-workflows"],
+  "skillsTaught": ["cicd.semver", "cicd.conventional-commits", "cicd.changelog", "cicd.github-releases", "cicd.npm-publish"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Semantic versioning — a shared contract"
+    },
+    {
+      "type": "paragraph",
+      "text": "Semantic versioning (SemVer) defines version numbers as <code>MAJOR.MINOR.PATCH</code>. The rules are simple and universally understood: increment PATCH for bug fixes that don't break anything, MINOR for new features that are backward-compatible, MAJOR for breaking changes. When a user sees <code>v2.0.0</code>, they know to read the migration guide. When they see <code>v1.2.3</code>, they can upgrade safely."
+    },
+    {
+      "type": "definition",
+      "term": "Conventional Commits",
+      "definition": "A commit message standard that encodes the type and scope of each change. Format: <code>type(scope): description</code>. Examples: <code>feat: add dark mode</code>, <code>fix(auth): token expiry off by one</code>, <code>feat!: redesign API (BREAKING CHANGE)</code>. When commits follow this standard, tools can automatically determine the next version number and generate a changelog."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Automated release with release-please"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": ".github/workflows/release.yml",
+      "code": "name: Release\n\non:\n  push:\n    branches: [main]\n\npermissions:\n  contents: write\n  pull-requests: write\n\njobs:\n  release-please:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: google-github-actions/release-please-action@v4\n        id: release\n        with:\n          release-type: node  # or: python, go, rust, simple\n          token: ${{ secrets.GITHUB_TOKEN }}\n\n      # The action:\n      # 1. Reads all conventional commits since the last release\n      # 2. Determines the next version (feat→minor, fix→patch, BREAKING→major)\n      # 3. Opens a 'Release PR' with bumped version + auto-generated CHANGELOG.md\n      # 4. When you MERGE the Release PR → creates a git tag + GitHub Release\n\n      # Build and publish after release merges:\n      - uses: actions/checkout@v4\n        if: ${{ steps.release.outputs.release_created }}\n\n      - uses: actions/setup-node@v4\n        if: ${{ steps.release.outputs.release_created }}\n        with:\n          node-version: '20'\n          registry-url: 'https://registry.npmjs.org'\n\n      - run: npm ci\n        if: ${{ steps.release.outputs.release_created }}\n\n      - name: Publish to npm\n        if: ${{ steps.release.outputs.release_created }}\n        run: npm publish\n        env:\n          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Manual GitHub Release with built artifacts"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "Publish release on tag push",
+      "code": "name: Release\n\non:\n  push:\n    tags:\n      - 'v*'   # triggers on: git tag v1.2.3 && git push --tags\n\njobs:\n  release:\n    runs-on: ubuntu-latest\n    permissions:\n      contents: write\n\n    steps:\n      - uses: actions/checkout@v4\n\n      - uses: actions/setup-node@v4\n        with: { node-version: '20', cache: 'npm' }\n\n      - run: npm ci\n      - run: npm test\n\n      - name: Build\n        run: npm run build\n\n      # Create a .zip of the build artifacts\n      - name: Package\n        run: zip -r release-${{ github.ref_name }}.zip dist/\n\n      # Create GitHub Release with the zip attached\n      - name: Create Release\n        uses: softprops/action-gh-release@v2\n        with:\n          name: Release ${{ github.ref_name }}\n          # Auto-generate release notes from commits since last tag\n          generate_release_notes: true\n          files: |\n            release-${{ github.ref_name }}.zip\n            dist/CHANGELOG.md\n          # If the tag is a prerelease (v1.0.0-beta.1), mark it\n          prerelease: ${{ contains(github.ref_name, '-') }}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Conventional commit types and their impact"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Commit type reference",
+      "code": "# PATCH bump (1.0.x → 1.0.x+1):\ngit commit -m \"fix: handle null response from API\"\ngit commit -m \"fix(auth): token not refreshed before expiry\"\ngit commit -m \"perf: lazy-load dashboard charts\"\n\n# MINOR bump (1.x.0 → 1.x+1.0):\ngit commit -m \"feat: add CSV export to reports page\"\ngit commit -m \"feat(notifications): email digest settings\"\n\n# MAJOR bump (x.0.0 → x+1.0.0):\ngit commit -m \"feat!: redesign authentication API\"\n# OR in the commit body:\ngit commit -m \"feat: new auth system\" -m \"BREAKING CHANGE: token format changed, existing tokens invalid\"\n\n# No version bump (docs, tests, CI, style, refactor):\ngit commit -m \"docs: update README installation steps\"\ngit commit -m \"test: add edge cases for date parser\"\ngit commit -m \"chore: upgrade devDependencies\"\ngit commit -m \"ci: add docker build cache\""
+    },
+    {
+      "type": "tip",
+      "text": "<strong>The Release PR is your review gate.</strong> release-please opens a PR that shows the auto-generated CHANGELOG and the proposed new version number. You review it: is v2.0.0 really justified? Did a commit accidentally trigger a MAJOR bump when it shouldn't have? You can edit the PR, then merge it to trigger the release. This human checkpoint prevents accidental major version bumps."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "cicd-14-q1",
+          "question": "Your project is at v1.4.2. Since the last release, commits include: 'fix: null check', 'feat: dark mode', 'docs: update readme', 'fix: mobile layout'. What is the next version?",
+          "type": "multiple-choice",
+          "options": [
+            "v1.4.3 — two fix commits = patch",
+            "v1.5.0 — one feat commit triggers a minor bump, overriding the patches",
+            "v2.0.0 — three changes total exceeds minor threshold",
+            "v1.4.5 — each commit increments the patch counter"
+          ],
+          "correctAnswer": 1,
+          "explanation": "SemVer takes the highest-impact change in the batch. The 'feat' commit triggers a MINOR bump, making v1.5.0. The two 'fix' commits would only trigger a patch bump — but since we already have a minor bump, they're included in the same v1.5.0. Docs commits don't trigger any version bump. SemVer is about the cumulative impact of all changes since the last release, using the maximum level."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "We don't publish to npm. Is release automation still worth it?",
+      "a": "Yes — for any project. GitHub Releases give you a versioned artifact download page, auto-generated release notes, and a clear history of what shipped when. For internal apps or services, the release tag becomes the deployment identifier: 'we're running v2.3.1 in production' is far clearer than referencing a commit SHA. The changelog also builds automatically — zero overhead for the team."
+    }
+  ],
+  "sources": [
+    { "name": "release-please", "url": "https://github.com/googleapis/release-please", "verified": "2026-10-07" },
+    { "name": "Conventional Commits spec", "url": "https://www.conventionalcommits.org/", "verified": "2026-10-07" }
+  ],
+  "realWorld": {
+    "usedIn": ["npm packages", "SDKs", "internal platforms", "open source projects"],
+    "examples": [
+      "Google uses release-please internally for hundreds of open source client libraries across Go, Java, Python, Node.js — each gets a Release PR automatically after every merge to main, and teams can ship at whatever cadence they choose by merging the PR",
+      "The Conventional Commits standard was created partly because companies found that well-formatted commit messages let junior engineers understand the history of a codebase — 'feat: add OAuth login' is immediately understandable; 'wip stuff' is not"
+    ]
+  }
+}

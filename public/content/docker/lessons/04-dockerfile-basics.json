@@ -1,0 +1,95 @@
+{
+  "id": "04-dockerfile-basics",
+  "version": "1.0.0",
+  "technology": "docker",
+  "module": "building-images",
+  "title": "Dockerfile Basics",
+  "subtitle": "Write your first Dockerfile — FROM, RUN, COPY, CMD, EXPOSE, and ENV",
+  "difficulty": "beginner",
+  "estimatedMinutes": 16,
+  "status": "published",
+  "prerequisites": ["docker/03-images-and-layers"],
+  "skillsTaught": ["docker.dockerfile", "docker.from", "docker.run", "docker.copy", "docker.cmd", "docker.env", "docker.workdir"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "What is a Dockerfile?"
+    },
+    {
+      "type": "paragraph",
+      "text": "A Dockerfile is a text file of instructions that tells Docker how to build your image. Think of it as a recipe: starting from a base OS, install dependencies, copy your code, configure it, and define how to run it. Every line is an instruction — and each becomes a cached layer."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "A complete, production-ready Dockerfile"
+    },
+    {
+      "type": "code",
+      "lang": "dockerfile",
+      "filename": "Dockerfile",
+      "code": "# ── Stage: use Node 20 on Alpine Linux (smallest production-suitable image) ──\nFROM node:20-alpine\n\n# WORKDIR: set the working directory inside the container\n# All subsequent commands run from /app\nWORKDIR /app\n\n# COPY: copy files from host to container\n# Copy package files FIRST (layer cache optimization)\nCOPY package*.json ./\n\n# RUN: execute a shell command during build\n# --production skips devDependencies\nRUN npm install --production\n\n# Now copy the rest of the source\nCOPY . .\n\n# ENV: set environment variables available at runtime\nENV NODE_ENV=production\nENV PORT=3000\n\n# EXPOSE: document which port the app listens on (informational — doesn't publish)\nEXPOSE 3000\n\n# CMD: the default command to run when the container starts\n# Use exec form (JSON array) — not shell form — so signals work correctly\nCMD [\"node\", \"server.js\"]"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Every instruction explained"
+    },
+    {
+      "type": "code",
+      "lang": "dockerfile",
+      "filename": "Dockerfile instructions reference",
+      "code": "# FROM — base image (required, always first)\nFROM python:3.12-slim\n\n# WORKDIR — create dir and cd into it\nWORKDIR /app\n\n# RUN — run a command during BUILD (installs packages, compiles, etc.)\nRUN pip install --no-cache-dir -r requirements.txt\n\n# COPY <src> <dest> — copy from host filesystem into image\nCOPY requirements.txt ./\nCOPY src/ ./src/\n\n# ADD — like COPY but also extracts .tar files and supports URLs\n# Prefer COPY (more explicit); use ADD only when you need its extras\nADD app.tar.gz /app/\n\n# ENV — environment variable (available at build AND runtime)\nENV PYTHONDONTWRITEBYTECODE=1\nENV PYTHONUNBUFFERED=1\n\n# ARG — build-time variable only (NOT available at runtime)\nARG BUILD_VERSION=unknown\nLABEL version=$BUILD_VERSION\n\n# EXPOSE — document port (does NOT publish — use -p in docker run)\nEXPOSE 8000\n\n# USER — switch to non-root user (security best practice)\nRUN adduser --disabled-password appuser\nUSER appuser\n\n# CMD — default command to run (can be overridden in docker run)\nCMD [\"python\", \"manage.py\", \"runserver\", \"0.0.0.0:8000\"]\n\n# ENTRYPOINT — like CMD but harder to override (use for main binaries)\nENTRYPOINT [\"gunicorn\", \"app:app\"]\n# If both ENTRYPOINT and CMD set: CMD becomes arguments to ENTRYPOINT"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Building and tagging"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Building images",
+      "code": "# Build from Dockerfile in current directory\ndocker build -t myapp:1.0 .\n\n# -t = tag in the format name:version\n# .  = build context (current directory)\n\n# Build from a specific Dockerfile\ndocker build -f Dockerfile.prod -t myapp:prod .\n\n# Build with a build argument\ndocker build --build-arg BUILD_VERSION=2.1.0 -t myapp:2.1 .\n\n# Common tags:\ndocker build -t myapp:latest .         # latest (default)\ndocker build -t myapp:1.2.3 .          # semantic version\ndocker build -t myapp:$(git rev-parse --short HEAD) .  # git SHA\n\n# Run your built image\ndocker run -p 3000:3000 myapp:1.0"
+    },
+    {
+      "type": "warning",
+      "text": "<strong>CMD vs RUN — the most common beginner confusion:</strong> <code>RUN</code> executes during the <em>image build</em> (installs software, configures the OS). <code>CMD</code> executes when the <em>container starts</em> (runs your application). If you put your app start command in RUN, it runs during build and the result is baked in — which is wrong. CMD is what actually starts your app."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "docker-04-q1",
+          "question": "What is wrong with this Dockerfile? FROM node:20-alpine / RUN npm install / COPY . . / CMD [\"node\", \"app.js\"]",
+          "type": "multiple-choice",
+          "options": [
+            "CMD should be RUN",
+            "COPY . . comes after npm install, so node_modules doesn't exist when npm install runs",
+            "FROM must always use a version tag like node:20.0-alpine",
+            "RUN npm install should be RUN npm ci"
+          ],
+          "correctAnswer": 1,
+          "explanation": "npm install needs package.json and package-lock.json to exist in /app first. In this Dockerfile, COPY . . comes after npm install — so when RUN npm install executes, there are no package files to install from. The fix: COPY package*.json ./ first, then RUN npm install, then COPY . ."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between CMD and ENTRYPOINT?",
+      "a": "ENTRYPOINT sets the main command that always runs (hard to override). CMD provides defaults that can be replaced by arguments to docker run. When both are set, CMD becomes the default arguments to ENTRYPOINT. Example: ENTRYPOINT [\"nginx\"] and CMD [\"-g\", \"daemon off;\"] — run docker run myimage -t to override CMD while keeping nginx as the entrypoint."
+    }
+  ],
+  "sources": [
+    { "name": "Dockerfile reference", "url": "https://docs.docker.com/reference/dockerfile/", "verified": "2026-10-07" }
+  ],
+  "realWorld": {
+    "usedIn": ["containerizing web apps", "CI/CD image builds", "microservices packaging"],
+    "examples": [
+      "Every major open-source project ships a Dockerfile — postgres, redis, nginx, node — these are excellent references for best practices",
+      "A Node.js Express API goes from 'clone and npm install manually' to 'docker run -p 3000:3000 myapi' — one command, any machine"
+    ]
+  }
+}

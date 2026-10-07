@@ -1,0 +1,108 @@
+{
+  "id": "03-images-and-layers",
+  "version": "1.0.0",
+  "technology": "docker",
+  "module": "container-fundamentals",
+  "title": "Images and Layers",
+  "subtitle": "How Docker's union filesystem makes images fast, small, and shareable",
+  "difficulty": "beginner",
+  "estimatedMinutes": 13,
+  "status": "published",
+  "prerequisites": ["docker/02-installation-and-first-run"],
+  "skillsTaught": ["docker.layers", "docker.caching", "docker.base-images", "docker.alpine"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "How image layers work"
+    },
+    {
+      "type": "paragraph",
+      "text": "A Docker image is not a single monolithic file — it's a stack of read-only <strong>layers</strong>. Each instruction in a Dockerfile creates a new layer. When you run a container, Docker adds one thin writable layer on top. This design means: layers are cached and reused across images; if 10 images share the same base OS layer, that layer is stored once on disk; and downloading a new image only transfers the layers you don't already have."
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Inspecting layers",
+      "code": "# See the layers of any image\ndocker history node:20-alpine\n# IMAGE          CREATED       CREATED BY                      SIZE\n# 1d46ed2a75d7   3 weeks ago   CMD [\"node\"]                    0B\n# <missing>      3 weeks ago   ENV NODE_VERSION=20.11.0        0B\n# <missing>      3 weeks ago   RUN /bin/sh -c apk add --no-… 44.3MB\n# <missing>      3 weeks ago   RUN /bin/sh -c apk update      3.1MB\n# <missing>      3 weeks ago   /bin/sh -c #(nop) ADD file:… 7.38MB\n# Each line = one layer. Sizes add up to the total image size.\n\n# Show detailed image info including all layers\ndocker inspect node:20-alpine | grep -A5 'Layers'"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Choosing a base image"
+    },
+    {
+      "type": "paragraph",
+      "text": "The first line of every Dockerfile is <code>FROM &lt;base-image&gt;</code>. Your choice has a huge impact on image size, security surface, and build speed. The most important variants to know:"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "<strong>node:20</strong> — full Debian-based image. ~1 GB. Has everything, but huge. Avoid in production.",
+        "<strong>node:20-slim</strong> — stripped Debian. ~220 MB. Good balance for Node apps.",
+        "<strong>node:20-alpine</strong> — Alpine Linux base. ~55 MB. Minimal, fast to pull, preferred for production. Uses musl libc instead of glibc — rare compatibility issues.",
+        "<strong>scratch</strong> — empty base (literally nothing). Used for Go or Rust apps that compile to a fully static binary."
+      ]
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Comparing image sizes",
+      "code": "docker pull node:20        && docker images node:20\n# node   20        ~1.1GB\n\ndocker pull node:20-slim   && docker images node:20-slim\n# node   20-slim   ~220MB\n\ndocker pull node:20-alpine && docker images node:20-alpine\n# node   20-alpine  ~55MB\n\n# Rule of thumb: start with alpine, switch to slim if you hit issues"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Layer caching — the build speed secret"
+    },
+    {
+      "type": "paragraph",
+      "text": "Docker caches each layer. When you rebuild an image, Docker reuses cached layers until it finds one that changed — then rebuilds from that point down. This is why <strong>the order of instructions in your Dockerfile matters enormously</strong> for build speed."
+    },
+    {
+      "type": "code",
+      "lang": "dockerfile",
+      "filename": "Cache-unfriendly vs cache-friendly Dockerfile",
+      "code": "# ❌ SLOW — copies code first, so npm install reruns on every code change\nFROM node:20-alpine\nCOPY . .               # copies ALL files — cache busted on any change\nRUN npm install        # reruns every time any file changes\nCMD [\"node\", \"app.js\"]\n\n# ✅ FAST — copies package.json first; npm install only reruns when deps change\nFROM node:20-alpine\nWORKDIR /app\nCOPY package*.json ./  # only package files — cache busted only when deps change\nRUN npm install        # cached unless package.json changed\nCOPY . .               # copy source code last\nCMD [\"node\", \"app.js\"]\n\n# With the fast version:\n# First build: all layers run (slow)\n# Code change only: only last COPY . . and CMD rerun (fast)\n# Dep change: npm install and below rerun"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Pin your base image versions.</strong> Always use <code>node:20-alpine</code> not <code>node:alpine</code> (which is 'latest alpine' and changes over time). Pinning ensures reproducible builds — the same image is built months later. For critical production systems, pin to the full digest: <code>node:20-alpine@sha256:...</code>"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "docker-03-q1",
+          "question": "You have a Dockerfile that runs COPY . . then RUN npm install. You change a single source file and rebuild. What happens?",
+          "type": "multiple-choice",
+          "options": [
+            "Only the changed file is rebuilt — Docker diffs the filesystem",
+            "The COPY layer cache is busted, so npm install reruns too — even though package.json didn't change",
+            "Nothing changes because Docker detects npm install already ran",
+            "Docker skips COPY and only reruns npm install"
+          ],
+          "correctAnswer": 1,
+          "explanation": "COPY . . copies everything including your changed source file, so that layer's cache is invalidated. Every layer AFTER a cache miss also reruns — including RUN npm install. This is why you should always COPY package*.json first, run npm install, then COPY the rest of the source."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is .dockerignore?",
+      "a": "Like .gitignore but for Docker builds. A .dockerignore file tells Docker which files to exclude from the build context (what gets sent to the Docker daemon). Always exclude node_modules, .git, .env, and large binary files. Example: add 'node_modules' and '.git' and '*.log' to .dockerignore to dramatically speed up builds."
+    }
+  ],
+  "sources": [
+    { "name": "Docker image layers", "url": "https://docs.docker.com/storage/storagedriver/", "verified": "2026-10-07" }
+  ],
+  "realWorld": {
+    "usedIn": ["CI build optimization", "production image sizing", "base image selection"],
+    "examples": [
+      "Switching a Node.js app from node:20 to node:20-alpine cuts the image from 1.1 GB to ~150 MB with the app included — 7× smaller, faster to push/pull in CI",
+      "Proper layer ordering can cut CI build time from 3 minutes to 15 seconds by avoiding npm install on every code change"
+    ]
+  }
+}

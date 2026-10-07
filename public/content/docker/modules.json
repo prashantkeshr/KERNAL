@@ -1,0 +1,57 @@
+[
+  {
+    "id": "container-fundamentals",
+    "title": "Container Fundamentals",
+    "description": "Understand what containers are, why they exist, and how Docker works under the hood",
+    "order": 1,
+    "lessons": [
+      { "id": "01-what-is-docker", "title": "What is Docker?", "order": 1 },
+      { "id": "02-installation-and-first-run", "title": "Installation & First Run", "order": 2 },
+      { "id": "03-images-and-layers", "title": "Images and Layers", "order": 3 }
+    ]
+  },
+  {
+    "id": "building-images",
+    "title": "Building Images",
+    "description": "Write Dockerfiles, understand caching, multi-stage builds, and publishing images",
+    "order": 2,
+    "lessons": [
+      { "id": "04-dockerfile-basics", "title": "Dockerfile Basics", "order": 4 },
+      { "id": "05-multi-stage-builds", "title": "Multi-Stage Builds", "order": 5 },
+      { "id": "06-image-registry", "title": "Image Registries", "order": 6 }
+    ]
+  },
+  {
+    "id": "containers-in-depth",
+    "title": "Containers in Depth",
+    "description": "Master running, volumes, networking, and container lifecycle management",
+    "order": 3,
+    "lessons": [
+      { "id": "07-running-containers", "title": "Running Containers", "order": 7 },
+      { "id": "08-volumes-and-data", "title": "Volumes and Data", "order": 8 },
+      { "id": "09-networking", "title": "Container Networking", "order": 9 }
+    ]
+  },
+  {
+    "id": "docker-compose",
+    "title": "Docker Compose",
+    "description": "Orchestrate multi-service applications locally and in production",
+    "order": 4,
+    "lessons": [
+      { "id": "10-compose-basics", "title": "Compose Basics", "order": 10 },
+      { "id": "11-compose-volumes-networks", "title": "Volumes & Networks in Compose", "order": 11 },
+      { "id": "12-compose-production", "title": "Compose for Production", "order": 12 }
+    ]
+  },
+  {
+    "id": "real-world-docker",
+    "title": "Real-World Docker",
+    "description": "Debug containers, secure images, and deploy Docker in production environments",
+    "order": 5,
+    "lessons": [
+      { "id": "13-debugging-containers", "title": "Debugging Containers", "order": 13 },
+      { "id": "14-security-best-practices", "title": "Security Best Practices", "order": 14 },
+      { "id": "15-docker-in-production", "title": "Docker in Production", "order": 15 }
+    ]
+  }
+]

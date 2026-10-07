@@ -1,0 +1,93 @@
+{
+  "id": "12-compose-production",
+  "version": "1.0.0",
+  "technology": "docker",
+  "module": "docker-compose",
+  "title": "Compose for Production",
+  "subtitle": "Health checks, restart policies, secrets, resource limits, and production-ready patterns",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "prerequisites": ["docker/11-compose-volumes-networks"],
+  "skillsTaught": ["docker.healthcheck", "docker.secrets", "docker.resource-limits", "docker.compose-prod"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Health checks — knowing your services are actually ready"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "Health check patterns",
+      "code": "services:\n  api:\n    image: myapi\n    healthcheck:\n      # Command to run inside the container\n      test: [\"CMD\", \"curl\", \"-f\", \"http://localhost:3000/health\"]\n      # How often to check\n      interval: 30s\n      # How long to wait for a response\n      timeout: 10s\n      # How many failures before marking unhealthy\n      retries: 3\n      # Grace period before first check (startup time)\n      start_period: 40s\n\n  postgres:\n    image: postgres:16-alpine\n    healthcheck:\n      test: [\"CMD-SHELL\", \"pg_isready -U postgres\"]\n      interval: 5s\n      timeout: 3s\n      retries: 5\n\n  redis:\n    image: redis:7-alpine\n    healthcheck:\n      test: [\"CMD\", \"redis-cli\", \"ping\"]\n      interval: 10s\n      timeout: 3s\n      retries: 3"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Secrets management in Compose"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "Secrets — never put passwords in environment",
+      "code": "# Production approach: use Docker secrets or env_file with .env\n\n# Option 1: env_file (for simple setups)\nservices:\n  api:\n    image: myapi\n    env_file:\n      - .env.production   # file excluded from git\n\n# Option 2: Docker secrets (Swarm/compose secrets)\nsecrets:\n  db_password:\n    file: ./secrets/db_password.txt  # or 'external: true' for Swarm\n  jwt_secret:\n    file: ./secrets/jwt_secret.txt\n\nservices:\n  api:\n    image: myapi\n    secrets:\n      - db_password\n      - jwt_secret\n    # Secrets mounted at /run/secrets/<name> — read them in your app\n\n  db:\n    image: postgres:16-alpine\n    secrets:\n      - db_password\n    environment:\n      POSTGRES_PASSWORD_FILE: /run/secrets/db_password"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Resource limits and profiles"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "Resource limits and profiles",
+      "code": "services:\n  api:\n    image: myapi\n    deploy:\n      resources:\n        limits:\n          cpus: '1.0'       # max 1 CPU core\n          memory: 512M      # max 512 MB RAM\n        reservations:\n          cpus: '0.25'      # guaranteed minimum\n          memory: 128M\n\n  # Profiles — only start certain services in specific scenarios\n  # docker compose --profile debug up\n  debug-ui:\n    image: adminer\n    ports:\n      - \"8080:8080\"\n    profiles:\n      - debug\n\n  # docker compose --profile monitoring up\n  prometheus:\n    image: prom/prometheus\n    profiles:\n      - monitoring"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "A production-ready Compose file"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "docker-compose.prod.yml",
+      "code": "services:\n  api:\n    image: ghcr.io/myorg/api:${IMAGE_TAG:-latest}\n    restart: unless-stopped\n    env_file: .env.production\n    healthcheck:\n      test: [\"CMD\", \"curl\", \"-f\", \"http://localhost:3000/health\"]\n      interval: 30s\n      timeout: 10s\n      retries: 3\n      start_period: 60s\n    depends_on:\n      postgres:\n        condition: service_healthy\n    deploy:\n      resources:\n        limits:\n          memory: 512M\n          cpus: '1.0'\n    logging:\n      driver: json-file\n      options:\n        max-size: \"10m\"\n        max-file: \"3\"   # rotate: keep only 3 × 10 MB log files\n\n  postgres:\n    image: postgres:16-alpine\n    restart: unless-stopped\n    env_file: .env.production\n    volumes:\n      - postgres-data:/var/lib/postgresql/data\n    healthcheck:\n      test: [\"CMD-SHELL\", \"pg_isready -U $POSTGRES_USER\"]\n      interval: 10s\n      timeout: 5s\n      retries: 5\n    deploy:\n      resources:\n        limits:\n          memory: 1G\n\nvolumes:\n  postgres-data:\n    external: true   # must be created before compose up"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "docker-12-q1",
+          "question": "A service has 'depends_on: postgres: condition: service_healthy'. What does this require to work correctly?",
+          "type": "multiple-choice",
+          "options": [
+            "postgres must have 'restart: always' configured",
+            "postgres must have a 'healthcheck' defined — otherwise service_healthy is never true and your service never starts",
+            "the api service must also have a healthcheck",
+            "Nothing — depends_on: service_healthy works automatically"
+          ],
+          "correctAnswer": 1,
+          "explanation": "condition: service_healthy waits until the dependency's healthcheck passes. If no healthcheck is defined on the dependency, it's never considered 'healthy' and your service hangs forever. Always define a healthcheck on any service you depend on with condition: service_healthy."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Should I use Docker Compose in production?",
+      "a": "Yes, for single-server deployments — a small API, a personal project, or a startup's MVP. It's simple, well-understood, and reliable. For multi-server orchestration, automatic scaling, rolling deployments, or high availability, consider Kubernetes or managed container services (ECS, Cloud Run). Most projects run fine on a single server with Compose for years."
+    }
+  ],
+  "sources": [
+    { "name": "Compose in production", "url": "https://docs.docker.com/compose/production/", "verified": "2026-10-07" }
+  ],
+  "realWorld": {
+    "usedIn": ["VPS deployments", "single-server production stacks", "staging environments"],
+    "examples": [
+      "IMAGE_TAG=$(git rev-parse --short HEAD) docker compose -f docker-compose.prod.yml up -d — deploy a specific version by passing the SHA as an env var",
+      "Most indie SaaS products run their full stack on one $20/month VPS using Compose — nginx, API, postgres, redis — serving thousands of users reliably"
+    ]
+  }
+}

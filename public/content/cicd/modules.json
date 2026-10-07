@@ -1,0 +1,57 @@
+[
+  {
+    "id": "cicd-fundamentals",
+    "title": "CI/CD Fundamentals",
+    "description": "What CI/CD is, why it matters, and GitHub Actions core concepts",
+    "order": 1,
+    "lessons": [
+      { "id": "01-what-is-cicd", "title": "What is CI/CD?", "order": 1 },
+      { "id": "02-github-actions-intro", "title": "GitHub Actions Introduction", "order": 2 },
+      { "id": "03-first-workflow", "title": "Your First Workflow", "order": 3 }
+    ]
+  },
+  {
+    "id": "workflow-essentials",
+    "title": "Workflow Essentials",
+    "description": "Triggers, secrets, matrix builds, and dependency management",
+    "order": 2,
+    "lessons": [
+      { "id": "04-triggers-and-events", "title": "Triggers and Events", "order": 4 },
+      { "id": "05-environment-and-secrets", "title": "Environment & Secrets", "order": 5 },
+      { "id": "06-matrix-builds", "title": "Matrix Builds", "order": 6 }
+    ]
+  },
+  {
+    "id": "testing-and-quality",
+    "title": "Testing & Quality",
+    "description": "Automate tests, linting, type checking, coverage, and security scans",
+    "order": 3,
+    "lessons": [
+      { "id": "07-automated-testing", "title": "Automated Testing", "order": 7 },
+      { "id": "08-code-quality", "title": "Code Quality Gates", "order": 8 },
+      { "id": "09-security-scanning", "title": "Security Scanning", "order": 9 }
+    ]
+  },
+  {
+    "id": "deployment-pipelines",
+    "title": "Deployment Pipelines",
+    "description": "Deploy to GitHub Pages, cloud platforms, and container registries",
+    "order": 4,
+    "lessons": [
+      { "id": "10-deploy-to-pages", "title": "Deploy to GitHub Pages", "order": 10 },
+      { "id": "11-deploy-to-cloud", "title": "Deploy to Cloud Platforms", "order": 11 },
+      { "id": "12-docker-in-cicd", "title": "Docker in CI/CD", "order": 12 }
+    ]
+  },
+  {
+    "id": "advanced-cicd",
+    "title": "Advanced CI/CD",
+    "description": "Reusable workflows, release automation, monitoring, and notifications",
+    "order": 5,
+    "lessons": [
+      { "id": "13-reusable-workflows", "title": "Reusable Workflows", "order": 13 },
+      { "id": "14-release-automation", "title": "Release Automation", "order": 14 },
+      { "id": "15-monitoring-and-notifications", "title": "Monitoring & Notifications", "order": 15 }
+    ]
+  }
+]

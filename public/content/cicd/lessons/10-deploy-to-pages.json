@@ -1,0 +1,95 @@
+{
+  "id": "10-deploy-to-pages",
+  "version": "1.0.0",
+  "technology": "cicd",
+  "module": "deployment-pipelines",
+  "title": "Deploy to GitHub Pages",
+  "subtitle": "Automate static site deployment with GitHub Actions — build, publish, and get a live URL on every push to main",
+  "difficulty": "beginner",
+  "estimatedMinutes": 12,
+  "status": "published",
+  "prerequisites": ["cicd/09-security-scanning"],
+  "skillsTaught": ["cicd.github-pages", "cicd.deploy-pages", "cicd.static-deploy", "cicd.environment-urls"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "GitHub Pages — the easiest deployment target"
+    },
+    {
+      "type": "paragraph",
+      "text": "GitHub Pages serves static files (HTML, CSS, JS) directly from your repository — for free. Combined with GitHub Actions, every push to main automatically builds your site and publishes the new version. It's how KERNAL itself deploys. No server, no hosting bill, no manual uploads."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The modern Pages workflow"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": ".github/workflows/deploy.yml",
+      "code": "name: Deploy to GitHub Pages\n\non:\n  push:\n    branches: [main]\n\n# Required permissions for Pages deployment\npermissions:\n  contents: read\n  pages: write\n  id-token: write\n\n# Only one deployment at a time — cancel pending if new push arrives\nconcurrency:\n  group: pages\n  cancel-in-progress: false   # false: don't cancel in-progress deploys\n\njobs:\n  # ── Job 1: Build ──────────────────────────────────────\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n\n      - uses: actions/setup-node@v4\n        with: { node-version: '20', cache: 'npm' }\n\n      - run: npm ci\n\n      # Configure Pages (sets BASE_URL for Vite/CRA/etc.)\n      - name: Setup Pages\n        uses: actions/configure-pages@v5\n\n      - name: Build\n        run: npm run build\n        # Most frameworks read GITHUB_PAGES env var and adjust base path\n        # For Vite: set base in vite.config.ts → base: '/repo-name/'\n\n      # Upload the built files as a Pages artifact\n      - name: Upload artifact\n        uses: actions/upload-pages-artifact@v3\n        with:\n          path: ./dist   # your build output folder\n\n  # ── Job 2: Deploy (separate job for security) ─────────\n  deploy:\n    environment:\n      name: github-pages\n      url: ${{ steps.deployment.outputs.page_url }}   # live URL in workflow UI\n    runs-on: ubuntu-latest\n    needs: build\n    steps:\n      - name: Deploy to GitHub Pages\n        id: deployment\n        uses: actions/deploy-pages@v4"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Custom domain setup"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "Custom domain — CNAME approach",
+      "code": "# Option 1: CNAME file in your repo root (or /public for React/Vite)\n# Create a file named CNAME with just your domain:\n# mysite.com\n\n# Vite project: put CNAME in /public/ so it's copied to dist/\n# Create: public/CNAME with content:\n# kernal.dhurta.org\n\n# Then in your domain DNS:\n# CNAME  kernal  prashantkeshr.github.io.\n\n# Or for apex domain:\n# A  @  185.199.108.153\n# A  @  185.199.109.153\n# A  @  185.199.110.153\n# A  @  185.199.111.153\n\n# Option 2: Set in workflow:\n- name: Upload artifact\n  uses: actions/upload-pages-artifact@v3\n  with:\n    path: ./dist\n\n# In GitHub Settings → Pages → Custom domain\n# GitHub handles the HTTPS certificate automatically (Let's Encrypt)"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Vite base path for project pages"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "vite.config.ts — base path for GitHub Pages",
+      "code": "import { defineConfig } from 'vite'\nimport react from '@vitejs/plugin-react'\n\nexport default defineConfig({\n  plugins: [react()],\n  // Without a custom domain, GitHub Pages serves your site at:\n  // https://username.github.io/repository-name/\n  // Vite needs to know the subpath to correctly resolve assets:\n  base: process.env.CI ? '/repository-name/' : '/'\n  // With a custom domain (kernal.dhurta.org), use base: '/'\n})"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Enable Pages before the first deploy.</strong> Go to your repository Settings → Pages → Source → select 'GitHub Actions' (not a branch). If you leave it on 'Deploy from a branch' the Actions workflow will conflict with the old deployment method. You only need to do this once per repository."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "cicd-10-q1",
+          "question": "Your Vite app deploys to GitHub Pages at 'username.github.io/my-app/' but all assets (JS, CSS, images) return 404. What's the likely cause?",
+          "type": "multiple-choice",
+          "options": [
+            "The workflow is missing the 'contents: read' permission",
+            "The 'dist' folder name is wrong — GitHub Pages requires 'build'",
+            "Vite's 'base' is set to '/' instead of '/my-app/' — asset paths don't include the subpath",
+            "npm run build wasn't run before uploading"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Without a custom domain, GitHub Pages serves project sites under a subpath: username.github.io/my-app/. Vite generates asset paths as absolute URLs starting with '/'. Without base: '/my-app/', the browser requests '/assets/index.js' but the file is actually at '/my-app/assets/index.js'. Setting base correctly in vite.config.ts makes all asset paths include the subpath."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Can I deploy a backend/API alongside the frontend on GitHub Pages?",
+      "a": "No — GitHub Pages serves only static files. For APIs, you need a separate backend host: Railway, Fly.io, Render, or a VPS. The frontend on Pages makes HTTP calls to the API hosted elsewhere. This separation is common and works well — your frontend deployment stays fast and free while the backend scales independently."
+    }
+  ],
+  "sources": [
+    { "name": "actions/deploy-pages", "url": "https://github.com/actions/deploy-pages", "verified": "2026-10-07" }
+  ],
+  "realWorld": {
+    "usedIn": ["portfolio sites", "documentation sites", "open source project demos", "learning platforms"],
+    "examples": [
+      "KERNAL itself deploys to kernal.dhurta.org via exactly this pattern — the workflow in this lesson is essentially the same one that serves this page you're reading",
+      "React and Vue's official documentation sites are both hosted on GitHub Pages, auto-deployed on every merge to main — zero server management for millions of docs visitors"
+    ]
+  }
+}

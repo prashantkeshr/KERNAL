@@ -1,0 +1,95 @@
+{
+  "id": "06-image-registry",
+  "version": "1.0.0",
+  "technology": "docker",
+  "module": "building-images",
+  "title": "Image Registries",
+  "subtitle": "Push, pull, and manage images with Docker Hub and GitHub Container Registry",
+  "difficulty": "beginner",
+  "estimatedMinutes": 11,
+  "status": "published",
+  "prerequisites": ["docker/05-multi-stage-builds"],
+  "skillsTaught": ["docker.registry", "docker.push", "docker.pull", "docker.tagging", "docker.ghcr"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "What is a registry?"
+    },
+    {
+      "type": "paragraph",
+      "text": "A container registry is to Docker what npm is to Node.js — a central place to publish, store, and distribute images. When you run <code>docker pull nginx</code>, Docker downloads from Docker Hub by default. You push your own images to a registry so they can be pulled by CI/CD pipelines, teammates, and servers worldwide."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Docker Hub — the default public registry"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Pushing to Docker Hub",
+      "code": "# 1. Create a free account at hub.docker.com\n# 2. Log in from the CLI\ndocker login\n# Username: prashantkeshr\n# Password: ********\n\n# 3. Tag your image with your Docker Hub username\n# Format: docker tag <local-image>:<tag> <username>/<repo>:<tag>\ndocker tag myapp:1.0 prashantkeshr/myapp:1.0\ndocker tag myapp:1.0 prashantkeshr/myapp:latest\n\n# 4. Push\ndocker push prashantkeshr/myapp:1.0\ndocker push prashantkeshr/myapp:latest\n\n# 5. Anyone can now pull it\ndocker pull prashantkeshr/myapp:latest"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "GitHub Container Registry (GHCR) — preferred for open source"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Pushing to GHCR",
+      "code": "# GHCR is free with GitHub, supports private images, and integrates\n# natively with GitHub Actions. Use it for any project on GitHub.\n\n# 1. Create a Personal Access Token (PAT) with 'write:packages' scope\n#    Settings → Developer settings → Personal access tokens → Classic\n\n# 2. Log in to GHCR\nexport CR_PAT=<your-token>\necho $CR_PAT | docker login ghcr.io -u prashantkeshr --password-stdin\n\n# 3. Tag for GHCR — format: ghcr.io/<github-username>/<repo>:<tag>\ndocker tag myapp:1.0 ghcr.io/prashantkeshr/myapp:1.0\ndocker tag myapp:1.0 ghcr.io/prashantkeshr/myapp:latest\n\n# 4. Push\ndocker push ghcr.io/prashantkeshr/myapp:latest\n\n# 5. Pull (public packages can be pulled without auth)\ndocker pull ghcr.io/prashantkeshr/myapp:latest"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Tagging strategy"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Smart tagging in CI",
+      "code": "# In a real CI pipeline you'd tag with multiple identifiers:\n\nGIT_SHA=$(git rev-parse --short HEAD)   # e.g. a3f2c1d\nVERSION=$(cat VERSION)                   # e.g. 1.4.2\n\n# Build once, tag multiple ways\ndocker build -t myapp:latest .\ndocker tag myapp:latest myapp:$VERSION        # 1.4.2\ndocker tag myapp:latest myapp:$GIT_SHA        # a3f2c1d (for rollback)\ndocker tag myapp:latest myapp:stable          # stable alias\n\n# Push all tags\ndocker push myapp:latest\ndocker push myapp:$VERSION\ndocker push myapp:$GIT_SHA\n\n# Why SHA tags? If a deployment goes wrong, you can pinpoint exactly\n# which commit was running and roll back to the previous SHA tag instantly"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Never use :latest in production.</strong> <code>:latest</code> is a moving target — it means 'whatever was last pushed' and makes deployments non-reproducible. In production, always pin to a specific version tag or git SHA so you know exactly what's running and can roll back deterministically."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "docker-06-q1",
+          "question": "Why is tagging production images with the git commit SHA a best practice?",
+          "type": "multiple-choice",
+          "options": [
+            "SHA tags are smaller and download faster",
+            "SHA tags are immutable — you can always trace exactly which code is running and roll back to any previous commit",
+            "Docker requires SHA tags for private registries",
+            "SHA tags skip the build cache for faster builds"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Git SHAs are unique, immutable identifiers. If a deployment fails, you can look at the running SHA tag, find the exact commit, diff it against the previous one, and roll back by deploying the previous SHA's image. This is impossible with :latest because it gets overwritten on every push."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What other registries exist besides Docker Hub and GHCR?",
+      "a": "AWS Elastic Container Registry (ECR), Google Artifact Registry (GAR), Azure Container Registry (ACR), and GitLab Container Registry. Cloud registries are preferred in enterprise because they integrate with cloud IAM (no separate credentials), have better availability SLAs, and often include vulnerability scanning. GHCR is the best choice for GitHub-hosted open source projects."
+    }
+  ],
+  "sources": [
+    { "name": "GitHub Container Registry docs", "url": "https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry", "verified": "2026-10-07" }
+  ],
+  "realWorld": {
+    "usedIn": ["CI/CD deployment pipelines", "team image sharing", "production deployments", "versioning"],
+    "examples": [
+      "In GitHub Actions: build image → push to GHCR → deploy server pulls ghcr.io/org/app:${{ github.sha }} — fully traceable",
+      "Kubernetes deployments reference an image + tag: 'image: ghcr.io/myorg/api:1.4.2' — pinned to a specific tested version"
+    ]
+  }
+}
