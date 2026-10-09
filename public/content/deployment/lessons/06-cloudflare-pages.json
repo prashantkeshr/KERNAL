@@ -1,0 +1,102 @@
+{
+  "id": "06-cloudflare-pages",
+  "version": "1.0.0",
+  "technology": "deployment",
+  "module": "frontend-hosting",
+  "title": "Cloudflare Pages & Workers",
+  "subtitle": "Deploy to the world's largest edge network — unlimited bandwidth, Workers for backend logic, and R2 for storage",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 13,
+  "status": "published",
+  "prerequisites": ["deployment/05-netlify"],
+  "skillsTaught": ["deployment.cloudflare-pages", "deployment.cloudflare-workers", "deployment.edge-computing", "deployment.r2", "deployment.wrangler"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Cloudflare Pages — the challenger"
+    },
+    {
+      "type": "paragraph",
+      "text": "Cloudflare Pages is newer than Vercel and Netlify but has a compelling advantage: it runs on Cloudflare's network — 300+ cities worldwide, the same CDN that handles 20% of internet traffic. Free tier has <strong>unlimited bandwidth</strong> (Vercel and Netlify cap free tier). Cloudflare Workers (serverless functions at the edge) run in V8 isolates, not Node.js — cold starts are ~0ms. If you already use Cloudflare for DNS, adding Pages is seamless."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Deploying to Cloudflare Pages"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Wrangler CLI — Pages deployment",
+      "code": "# Install Wrangler (Cloudflare's CLI)\nnpm install -g wrangler\n\n# Login\nwrangler login\n\n# Deploy a Pages project directly\nwrangler pages deploy ./dist \\\n  --project-name my-react-app\n\n# Or via GitHub integration:\n# Cloudflare Dashboard → Pages → Create project → Connect to Git\n# Same auto-build workflow as Vercel/Netlify\n\n# Framework build settings (auto-detected or manual):\n# React/Vite:   Build command: npm run build, Output: dist\n# Next.js:      Build command: npm run build, Output: .vercel/output (with @cloudflare/next-on-pages)\n# Astro:        Build command: npm run build, Output: dist\n\n# Check deployment status\nwrangler pages deployment list --project-name my-react-app"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Cloudflare Workers — edge functions"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "src/index.ts — Cloudflare Worker",
+      "code": "// Cloudflare Workers run IN the network, at the edge\n// ~0ms cold start, runs in every Cloudflare datacenter simultaneously\n// Powered by V8 isolates (not Node.js)\n\nexport interface Env {\n  // KV namespace binding for key-value storage\n  KV: KVNamespace;\n  // R2 bucket binding for object storage\n  BUCKET: R2Bucket;\n  // Secret environment variable\n  API_KEY: string;\n}\n\nexport default {\n  async fetch(request: Request, env: Env): Promise<Response> {\n    const url = new URL(request.url);\n\n    // Route: GET /api/user/:id\n    if (url.pathname.startsWith('/api/user/')) {\n      const userId = url.pathname.split('/').pop()!;\n\n      // KV Store: ultra-fast global key-value\n      const cached = await env.KV.get(`user:${userId}`);\n      if (cached) {\n        return new Response(cached, {\n          headers: { 'Content-Type': 'application/json', 'X-Cache': 'HIT' },\n        });\n      }\n\n      // Fetch from origin and cache\n      const user = await fetch(`https://api.myapp.com/users/${userId}`);\n      const data = await user.text();\n      await env.KV.put(`user:${userId}`, data, { expirationTtl: 300 });  // cache 5 min\n      return new Response(data, {\n        headers: { 'Content-Type': 'application/json', 'X-Cache': 'MISS' },\n      });\n    }\n\n    return new Response('Not found', { status: 404 });\n  },\n};"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "wrangler.toml — configuration"
+    },
+    {
+      "type": "code",
+      "lang": "toml",
+      "filename": "wrangler.toml",
+      "code": "name = \"my-worker\"\nmain = \"src/index.ts\"\ncompatibility_date = \"2024-01-01\"\n\n# KV Namespace binding\n[[kv_namespaces]]\nbinding = \"KV\"\nid = \"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"\n\n# R2 Bucket (like S3, but free egress)\n[[r2_buckets]]\nbinding = \"BUCKET\"\nbucket_name = \"my-app-storage\"\n\n# D1 Database (SQLite at the edge — free tier)\n[[d1_databases]]\nbinding = \"DB\"\ndatabase_name = \"myapp-db\"\ndatabase_id = \"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\"\n\n# Secrets (set with 'wrangler secret put API_KEY')\n# They appear as env.API_KEY in the worker\n\n[vars]\nNODE_ENV = \"production\""
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Cloudflare's free tier services",
+      "code": "PAGES:\n  ✓ Unlimited bandwidth\n  ✓ Unlimited requests\n  ✓ 500 builds/month\n  ✓ Preview deployments\n\nWORKERS:\n  ✓ 100,000 requests/day (free)\n  ✓ 10ms CPU time per request\n  ✓ 128MB memory\n  ✓ ~0ms cold starts\n\nKV (Key-Value):\n  ✓ 100,000 reads/day free\n  ✓ 1,000 writes/day free\n  ✓ 1GB storage free\n\nR2 (Object Storage):\n  ✓ 10GB storage free\n  ✓ 10M Class-A ops free\n  ✓ FREE EGRESS (unlike S3 which charges for data out!)\n\nD1 (SQLite Database):\n  ✓ 5GB storage free\n  ✓ 25M rows read/day free\n  ✓ 100k rows written/day free"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>R2 is S3 with zero egress cost.</strong> AWS charges $0.09/GB to download data from S3. Cloudflare R2 charges nothing for data downloads. For media-heavy apps (images, video, downloads), R2 can save significant money. R2 is S3-compatible — you can use the AWS SDK pointing at R2's endpoint, or use the native R2 bindings in Workers."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "deployment-06-q1",
+          "question": "A Cloudflare Worker runs at the edge. What does this mean for latency vs a traditional server in us-east-1?",
+          "type": "multiple-choice",
+          "options": [
+            "No difference — network latency is the same regardless of where code runs",
+            "Workers run in 300+ cities — a Mumbai user's request is processed in Mumbai (< 10ms) instead of traveling to us-east-1 (150ms+)",
+            "Workers are slower because they share infrastructure",
+            "Workers are only deployed to US regions by default"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Edge computing means your code runs in the Cloudflare datacenter closest to the user. A Mumbai user's request is processed in Cloudflare's Mumbai PoP, not routed across the ocean to your VPS. This makes a massive difference for latency-sensitive operations: 5-20ms edge vs 150-300ms cross-continent. Cloudflare Workers are deployed globally by default — you write code once, it runs everywhere simultaneously."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What are the limitations of Cloudflare Workers vs Node.js?",
+      "a": "Workers run in V8 isolates, not Node.js. This means: no Node.js built-in modules (no 'fs', 'path', 'crypto' — use Web Crypto API instead), limited npm package compatibility (packages using Node.js internals don't work), 128MB memory limit, and 50ms CPU time on the free plan (paid: 30s). Workers use Web APIs (fetch, Request, Response, URL) — the same APIs as modern browser JavaScript. Most npm packages designed for the web (not Node.js) work fine."
+    }
+  ],
+  "sources": [
+    { "name": "Cloudflare Pages docs", "url": "https://developers.cloudflare.com/pages/", "verified": "2026-10-09" },
+    { "name": "Cloudflare Workers docs", "url": "https://developers.cloudflare.com/workers/", "verified": "2026-10-09" }
+  ],
+  "realWorld": {
+    "usedIn": ["high-traffic static sites", "API caching", "edge authentication", "global apps"],
+    "examples": [
+      "Shopify uses Cloudflare Workers to run storefront logic at the edge for their millions of merchants. When a customer visits a Shopify store, the initial HTML is rendered by a Worker in their city — dramatically reducing time-to-first-byte",
+      "Linear (project management tool) serves their entire frontend from Cloudflare Pages with Workers for API middleware. Their time-to-interactive is < 500ms globally because everything is edge-first"
+    ]
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "id": "15-cost-and-architecture",
+  "version": "1.0.0",
+  "technology": "aws",
+  "module": "production-aws",
+  "title": "Cost Optimization & Architecture",
+  "subtitle": "AWS Well-Architected framework, cost control strategies, and the architecture patterns that power real production systems",
+  "difficulty": "advanced",
+  "estimatedMinutes": 16,
+  "status": "published",
+  "prerequisites": ["aws/14-cloudwatch"],
+  "skillsTaught": ["aws.cost-optimization", "aws.well-architected", "aws.reserved-instances", "aws.spot", "aws.architecture-patterns", "aws.budgets"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The AWS Well-Architected Framework"
+    },
+    {
+      "type": "paragraph",
+      "text": "AWS has documented the principles behind every well-built system on their platform in the Well-Architected Framework — six pillars that every production system should be evaluated against. These aren't aspirational guidelines; they're the difference between an architecture that handles incidents gracefully and one that causes them."
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "The six pillars",
+      "code": "1. OPERATIONAL EXCELLENCE\n   - Infrastructure as Code (CloudFormation/CDK)\n   - Deploy frequently in small increments\n   - Automate runbooks — no manual steps in incident response\n   - Learn from every incident\n\n2. SECURITY\n   - Implement a strong identity foundation (IAM least privilege)\n   - Enable traceability (CloudTrail, CloudWatch Logs)\n   - Automate security best practices\n   - Protect data in transit (TLS) and at rest (encryption)\n\n3. RELIABILITY\n   - Design for failure: assume components will fail\n   - Multi-AZ deployments for stateful resources\n   - Automatic recovery: health checks + auto-scaling\n   - Test recovery procedures (game days, chaos engineering)\n\n4. PERFORMANCE EFFICIENCY\n   - Right-size resources (don't over-provision)\n   - Use managed services (RDS > self-managed Postgres)\n   - Experiment: test new instance types, compare costs\n   - Use CDN for static assets (CloudFront)\n\n5. COST OPTIMIZATION\n   - Adopt a consumption model (pay for what you use)\n   - Use Spot for interruptible workloads\n   - Reserved/Savings Plans for baseline steady-state\n   - Delete unused resources (biggest hidden cost)\n\n6. SUSTAINABILITY\n   - Use managed services (more efficient than self-managed)\n   - Right-size resources to minimize waste\n   - Use graviton instances (more efficient per compute unit)"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Cost optimization — concrete strategies"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "AWS cost optimization playbook",
+      "code": "IMMEDIATE WINS (do these first):\n  1. Delete unattached EBS volumes\n     aws ec2 describe-volumes --filters Name=status,Values=available\n\n  2. Delete unused Elastic IPs\n     aws ec2 describe-addresses  (costs $0.005/hour if not attached)\n\n  3. Delete old EBS snapshots, unused AMIs\n\n  4. Stop non-production instances outside business hours\n     (Lambda to stop EC2 at 6pm, start at 8am = 65% savings)\n\n  5. Set S3 lifecycle rules for old data\n\nRESERVED INSTANCES / SAVINGS PLANS:\n  On-demand:   $0.042/hour for t3.medium\n  1-year RI:   $0.026/hour for t3.medium (38% saving)\n  3-year RI:   $0.016/hour for t3.medium (62% saving)\n  Rule: if it runs 24/7 for > 1 year, buy Reserved Instances\n\nSPOT INSTANCES:\n  Up to 90% cheaper than on-demand\n  Can be interrupted with 2-minute notice\n  Use for: batch jobs, CI/CD runners, ML training, rendering\n  Don't use for: stateful databases, customer-facing APIs (without graceful handling)\n\nGRAVITON INSTANCES:\n  t4g vs t3: ~20% cheaper, same performance\n  m7g vs m6i: ~15% cheaper, ~20% better performance\n  Requires: Linux OS, compiled-for-ARM binaries\n  Docker images: add 'linux/arm64' to your multi-platform build\n\nRIGHT-SIZING:\n  Use CloudWatch metrics: if CPU < 20% average, downsize\n  AWS Compute Optimizer provides recommendations automatically\n  Check weekly: 'are we paying for capacity we're not using?'"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Setting up billing alerts"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Budget alerts — never get a surprise bill",
+      "code": "# Create a monthly budget with email alert at 80% and 100%\naws budgets create-budget \\\n  --account-id $(aws sts get-caller-identity --query Account --output text) \\\n  --budget '{\n    \"BudgetName\": \"Monthly-Budget\",\n    \"BudgetLimit\": {\"Amount\": \"50\", \"Unit\": \"USD\"},\n    \"TimeUnit\": \"MONTHLY\",\n    \"BudgetType\": \"COST\"\n  }' \\\n  --notifications-with-subscribers '[{\n    \"Notification\": {\n      \"NotificationType\": \"ACTUAL\",\n      \"ComparisonOperator\": \"GREATER_THAN\",\n      \"Threshold\": 80,\n      \"ThresholdType\": \"PERCENTAGE\"\n    },\n    \"Subscribers\": [{\n      \"SubscriptionType\": \"EMAIL\",\n      \"Address\": \"alerts@mycompany.com\"\n    }]\n  }]'\n\n# Also enable: Billing → Preferences → Receive Billing Alerts\n# Then create CloudWatch alarm on 'EstimatedCharges' metric\naws cloudwatch put-metric-alarm \\\n  --alarm-name 'Monthly-Bill-Over-50' \\\n  --namespace AWS/Billing \\\n  --metric-name EstimatedCharges \\\n  --dimensions Name=Currency,Value=USD \\\n  --statistic Maximum \\\n  --period 86400 \\\n  --threshold 50 \\\n  --comparison-operator GreaterThanThreshold \\\n  --evaluation-periods 1 \\\n  --region us-east-1   # billing metrics are always in us-east-1"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Reference architecture — production web app"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Complete production AWS architecture",
+      "code": "Internet\n  │\n  ▼\nRoute53 (DNS + health checks)\n  │\n  ▼\nCloudFront (CDN + HTTPS + WAF)\n  ├── /api/* → Application Load Balancer\n  └── /* → S3 (React app)\n              │\n              ▼\n            ALB (across 2+ AZs)\n              │\n              ▼\n            ECS Fargate (2+ tasks, auto-scaling)\n              │\n              ├──→ RDS PostgreSQL (Multi-AZ) [private subnet]\n              ├──→ ElastiCache Redis [private subnet, for sessions]\n              └──→ S3 (file uploads, signed URLs)\n\nMonitoring/Ops:\n  CloudWatch (metrics, logs, alarms)\n  CloudTrail (API audit log)\n  X-Ray (distributed tracing)\n  SNS → PagerDuty/Slack (alerts)\n\nCI/CD:\n  GitHub → GitHub Actions → ECR → ECS deploy\n\nIaC:\n  CDK stack defines everything above\n  Changes via PR → review → cdk deploy"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "aws-15-q1",
+          "question": "Your batch processing jobs run for 6 hours every night and can restart from a checkpoint if interrupted. Which pricing model maximizes savings?",
+          "type": "multiple-choice",
+          "options": [
+            "On-demand instances — most reliable",
+            "Reserved Instances — cheapest long-term commitment",
+            "Spot Instances — up to 90% savings, acceptable for interruptible batch jobs",
+            "Dedicated Hosts — best for compliance workloads"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Spot Instances are ideal here: the jobs are interruptible (they can checkpoint and restart), they run on a schedule (not customer-facing), and the savings are massive (up to 90%). Reserved Instances give ~38-62% savings but require a 1-3 year commitment, and the batch nature (only running at night) means you'd be paying for capacity even when not using it. On-demand is the most expensive. Dedicated Hosts are for compliance, not cost savings."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "My AWS bill is too high. How do I find what's costing money?",
+      "a": "Use Cost Explorer (Billing → Cost Explorer) to break down costs by service, region, and resource. Sort by 'Service' to find the biggest line items. Enable Cost Allocation Tags to track costs per project/team/environment. Use 'Trusted Advisor' for automated recommendations. The most common surprise costs: forgotten EC2 instances, unattached EBS volumes, NAT Gateway data transfer, and unused Elastic IPs."
+    }
+  ],
+  "sources": [
+    { "name": "AWS Well-Architected Framework", "url": "https://aws.amazon.com/architecture/well-architected/", "verified": "2026-10-09" },
+    { "name": "AWS Cost Optimization Hub", "url": "https://aws.amazon.com/aws-cost-management/aws-cost-optimization/", "verified": "2026-10-09" }
+  ],
+  "realWorld": {
+    "usedIn": ["architecture reviews", "cost management", "production planning"],
+    "examples": [
+      "Dropbox saved $75 million over 2 years by moving their primary storage infrastructure off AWS S3 to their own hardware — but they kept everything else on AWS. Right-sizing means knowing when managed cloud services are not the most cost-efficient option at scale",
+      "Netflix spent $1 billion/year on AWS at their peak. They negotiated custom Reserved Instance pricing and used Spot for batch encoding — their cloud bill at that scale was still cheaper than building and managing their own global CDN infrastructure"
+    ]
+  }
+}

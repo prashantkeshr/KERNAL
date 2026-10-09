@@ -1,0 +1,106 @@
+{
+  "id": "12-caching-and-cdn",
+  "version": "1.0.0",
+  "technology": "deployment",
+  "module": "advanced-deployment",
+  "title": "Caching & CDN Strategy",
+  "subtitle": "Cache-Control headers, stale-while-revalidate, CDN purging, and serving a global audience fast",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "prerequisites": ["deployment/11-zero-downtime-deploys"],
+  "skillsTaught": ["deployment.cache-control", "deployment.cdn", "deployment.stale-while-revalidate", "deployment.cache-purging", "deployment.etag"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Why caching matters"
+    },
+    {
+      "type": "paragraph",
+      "text": "A CDN (Content Delivery Network) caches your files in data centers around the world. When a user in Tokyo requests your app hosted in us-east-1, instead of traveling across the Pacific (150ms), they get the response from a Tokyo CDN edge node (5ms). But CDN caching only works if your server sets the right HTTP headers. Understanding Cache-Control is the difference between a CDN that helps and a CDN that silently passes every request to your origin."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Cache-Control header reference"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Cache-Control directives explained",
+      "code": "Cache-Control: public, max-age=31536000, immutable\n│              │      │                  │\n│              │      │                  └─ Content will never change\n│              │      │                     (browser can skip revalidation)\n│              │      └─ Cache for 1 year (31,536,000 seconds)\n│              └─ Both browser AND CDN can cache this\n└─ The header name\n\nCommon patterns:\n\n  Fingerprinted static assets (main.abc123.js, logo.def456.png):\n    Cache-Control: public, max-age=31536000, immutable\n    → Cache forever — the URL changes when content changes\n\n  HTML pages:\n    Cache-Control: public, max-age=0, must-revalidate\n    → Never serve stale HTML (users need the latest)\n\n  API responses (public, rarely changing):\n    Cache-Control: public, max-age=300, stale-while-revalidate=86400\n    → Fresh for 5 minutes; serve stale for 24 hours while revalidating\n\n  User-specific data (authenticated):\n    Cache-Control: private, no-store\n    → Only the user's browser caches this (CDN skips it)\n\n  No caching at all:\n    Cache-Control: no-cache, no-store, must-revalidate\n    → Never cache (use sparingly — defeats the purpose of a CDN)\n\nDIRECTIVES:\n  public        → CDN and browser may cache\n  private       → Only browser may cache (not CDN)\n  max-age=N     → Cache is fresh for N seconds\n  s-maxage=N    → CDN max-age (overrides max-age for CDNs only)\n  no-cache      → Must revalidate before serving (not 'no caching'!)\n  no-store      → Never store anywhere\n  immutable     → Don't revalidate even when max-age expires (browser)\n  stale-while-revalidate=N  → Serve stale while fetching fresh in background"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Setting cache headers in your app"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "Cache headers in Express / Node.js",
+      "code": "import express from 'express';\nconst app = express();\n\n// Static assets: cache forever (Vite fingerprints filenames)\napp.use('/assets', express.static('dist/assets', {\n  maxAge: '1y',\n  immutable: true,\n  // Adds: Cache-Control: public, max-age=31536000, immutable\n}));\n\n// HTML: never serve stale\napp.get('/', (req, res) => {\n  res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');\n  res.sendFile('dist/index.html');\n});\n\n// API: public data with stale-while-revalidate\napp.get('/api/products', async (req, res) => {\n  res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=86400');\n  const products = await db.query('SELECT * FROM products');\n  res.json(products);\n});\n\n// API: private/user data — CDN must not cache\napp.get('/api/user/profile', requireAuth, async (req, res) => {\n  res.setHeader('Cache-Control', 'private, no-store');\n  const user = await db.query('SELECT * FROM users WHERE id = $1', [req.user.id]);\n  res.json(user);\n});\n\n// Vary header: tells CDN to store separate caches for different Accept-Encoding\n// (prevents serving compressed content to clients that don't support gzip)\napp.use((req, res, next) => {\n  res.setHeader('Vary', 'Accept-Encoding');\n  next();\n});"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Vite's asset fingerprinting"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "How Vite handles cache invalidation",
+      "code": "PROBLEM: If you cache main.js for 1 year, how do users get the new version?\n\nVITE'S SOLUTION: Content hashing\n  Source file:  src/main.tsx\n  Build output: dist/assets/main.BhJj3X.js  ← hash of file content\n\n  When content changes: dist/assets/main.KpQr9Y.js  ← different hash\n\n  Your index.html references the exact filename:\n  <script src=\"/assets/main.BhJj3X.js\"></script>\n\n  When you deploy a new build:\n  → index.html changes (no-cache, so browsers always get latest)\n  → index.html references main.KpQr9Y.js\n  → Browser sees a different URL → fetches the new file\n  → Old cached main.BhJj3X.js is automatically abandoned\n\n  This is why you can safely cache hashed assets for 1 year:\n  The cache is NEVER invalidated (the URL just stops being used)\n\nVite config:\n  export default defineConfig({\n    build: {\n      rollupOptions: {\n        output: {\n          assetFileNames: 'assets/[name].[hash][extname]',  // default\n          chunkFileNames: 'assets/[name].[hash].js',        // default\n        },\n      },\n    },\n  });"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "CDN cache purging"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Purging cache after deploy",
+      "code": "# When you need to invalidate cached content immediately:\n\n# Cloudflare: purge by URL or tag\ncurl -X POST \"https://api.cloudflare.com/client/v4/zones/ZONE_ID/purge_cache\" \\\n  -H \"Authorization: Bearer $CLOUDFLARE_API_TOKEN\" \\\n  -H \"Content-Type: application/json\" \\\n  --data '{\"files\":[\"https://myapp.com/api/products\"]}'\n\n# Purge all (use sparingly — causes CDN cold start):\n# --data '{\"purge_everything\":true}'\n\n# AWS CloudFront: create invalidation\naws cloudfront create-invalidation \\\n  --distribution-id $CLOUDFRONT_DIST_ID \\\n  --paths \"/api/*\" \"/index.html\"\n# Cost: first 1,000 paths/month free, then $0.005 each\n# Wildcard /api/* counts as 1 path\n\n# Integrate into deploy script:\n# After 'npm run build && deploy to S3':\nnpm run deploy\naws cloudfront create-invalidation \\\n  --distribution-id $CLOUDFRONT_DIST_ID \\\n  --paths \"/index.html\"\n# (No need to invalidate /assets/* — Vite hashes those files)"
+    },
+    {
+      "type": "tip",
+      "text": "<strong><code>stale-while-revalidate</code> is one of the most underused performance tools.</strong> With <code>Cache-Control: max-age=60, stale-while-revalidate=3600</code>, the CDN serves the cached response immediately (0ms wait) while simultaneously fetching a fresh copy in the background. The NEXT request gets the updated version. Users never wait for an origin request. This pattern works great for product listings, blog posts, or any frequently-read but infrequently-changed data."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "deployment-12-q1",
+          "question": "You set 'Cache-Control: public, max-age=31536000' on your index.html. What's the problem?",
+          "type": "multiple-choice",
+          "options": [
+            "There's no problem — this makes the site very fast",
+            "Users will be served the old version of index.html for up to 1 year after you deploy, because browsers won't fetch a new copy",
+            "max-age is only for images, not HTML",
+            "CDNs don't cache HTML files"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Caching index.html for a year is a classic mistake. Unlike fingerprinted assets (where the filename changes), index.html has the same URL regardless of content. After a deploy, users who visited in the last year have the old index.html cached — it still references the OLD JavaScript bundle (which no longer exists on your server). Their app is broken. HTML should always use 'no-cache' or 'max-age=0, must-revalidate'. It's fine to cache static assets for a year — Vite's content hashing ensures browsers get new files when content changes."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Should I set up a CDN for a small app?",
+      "a": "Yes, for free. Cloudflare's free plan is a full CDN — just change your domain's nameservers to Cloudflare, and your site is behind their CDN immediately. No configuration required. You get DDoS protection, SSL, caching, and global distribution. Even if you have 10 users, there's no reason not to."
+    }
+  ],
+  "sources": [
+    { "name": "MDN Cache-Control", "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control", "verified": "2026-10-09" }
+  ],
+  "realWorld": {
+    "usedIn": ["every production web app", "high-traffic sites", "global apps"],
+    "examples": [
+      "Stack Overflow serves over 100 million page views per month with only 9 web servers — aggressive CDN caching and proper Cache-Control headers mean their origin servers only handle a fraction of total requests",
+      "When Vite became popular, it popularized content-hashed static assets as the default. Before that, many sites used query string cache-busting (?v=123), which CDNs often ignored. Hash-in-filename is now the industry standard"
+    ]
+  }
+}

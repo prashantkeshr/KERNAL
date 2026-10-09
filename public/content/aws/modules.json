@@ -1,0 +1,57 @@
+[
+  {
+    "id": "aws-foundations",
+    "title": "AWS Foundations",
+    "description": "The global infrastructure, IAM security model, and AWS CLI — how AWS works and how to navigate it",
+    "order": 0,
+    "lessons": [
+      { "id": "01-what-is-aws", "title": "What is AWS?", "order": 0 },
+      { "id": "02-iam-and-security", "title": "IAM & Security", "order": 1 },
+      { "id": "03-aws-cli", "title": "AWS CLI & SDK", "order": 2 }
+    ]
+  },
+  {
+    "id": "storage-and-databases",
+    "title": "Storage & Databases",
+    "description": "S3 for object storage, RDS for relational databases, and DynamoDB for NoSQL at scale",
+    "order": 1,
+    "lessons": [
+      { "id": "04-s3", "title": "S3 Object Storage", "order": 0 },
+      { "id": "05-rds", "title": "RDS — Managed Databases", "order": 1 },
+      { "id": "06-dynamodb", "title": "DynamoDB — NoSQL at Scale", "order": 2 }
+    ]
+  },
+  {
+    "id": "compute",
+    "title": "Compute Services",
+    "description": "EC2 virtual machines, Lambda serverless functions, and ECS/Fargate for containers",
+    "order": 2,
+    "lessons": [
+      { "id": "07-ec2", "title": "EC2 — Virtual Machines", "order": 0 },
+      { "id": "08-lambda", "title": "Lambda — Serverless Functions", "order": 1 },
+      { "id": "09-ecs-fargate", "title": "ECS & Fargate — Containers", "order": 2 }
+    ]
+  },
+  {
+    "id": "networking",
+    "title": "Networking & CDN",
+    "description": "VPC private networks, CloudFront CDN, and Route53 DNS — build secure, fast global infrastructure",
+    "order": 3,
+    "lessons": [
+      { "id": "10-vpc", "title": "VPC — Virtual Private Cloud", "order": 0 },
+      { "id": "11-cloudfront", "title": "CloudFront — CDN & Edge", "order": 1 },
+      { "id": "12-route53", "title": "Route53 — DNS & Routing", "order": 2 }
+    ]
+  },
+  {
+    "id": "production-aws",
+    "title": "Production AWS",
+    "description": "Infrastructure as Code with CloudFormation/CDK, CloudWatch observability, and cost optimization",
+    "order": 4,
+    "lessons": [
+      { "id": "13-cloudformation-cdk", "title": "CloudFormation & CDK", "order": 0 },
+      { "id": "14-cloudwatch", "title": "CloudWatch — Monitoring & Logs", "order": 1 },
+      { "id": "15-cost-and-architecture", "title": "Cost Optimization & Architecture", "order": 2 }
+    ]
+  }
+]

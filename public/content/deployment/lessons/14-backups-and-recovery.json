@@ -1,0 +1,103 @@
+{
+  "id": "14-backups-and-recovery",
+  "version": "1.0.0",
+  "technology": "deployment",
+  "module": "production-operations",
+  "title": "Backups & Recovery",
+  "subtitle": "RTO, RPO, automated database backups to S3, file backups, and how to actually test your recovery plan",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "prerequisites": ["deployment/13-monitoring-and-logging"],
+  "skillsTaught": ["deployment.backups", "deployment.rto-rpo", "deployment.postgres-backup", "deployment.s3-backup", "deployment.disaster-recovery"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "RTO and RPO — the two metrics that matter"
+    },
+    {
+      "type": "definition",
+      "term": "Recovery Time Objective (RTO)",
+      "definition": "How long can your app be down after a failure before it causes unacceptable business impact? An RTO of 4 hours means you have 4 hours to restore service. This drives your disaster recovery architecture."
+    },
+    {
+      "type": "definition",
+      "term": "Recovery Point Objective (RPO)",
+      "definition": "How much data can you afford to lose? An RPO of 1 hour means your backups must be at most 1 hour old. If your database backup runs every 6 hours and the server dies, you've lost up to 6 hours of data."
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "RTO/RPO by business type",
+      "code": "PERSONAL PROJECT / PORTFOLIO:\n  RTO: 24 hours (few users, can tolerate downtime)\n  RPO: 24 hours (losing 1 day of data is acceptable)\n  Strategy: Daily backups, restore from backup manually\n\nSMALL SAAS / STARTUP:\n  RTO: 4 hours\n  RPO: 1 hour\n  Strategy: Hourly backups to S3, standby plan, documented runbook\n\nE-COMMERCE:\n  RTO: 30 minutes\n  RPO: 15 minutes\n  Strategy: Managed PostgreSQL with continuous backups (AWS RDS, PlanetScale),\n            read replicas, documented recovery procedure\n\nFINANCIAL / HEALTHCARE:\n  RTO: 5 minutes\n  RPO: 0 (no data loss)\n  Strategy: Multi-region with synchronous replication, automatic failover\n\nKEY INSIGHT:\n  The more aggressive your RTO/RPO, the higher the cost.\n  A $7/month VPS with daily backups might be fine for your use case.\n  A $1000/month multi-region RDS setup is overkill for a personal project."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Automated PostgreSQL backups to S3"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "backup.sh — PostgreSQL backup script",
+      "code": "#!/bin/bash\nset -euo pipefail\n\n# Configuration (set as environment variables on the server)\nDB_HOST=${DB_HOST:-localhost}\nDB_PORT=${DB_PORT:-5432}\nDB_NAME=${DB_NAME:-myapp}\nDB_USER=${DB_USER:-postgres}\nS3_BUCKET=${S3_BUCKET:-myapp-backups}\nRETENTION_DAYS=${RETENTION_DAYS:-30}\n\nTIMESTAMP=$(date +%Y%m%d_%H%M%S)\nBACKUP_FILE=\"/tmp/${DB_NAME}_${TIMESTAMP}.sql.gz\"\n\necho \"Starting backup of ${DB_NAME} at ${TIMESTAMP}\"\n\n# Dump database and compress\npg_dump \\\n  --host=$DB_HOST \\\n  --port=$DB_PORT \\\n  --username=$DB_USER \\\n  --no-password \\\n  --format=custom \\\n  $DB_NAME | gzip > $BACKUP_FILE\n\n# Upload to S3\naws s3 cp $BACKUP_FILE \\\n  s3://${S3_BUCKET}/postgres/${DB_NAME}_${TIMESTAMP}.sql.gz \\\n  --storage-class STANDARD_IA  # Infrequent Access = cheaper for backups\n\n# Remove local temp file\nrm $BACKUP_FILE\n\n# Delete old backups (S3 lifecycle policy is better, but this works too)\naws s3 ls s3://${S3_BUCKET}/postgres/ | \\\n  awk '{print $4}' | \\\n  while read file; do\n    file_date=$(echo $file | grep -oP '\\d{8}')\n    cutoff=$(date -d \"-${RETENTION_DAYS} days\" +%Y%m%d)\n    if [[ \"$file_date\" < \"$cutoff\" ]]; then\n      aws s3 rm s3://${S3_BUCKET}/postgres/$file\n      echo \"Deleted old backup: $file\"\n    fi\n  done\n\necho \"Backup complete: s3://${S3_BUCKET}/postgres/${DB_NAME}_${TIMESTAMP}.sql.gz\""
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Schedule backup with cron",
+      "code": "# Add to crontab: crontab -e\n\n# Run backup every hour at minute 0\n0 * * * * PGPASSWORD=$DB_PASSWORD /home/deploy/scripts/backup.sh >> /home/deploy/logs/backup.log 2>&1\n\n# Or via systemd timer (more robust — retry on failure):\n# Create /etc/systemd/system/db-backup.service\n# Create /etc/systemd/system/db-backup.timer\n\n# Restore from backup:\nTIMESTAMP=\"20261001_120000\"  # replace with actual backup timestamp\naws s3 cp \\\n  s3://myapp-backups/postgres/myapp_${TIMESTAMP}.sql.gz \\\n  /tmp/restore.sql.gz\n\ngunzip /tmp/restore.sql.gz\n\n# Restore to database\npg_restore \\\n  --host=$DB_HOST \\\n  --username=$DB_USER \\\n  --dbname=$DB_NAME \\\n  --verbose \\\n  --clean \\\n  --if-exists \\\n  /tmp/restore.sql\n\nrm /tmp/restore.sql\necho \"Restore complete\""
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Managed database backups (easier)"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Backup features by provider",
+      "code": "AWS RDS:\n  Automated backups: daily snapshots + continuous transaction logs\n  Point-in-time recovery: restore to any second in the last 35 days\n  Manual snapshots: keep indefinitely\n  Multi-AZ: synchronous standby, automatic failover in < 60s\n  Cost: small markup on instance price; snapshots free for backup window\n\nNEON (managed PostgreSQL):\n  Branch-based: every branch has instant snapshots\n  Point-in-time restore: 7 days on free tier, 30 days on paid\n  Branching is instant — great for testing migrations on a copy of prod\n\nSUPABASE:\n  Daily backups on free tier (7-day retention)\n  Point-in-time recovery on Pro plan\n\nRAILWAY / RENDER POSTGRESQL:\n  Daily backups included\n  Manual backup via CLI\n\nFOR VPS + SELF-HOSTED POSTGRESQL:\n  Use the backup.sh script above\n  Consider pgBackRest or Barman for enterprise-grade backup management"
+    },
+    {
+      "type": "warning",
+      "text": "<strong>Untested backups are not backups.</strong> Many teams have been devastated to discover that their 'backups' were corrupted, pointed at the wrong database, or required steps no one knew how to perform. Schedule a disaster recovery drill quarterly: actually restore from your backup into a test environment and verify data integrity. If you can't restore within your RTO, your backup strategy needs fixing. The worst time to discover a broken backup is during an actual emergency."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "deployment-14-q1",
+          "question": "Your app has an RPO of 1 hour. Your database backup runs daily at 2am. A failure happens at 11pm. How much data do you lose?",
+          "type": "multiple-choice",
+          "options": [
+            "0 hours — the backup captures everything",
+            "1 hour — you only lose data from the last hour",
+            "Up to 21 hours — from the last 2am backup to the 11pm failure",
+            "It depends on your RTO"
+          ],
+          "correctAnswer": 2,
+          "explanation": "From the last backup (2am) to the failure (11pm) is 21 hours. Your most recent backup is 21 hours old. Everything written to the database after 2am is lost. Your RPO of 1 hour requires backups no more than 1 hour apart. To fix this: hourly backups (cron job every hour), a managed database with continuous WAL archiving (like RDS with transaction logs), or a managed service that snapshots continuously. The mismatch between your stated RPO (1 hour) and your actual backup frequency (24 hours) means your disaster recovery plan doesn't meet its own requirements."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How much does S3 backup storage cost?",
+      "a": "With S3 Infrequent Access (--storage-class STANDARD_IA): $0.0125/GB/month. A typical PostgreSQL database backup compresses to 10-50% of original size. A 1GB database = ~200MB compressed backup. 30 daily backups + 12 monthly backups = ~7GB stored = ~$0.09/month. Even for 100GB databases, backup storage is inexpensive. The real cost is your time designing and maintaining the backup system — which is why managed database services with built-in backup are often worth the premium."
+    }
+  ],
+  "sources": [
+    { "name": "AWS RDS Backup and restore", "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_CommonTasks.BackupRestore.html", "verified": "2026-10-09" },
+    { "name": "PostgreSQL pg_dump documentation", "url": "https://www.postgresql.org/docs/current/app-pgdump.html", "verified": "2026-10-09" }
+  ],
+  "realWorld": {
+    "usedIn": ["all production apps", "compliance requirements", "incident recovery"],
+    "examples": [
+      "In 2017, GitLab accidentally deleted their production database during a maintenance operation. They discovered that 5 out of 6 backup methods had been failing silently. They lost 6 hours of data. The incident led to their famous public postmortem and became a textbook example of why backups must be tested, not just configured",
+      "Heroku's policy of daily database snapshots has saved countless startups. Multiple companies have reported accidentally deleting their production database and restoring from Heroku's automated snapshot in under 30 minutes — from catastrophe to recovered"
+    ]
+  }
+}

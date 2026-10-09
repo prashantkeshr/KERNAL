@@ -1,0 +1,101 @@
+{
+  "id": "10-environment-management",
+  "version": "1.0.0",
+  "technology": "deployment",
+  "module": "advanced-deployment",
+  "title": "Environment Management",
+  "subtitle": "Manage secrets safely across development, staging, and production — .env files, secrets injection, and environment parity",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "prerequisites": ["deployment/09-docker-on-vps"],
+  "skillsTaught": ["deployment.env-management", "deployment.secrets", "deployment.environment-parity", "deployment.dotenv", "deployment.secret-rotation"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The environment variable problem"
+    },
+    {
+      "type": "paragraph",
+      "text": "Every app has secrets: database passwords, API keys, JWT signing secrets, Stripe keys. The wrong approach is to hardcode them in source code (they end up in git history, visible to anyone with repo access). The right approach is environment variables — values injected into your app at runtime from outside the codebase. The challenge is managing these variables across multiple environments (dev, staging, production) without losing them, leaking them, or having them drift out of sync."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": ".env file conventions"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": ".env file structure and gitignore",
+      "code": "# .env — local development secrets (NEVER commit this)\nDATABASE_URL=postgresql://localhost:5432/myapp_dev\nREDIS_URL=redis://localhost:6379\nJWT_SECRET=dev-only-not-secure\nSTRIPE_SECRET_KEY=sk_test_...\nAWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE\nAWS_SECRET_ACCESS_KEY=...\n\n# .env.example — template committed to git (no real values)\n# Shows developers what variables are needed\nDATABASE_URL=\nREDIS_URL=\nJWT_SECRET=\nSTRIPE_SECRET_KEY=\nAWS_ACCESS_KEY_ID=\nAWS_SECRET_ACCESS_KEY=\n\n# .gitignore — MUST include:\n.env\n.env.local\n.env.*.local\n# Never ignore .env.example — that one gets committed\n\n# Loading .env in Node.js:\n# Option 1: node --env-file=.env server.js  (Node 20+, no package needed)\n# Option 2: dotenv package\nimport 'dotenv/config';  // loads .env into process.env automatically\n# Option 3: dotenv with path\nimport dotenv from 'dotenv';\ndotenv.config({ path: '.env.local' });"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Multiple environments"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Environment hierarchy",
+      "code": "DEVELOPMENT (.env.local or .env):\n  Purpose: local development on your machine\n  Database: local PostgreSQL or Docker\n  Secrets: test/dev keys (sk_test_..., dummy values)\n  NEVER matches production exactly (and shouldn't)\n\nSTAGING (.env.staging or injected by platform):\n  Purpose: pre-production testing\n  Database: separate database (never share with production!)\n  Secrets: real API keys pointing to test environments\n  Matches production config structure but with test data\n  URL: staging.myapp.com\n\nPRODUCTION (.env.production or platform secrets):\n  Purpose: live users\n  Database: production database\n  Secrets: live API keys (sk_live_...)\n  Should be impossible to accidentally run locally\n\nKEY RULE: Never use production secrets in development.\nIf dev accidentally writes to the production database, that's catastrophic.\nEnvironment parity means same code runs in each, but different config.\n\nENVIRONMENT PARITY (the 12-factor app principle):\n  ✓ Same Docker image in staging and production\n  ✓ Same database engine (use PostgreSQL in dev too, not SQLite)\n  ✓ Same environment variable names\n  ✗ Different codepaths for 'dev mode' (they'll diverge)\n  ✗ Different dependencies (dev uses MySQL, prod uses PostgreSQL)"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Secrets injection in CI/CD and production"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": ".github/workflows/deploy.yml — secrets from GitHub",
+      "code": "# Store secrets in: GitHub repo → Settings → Secrets and variables → Actions\n\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n\n      - name: Build and push Docker image\n        run: |\n          docker build \\\n            --build-arg NODE_ENV=production \\\n            -t ghcr.io/myorg/myapp:${{ github.sha }} .\n\n      - name: Deploy to VPS\n        env:\n          # These come from GitHub Secrets — never logged\n          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}\n          JWT_SECRET: ${{ secrets.JWT_SECRET }}\n        run: |\n          ssh deploy@${{ secrets.VPS_HOST }} << 'ENDSSH'\n            cd /home/deploy/myapp\n            docker compose pull\n            docker compose up -d\n          ENDSSH\n\n# Note: Secrets are NEVER exposed in logs\n# GitHub replaces secret values with *** in logs automatically\n# Even if you accidentally 'echo $DATABASE_URL', logs show '***'"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Runtime secrets on VPS",
+      "code": "# On your VPS, secrets live in the .env file\n# Loaded by Docker Compose via env_file or environment:\n\n# /home/deploy/myapp/.env (permissions 600 — owner-only read)\nchmod 600 /home/deploy/myapp/.env\n\n# Or use Docker secrets (for Swarm mode):\ndocker secret create db_password - <<< 'supersecretpassword'\n\n# In docker-compose.yml:\nservices:\n  app:\n    secrets:\n      - db_password\n    environment:\n      # Secret mounted at /run/secrets/db_password\n      # Read it in Node.js:\n      # const secret = fs.readFileSync('/run/secrets/db_password', 'utf8');\n      DB_PASSWORD_FILE: /run/secrets/db_password\nsecrets:\n  db_password:\n    external: true\n\n# AWS Secrets Manager (for AWS deployments):\nimport { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';\n\nconst client = new SecretsManagerClient({ region: 'ap-south-1' });\nconst { SecretString } = await client.send(\n  new GetSecretValueCommand({ SecretId: 'myapp/production/database' })\n);\nconst { password, username } = JSON.parse(SecretString!);"
+    },
+    {
+      "type": "warning",
+      "text": "<strong>Never commit secrets to git — even 'just this once' or 'I'll remove it later'.</strong> Git history is permanent. Even if you remove the secret in the next commit, it's still in the history and visible to anyone who runs <code>git log -p</code>. If you accidentally commit a secret: rotate it immediately (generate a new key, revoke the old one), then remove it from history with <code>git filter-repo</code>. GitHub will also scan your pushes for known secret patterns and alert you — but rotating is still required."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "deployment-10-q1",
+          "question": "Your app uses PostgreSQL in production but a developer is running SQLite locally because 'it's simpler'. Why is this a problem?",
+          "type": "multiple-choice",
+          "options": [
+            "SQLite is slower than PostgreSQL, so local testing is unreliable",
+            "Environment parity is broken — SQL that works in SQLite may fail in PostgreSQL (different syntax, missing features), so tests passing locally doesn't mean the app works in production",
+            "SQLite doesn't support environment variables",
+            "There's no problem — databases are interchangeable"
+          ],
+          "correctAnswer": 1,
+          "explanation": "This is the environment parity problem (12-factor app principle #10). SQLite and PostgreSQL have different SQL dialects, different behavior for NULL handling, different support for JSON operations, different transaction semantics, and different error messages. A query that works in SQLite may fail with a syntax error in PostgreSQL. Running the same database engine locally as in production means if it works locally, it works in production. The overhead of running a local PostgreSQL via Docker is small compared to the bugs this parity avoids."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What tool should I use to manage team secrets?",
+      "a": "For small teams: use your deployment platform's secret management (Vercel Env Vars, Railway Variables, GitHub Secrets). For larger teams: HashiCorp Vault (self-hosted, powerful), AWS Secrets Manager, or Doppler (developer-friendly SaaS secret manager that syncs to all your platforms). The key requirement: secrets should be changeable without editing code, and access should be audited."
+    }
+  ],
+  "sources": [
+    { "name": "The Twelve-Factor App — Config", "url": "https://12factor.net/config", "verified": "2026-10-09" }
+  ],
+  "realWorld": {
+    "usedIn": ["every production application", "compliance", "security"],
+    "examples": [
+      "The Uber breach (2022) was caused by an attacker finding credentials in the company's network. Proper secret rotation and environment isolation limits blast radius — a leaked dev key can't access production data",
+      "GitHub's secret scanning has caught hundreds of thousands of accidentally committed secrets. Their API scanning program detects patterns like AWS keys, Stripe keys, and Twilio tokens — as soon as a push is made, they alert the user and in some cases automatically revoke the credentials"
+    ]
+  }
+}

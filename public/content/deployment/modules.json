@@ -1,0 +1,57 @@
+[
+  {
+    "id": "deployment-fundamentals",
+    "title": "Deployment Fundamentals",
+    "description": "How the internet routes requests to your app — DNS, SSL/TLS, and the hosting landscape",
+    "order": 0,
+    "lessons": [
+      { "id": "01-how-hosting-works", "title": "How Hosting Works", "order": 0 },
+      { "id": "02-dns-deep-dive", "title": "DNS Deep Dive", "order": 1 },
+      { "id": "03-ssl-and-https", "title": "SSL/TLS & HTTPS", "order": 2 }
+    ]
+  },
+  {
+    "id": "frontend-hosting",
+    "title": "Frontend & Static Hosting",
+    "description": "Deploy React, Vite, and static sites to Vercel, Netlify, and Cloudflare Pages",
+    "order": 1,
+    "lessons": [
+      { "id": "04-vercel-deep-dive", "title": "Vercel — Frontend Platform", "order": 0 },
+      { "id": "05-netlify", "title": "Netlify — Jamstack Hosting", "order": 1 },
+      { "id": "06-cloudflare-pages", "title": "Cloudflare Pages & Workers", "order": 2 }
+    ]
+  },
+  {
+    "id": "backend-hosting",
+    "title": "Backend & API Hosting",
+    "description": "Railway, Render, and self-managed VPS with Nginx, PM2, and reverse proxies",
+    "order": 2,
+    "lessons": [
+      { "id": "07-railway-and-render", "title": "Railway & Render", "order": 0 },
+      { "id": "08-vps-and-nginx", "title": "VPS & Nginx Setup", "order": 1 },
+      { "id": "09-docker-on-vps", "title": "Docker on a VPS", "order": 2 }
+    ]
+  },
+  {
+    "id": "advanced-deployment",
+    "title": "Advanced Deployment",
+    "description": "Environment management, blue-green deployments, and CDN caching strategies",
+    "order": 3,
+    "lessons": [
+      { "id": "10-environment-management", "title": "Environment Management", "order": 0 },
+      { "id": "11-zero-downtime-deploys", "title": "Zero-Downtime Deploys", "order": 1 },
+      { "id": "12-caching-and-cdn", "title": "Caching & CDN Strategy", "order": 2 }
+    ]
+  },
+  {
+    "id": "production-operations",
+    "title": "Production Operations",
+    "description": "Monitoring, logging, backups, and incident response — keeping apps running and healthy",
+    "order": 4,
+    "lessons": [
+      { "id": "13-monitoring-and-logging", "title": "Monitoring & Logging", "order": 0 },
+      { "id": "14-backups-and-recovery", "title": "Backups & Disaster Recovery", "order": 1 },
+      { "id": "15-production-checklist", "title": "Production Checklist & Readiness", "order": 2 }
+    ]
+  }
+]

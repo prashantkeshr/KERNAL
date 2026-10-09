@@ -1,0 +1,101 @@
+{
+  "id": "02-dns-deep-dive",
+  "version": "1.0.0",
+  "technology": "deployment",
+  "module": "deployment-fundamentals",
+  "title": "DNS Deep Dive",
+  "subtitle": "How domain names resolve to IP addresses — registrars, nameservers, record types, TTL, and propagation",
+  "difficulty": "beginner",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "prerequisites": ["deployment/01-how-hosting-works"],
+  "skillsTaught": ["deployment.dns", "deployment.dns-records", "deployment.ttl", "deployment.nameservers", "deployment.dns-propagation"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "How DNS works — the resolution chain"
+    },
+    {
+      "type": "paragraph",
+      "text": "DNS (Domain Name System) is the internet's phone book. Humans use domain names (<code>google.com</code>); computers use IP addresses (<code>142.250.80.46</code>). DNS translates between them. The process involves a chain of servers, each knowing only a part of the answer, until the final authoritative answer is found."
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "DNS resolution step by step",
+      "code": "You type: myapp.com\n\n1. Browser checks its local DNS cache → not found\n\n2. OS checks /etc/hosts → not found\n\n3. OS asks the Recursive Resolver (usually your ISP or 8.8.8.8)\n   'What's the IP for myapp.com?'\n\n4. Resolver asks a Root Nameserver:\n   'Who handles .com domains?'\n   Root: 'Ask the .com TLD nameservers: a.gtld-servers.net'\n\n5. Resolver asks .com TLD nameserver:\n   'Who handles myapp.com?'\n   TLD: 'Ask ns1.route53.amazonaws.com (authoritative NS for myapp.com)'\n   (This NS info came from the domain registrar)\n\n6. Resolver asks Route53 (authoritative nameserver):\n   'What's the IP for myapp.com?'\n   Route53: '203.0.113.42' (the A record you set)\n\n7. Resolver returns 203.0.113.42 to the browser\n   (and caches it for the TTL duration)\n\n8. Browser connects to 203.0.113.42\n\nThe whole chain takes 20-100ms\nSubsequent requests use cached results (near-instant)"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "DNS record types in practice"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "DNS records for a typical web app",
+      "code": "# Typical DNS setup for myapp.com:\n# (configured at your DNS provider — Route53, Cloudflare, etc.)\n\n# Root domain → CloudFront / CDN\nmyapp.com.      A      ALIAS d1234.cloudfront.net\n# ALIAS (Route53) or ANAME (other providers) at the root — like CNAME but allowed at root\n\n# www → same as root\nwww.myapp.com.  CNAME  myapp.com.\n\n# API subdomain → your backend server\napi.myapp.com.  A      203.0.113.42\n# Or if using load balancer:\napi.myapp.com.  CNAME  my-alb-1234.us-east-1.elb.amazonaws.com.\n\n# Mail server\nmyapp.com.      MX  10  mail.myapp.com.\nmyapp.com.      MX  20  mail2.myapp.com.   # backup mail server\n\n# Email authentication (prevents spam/spoofing)\nmyapp.com.      TXT  'v=spf1 include:mailgun.org ~all'\n_dmarc.myapp.com. TXT 'v=DMARC1; p=quarantine; rua=mailto:dmarc@myapp.com'\n\n# Domain verification for external services\n# (Google Search Console, AWS ACM certificate validation, etc.)\n_abc123.myapp.com. CNAME _xyz789.acm-validations.aws.\n\n# Check DNS records:\nnslookup myapp.com\ndig myapp.com A\ndig myapp.com MX\ndig myapp.com TXT\ndig @8.8.8.8 myapp.com A   # query Google's resolver specifically"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "TTL — time to live"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "TTL strategy guide",
+      "code": "TTL (Time To Live) = how long DNS resolvers cache the record (seconds)\n\nLOW TTL (60-300 seconds):\n  ✓ Changes propagate quickly (useful during migrations)\n  ✗ More DNS queries = higher DNS query cost\n  ✗ More load on authoritative nameservers\n  Use: before a planned IP change, disaster recovery scenarios\n\nHIGH TTL (3600-86400 seconds = 1 hour to 1 day):\n  ✓ Fewer DNS queries, faster resolution (cached everywhere)\n  ✓ Works well even if your DNS provider has issues\n  ✗ Changes take longer to propagate globally\n  Use: stable records that rarely change (www, root)\n\nPRACTICAL STRATEGY:\n  Normal operation:    TTL = 3600 (1 hour)\n  Before a migration:  Lower TTL to 60 (wait for old TTL to expire)\n  After migration:     Change the record, traffic shifts in 60 seconds\n  Post-migration:      Raise TTL back to 3600\n\n'DNS propagation' isn't magic — it's just waiting for TTLs to expire\nWhen you change an A record with TTL=86400, some resolvers may\nhave cached the old IP and won't check again for up to 24 hours"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Domain registrars vs DNS providers"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Registrar vs DNS provider",
+      "code": "DOMAIN REGISTRAR:\n  - Where you BUY the domain (Namecheap, GoDaddy, Route53, Google Domains)\n  - Registers your domain with ICANN\n  - Sets which nameservers are authoritative for your domain\n  - Usually also offers DNS hosting\n\nDNS PROVIDER (authoritative nameserver):\n  - Where your DNS records actually LIVE\n  - Answers 'what IP is myapp.com?' queries\n  - Examples: Cloudflare DNS, Route53, Namecheap DNS\n\nYou can use different providers for each:\n  Buy domain at Namecheap → Use Cloudflare for DNS\n  Process:\n    1. Create Cloudflare account → Add site → Note 2 Cloudflare NS addresses\n    2. In Namecheap: update Nameservers to Cloudflare's NS addresses\n    3. Now manage all DNS records in Cloudflare\n\nWhy separate them?\n  Cloudflare DNS: fastest globally, free DDoS protection, free proxying\n  Route53: integrates with AWS ALIAS records, 100% SLA\n  Keep registrar where it's cheapest; use better DNS providers"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Cloudflare is the best free DNS provider.</strong> It's the world's largest authoritative DNS network — typically resolving in < 10ms globally. It's free for DNS-only (no proxying needed). Move any domain's DNS to Cloudflare by updating NS records at your registrar. You get DDoS protection, DNSSEC, fast propagation, and an excellent dashboard for managing records."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "deployment-02-q1",
+          "question": "You change your site's A record from the old server IP to a new one. Some users still see the old site 6 hours later. Why?",
+          "type": "multiple-choice",
+          "options": [
+            "The domain registrar hasn't confirmed the change yet",
+            "The old A record had a TTL of 24 hours (86400 seconds) — resolvers that cached it before the change won't check again for up to 24 hours",
+            "DNS changes take exactly 48 hours to propagate worldwide",
+            "The browser cached the old IP permanently"
+          ],
+          "correctAnswer": 1,
+          "explanation": "DNS resolvers cache records for their TTL duration. If your old A record had TTL=86400, a resolver that cached it at 12pm will use the cached value until 12pm the next day — even after you've updated the record. To prevent this: lower TTL to 60 seconds at least 24 hours before the planned change, let the old TTL expire, then make the change. With TTL=60, the new record propagates within 60 seconds worldwide."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is DNSSEC?",
+      "a": "DNSSEC (DNS Security Extensions) adds cryptographic signatures to DNS records, preventing DNS spoofing attacks where a malicious resolver returns a fake IP. When you look up myapp.com, DNSSEC allows your resolver to verify the response is actually from the authoritative nameserver and hasn't been tampered with. Cloudflare and Route53 both support DNSSEC — enable it for any domain handling sensitive data."
+    }
+  ],
+  "sources": [
+    { "name": "Cloudflare: What is DNS?", "url": "https://www.cloudflare.com/learning/dns/what-is-dns/", "verified": "2026-10-09" }
+  ],
+  "realWorld": {
+    "usedIn": ["domain management", "site migrations", "zero-downtime server changes"],
+    "examples": [
+      "The 2016 Dyn DDoS attack took down Twitter, Netflix, Amazon, and Reddit by attacking a major DNS provider. DNS is so fundamental that one provider going down can make entire sections of the internet unreachable — which is why using multiple DNS providers (or a highly resilient one like Cloudflare) matters",
+      "When a company migrates from one cloud provider to another, they lower DNS TTL weeks in advance. On migration day, they switch the IP in DNS — traffic shifts within minutes rather than days"
+    ]
+  }
+}

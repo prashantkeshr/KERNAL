@@ -1,0 +1,127 @@
+{
+  "id": "01-what-is-aws",
+  "version": "1.0.0",
+  "technology": "aws",
+  "module": "aws-foundations",
+  "title": "What is AWS?",
+  "subtitle": "Global infrastructure, the shared responsibility model, and how cloud computing changed software forever",
+  "difficulty": "beginner",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "prerequisites": ["linux/01-introduction", "docker/01-what-is-docker"],
+  "skillsTaught": ["aws.overview", "aws.regions", "aws.global-infrastructure", "aws.shared-responsibility"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "From data centers to cloud"
+    },
+    {
+      "type": "paragraph",
+      "text": "Before cloud computing, if you wanted to run a web application, you needed to buy physical servers, rent space in a data center, hire people to manage the hardware, and wait weeks for provisioning. If your app suddenly got popular, you couldn't scale fast enough. If you bought too many servers, they sat idle wasting money. Amazon faced exactly this problem while scaling their e-commerce platform in the early 2000s, and their solution became AWS — a service that lets anyone rent infrastructure by the hour with no upfront cost."
+    },
+    {
+      "type": "definition",
+      "term": "Cloud Computing",
+      "definition": "The delivery of computing services — servers, storage, databases, networking, software — over the internet on a pay-as-you-go basis. Instead of owning infrastructure, you rent it from a provider who maintains the hardware, power, cooling, and physical security. You focus on your application; they handle the rest."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "AWS global infrastructure"
+    },
+    {
+      "type": "paragraph",
+      "text": "AWS operates in <strong>34 geographic Regions</strong> worldwide (as of 2025), each containing multiple <strong>Availability Zones (AZs)</strong>. An AZ is one or more discrete data centers with independent power, cooling, and networking — physically separated from other AZs in the same region (typically 10-100km apart). Together, they enable high availability: your application keeps running even if one data center has a fire or flood."
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "AWS infrastructure hierarchy",
+      "code": "AWS Global Network\n│\n├── Region: us-east-1 (Northern Virginia)   ← most services available here first\n│   ├── AZ: us-east-1a  (data center cluster)\n│   ├── AZ: us-east-1b  (data center cluster)\n│   ├── AZ: us-east-1c  (data center cluster)\n│   └── AZ: us-east-1d  (data center cluster)\n│\n├── Region: ap-south-1 (Mumbai)\n│   ├── AZ: ap-south-1a\n│   ├── AZ: ap-south-1b\n│   └── AZ: ap-south-1c\n│\n└── Region: eu-west-1 (Ireland)\n    ├── AZ: eu-west-1a\n    └── AZ: eu-west-1b\n\nRule of thumb:\n- Choose the region closest to your users (lowest latency)\n- Deploy across 2+ AZs for production high availability\n- us-east-1 has the most services and is cheapest (oldest region)"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The shared responsibility model"
+    },
+    {
+      "type": "paragraph",
+      "text": "AWS and you each own part of the security picture. Misunderstanding this boundary is the root cause of most AWS security incidents."
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Who is responsible for what",
+      "code": "AWS is responsible for (security OF the cloud):\n  ✓ Physical data center security\n  ✓ Hardware (servers, networking equipment)\n  ✓ Hypervisor (virtualization layer)\n  ✓ Managed service patches (RDS database engine updates)\n  ✓ Global network security\n\nYOU are responsible for (security IN the cloud):\n  ✓ IAM: who can access what (users, roles, policies)\n  ✓ Network config: VPC, security groups, NACLs\n  ✓ Data encryption: at rest and in transit\n  ✓ OS patching: for EC2 instances you manage\n  ✓ Application security: your code\n  ✓ Correct S3 bucket permissions (public vs private)\n\nThe #1 AWS breach cause: misconfigured S3 buckets made public\nThe #2 breach cause: leaked IAM credentials in GitHub repos"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Three ways to use AWS services"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "AWS interaction methods",
+      "code": "# 1. AWS Management Console — web UI at console.aws.amazon.com\n#    Good for: learning, one-off tasks, visualizing your infrastructure\n#    Bad for: automation, repeatable infrastructure\n\n# 2. AWS CLI — command line tool\naws s3 ls                          # list S3 buckets\naws ec2 describe-instances         # list EC2 instances\naws lambda list-functions          # list Lambda functions\n\n# 3. Infrastructure as Code (recommended for production)\n#    CloudFormation: AWS-native YAML/JSON templates\n#    CDK: write infrastructure in TypeScript/Python/Go\n#    Terraform: vendor-neutral, works with any cloud\n\n# Install AWS CLI:\ncurl 'https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip' -o 'awscliv2.zip'\nunzip awscliv2.zip && sudo ./aws/install\naws --version\n\n# Configure with your credentials:\naws configure\n# Prompts for: Access Key ID, Secret Access Key, region, output format"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Core AWS services at a glance"
+    },
+    {
+      "type": "list",
+      "style": "unordered",
+      "items": [
+        "<strong>EC2</strong> — Virtual machines. You choose the OS, CPU, RAM, and storage. Full control, full responsibility.",
+        "<strong>S3</strong> — Object storage. Store any file at any scale. The backbone of AWS — used internally by almost every other AWS service.",
+        "<strong>RDS</strong> — Managed relational databases (PostgreSQL, MySQL, Aurora). AWS handles backups, patches, and failover.",
+        "<strong>Lambda</strong> — Serverless functions. Upload code, it runs when triggered. You pay only for invocations, not idle time.",
+        "<strong>VPC</strong> — Your private network inside AWS. Control subnets, routing, firewalls.",
+        "<strong>CloudFront</strong> — Content Delivery Network. Cache content at edge locations worldwide for low latency.",
+        "<strong>IAM</strong> — Identity and Access Management. Control who can do what. The security foundation of all AWS.",
+        "<strong>Route53</strong> — DNS service and domain registrar. Route traffic intelligently across your infrastructure."
+      ]
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Start with the free tier.</strong> AWS offers 12 months of free tier access after signup, including 750 hours/month of EC2 t2.micro, 5GB of S3, 1M Lambda invocations/month, and much more. Create a free account at aws.amazon.com to follow along. Set a billing alarm immediately (Billing → Budgets → $5 threshold) so you're notified before any accidental charges."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "aws-01-q1",
+          "question": "Your PostgreSQL database on RDS has a security vulnerability in the engine version. Who is responsible for patching it?",
+          "type": "multiple-choice",
+          "options": [
+            "You — you own all software on AWS",
+            "AWS — RDS is a managed service; AWS handles engine patching",
+            "Both — you apply the patch, AWS validates it",
+            "Neither — managed services never need patching"
+          ],
+          "correctAnswer": 1,
+          "explanation": "RDS is a managed service — AWS handles the database engine installation, patches, and upgrades. You choose WHEN to apply a major version upgrade (within a maintenance window), but the patching itself is AWS's responsibility. This is one of the core value propositions of managed services: you trade control for operational simplicity. For EC2, however, you own OS-level patching entirely."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "AWS vs Azure vs Google Cloud — which should I learn?",
+      "a": "AWS has the largest market share (~33%), the most services, and the largest job market. Azure is dominant in enterprise Microsoft environments. GCP is strong for data/ML workloads. For a developer learning cloud: AWS is the best first choice — the skills transfer well to other providers, and AWS experience is the most in-demand."
+    }
+  ],
+  "sources": [
+    { "name": "AWS Global Infrastructure", "url": "https://aws.amazon.com/about-aws/global-infrastructure/", "verified": "2026-10-09" }
+  ],
+  "realWorld": {
+    "usedIn": ["startups", "enterprise", "personal projects", "government"],
+    "examples": [
+      "Netflix runs entirely on AWS — when a region has issues, Netflix fails over to another region automatically. They streamed 247 million subscriber hours in Q4 2023 without owning a single server",
+      "Airbnb, Slack, Pinterest, and Dropbox all started on AWS free tier. The ability to start at near-zero cost and scale to global infrastructure on the same provider is the reason most startups choose AWS"
+    ]
+  }
+}

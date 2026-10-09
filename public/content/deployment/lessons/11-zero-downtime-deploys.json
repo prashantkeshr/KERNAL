@@ -1,0 +1,106 @@
+{
+  "id": "11-zero-downtime-deploys",
+  "version": "1.0.0",
+  "technology": "deployment",
+  "module": "advanced-deployment",
+  "title": "Zero-Downtime Deploys",
+  "subtitle": "Ship new versions without a maintenance window — blue-green deployments, rolling updates, health checks, and graceful shutdown",
+  "difficulty": "advanced",
+  "estimatedMinutes": 15,
+  "status": "published",
+  "prerequisites": ["deployment/10-environment-management"],
+  "skillsTaught": ["deployment.blue-green", "deployment.rolling-deploy", "deployment.health-checks", "deployment.graceful-shutdown", "deployment.connection-draining"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The problem with naive deploys"
+    },
+    {
+      "type": "paragraph",
+      "text": "A naive deploy: stop the old process, start the new one. During the stop-start gap (even if it's only 2-3 seconds), requests fail with connection refused errors. Users mid-action get errors. For a site with 1,000 concurrent users, a 3-second downtime window affects potentially hundreds of in-flight requests. Zero-downtime deployment means the transition from old to new is invisible to users — no errors, no dropped connections, no failed requests."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Strategy 1: Rolling deploy (PM2)"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Zero-downtime with PM2 cluster mode",
+      "code": "# Start app in cluster mode (multiple workers = rolling updates possible)\npm2 start ecosystem.config.js\n\n# ecosystem.config.js:\n# instances: 'max'   (or a number like 4)\n# exec_mode: 'cluster'\n\n# Deploy update with zero downtime:\ngit pull origin main\nnpm ci --production\nnpm run build\n\n# 'reload' rotates workers one by one (zero-downtime)\n# 'restart' kills all then starts (brief downtime)\npm2 reload myapp\n\n# What happens during pm2 reload:\n# PM2 has 4 workers (0, 1, 2, 3) all serving traffic\n# → Starts worker 4 (new version), waits for it to be ready\n# → Routes traffic to workers 0, 1, 2, 4\n# → Gracefully stops worker 3 (finishes in-flight requests)\n# → Starts worker 5, routes traffic to 0, 1, 2, 4, 5\n# → Gracefully stops worker 2\n# ... continues until all workers are new version\n# → Removes temporary workers 4, 5\n# Total downtime: 0ms"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Graceful shutdown — don't drop connections"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "Implementing graceful shutdown in Node.js",
+      "code": "import express from 'express';\nimport http from 'http';\n\nconst app = express();\nconst server = http.createServer(app);\n\n// Track active connections for graceful drain\nconst connections = new Set<any>();\nserver.on('connection', (conn) => {\n  connections.add(conn);\n  conn.on('close', () => connections.delete(conn));\n});\n\nserver.listen(3000, () => {\n  console.log('Server running on :3000');\n});\n\n// SIGTERM: sent by PM2/Docker/Kubernetes when stopping the process\nprocess.on('SIGTERM', gracefulShutdown);\nprocess.on('SIGINT', gracefulShutdown);  // Ctrl+C in development\n\nasync function gracefulShutdown() {\n  console.log('SIGTERM received, starting graceful shutdown');\n\n  // 1. Stop accepting new connections\n  server.close(() => {\n    console.log('HTTP server closed');\n  });\n\n  // 2. Wait for active requests to finish (max 30 seconds)\n  const shutdownTimeout = setTimeout(() => {\n    console.error('Graceful shutdown timeout — forcing exit');\n    process.exit(1);\n  }, 30_000);\n\n  // 3. Close database connections\n  await db.end();\n  console.log('Database connections closed');\n\n  // 4. Close Redis connection\n  await redis.quit();\n\n  clearTimeout(shutdownTimeout);\n  process.exit(0);\n}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Strategy 2: Blue-Green deployment"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Blue-green deployment concept",
+      "code": "CONCEPT:\n  Run two identical production environments: Blue and Green\n  At any time, one is LIVE (serving traffic) and one is IDLE\n\nDEPLOY FLOW:\n  1. Blue is live (current version v1.0)\n  2. Deploy v1.1 to Green (idle)\n  3. Run smoke tests against Green directly\n     e.g. curl https://green.internal/health\n  4. Flip the load balancer: route all traffic to Green\n  5. Blue is now idle (still running v1.0)\n  6. Monitor Green for 10-30 minutes\n  7. If problem: flip load balancer back to Blue (instant rollback)\n  8. If good: decommission/repurpose Blue for next deploy\n\nBENEFITS:\n  ✓ Zero-downtime cutover\n  ✓ Instant rollback (just flip the switch)\n  ✓ Test the new version on real infrastructure before going live\n\nCOST:\n  ✗ Need double the servers (or use feature flags/health check routing)\n  ✗ More complex setup\n\nUSED BY:\n  - Large companies with critical uptime requirements\n  - AWS has built-in blue-green for ECS, CodeDeploy\n  - Kubernetes: separate deployments behind a Service"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Health checks — how load balancers know you're ready"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "Health check endpoint",
+      "code": "// Every app that wants zero-downtime deploys MUST have a /health endpoint\n// The load balancer / deploy system polls it to know when the new version is ready\n\napp.get('/health', async (req, res) => {\n  // Quick liveness check — just proves the process is running\n  res.json({ status: 'ok', version: process.env.APP_VERSION });\n});\n\n// Better: readiness check (proves app can actually serve traffic)\napp.get('/ready', async (req, res) => {\n  try {\n    // Check database is reachable\n    await db.query('SELECT 1');\n\n    // Check Redis is reachable\n    await redis.ping();\n\n    res.json({\n      status: 'ready',\n      db: 'ok',\n      redis: 'ok',\n      uptime: process.uptime(),\n      version: process.env.APP_VERSION,\n    });\n  } catch (error) {\n    // Return 503 — load balancer will route away from this instance\n    res.status(503).json({\n      status: 'not ready',\n      error: (error as Error).message,\n    });\n  }\n});\n\n// Docker Compose healthcheck:\n// healthcheck:\n//   test: [\"CMD\", \"curl\", \"-f\", \"http://localhost:3000/health\"]\n//   interval: 10s\n//   timeout: 5s\n//   retries: 3\n//   start_period: 30s"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Database migrations are the hardest part of zero-downtime deploys.</strong> If your new code expects a new column that doesn't exist yet, deploying new code before running the migration will cause errors. The safe pattern: (1) deploy a migration that only ADDS things (new column with nullable default), (2) deploy new code that works with both old and new schema, (3) optionally backfill data, (4) remove old code that references old schema. Never run a migration that changes or drops something at the same time as deploying code that relies on it."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "deployment-11-q1",
+          "question": "Your app has 4 PM2 workers in cluster mode. You run 'pm2 reload myapp'. A user makes a request during the reload. What happens?",
+          "type": "multiple-choice",
+          "options": [
+            "Their request fails — you can't guarantee zero-downtime with 4 workers",
+            "PM2 queues their request until the reload is complete",
+            "Their request is handled by one of the workers that hasn't been replaced yet — PM2 maintains at least 50% capacity during reload",
+            "The request hits the new worker, which immediately starts listening"
+          ],
+          "correctAnswer": 2,
+          "explanation": "PM2's cluster mode reload rotates workers one at a time. While one worker is being replaced, the other three continue serving traffic normally. The old worker waits for its in-flight requests to complete before shutting down (graceful shutdown). PM2 also waits for the new worker to signal it's ready (by calling process.send('ready') in your code, or by PM2 detecting the process is listening) before routing traffic to it. The result: users never see an error during the rollout. This is why PM2 cluster mode is recommended over a single-worker setup for production."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Do I need zero-downtime deploys for my small app?",
+      "a": "If you have fewer than 100 users and deploy during off-hours, the 2-3 second downtime of a naive deploy probably doesn't matter. Zero-downtime matters when: you have users in multiple timezones (there's no 'safe' downtime window), you process financial transactions (a dropped request = a lost sale), or you have an SLA. PM2 cluster mode reload is low-effort and worth setting up regardless — it doesn't add complexity once configured."
+    }
+  ],
+  "sources": [
+    { "name": "PM2 Cluster Mode", "url": "https://pm2.keymetrics.io/docs/usage/cluster-mode/", "verified": "2026-10-09" }
+  ],
+  "realWorld": {
+    "usedIn": ["e-commerce", "financial apps", "SaaS products", "high-traffic APIs"],
+    "examples": [
+      "GitHub deploys to production hundreds of times per day with zero downtime. Their internal 'Scientist' library runs old and new code in parallel during migration, gradually shifting traffic as confidence builds",
+      "Stripe processes $817 billion in payments annually. Even a 1-minute maintenance window would be unacceptable. Their multi-region architecture with blue-green deploys ensures Stripe has never had a planned maintenance window in over a decade"
+    ]
+  }
+}

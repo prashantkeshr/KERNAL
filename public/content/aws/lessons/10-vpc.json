@@ -1,0 +1,95 @@
+{
+  "id": "10-vpc",
+  "version": "1.0.0",
+  "technology": "aws",
+  "module": "networking",
+  "title": "VPC — Virtual Private Cloud",
+  "subtitle": "Your private network inside AWS — subnets, route tables, internet gateways, NAT, and security layers",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 16,
+  "status": "published",
+  "prerequisites": ["aws/07-ec2"],
+  "skillsTaught": ["aws.vpc", "aws.subnets", "aws.route-tables", "aws.igw", "aws.nat-gateway", "aws.nacl"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "What is a VPC?"
+    },
+    {
+      "type": "paragraph",
+      "text": "A VPC (Virtual Private Cloud) is your isolated private network inside AWS. Every resource you create — EC2 instances, RDS databases, Lambda functions, ECS tasks — lives inside a VPC. Think of it as owning a floor in a data center: AWS manages the building (physical security, power, networking equipment), but your floor is yours — you control what goes in, what comes out, and who can talk to whom."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "VPC architecture — the complete picture"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Typical production VPC architecture",
+      "code": "VPC: 10.0.0.0/16  (65,534 usable IP addresses)\n│\n├── PUBLIC SUBNET: 10.0.1.0/24  [AZ: ap-south-1a]  (254 IPs)\n│   ├── Load Balancer (ALB)     ← has public IP, receives internet traffic\n│   ├── NAT Gateway             ← lets private resources reach internet\n│   └── Bastion host (optional) ← SSH jump server\n│\n├── PUBLIC SUBNET: 10.0.2.0/24  [AZ: ap-south-1b]  (254 IPs)\n│   └── Load Balancer (ALB)     ← second AZ for high availability\n│\n├── PRIVATE SUBNET: 10.0.10.0/24  [AZ: ap-south-1a]\n│   └── EC2 / ECS tasks         ← your app, no public IP\n│\n├── PRIVATE SUBNET: 10.0.11.0/24  [AZ: ap-south-1b]\n│   └── EC2 / ECS tasks         ← second AZ\n│\n├── DATABASE SUBNET: 10.0.20.0/24  [AZ: ap-south-1a]\n│   └── RDS primary             ← databases, most restricted\n│\n└── DATABASE SUBNET: 10.0.21.0/24  [AZ: ap-south-1b]\n    └── RDS standby             ← Multi-AZ standby\n\nTraffic flow:\nInternet → ALB (public subnet) → App (private subnet) → RDS (db subnet)\n\nKey rule: Databases NEVER in public subnets. Apps usually not either."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Internet Gateway vs NAT Gateway"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Internet connectivity options",
+      "code": "INTERNET GATEWAY (IGW):\n  - Attached to the VPC (one per VPC)\n  - Enables resources with public IPs to communicate with internet\n  - Both INBOUND (internet → your resource) and OUTBOUND (your resource → internet)\n  - Resources in public subnets route to IGW for internet access\n  - Cost: free\n\nNAT GATEWAY (Network Address Translation):\n  - Lives in a public subnet\n  - Allows PRIVATE subnet resources to reach the internet (e.g., to apt-get update)\n  - But blocks INBOUND internet traffic — can't be reached from internet\n  - EC2 in private subnet → NAT Gateway → IGW → Internet\n  - Cost: $0.045/hour + $0.045/GB data ($32.40/month minimum)\n  - One per AZ for HA (if NAT Gateway fails, entire AZ loses internet)\n\nROUTE TABLES:\n  Public subnet route table:\n    0.0.0.0/0 → Internet Gateway (everything else goes to internet)\n    10.0.0.0/16 → local (VPC traffic stays internal)\n\n  Private subnet route table:\n    0.0.0.0/0 → NAT Gateway (outbound only)\n    10.0.0.0/16 → local\n\n  Database subnet route table:\n    10.0.0.0/16 → local (no internet at all)"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Security: Security Groups vs NACLs"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Two-layer security model",
+      "code": "SECURITY GROUPS (resource-level firewall):\n  - Applied to individual EC2 instances, RDS databases, Lambda, etc.\n  - STATEFUL: response traffic is automatically allowed\n  - Rules: Allow only (no explicit Deny)\n  - Default: allow all outbound, deny all inbound\n  - Reference other security groups as source (e.g., 'allow from ALB-SG')\n  - Most important security control\n\nNETWORK ACLs (subnet-level firewall):\n  - Applied to entire subnets\n  - STATELESS: must explicitly allow both inbound and outbound\n  - Rules: Allow and Deny, evaluated in order (lowest number first)\n  - Default NACL: allow all traffic\n  - Custom NACLs for compliance requirements (block specific IPs, ranges)\n  - Second line of defense\n\nTYPICAL SETUP:\n  ALB security group:  inbound 80/443 from 0.0.0.0/0; outbound 3000 to App-SG\n  App security group:  inbound 3000 from ALB-SG only; outbound to DB-SG, internet\n  DB security group:   inbound 5432 from App-SG only; no outbound\n\nThis 'security group chaining' means:\n  - Direct internet → DB: BLOCKED (DB-SG allows only App-SG source)\n  - App → DB: ALLOWED\n  - Internet → App: BLOCKED (App-SG allows only ALB-SG)\n  - Internet → ALB → App → DB: ALLOWED (the intended path)"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>The default VPC is fine for learning but not for production.</strong> Every AWS account comes with a default VPC in each region, with public subnets and an internet gateway. It's convenient for quick experiments but all resources get public IPs and there's no private/database subnet separation. For any real application, create a dedicated VPC with the three-tier architecture above."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "aws-10-q1",
+          "question": "An EC2 instance in a private subnet (no public IP) needs to download packages from the internet. What must exist in the VPC for this to work?",
+          "type": "multiple-choice",
+          "options": [
+            "An Internet Gateway attached to the private subnet",
+            "A NAT Gateway in a public subnet, with the private subnet route table pointing 0.0.0.0/0 to it",
+            "A public IP address for the EC2 instance",
+            "A VPC Peering connection to another VPC with internet access"
+          ],
+          "correctAnswer": 1,
+          "explanation": "A NAT Gateway in a public subnet is the correct solution. The private subnet's route table must have a route: 0.0.0.0/0 → NAT Gateway ID. The NAT Gateway translates the private instance's IP to its own public IP for outbound requests, then routes responses back. The Internet Gateway handles the NAT Gateway's traffic to/from the internet. Inbound connections FROM the internet to the private instance are still blocked — NAT is one-way."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How many VPCs should I have?",
+      "a": "At minimum: one per environment (production, staging, development) in each region you use. Many teams use one VPC per application (or microservice cluster) in production for stronger isolation. AWS allows up to 5 VPCs per region by default (can be increased). Using separate VPCs prevents a misconfigured staging environment from affecting production traffic."
+    }
+  ],
+  "sources": [
+    { "name": "VPC documentation", "url": "https://docs.aws.amazon.com/vpc/", "verified": "2026-10-09" }
+  ],
+  "realWorld": {
+    "usedIn": ["every production AWS application", "compliance", "network security"],
+    "examples": [
+      "Banks and healthcare companies require databases to be in private subnets with no internet route — VPC network architecture is how they demonstrate compliance with SOC 2, PCI-DSS, and HIPAA requirements",
+      "The NAT Gateway's $32/month minimum is why some teams consolidate staging into one VPC (sharing one NAT Gateway) while keeping production isolated. At scale, data transfer costs often exceed the hourly cost"
+    ]
+  }
+}

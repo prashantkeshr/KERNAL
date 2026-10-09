@@ -1,0 +1,86 @@
+{
+  "id": "03-aws-cli",
+  "version": "1.0.0",
+  "technology": "aws",
+  "module": "aws-foundations",
+  "title": "AWS CLI & SDK",
+  "subtitle": "Control all of AWS from the terminal — querying resources, scripting infrastructure, and using the SDK in code",
+  "difficulty": "beginner",
+  "estimatedMinutes": 13,
+  "status": "published",
+  "prerequisites": ["aws/02-iam-and-security"],
+  "skillsTaught": ["aws.cli", "aws.sdk", "aws.configure", "aws.profiles", "aws.output-formats"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Setup and configuration"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Install and configure AWS CLI",
+      "code": "# Install (Linux/macOS)\ncurl 'https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip' -o aws.zip\nunzip aws.zip && sudo ./aws/install\naws --version   # aws-cli/2.x.x\n\n# Configure default profile\naws configure\n# AWS Access Key ID [None]: AKIA...\n# AWS Secret Access Key [None]: xxxxxxxx\n# Default region name [None]: ap-south-1    ← your closest region\n# Default output format [None]: json\n\n# Stored in:\n# ~/.aws/credentials  — keys (never commit this)\n# ~/.aws/config       — region, output format\n\n# Named profiles (for multiple accounts)\naws configure --profile production\naws configure --profile staging\n\n# Use a specific profile\naws s3 ls --profile production\nexport AWS_PROFILE=production   # set for the shell session\n\n# Verify which identity you're using\naws sts get-caller-identity\n# { \"UserId\": \"AIDA...\", \"Account\": \"123456789012\", \"Arn\": \"arn:aws:iam::123456789012:user/alice\" }"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Common CLI commands by service"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "AWS CLI reference — most useful commands",
+      "code": "# ── S3 ──────────────────────────────────────────────────\naws s3 ls                                  # list buckets\naws s3 ls s3://my-bucket/                  # list contents\naws s3 cp file.txt s3://my-bucket/         # upload\naws s3 cp s3://my-bucket/file.txt ./       # download\naws s3 sync ./dist s3://my-bucket/         # sync directory (like rsync)\naws s3 rm s3://my-bucket/file.txt          # delete\naws s3 mb s3://new-bucket-name             # make bucket\naws s3 rb s3://bucket --force              # remove bucket (force = empty first)\n\n# ── EC2 ─────────────────────────────────────────────────\naws ec2 describe-instances                 # list all instances\naws ec2 describe-instances \\\n  --filters Name=instance-state-name,Values=running  # only running\naws ec2 start-instances --instance-ids i-1234567890abcdef0\naws ec2 stop-instances --instance-ids i-1234567890abcdef0\naws ec2 describe-instance-types --instance-types t3.micro t3.small\n\n# ── Lambda ──────────────────────────────────────────────\naws lambda list-functions                  # list functions\naws lambda invoke \\\n  --function-name my-function \\\n  --payload '{\"key\":\"value\"}' \\\n  response.json                            # invoke a function\naws lambda get-function --function-name my-function  # get details\n\n# ── IAM ─────────────────────────────────────────────────\naws iam list-users\naws iam list-roles\naws iam get-user --user-name alice\naws iam create-user --user-name bob\n\n# ── Output formats ──────────────────────────────────────\naws ec2 describe-instances --output json   # default (full JSON)\naws ec2 describe-instances --output table  # human-readable table\naws ec2 describe-instances --output text   # tab-separated (for scripts)\naws ec2 describe-instances --output yaml   # YAML\n\n# ── Filtering with --query (JMESPath) ───────────────────\naws ec2 describe-instances \\\n  --query 'Reservations[*].Instances[*].[InstanceId,State.Name,PublicIpAddress]' \\\n  --output table"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "AWS SDK in TypeScript/Node.js"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "Using AWS SDK v3 in your application",
+      "code": "// Install: npm install @aws-sdk/client-s3 @aws-sdk/client-dynamodb\n\nimport { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';\n\n// SDK automatically finds credentials in order:\n// 1. Environment variables (AWS_ACCESS_KEY_ID, etc.)\n// 2. ~/.aws/credentials file\n// 3. EC2/ECS/Lambda IAM role (preferred for production)\nconst s3 = new S3Client({ region: 'ap-south-1' });\n\n// Upload a file\nasync function uploadFile(bucket: string, key: string, body: Buffer) {\n  await s3.send(new PutObjectCommand({\n    Bucket: bucket,\n    Key: key,\n    Body: body,\n    ContentType: 'application/octet-stream',\n  }));\n  console.log(`Uploaded s3://${bucket}/${key}`);\n}\n\n// Download a file\nasync function downloadFile(bucket: string, key: string): Promise<string> {\n  const response = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));\n  return await response.Body!.transformToString();\n}\n\n// Generate a pre-signed URL (time-limited download link)\nimport { getSignedUrl } from '@aws-sdk/s3-request-presigner';\nasync function getDownloadUrl(bucket: string, key: string): Promise<string> {\n  return getSignedUrl(\n    s3,\n    new GetObjectCommand({ Bucket: bucket, Key: key }),\n    { expiresIn: 3600 }  // 1 hour\n  );\n}"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Use <code>--dry-run</code> for destructive EC2 operations.</strong> Commands like <code>aws ec2 terminate-instances</code> support <code>--dry-run</code> — they check your permissions and validate the command without actually executing it. Always dry-run before terminating instances or deleting resources you can't easily recover."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "aws-03-q1",
+          "question": "You have three AWS accounts: personal, staging, and production. How do you switch between them in the CLI?",
+          "type": "multiple-choice",
+          "options": [
+            "Run 'aws configure' before each command to re-enter credentials",
+            "Use named profiles: 'aws configure --profile staging', then 'aws s3 ls --profile staging'",
+            "Store all three Access Keys in a single .env file and export the right one",
+            "AWS CLI can only be configured for one account at a time"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Named profiles are the correct solution. Run 'aws configure --profile personal', 'aws configure --profile staging', 'aws configure --profile production' once. Then specify '--profile <name>' on any command, or set AWS_PROFILE=staging in your shell. You can also set a profile as default with 'export AWS_DEFAULT_PROFILE=staging'. This keeps all credentials organized and avoids re-entering them each time."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Should I use the CLI or the console?",
+      "a": "Use the console to explore, visualize, and learn — it's great for understanding what resources exist and their relationships. Use the CLI for automation, scripts, and repeatable operations. For production infrastructure, use neither — use Infrastructure as Code (CloudFormation or CDK) so your infrastructure is version-controlled and reproducible."
+    }
+  ],
+  "sources": [
+    { "name": "AWS CLI v2 reference", "url": "https://docs.aws.amazon.com/cli/latest/reference/", "verified": "2026-10-09" }
+  ],
+  "realWorld": {
+    "usedIn": ["scripts", "deployment automation", "CI/CD pipelines", "infrastructure management"],
+    "examples": [
+      "The AWS CLI's 's3 sync' command is used by millions of teams to deploy static websites: 'aws s3 sync ./dist s3://my-site --delete' uploads new files, updates changed files, and removes deleted files in one command — the foundation of many manual deploy scripts",
+      "AWS SDK v3 was redesigned with tree-shaking in mind — instead of importing the entire AWS SDK, you import only the specific service client you need, reducing bundle sizes by 90%+ for Lambda functions"
+    ]
+  }
+}

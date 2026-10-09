@@ -1,0 +1,106 @@
+{
+  "id": "04-s3",
+  "version": "1.0.0",
+  "technology": "aws",
+  "module": "storage-and-databases",
+  "title": "S3 Object Storage",
+  "subtitle": "Store any file at infinite scale — buckets, objects, versioning, lifecycle rules, and static website hosting",
+  "difficulty": "beginner",
+  "estimatedMinutes": 15,
+  "status": "published",
+  "prerequisites": ["aws/03-aws-cli"],
+  "skillsTaught": ["aws.s3", "aws.s3-buckets", "aws.s3-versioning", "aws.s3-lifecycle", "aws.s3-website", "aws.s3-presigned-urls"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "S3 — the foundation of AWS"
+    },
+    {
+      "type": "paragraph",
+      "text": "S3 (Simple Storage Service) is where everything lives in AWS. It stores images, videos, backups, log files, static websites, machine learning datasets, and CloudFormation templates. It has 11 nines of durability (99.999999999%) — meaning if you store 10 million objects, you might lose one object every 10,000 years. It's the backbone of the internet: Netflix, Airbnb, and most of the web stores files on S3."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Buckets and objects"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "S3 core operations",
+      "code": "# S3 has two concepts: BUCKETS (containers) and OBJECTS (files)\n# Bucket names must be globally unique across ALL AWS accounts\n# Objects are stored with a 'key' (the path/filename)\n\n# Create a bucket\naws s3 mb s3://myapp-uploads-prod-2026  # globally unique name\n# Bucket naming rules: lowercase, letters/numbers/hyphens, 3-63 chars\n\n# Upload objects\naws s3 cp photo.jpg s3://myapp-uploads-prod-2026/photos/photo.jpg\naws s3 cp ./uploads/ s3://myapp-uploads-prod-2026/uploads/ --recursive\naws s3 sync ./dist/ s3://myapp-uploads-prod-2026/website/ --delete\n\n# List objects\naws s3 ls s3://myapp-uploads-prod-2026/\naws s3 ls s3://myapp-uploads-prod-2026/photos/ --recursive --human-readable\n\n# Download\naws s3 cp s3://myapp-uploads-prod-2026/photo.jpg ./local-copy.jpg\n\n# Delete\naws s3 rm s3://myapp-uploads-prod-2026/old-file.txt\naws s3 rm s3://myapp-uploads-prod-2026/old-folder/ --recursive\n\n# Object URL format (when public):\n# https://myapp-uploads-prod-2026.s3.ap-south-1.amazonaws.com/photos/photo.jpg\n# https://myapp-uploads-prod-2026.s3.amazonaws.com/photos/photo.jpg"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "S3 storage classes — pay only for what you need"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Storage class comparison",
+      "code": "S3 Standard          → $0.023/GB/month   Frequently accessed data\n                        Availability: 99.99%\n                        Use: app uploads, user photos, active data\n\nS3 Intelligent-Tiering → auto-moves between Standard and Infrequent Access\n                        Use: unpredictable access patterns\n                        Monitoring fee: $0.0025 per 1,000 objects\n\nS3 Standard-IA        → $0.0125/GB/month  Infrequently accessed\n(Infrequent Access)     Retrieval fee: $0.01/GB\n                        Use: disaster recovery, backups accessed rarely\n\nS3 Glacier Instant    → $0.004/GB/month   Archives, millisecond retrieval\nS3 Glacier Flexible   → $0.0036/GB/month  Archives, minutes-to-hours retrieval\nS3 Glacier Deep Archive → $0.00099/GB/month  Coldest storage, 12h retrieval\n\nRule of thumb:\n- Active data → Standard\n- Monthly backups → Standard-IA\n- Compliance archives → Glacier Deep Archive"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Versioning and lifecycle rules"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Versioning and lifecycle management",
+      "code": "# Enable versioning (protects against accidental deletion/overwrites)\naws s3api put-bucket-versioning \\\n  --bucket myapp-uploads-prod-2026 \\\n  --versioning-configuration Status=Enabled\n\n# With versioning enabled:\n# - Overwriting an object creates a new version, not an overwrite\n# - Deleting creates a 'delete marker', object is recoverable\n# - Restore by deleting the delete marker\n\n# Lifecycle rules — automatically transition/expire objects\n# Via console or this JSON applied to the bucket:\n{\n  \"Rules\": [{\n    \"ID\": \"Transition logs to Glacier\",\n    \"Status\": \"Enabled\",\n    \"Filter\": { \"Prefix\": \"logs/\" },\n    \"Transitions\": [\n      { \"Days\": 30, \"StorageClass\": \"STANDARD_IA\" },\n      { \"Days\": 90, \"StorageClass\": \"GLACIER\" }\n    ],\n    \"Expiration\": { \"Days\": 365 }  // delete after 1 year\n  }]\n}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Static website hosting on S3"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Host a static website on S3",
+      "code": "# 1. Create bucket with same name as domain\naws s3 mb s3://mysite.com\n\n# 2. Enable static website hosting\naws s3 website s3://mysite.com/ \\\n  --index-document index.html \\\n  --error-document error.html\n\n# 3. Set bucket policy for public read\naws s3api put-bucket-policy --bucket mysite.com --policy '{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [{\n    \"Effect\": \"Allow\",\n    \"Principal\": \"*\",\n    \"Action\": \"s3:GetObject\",\n    \"Resource\": \"arn:aws:s3:::mysite.com/*\"\n  }]\n}'\n\n# 4. Deploy your site\naws s3 sync ./dist s3://mysite.com/ --delete\n\n# Website URL: http://mysite.com.s3-website-ap-south-1.amazonaws.com\n# Then point your domain DNS CNAME to this URL\n# For HTTPS: use CloudFront in front of S3 (lesson 11)\n\n# Cost: $0.023/GB storage + $0.0004/10k GET requests\n# A typical small site: < $1/month"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Pre-signed URLs let users upload directly to S3 without exposing your credentials.</strong> Your server generates a temporary URL (valid for N minutes) that the browser uses to PUT directly to S3 — bypassing your server entirely. This means large file uploads don't pass through your server, saving bandwidth and cost. Use <code>getSignedUrl</code> with <code>PutObjectCommand</code> from the AWS SDK."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "aws-04-q1",
+          "question": "You accidentally overwrite an important S3 object and need to restore the previous version. What must you have enabled for this to be possible?",
+          "type": "multiple-choice",
+          "options": [
+            "Cross-region replication",
+            "S3 bucket versioning — each overwrite creates a new version, previous versions are kept",
+            "S3 Glacier — objects are archived before overwriting",
+            "Nothing — S3 always keeps the last 5 versions automatically"
+          ],
+          "correctAnswer": 1,
+          "explanation": "S3 versioning must be explicitly enabled on the bucket. Without it, overwriting an object permanently replaces it with no recovery option. With versioning enabled, each PUT creates a new version with a unique version ID. You can list versions with 'aws s3api list-object-versions' and restore a previous version by copying it over the current one. Enable versioning on any bucket holding important data."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What's the difference between S3 and EBS (Elastic Block Store)?",
+      "a": "S3 is object storage — you access files via API calls (HTTP GET/PUT), ideal for storing arbitrary files at scale. EBS is block storage — it's like a hard drive attached to an EC2 instance, accessible as a filesystem. Use S3 for file storage, backups, and static assets. Use EBS as the disk for an EC2 instance that needs a filesystem."
+    }
+  ],
+  "sources": [
+    { "name": "S3 documentation", "url": "https://docs.aws.amazon.com/s3/", "verified": "2026-10-09" }
+  ],
+  "realWorld": {
+    "usedIn": ["file uploads", "static websites", "data lakes", "backups", "CDN origins"],
+    "examples": [
+      "Instagram stores all photos on S3. When you upload a photo, their backend generates multiple resolutions and stores all of them on S3 — millions of uploads per day at negligible marginal cost",
+      "Lifecycle rules are how companies manage GDPR compliance: 'delete user data 90 days after account closure' is a lifecycle rule that runs automatically with no manual intervention"
+    ]
+  }
+}

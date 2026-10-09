@@ -1,0 +1,106 @@
+{
+  "id": "05-rds",
+  "version": "1.0.0",
+  "technology": "aws",
+  "module": "storage-and-databases",
+  "title": "RDS — Managed Databases",
+  "subtitle": "PostgreSQL, MySQL, and Aurora on AWS — automated backups, Multi-AZ failover, and read replicas without the ops overhead",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 15,
+  "status": "published",
+  "prerequisites": ["aws/04-s3", "postgresql/01-what-is-postgresql"],
+  "skillsTaught": ["aws.rds", "aws.rds-postgres", "aws.multi-az", "aws.read-replicas", "aws.rds-snapshots", "aws.parameter-groups"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Why use RDS instead of running your own database?"
+    },
+    {
+      "type": "paragraph",
+      "text": "Running a production PostgreSQL database properly requires: automated backups with point-in-time recovery, high availability with automatic failover, monitoring and alerting, OS and database engine patching, storage auto-scaling, and encryption at rest. Setting all this up manually takes weeks and requires deep database administration expertise. RDS gives you all of it in 10 minutes, managed by AWS."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "RDS engines and when to choose each"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "RDS engine comparison",
+      "code": "PostgreSQL    → Best default choice. Open source, most SQL features,\n                excellent JSON support (JSONB), full-text search.\n                Use: general-purpose relational data\n\nMySQL         → Widest legacy compatibility. Good for WordPress, PHP apps.\n                Use: apps that specifically require MySQL\n\nAurora PostgreSQL → AWS's proprietary engine, PostgreSQL-compatible\n                5x faster than standard PostgreSQL, auto-scaling storage\n                Higher cost but better performance + availability\n                Use: high-traffic production apps\n\nAurora MySQL  → Like Aurora PostgreSQL but MySQL-compatible\n\nMariaDB       → MySQL fork, open source. Good MySQL alternative\n\nOracle / SQL Server → Enterprise licensing. Use only if you must\n\nFor a new project: start with RDS PostgreSQL (db.t4g.micro = $12/month)\nScale to Aurora PostgreSQL when you need the performance or HA features"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Creating an RDS PostgreSQL instance"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Create RDS instance via CLI",
+      "code": "# Create a PostgreSQL RDS instance\naws rds create-db-instance \\\n  --db-instance-identifier myapp-postgres-prod \\\n  --db-instance-class db.t4g.micro \\\n  --engine postgres \\\n  --engine-version 16.3 \\\n  --master-username dbadmin \\\n  --master-user-password 'SecurePassword123!' \\\n  --allocated-storage 20 \\\n  --storage-type gp3 \\\n  --storage-encrypted \\\n  --backup-retention-period 7 \\\n  --multi-az \\\n  --publicly-accessible false \\\n  --vpc-security-group-ids sg-xxxxxxxxxxxxxxxxx \\\n  --db-subnet-group-name myapp-db-subnet-group\n\n# Instance classes (2026 pricing in us-east-1):\n# db.t4g.micro  → 2 vCPU, 1GB RAM    → $12/month (free tier: 750h/month)\n# db.t4g.small  → 2 vCPU, 2GB RAM    → $25/month\n# db.t4g.medium → 2 vCPU, 4GB RAM    → $50/month\n# db.r7g.large  → 2 vCPU, 16GB RAM   → $180/month (memory-optimized)\n\n# Wait for it to be available (5-10 minutes)\naws rds wait db-instance-available --db-instance-identifier myapp-postgres-prod\n\n# Get the endpoint\naws rds describe-db-instances \\\n  --db-instance-identifier myapp-postgres-prod \\\n  --query 'DBInstances[0].Endpoint.Address' \\\n  --output text\n# Output: myapp-postgres-prod.xxxxxx.ap-south-1.rds.amazonaws.com\n\n# Connect via psql\npsql -h myapp-postgres-prod.xxxxxx.ap-south-1.rds.amazonaws.com \\\n     -U dbadmin -d postgres"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Multi-AZ and Read Replicas"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "High availability options",
+      "code": "MULTI-AZ DEPLOYMENT (--multi-az flag):\n  Primary DB  [AZ: us-east-1a]  ←── All reads/writes\n       │ synchronous replication\n  Standby DB  [AZ: us-east-1b]  ←── Automatic failover target\n\n  - Failover is automatic (60-120 seconds) if primary fails\n  - DNS endpoint stays the same — app reconnects automatically\n  - Standby is NOT used for reads — it's a hot spare only\n  - Cost: 2x (you pay for both instances)\n  - Required for production: YES\n\nREAD REPLICAS (separate feature):\n  Primary DB  → Replica 1 (same region)\n             → Replica 2 (different region)\n             → Replica 3 (different AZ)\n\n  - Asynchronous replication — slight lag (milliseconds to seconds)\n  - Replicas ARE readable — offload reporting queries here\n  - Can be promoted to primary in 1-2 minutes (manual)\n  - Up to 5 replicas per instance\n  - Cost: each replica charged at instance rate\n  - Use: scale read-heavy workloads (dashboards, reports)\n\nCombine both: Multi-AZ primary + read replicas for full production HA"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Backups and point-in-time recovery"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Backups and snapshots",
+      "code": "# Automated backups (enabled by default, retention 1-35 days)\n# --backup-retention-period 7 → keep 7 days of automated backups\n# Point-in-time recovery: restore to any second in the retention window\n\n# Create a manual snapshot (before risky migrations)\naws rds create-db-snapshot \\\n  --db-instance-identifier myapp-postgres-prod \\\n  --db-snapshot-identifier before-migration-2026-10-09\n\n# List snapshots\naws rds describe-db-snapshots --db-instance-identifier myapp-postgres-prod\n\n# Restore to a point in time (creates NEW instance from old data)\naws rds restore-db-instance-to-point-in-time \\\n  --source-db-instance-identifier myapp-postgres-prod \\\n  --target-db-instance-identifier myapp-postgres-restored \\\n  --restore-time 2026-10-09T10:00:00Z\n\n# Restore from snapshot\naws rds restore-db-instance-from-db-snapshot \\\n  --db-instance-identifier myapp-postgres-restored \\\n  --db-snapshot-identifier before-migration-2026-10-09"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Never make your RDS instance publicly accessible.</strong> Set <code>--publicly-accessible false</code>. Your app should connect from within the same VPC using private IP addresses. If you need to access the database from your laptop for development, use an SSH tunnel via a bastion host or AWS Session Manager — never open port 5432 to the internet."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "aws-05-q1",
+          "question": "You have an RDS Multi-AZ PostgreSQL instance. The primary AZ goes down. What happens?",
+          "type": "multiple-choice",
+          "options": [
+            "Your app is down until you manually promote the standby",
+            "RDS automatically fails over to the standby in 60-120 seconds; the DNS endpoint stays the same, the app reconnects",
+            "Your app switches to read replica automatically",
+            "Nothing — Multi-AZ prevents the primary from going down"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Multi-AZ failover is automatic. AWS detects the primary failure and promotes the standby to primary, pointing the DNS endpoint to it — typically within 60-120 seconds. Your app needs to handle reconnection (most ORMs and connection pools do this automatically). The DNS endpoint URL stays the same, so no config change is needed. This is why Multi-AZ is required for any production database that needs availability guarantees."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Should I use RDS or manage my own PostgreSQL on EC2?",
+      "a": "Use RDS for production unless you have a very specific reason not to. RDS handles backups, patches, failover, monitoring, and encryption. Self-managed on EC2 saves some cost but requires you to handle all of that yourself — and database administration is a full-time specialty. The cost difference is typically 20-30% — almost always worth it."
+    }
+  ],
+  "sources": [
+    { "name": "Amazon RDS documentation", "url": "https://docs.aws.amazon.com/rds/", "verified": "2026-10-09" }
+  ],
+  "realWorld": {
+    "usedIn": ["SaaS applications", "e-commerce", "enterprise systems", "any relational data workload"],
+    "examples": [
+      "Airbnb runs thousands of RDS instances. They use Multi-AZ for every production database. When the 2018 US-East-1 incident happened, their RDS instances failed over automatically — most users didn't notice",
+      "Aurora Serverless v2 auto-scales from 0.5 ACUs to 128 ACUs (Aurora Capacity Units) in seconds, responding to load spikes. A staging database that gets no traffic outside business hours costs nearly zero overnight"
+    ]
+  }
+}

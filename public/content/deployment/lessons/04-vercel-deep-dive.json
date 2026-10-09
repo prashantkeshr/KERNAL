@@ -1,0 +1,106 @@
+{
+  "id": "04-vercel-deep-dive",
+  "version": "1.0.0",
+  "technology": "deployment",
+  "module": "frontend-hosting",
+  "title": "Vercel — Frontend Platform",
+  "subtitle": "Deploy any frontend framework in seconds — automatic CI/CD, preview deployments, edge functions, and custom domains",
+  "difficulty": "beginner",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "prerequisites": ["deployment/03-ssl-and-https", "cicd/10-deploy-to-pages"],
+  "skillsTaught": ["deployment.vercel", "deployment.preview-urls", "deployment.edge-functions", "deployment.vercel-config", "deployment.vercel-env"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Vercel — the frontend cloud"
+    },
+    {
+      "type": "paragraph",
+      "text": "Vercel built its reputation deploying Next.js (it created Next.js), but it deploys any frontend framework: React, Vue, Svelte, Astro, Nuxt, Remix, and more. Connect your GitHub repo, and every push automatically builds and deploys. Every PR gets a unique preview URL. Custom domains get free HTTPS. Globally distributed CDN serves files from the nearest edge to your users. For most frontend apps, Vercel is the easiest path from code to production."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Deploying to Vercel"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Vercel CLI deployment",
+      "code": "# Install Vercel CLI\nnpm install -g vercel\n\n# Login\nvercel login\n\n# Deploy current directory\nvercel\n# Prompts:\n# Set up and deploy? Y\n# Which scope? (your account)\n# Link to existing project? No\n# Project name? my-react-app\n# Directory? ./\n# Override settings? No\n# → Deploys to: https://my-react-app-abc123.vercel.app\n\n# Deploy to production\nvercel --prod\n# → Deploys to: https://my-react-app.vercel.app (and your custom domain)\n\n# Or via GitHub integration (no CLI needed):\n# 1. vercel.com → New Project → Import from GitHub\n# 2. Select repository → Deploy\n# 3. Vercel auto-detects framework (React/Vite → npm run build → dist/)\n# 4. From now on, every push to main = production deploy\n#    Every push to other branches = preview deploy"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "vercel.json — configuration"
+    },
+    {
+      "type": "code",
+      "lang": "json",
+      "filename": "vercel.json — full configuration reference",
+      "code": "{\n  \"framework\": \"vite\",\n  \"buildCommand\": \"npm run build\",\n  \"outputDirectory\": \"dist\",\n  \"installCommand\": \"npm ci\",\n\n  \"headers\": [\n    {\n      \"source\": \"/static/(.*)\",\n      \"headers\": [\n        { \"key\": \"Cache-Control\", \"value\": \"public, max-age=31536000, immutable\" }\n      ]\n    },\n    {\n      \"source\": \"/(.*)\",\n      \"headers\": [\n        { \"key\": \"X-Frame-Options\", \"value\": \"DENY\" },\n        { \"key\": \"X-Content-Type-Options\", \"value\": \"nosniff\" }\n      ]\n    }\n  ],\n\n  \"redirects\": [\n    {\n      \"source\": \"/old-path\",\n      \"destination\": \"/new-path\",\n      \"permanent\": true\n    }\n  ],\n\n  \"rewrites\": [\n    {\n      \"source\": \"/api/(.*)\",\n      \"destination\": \"https://api.myapp.com/$1\"\n    },\n    {\n      \"source\": \"/(.*)\",\n      \"destination\": \"/index.html\"\n    }\n  ]\n}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Vercel Edge Functions"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "api/hello.ts — Vercel Edge Function",
+      "code": "// Place in /api/ directory → automatically deployed as a serverless function\n// Vercel supports Node.js serverless AND Edge runtime\n\n// Edge function (runs at Vercel's global edge, ~0ms cold start):\nexport const config = { runtime: 'edge' };\n\nexport default function handler(req: Request) {\n  const url = new URL(req.url);\n  const name = url.searchParams.get('name') ?? 'World';\n\n  return new Response(\n    JSON.stringify({ message: `Hello, ${name}!`, region: process.env.VERCEL_REGION }),\n    { headers: { 'Content-Type': 'application/json' } }\n  );\n}\n\n// Node.js serverless function (for heavier tasks with npm packages):\n// api/users.ts\nimport type { VercelRequest, VercelResponse } from '@vercel/node';\n\nexport default async function handler(req: VercelRequest, res: VercelResponse) {\n  if (req.method === 'GET') {\n    const users = await db.query('SELECT id, name FROM users LIMIT 100');\n    res.json(users);\n  }\n}\n\n// Deployed at: https://myapp.vercel.app/api/users\n// Works for simple APIs; for complex backends use Railway/Fly.io"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Environment variables"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Managing secrets on Vercel",
+      "code": "# Via CLI:\nvercel env add DATABASE_URL production\n# → Prompts for value, encrypts and stores it\n\n# Via CLI — add to all environments:\nvercel env add NEXT_PUBLIC_API_URL production preview development\n\n# List environment variables:\nvercel env ls\n\n# Pull env vars to local .env.local:\nvercel env pull .env.local\n\n# In your code:\n# Server-side (not exposed to browser):\n# process.env.DATABASE_URL\n\n# Client-side (MUST prefix with NEXT_PUBLIC_ or VITE_ to be included in bundle):\n# process.env.NEXT_PUBLIC_API_URL  (Next.js)\n# import.meta.env.VITE_API_URL     (Vite)\n\n# Per-environment variables:\n# Production: STRIPE_SECRET_KEY = sk_live_...\n# Preview: STRIPE_SECRET_KEY = sk_test_...\n# Development: STRIPE_SECRET_KEY = sk_test_..."
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Vercel's preview deployments are better than you think.</strong> Each preview URL is fully functional with production-like config (using your 'Preview' environment variables). You can share it with your designer, PM, or client — no need for them to set up anything. The URL stays alive for 90 days. Comment directly on the preview from the Vercel toolbar. This workflow has replaced 'staging environments' for many teams."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "deployment-04-q1",
+          "question": "You have a React + Vite app deployed on Vercel. You want the client-side JavaScript to know the API URL. Which approach works?",
+          "type": "multiple-choice",
+          "options": [
+            "Set an environment variable 'API_URL' in Vercel and access it via 'process.env.API_URL' in the browser",
+            "Set 'VITE_API_URL' in Vercel environment variables, then access it via 'import.meta.env.VITE_API_URL' in your code",
+            "Store the API URL in localStorage during the build step",
+            "Environment variables can't be used in browser-side code — use a config.json file"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Vite only includes environment variables prefixed with 'VITE_' in the browser bundle. At build time, Vite replaces 'import.meta.env.VITE_API_URL' with the actual string value. Without the VITE_ prefix, the variable is available to Vite config and SSR code only — never shipped to the browser. Next.js uses NEXT_PUBLIC_ for the same reason. This prefix system prevents accidentally exposing server-only secrets like database URLs in browser code."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is Vercel free?",
+      "a": "The Hobby plan (personal projects) is free: unlimited deployments, 100GB bandwidth/month, serverless functions, preview deployments, and custom domains. The Pro plan ($20/month) adds team collaboration, more bandwidth, longer function duration, and password protection for previews. For most side projects and startups, Hobby is sufficient."
+    }
+  ],
+  "sources": [
+    { "name": "Vercel documentation", "url": "https://vercel.com/docs", "verified": "2026-10-09" }
+  ],
+  "realWorld": {
+    "usedIn": ["frontend apps", "Next.js apps", "design agency deliverables", "startup MVPs"],
+    "examples": [
+      "Vercel hosts over 1 million websites. Their edge network serves content from 100+ cities worldwide — most users get responses in < 20ms for static content",
+      "OpenAI's ChatGPT web interface runs on Vercel. The AI inference happens on OpenAI's servers, but the frontend (which also does SSR for rendering) is on Vercel's edge infrastructure"
+    ]
+  }
+}

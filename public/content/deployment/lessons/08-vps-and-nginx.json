@@ -1,0 +1,119 @@
+{
+  "id": "08-vps-and-nginx",
+  "version": "1.0.0",
+  "technology": "deployment",
+  "module": "backend-hosting",
+  "title": "VPS & Nginx",
+  "subtitle": "Own your server — DigitalOcean/Hetzner VPS, Nginx reverse proxy, PM2 process management, and UFW firewall",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 16,
+  "status": "published",
+  "prerequisites": ["deployment/07-railway-and-render"],
+  "skillsTaught": ["deployment.vps", "deployment.nginx", "deployment.pm2", "deployment.ufw", "deployment.reverse-proxy"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Why a VPS?"
+    },
+    {
+      "type": "paragraph",
+      "text": "A VPS (Virtual Private Server) is a Linux VM you fully control. You install whatever you want, run any language, and it never sleeps. It's the bottom of the infrastructure ladder — more work than Railway, less complexity than AWS. Hetzner offers 2 vCPU / 4GB RAM VPS for €4.51/month (Europe datacenter). DigitalOcean's equivalent is $12/month. For apps that have outgrown free tiers or need always-on uptime without paying AWS prices, a VPS is the sweet spot."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Initial server setup"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "First 5 minutes on a new VPS",
+      "code": "# After creating VPS (Ubuntu 22.04), SSH in as root:\nssh root@YOUR_SERVER_IP\n\n# 1. Update everything\napt update && apt upgrade -y\n\n# 2. Create a non-root user\nadduser deploy\nusermod -aG sudo deploy\n\n# 3. Copy SSH key to new user\nmkdir /home/deploy/.ssh\ncp ~/.ssh/authorized_keys /home/deploy/.ssh/\nchown -R deploy:deploy /home/deploy/.ssh\nchmod 700 /home/deploy/.ssh\nchmod 600 /home/deploy/.ssh/authorized_keys\n\n# 4. Disable root login and password auth\nnano /etc/ssh/sshd_config\n# Set: PermitRootLogin no\n# Set: PasswordAuthentication no\nsystemctl restart ssh\n\n# Now SSH as deploy user:\nssh deploy@YOUR_SERVER_IP\n\n# 5. Install Node.js (via nvm)\ncurl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh | bash\nsource ~/.bashrc\nnvm install --lts\nnode --version  # v22.x.x\n\n# 6. Install PM2 globally\nnpm install -g pm2"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "UFW firewall"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "UFW — Uncomplicated Firewall",
+      "code": "# UFW is Ubuntu's simplified iptables interface\n\n# Install\nsudo apt install ufw\n\n# Default: deny incoming, allow outgoing\nsudo ufw default deny incoming\nsudo ufw default allow outgoing\n\n# Allow SSH (CRITICAL — do this before enabling!)\nsudo ufw allow OpenSSH\n# Or by port:\nsudo ufw allow 22/tcp\n\n# Allow HTTP and HTTPS\nsudo ufw allow 80/tcp\nsudo ufw allow 443/tcp\n\n# Enable UFW (blocks everything except what you allowed)\nsudo ufw enable\n\n# Check status\nsudo ufw status verbose\n\n# IMPORTANT: Never block port 22 before SSH is allowed\n# If you lock yourself out, use the VPS provider's web console\n\n# Your Node.js app runs on port 3000 — don't expose it directly\n# Nginx will proxy from port 80/443 → 3000\n# So do NOT run: ufw allow 3000"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Nginx as a reverse proxy"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Install Nginx and configure reverse proxy",
+      "code": "# Install Nginx\nsudo apt install nginx\nsudo systemctl enable nginx\nsudo systemctl start nginx\n\n# Create a site configuration\nsudo nano /etc/nginx/sites-available/myapp\n\n# --- paste the configuration below ---\n\n# Enable the site\nsudo ln -s /etc/nginx/sites-available/myapp /etc/nginx/sites-enabled/\n\n# Remove default site\nsudo rm /etc/nginx/sites-enabled/default\n\n# Test config syntax\nsudo nginx -t\n\n# Reload Nginx\nsudo systemctl reload nginx"
+    },
+    {
+      "type": "code",
+      "lang": "nginx",
+      "filename": "/etc/nginx/sites-available/myapp",
+      "code": "server {\n    listen 80;\n    server_name myapp.com www.myapp.com;\n\n    # Serve static files directly (fast)\n    location /static/ {\n        root /home/deploy/myapp/public;\n        expires 1y;\n        add_header Cache-Control \"public, immutable\";\n    }\n\n    # Proxy dynamic requests to Node.js\n    location / {\n        proxy_pass http://127.0.0.1:3000;\n        proxy_http_version 1.1;\n        proxy_set_header Upgrade $http_upgrade;\n        proxy_set_header Connection 'upgrade';  # WebSocket support\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n        proxy_cache_bypass $http_upgrade;\n\n        # Timeouts\n        proxy_connect_timeout 60s;\n        proxy_send_timeout 60s;\n        proxy_read_timeout 60s;\n    }\n}\n\n# After adding SSL with certbot:\n# certbot --nginx -d myapp.com -d www.myapp.com\n# Certbot modifies this file automatically to add SSL config"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "PM2 — process management"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "PM2 process manager",
+      "code": "# Deploy app\ncd /home/deploy/myapp\nnpm ci --production\nnpm run build\n\n# Start with PM2 (auto-restarts on crash)\npm2 start npm --name myapp -- start\n\n# Or use an ecosystem file for full control:\n# pm2 start ecosystem.config.js\n\n# Persist across reboots\npm2 startup  # generates a systemd command — run it\npm2 save     # saves the current process list\n\n# Common PM2 commands:\npm2 status          # list all processes\npm2 logs myapp      # tail logs\npm2 logs myapp --lines 100  # last 100 lines\npm2 restart myapp   # restart\npm2 reload myapp    # zero-downtime reload (for web apps)\npm2 stop myapp      # stop\npm2 delete myapp    # remove from PM2\npm2 monit           # interactive dashboard"
+    },
+    {
+      "type": "code",
+      "lang": "javascript",
+      "filename": "ecosystem.config.js — PM2 configuration",
+      "code": "module.exports = {\n  apps: [\n    {\n      name: 'myapp',\n      script: 'dist/server.js',\n      instances: 'max',          // use all CPU cores\n      exec_mode: 'cluster',      // Node.js cluster mode\n      autorestart: true,\n      watch: false,              // don't watch files in production\n      max_memory_restart: '500M',\n      env: {\n        NODE_ENV: 'production',\n        PORT: 3000,\n      },\n      log_date_format: 'YYYY-MM-DD HH:mm:ss',\n      error_file: '/home/deploy/logs/myapp-error.log',\n      out_file: '/home/deploy/logs/myapp-out.log',\n    },\n  ],\n};"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Use <code>pm2 reload</code> instead of <code>pm2 restart</code> in production.</strong> <code>restart</code> kills all processes then starts fresh — there's a brief downtime window. <code>reload</code> starts new workers before killing old ones (zero-downtime rolling reload). In cluster mode, PM2 keeps at least one worker alive the entire time. <code>reload</code> is safe to run during a deploy without any user impact."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "deployment-08-q1",
+          "question": "Your Node.js app runs on port 3000 but users access port 443 (HTTPS). In the setup above, what handles this translation?",
+          "type": "multiple-choice",
+          "options": [
+            "Node.js listens on both port 3000 and port 443",
+            "UFW redirects port 443 traffic to 3000",
+            "Nginx listens on ports 80 and 443, then proxies requests to 127.0.0.1:3000 (your app)",
+            "The domain DNS record includes the port number"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Nginx is the reverse proxy. It listens on public ports 80 (HTTP) and 443 (HTTPS), handles SSL termination, then forwards requests to your Node.js app running on localhost:3000 — which never needs to handle SSL or be exposed to the internet. This is a standard pattern: Nginx handles the public-facing concerns (SSL, headers, static files, rate limiting), while your app focuses on business logic. Port 3000 is only accessible from within the server itself (127.0.0.1), not from the internet."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How do I deploy updates to my VPS?",
+      "a": "The most common approach for a solo dev: SSH in, git pull, npm ci, npm run build, pm2 reload myapp. For teams, use GitHub Actions: SSH to your server from CI using a stored SSH key, run the same commands. For a more automated approach, tools like Kamal (used by Basecamp) or Deployer handle this workflow with rollback support."
+    }
+  ],
+  "sources": [
+    { "name": "Nginx beginner guide", "url": "https://nginx.org/en/docs/beginners_guide.html", "verified": "2026-10-09" },
+    { "name": "PM2 documentation", "url": "https://pm2.keymetrics.io/docs/usage/quick-start/", "verified": "2026-10-09" }
+  ],
+  "realWorld": {
+    "usedIn": ["indie hackers", "small businesses", "backend APIs", "self-hosted tools"],
+    "examples": [
+      "Thousands of bootstrapped SaaS companies run on Hetzner or DigitalOcean VPS with exactly this stack. A €4.51/month Hetzner VPS can comfortably serve 500,000+ requests/day for a typical Node.js API — the economics are dramatically better than managed PaaS at scale",
+      "Many companies that started on Heroku (now expensive) migrated to this exact setup: VPS + Nginx + PM2. The migration takes a day and can cut monthly bills by 80%"
+    ]
+  }
+}

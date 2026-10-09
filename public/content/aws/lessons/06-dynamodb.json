@@ -1,0 +1,105 @@
+{
+  "id": "06-dynamodb",
+  "version": "1.0.0",
+  "technology": "aws",
+  "module": "storage-and-databases",
+  "title": "DynamoDB — NoSQL at Scale",
+  "subtitle": "Single-digit millisecond reads at any scale — tables, partition keys, GSIs, and when NoSQL is the right choice",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 15,
+  "status": "published",
+  "prerequisites": ["aws/05-rds"],
+  "skillsTaught": ["aws.dynamodb", "aws.partition-key", "aws.sort-key", "aws.gsi", "aws.dynamodb-streams", "aws.single-table-design"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "What DynamoDB is — and what it isn't"
+    },
+    {
+      "type": "paragraph",
+      "text": "DynamoDB is AWS's managed NoSQL database. It stores data as items (like rows) with attributes (like columns), but without a fixed schema. Its killer feature: it scales to <strong>millions of requests per second</strong> with <strong>single-digit millisecond latency</strong> — at any scale. Amazon uses DynamoDB for its shopping cart, which must handle billions of items. The tradeoff: you lose the flexibility of SQL. Queries must go through predefined access patterns. DynamoDB forces you to think about how you'll read your data before you write it."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Core concepts"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "DynamoDB data model",
+      "code": "TABLE:\n  - Like a database table, but schema-less\n  - Only the partition key (and optional sort key) are required on all items\n  - Different items in the same table can have different attributes\n\nITEM:\n  - Like a row — a collection of attributes\n  - Max 400KB per item\n\nPARTITION KEY (required):\n  - Determines which physical partition stores the item\n  - Must be unique per item (if no sort key)\n  - Choose high-cardinality values (user IDs, not status codes)\n  - Hot partitions = all reads/writes to one partition key = slow\n\nSORT KEY (optional):\n  - Combined with partition key to form a unique composite key\n  - Items with same partition key are sorted by sort key\n  - Enables range queries: get all orders for user X between date A and B\n\nExample — users + orders in one table (single-table design):\n\n  PK (partition)    SK (sort)           Other attributes\n  USER#u001         PROFILE             name=Alice, email=...\n  USER#u001         ORDER#2026-01-15    total=99.99, status=shipped\n  USER#u001         ORDER#2026-02-20    total=45.00, status=pending\n  USER#u002         PROFILE             name=Bob, email=...\n  PRODUCT#p001      DETAILS             name=Widget, price=29.99"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Basic operations with the SDK"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "DynamoDB operations — TypeScript",
+      "code": "import { DynamoDBClient } from '@aws-sdk/client-dynamodb';\nimport { DynamoDBDocumentClient, PutCommand, GetCommand, QueryCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';\n\nconst client = new DynamoDBClient({ region: 'ap-south-1' });\nconst db = DynamoDBDocumentClient.from(client);\n\n// PUT — create or replace an item\nawait db.send(new PutCommand({\n  TableName: 'MyAppTable',\n  Item: {\n    PK: 'USER#u001',\n    SK: 'PROFILE',\n    name: 'Alice',\n    email: 'alice@example.com',\n    createdAt: new Date().toISOString(),\n  },\n}));\n\n// GET — retrieve a specific item (must know PK + SK)\nconst response = await db.send(new GetCommand({\n  TableName: 'MyAppTable',\n  Key: { PK: 'USER#u001', SK: 'PROFILE' },\n}));\nconsole.log(response.Item?.name);  // 'Alice'\n\n// QUERY — get all items with the same partition key\n// Get all orders for user u001\nconst orders = await db.send(new QueryCommand({\n  TableName: 'MyAppTable',\n  KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',\n  ExpressionAttributeValues: {\n    ':pk': 'USER#u001',\n    ':sk': 'ORDER#',\n  },\n}));\nconsole.log(orders.Items);  // all order items for u001\n\n// DELETE\nawait db.send(new DeleteCommand({\n  TableName: 'MyAppTable',\n  Key: { PK: 'USER#u001', SK: 'ORDER#2026-01-15' },\n}));"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Global Secondary Indexes (GSIs)"
+    },
+    {
+      "type": "paragraph",
+      "text": "A table's primary key defines the only way to query by default. A GSI is a copy of your data with a different primary key — enabling different query patterns. If your table uses <code>PK=userId</code>, you can add a GSI with <code>PK=email</code> to look up users by email. GSIs come with extra cost (you pay for storage and capacity on the index) but they enable new access patterns without redesigning the table."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "When to use DynamoDB vs RDS"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "DynamoDB vs RDS decision guide",
+      "code": "Use DynamoDB when:\n  ✓ Massive scale needed (millions of requests/second)\n  ✓ Latency must be < 10ms at p99\n  ✓ Access patterns are well-known and simple (key-value lookups)\n  ✓ Flexible schema — items may have different shapes\n  ✓ Serverless / event-driven architecture\n  Examples: shopping carts, user sessions, IoT telemetry, gaming leaderboards\n\nUse RDS (PostgreSQL) when:\n  ✓ Complex queries with JOINs across multiple tables\n  ✓ Ad hoc queries unknown at design time\n  ✓ ACID transactions across multiple tables\n  ✓ Analytics, reporting, aggregations\n  ✓ Scale < 10k requests/second (RDS handles this fine)\n  Examples: financial records, CMS, e-commerce catalog, user accounts\n\nHybrid: use both\n  DynamoDB for high-volume, low-latency operations (sessions, carts)\n  RDS for complex queries and reporting (orders history, analytics)"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>DynamoDB has no free queries — only free capacity.</strong> You pay per request (on-demand mode) or per provisioned capacity (provisioned mode). On-demand is $1.25 per million writes and $0.25 per million reads — great for unpredictable workloads. Provisioned is cheaper at scale but requires capacity planning. For a new project, start with on-demand mode to understand your traffic before committing to provisioned."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "aws-06-q1",
+          "question": "You need to look up a user by their email address, but your DynamoDB table uses userId as the partition key. What's the solution?",
+          "type": "multiple-choice",
+          "options": [
+            "Use a Scan operation — it checks every item in the table for a matching email",
+            "Create a Global Secondary Index (GSI) with email as the partition key — queries hit the GSI directly",
+            "This is impossible in DynamoDB — choose a different database",
+            "Store the email as the partition key instead of userId"
+          ],
+          "correctAnswer": 1,
+          "explanation": "A GSI is the correct solution. Create a GSI with 'email' as the partition key, and you can query by email efficiently. Scan (option A) works but reads the entire table — expensive and slow for large tables. Changing the table's partition key (option D) would break all existing queries. GSIs are DynamoDB's way of supporting multiple access patterns on the same table."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is single-table design?",
+      "a": "In relational databases, you have separate tables for each entity (users, orders, products). In DynamoDB, a common pattern is to store all entities in ONE table, distinguished by their key patterns (USER#id, ORDER#id, PRODUCT#id). This allows you to fetch related data in a single query instead of multiple round trips. It requires careful upfront design but improves performance and reduces cost."
+    }
+  ],
+  "sources": [
+    { "name": "DynamoDB developer guide", "url": "https://docs.aws.amazon.com/dynamodb/", "verified": "2026-10-09" },
+    { "name": "The DynamoDB Book", "url": "https://www.dynamodbbook.com/", "verified": "2026-10-09" }
+  ],
+  "realWorld": {
+    "usedIn": ["session management", "shopping carts", "leaderboards", "IoT", "serverless backends"],
+    "examples": [
+      "Amazon's shopping cart uses DynamoDB. Every 'Add to Cart' click across all of Amazon hits DynamoDB — billions of writes per day with zero downtime, even during Prime Day",
+      "Discord stored 4 trillion messages in Cassandra (similar to DynamoDB) before migrating to ScyllaDB — the access pattern was always 'get messages in a channel by time range', which maps perfectly to a partition+sort key design"
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "id": "deployment",
+  "title": "Deployment & Hosting",
+  "subtitle": "Ship your app to the world — DNS, SSL, servers, CDNs, and production operations for every stack",
+  "description": "Deployment is where code becomes a product. This course covers every layer of the deployment stack: how DNS resolves your domain, how SSL certificates secure connections, how to host frontend apps, backend APIs, and databases — from free platforms like Vercel and Railway to self-managed VPS servers with Nginx. You'll leave knowing exactly how to get any application running in production and how to keep it there.",
+  "difficulty": "intermediate",
+  "estimatedHours": 18,
+  "stage": 13,
+  "order": 1,
+  "prerequisites": ["cicd", "docker"],
+  "certificationAvailable": true,
+  "icon": "cloud",
+  "color": "#00b4d8",
+  "totalLessons": 15,
+  "modules": [
+    { "id": "deployment-fundamentals", "title": "Deployment Fundamentals", "lessonCount": 3 },
+    { "id": "frontend-hosting", "title": "Frontend & Static Hosting", "lessonCount": 3 },
+    { "id": "backend-hosting", "title": "Backend & API Hosting", "lessonCount": 3 },
+    { "id": "advanced-deployment", "title": "Advanced Deployment", "lessonCount": 3 },
+    { "id": "production-operations", "title": "Production Operations", "lessonCount": 3 }
+  ]
+}

@@ -1,0 +1,95 @@
+{
+  "id": "09-ecs-fargate",
+  "version": "1.0.0",
+  "technology": "aws",
+  "module": "compute",
+  "title": "ECS & Fargate — Containers",
+  "subtitle": "Run Docker containers on AWS without managing servers — task definitions, services, and load-balanced deployments",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 15,
+  "status": "published",
+  "prerequisites": ["aws/08-lambda", "docker/10-compose-basics"],
+  "skillsTaught": ["aws.ecs", "aws.fargate", "aws.task-definition", "aws.ecs-service", "aws.ecr", "aws.alb"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "ECS and Fargate — containers without Kubernetes"
+    },
+    {
+      "type": "paragraph",
+      "text": "ECS (Elastic Container Service) runs your Docker containers on AWS. Fargate is the launch type where AWS manages the underlying EC2 instances for you — you define what container to run, how much CPU and memory it needs, and Fargate figures out where to place and run it. No cluster to manage, no server to patch. Think of it as 'serverless containers': the container runs as long as needed, you're billed only for CPU and memory consumed."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Core ECS concepts"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "ECS architecture",
+      "code": "CLUSTER\n  └── SERVICE (keeps N tasks running, handles rolling deploys)\n        └── TASK (one running instance of a task definition)\n              └── CONTAINER (your Docker container)\n\nTASK DEFINITION: like a docker-compose.yml for one task\n  - Which Docker image to run\n  - CPU and memory limits\n  - Environment variables and secrets\n  - Port mappings\n  - Log configuration\n  - IAM task role (permissions for the container)\n\nSERVICE: keeps tasks healthy\n  - 'Run 3 tasks at all times'\n  - Replaces failed tasks automatically\n  - Integrates with ALB (Application Load Balancer) for traffic routing\n  - Performs rolling deployments: start new tasks, stop old ones\n\nFARGATE vs EC2 LAUNCH TYPE:\n  Fargate: AWS manages the server — you pay per CPU/memory used\n  EC2: You manage a fleet of EC2 instances, ECS schedules containers on them\n  → Use Fargate for most applications\n  → EC2 for very high throughput or GPU workloads"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Deploying a Node.js app to Fargate"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Full ECS Fargate deployment",
+      "code": "# 1. Push image to ECR (Elastic Container Registry)\naws ecr create-repository --repository-name myapp\nECR_URI=$(aws ecr describe-repositories --repository-names myapp \\\n  --query 'repositories[0].repositoryUri' --output text)\n\naws ecr get-login-password | docker login --username AWS --password-stdin $ECR_URI\ndocker build -t myapp .\ndocker tag myapp:latest $ECR_URI:latest\ndocker push $ECR_URI:latest\n\n# 2. Create task definition (JSON or via console)\ncat > task-def.json <<EOF\n{\n  \"family\": \"myapp\",\n  \"networkMode\": \"awsvpc\",\n  \"requiresCompatibilities\": [\"FARGATE\"],\n  \"cpu\": \"256\",\n  \"memory\": \"512\",\n  \"executionRoleArn\": \"arn:aws:iam::123456789:role/ecsTaskExecutionRole\",\n  \"taskRoleArn\": \"arn:aws:iam::123456789:role/myapp-task-role\",\n  \"containerDefinitions\": [{\n    \"name\": \"myapp\",\n    \"image\": \"${ECR_URI}:latest\",\n    \"portMappings\": [{\"containerPort\": 3000, \"protocol\": \"tcp\"}],\n    \"environment\": [\n      {\"name\": \"NODE_ENV\", \"value\": \"production\"}\n    ],\n    \"secrets\": [\n      {\"name\": \"DATABASE_URL\", \"valueFrom\": \"arn:aws:secretsmanager:...:myapp/db-url\"}\n    ],\n    \"logConfiguration\": {\n      \"logDriver\": \"awslogs\",\n      \"options\": {\n        \"awslogs-group\": \"/ecs/myapp\",\n        \"awslogs-region\": \"ap-south-1\",\n        \"awslogs-stream-prefix\": \"ecs\"\n      }\n    }\n  }]\n}\nEOF\naws ecs register-task-definition --cli-input-json file://task-def.json\n\n# 3. Create cluster\naws ecs create-cluster --cluster-name myapp-cluster\n\n# 4. Create service\naws ecs create-service \\\n  --cluster myapp-cluster \\\n  --service-name myapp-service \\\n  --task-definition myapp \\\n  --desired-count 2 \\\n  --launch-type FARGATE \\\n  --network-configuration 'awsvpcConfiguration={subnets=[subnet-xxx],securityGroups=[sg-xxx]}'"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Deploying updates — rolling deployments"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "CI/CD deploy to ECS",
+      "code": "# In your GitHub Actions workflow, after building and pushing the new image:\n\n- name: Deploy to ECS\n  run: |\n    # Force new deployment — ECS pulls the latest image and replaces tasks\n    aws ecs update-service \\\n      --cluster myapp-cluster \\\n      --service myapp-service \\\n      --force-new-deployment\n\n    # Wait for deployment to complete (all new tasks healthy)\n    aws ecs wait services-stable \\\n      --cluster myapp-cluster \\\n      --services myapp-service\n\n# ECS rolling deploy behavior (default):\n# With 2 desired tasks:\n# 1. Start a new task with the new image\n# 2. Wait for it to pass health checks\n# 3. Stop one old task\n# 4. Start another new task\n# 5. Wait for health check\n# 6. Stop the last old task\n# → Zero downtime if health checks are configured"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Use AWS Secrets Manager instead of environment variables for secrets.</strong> In the task definition, reference secrets with the <code>secrets</code> field (not <code>environment</code>). The secret value is injected as an env var at container start but never stored in the task definition JSON. Rotate the secret in Secrets Manager, redeploy — the container picks up the new value without changing any task definition."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "aws-09-q1",
+          "question": "ECS Fargate has 2 running tasks and you deploy a new image. What happens during the rolling deployment (default config)?",
+          "type": "multiple-choice",
+          "options": [
+            "Both old tasks are stopped, then both new tasks are started — causes brief downtime",
+            "A new task starts and passes health checks, then one old task stops, then another new task starts and passes health checks, then the last old task stops",
+            "Traffic is immediately routed to the new tasks even before health checks pass",
+            "The service stops while Fargate downloads the new image"
+          ],
+          "correctAnswer": 1,
+          "explanation": "ECS performs a rolling deployment by default: it starts new tasks first, waits for them to pass health checks, then terminates old tasks. With 2 tasks and the default deployment configuration (minimum healthy 100%, maximum 200%), ECS temporarily runs 4 tasks (2 old + 2 new) then drains the old ones. This ensures zero downtime as long as your new tasks are healthy. Failed health checks stop the deployment and keep old tasks running."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "ECS vs Kubernetes (EKS) — when should I use which?",
+      "a": "ECS is simpler, tightly integrated with AWS services, and has lower operational overhead. Use ECS Fargate for most containerized workloads — it's the right choice for teams who don't want to manage Kubernetes. EKS (managed Kubernetes) is for teams already using Kubernetes, complex multi-cloud deployments, or workloads that need specific Kubernetes features (custom operators, Helm charts). ECS covers 80% of use cases with much less complexity."
+    }
+  ],
+  "sources": [
+    { "name": "Amazon ECS documentation", "url": "https://docs.aws.amazon.com/ecs/", "verified": "2026-10-09" }
+  ],
+  "realWorld": {
+    "usedIn": ["containerized microservices", "batch processing", "API backends", "ML inference"],
+    "examples": [
+      "AWS itself runs many of its services on ECS internally. The consistency of 'it works on my laptop because it's the same container' extends to production — the same Docker image passes local tests, CI, staging, and production",
+      "Duolingo runs all its backend services on ECS Fargate. When a viral moment sends 10x normal traffic, ECS auto-scaling provisions more Fargate tasks within minutes — no server provisioning needed"
+    ]
+  }
+}

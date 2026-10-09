@@ -1,0 +1,104 @@
+{
+  "id": "14-cloudwatch",
+  "version": "1.0.0",
+  "technology": "aws",
+  "module": "production-aws",
+  "title": "CloudWatch — Monitoring & Logs",
+  "subtitle": "Metrics, logs, alarms, and dashboards — know what your infrastructure is doing, be notified when it isn't",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "prerequisites": ["aws/13-cloudformation-cdk"],
+  "skillsTaught": ["aws.cloudwatch", "aws.cloudwatch-logs", "aws.cloudwatch-alarms", "aws.cloudwatch-metrics", "aws.cloudwatch-dashboards"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "CloudWatch — AWS's observability platform"
+    },
+    {
+      "type": "paragraph",
+      "text": "CloudWatch is the central observability service for everything in AWS. It collects metrics (CPU utilization, request count, error rate), logs (application output, access logs, Lambda output), and events (resource state changes). Without CloudWatch, running production AWS infrastructure is flying blind — you won't know that your EC2 instance's CPU is at 100%, your Lambda is throwing errors, or your RDS disk is 90% full."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Logs — viewing and querying"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "CloudWatch Logs CLI reference",
+      "code": "# Stream logs in real time (like 'tail -f')\naws logs tail /aws/lambda/my-function --follow\naws logs tail /ecs/myapp --follow\naws logs tail /var/log/nginx/access.log --follow\n\n# Get logs from a specific time range\naws logs filter-log-events \\\n  --log-group-name /aws/lambda/my-function \\\n  --start-time $(date -d '1 hour ago' +%s)000 \\\n  --filter-pattern ERROR\n\n# CloudWatch Insights — SQL-like query language for logs\n# Use in console: CloudWatch → Log Insights\naws logs start-query \\\n  --log-group-name /aws/lambda/my-function \\\n  --start-time $(date -d '1 hour ago' +%s) \\\n  --end-time $(date +%s) \\\n  --query-string '\n    fields @timestamp, @message\n    | filter @message like /ERROR/\n    | sort @timestamp desc\n    | limit 50\n  '"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Metrics and alarms"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Create a CloudWatch alarm",
+      "code": "# Alarm: notify when Lambda error rate exceeds 1% over 5 minutes\naws cloudwatch put-metric-alarm \\\n  --alarm-name 'Lambda-High-Error-Rate' \\\n  --alarm-description 'Lambda function error rate > 1%' \\\n  --namespace AWS/Lambda \\\n  --metric-name Errors \\\n  --dimensions Name=FunctionName,Value=my-function \\\n  --statistic Sum \\\n  --period 300 \\\n  --threshold 5 \\\n  --comparison-operator GreaterThanThreshold \\\n  --evaluation-periods 1 \\\n  --alarm-actions 'arn:aws:sns:ap-south-1:123456789:my-alerts-topic' \\\n  --ok-actions 'arn:aws:sns:ap-south-1:123456789:my-alerts-topic'\n\n# Common alarms to set up for every production system:\n# EC2: CPUUtilization > 80% for 10 min\n# RDS: CPUUtilization > 70%, FreeStorageSpace < 10GB\n# ALB: HTTPCode_Target_5XX_Count > 10 per 5 min\n# Lambda: Errors > threshold, Duration approaching timeout\n# SQS: ApproximateNumberOfMessagesVisible > 1000 (queue backup)\n\n# Create SNS topic for alerts\naws sns create-topic --name my-alerts-topic\naws sns subscribe \\\n  --topic-arn arn:aws:sns:ap-south-1:123456789:my-alerts-topic \\\n  --protocol email \\\n  --notification-endpoint alerts@mycompany.com"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Custom metrics from your application"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "Publish custom metrics from Node.js",
+      "code": "import { CloudWatchClient, PutMetricDataCommand } from '@aws-sdk/client-cloudwatch';\n\nconst cloudwatch = new CloudWatchClient({ region: 'ap-south-1' });\n\nasync function recordMetric(name: string, value: number, unit: string) {\n  await cloudwatch.send(new PutMetricDataCommand({\n    Namespace: 'MyApp',   // groups your metrics\n    MetricData: [{\n      MetricName: name,\n      Value: value,\n      Unit: unit,\n      Dimensions: [\n        { Name: 'Environment', Value: process.env.NODE_ENV ?? 'production' },\n        { Name: 'Service', Value: 'api' },\n      ],\n      Timestamp: new Date(),\n    }],\n  }));\n}\n\n// Usage in your Express app:\napp.post('/checkout', async (req, res) => {\n  const start = Date.now();\n  try {\n    await processOrder(req.body);\n    await recordMetric('OrdersCompleted', 1, 'Count');\n    await recordMetric('CheckoutLatency', Date.now() - start, 'Milliseconds');\n    res.json({ success: true });\n  } catch (err) {\n    await recordMetric('OrdersFailed', 1, 'Count');\n    throw err;\n  }\n});\n\n// Then create alarms on 'MyApp/OrdersFailed' metric\n// Dashboard showing 'MyApp/OrdersCompleted' rate"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Dashboards"
+    },
+    {
+      "type": "paragraph",
+      "text": "CloudWatch Dashboards let you build a single pane of glass for all your infrastructure metrics. Create widgets for graphs (metric over time), number cards (current value), alarm status indicators, and log query results. Share dashboards with your team. Add cross-account widgets to see multiple AWS accounts in one view. Most teams create one dashboard per environment (production, staging) and one per service."
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Set alarms BEFORE you go to production, not after an incident.</strong> The first time most teams discover they needed a CPUUtilization alarm is during an outage — when the server has been at 100% CPU for 20 minutes and nobody noticed. Set up basic alarms (CPU, memory, error rates, disk space) when you first deploy. SNS + email or Slack is free. CloudWatch alarms cost $0.10/alarm/month — a 10-alarm setup for a small app costs $1/month."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "aws-14-q1",
+          "question": "You want to find all Lambda errors in the last hour and see the error messages. What is the most efficient tool?",
+          "type": "multiple-choice",
+          "options": [
+            "Download the CloudWatch logs file and grep locally",
+            "Use CloudWatch Logs Insights — query with a filter like 'filter @message like /ERROR/ | sort @timestamp desc'",
+            "Check the Lambda console 'Monitoring' tab — it shows all errors",
+            "Use the AWS X-Ray console for error tracing"
+          ],
+          "correctAnswer": 1,
+          "explanation": "CloudWatch Logs Insights is the most efficient tool for querying log data. It supports a SQL-like query language, runs server-side (no downloading logs), and returns results in seconds even across millions of log events. The Lambda 'Monitoring' tab shows metrics (error counts) but not the actual error messages. X-Ray is great for distributed tracing but requires instrumentation and doesn't search arbitrary log messages."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How much does CloudWatch cost?",
+      "a": "Logs: $0.50/GB ingested, $0.03/GB stored/month. Metrics: first 10 custom metrics free, then $0.30/metric/month. Alarms: $0.10/alarm/month. Insights queries: $0.005/GB scanned. For a typical small production app: ~$5-20/month total. This is non-negotiable — the cost of not having visibility into production failures is orders of magnitude higher."
+    }
+  ],
+  "sources": [
+    { "name": "CloudWatch documentation", "url": "https://docs.aws.amazon.com/cloudwatch/", "verified": "2026-10-09" }
+  ],
+  "realWorld": {
+    "usedIn": ["production monitoring", "incident response", "capacity planning", "SLA tracking"],
+    "examples": [
+      "Amazon's teams are required to have CloudWatch dashboards and alarms set up before any service launches. The 'two-pizza team' model includes 'you build it, you run it' — every team owns their own monitoring",
+      "CloudWatch Container Insights automatically collects CPU, memory, network, and filesystem metrics for ECS/EKS clusters — one checkbox enables deep observability with no application code changes"
+    ]
+  }
+}

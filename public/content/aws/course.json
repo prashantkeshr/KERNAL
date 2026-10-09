@@ -1,0 +1,22 @@
+{
+  "id": "aws",
+  "title": "AWS Essentials",
+  "subtitle": "Cloud infrastructure, IAM, S3, EC2, Lambda, VPC, RDS, and the services that power the modern internet",
+  "description": "Amazon Web Services is the world's largest cloud platform — 33% of all internet infrastructure runs on AWS. This course gives you practical, hands-on AWS knowledge: provision servers, store files at scale, run serverless functions, build secure networks, and deploy production applications. You'll learn not just what each service does, but when to use it and how much it costs.",
+  "difficulty": "intermediate",
+  "estimatedHours": 30,
+  "stage": 13,
+  "order": 0,
+  "prerequisites": ["linux", "docker", "cicd"],
+  "certificationAvailable": true,
+  "icon": "cloud",
+  "color": "#ff9900",
+  "totalLessons": 15,
+  "modules": [
+    { "id": "aws-foundations", "title": "AWS Foundations", "lessonCount": 3 },
+    { "id": "storage-and-databases", "title": "Storage & Databases", "lessonCount": 3 },
+    { "id": "compute", "title": "Compute Services", "lessonCount": 3 },
+    { "id": "networking", "title": "Networking & CDN", "lessonCount": 3 },
+    { "id": "production-aws", "title": "Production AWS", "lessonCount": 3 }
+  ]
+}

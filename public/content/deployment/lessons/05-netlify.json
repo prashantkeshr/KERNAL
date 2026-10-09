@@ -1,0 +1,101 @@
+{
+  "id": "05-netlify",
+  "version": "1.0.0",
+  "technology": "deployment",
+  "module": "frontend-hosting",
+  "title": "Netlify — Jamstack Hosting",
+  "subtitle": "Deploy static sites and SPAs with git-based CI/CD, form handling, identity, and edge functions",
+  "difficulty": "beginner",
+  "estimatedMinutes": 12,
+  "status": "published",
+  "prerequisites": ["deployment/04-vercel-deep-dive"],
+  "skillsTaught": ["deployment.netlify", "deployment.netlify-forms", "deployment.netlify-functions", "deployment.netlify-redirects", "deployment.jamstack"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Netlify — Vercel's closest competitor"
+    },
+    {
+      "type": "paragraph",
+      "text": "Netlify and Vercel are very similar — both deploy frontend apps with git integration, preview deployments, custom domains, and serverless functions. Netlify pioneered many of these features (it invented the term 'Jamstack'). The key differences: Netlify has built-in form handling (collect form submissions without a backend), identity (authentication), and split testing out of the box. Vercel is better for Next.js and has a faster CDN. For non-Next.js static sites, either works equally well."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Deploying to Netlify"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Netlify CLI and configuration",
+      "code": "# Install Netlify CLI\nnpm install -g netlify-cli\n\n# Login and deploy\nnetlify login\nnetlify init      # link to GitHub repo and configure\nnetlify deploy    # preview deploy\nnetlify deploy --prod  # production deploy\n\n# Manual deploy without CLI:\n# netlify.com → New site → Import from Git → Select repo\n# Configure: Build command, Publish directory\n# Common framework settings:\n#   React/Vite:   build: npm run build, publish: dist\n#   Next.js:      build: npm run build, publish: .next (with @netlify/next plugin)\n#   Astro:        build: npm run build, publish: dist\n#   Hugo:         build: hugo, publish: public"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "netlify.toml — configuration"
+    },
+    {
+      "type": "code",
+      "lang": "toml",
+      "filename": "netlify.toml",
+      "code": "[build]\n  command = \"npm run build\"\n  publish = \"dist\"\n\n# SPA routing — serve index.html for all routes\n[[redirects]]\n  from = \"/*\"\n  to = \"/index.html\"\n  status = 200\n\n# 301 redirect old URLs\n[[redirects]]\n  from = \"/old-page\"\n  to = \"/new-page\"\n  status = 301\n\n# Proxy API calls (avoid CORS issues in development)\n[[redirects]]\n  from = \"/api/*\"\n  to = \"https://api.myapp.com/:splat\"\n  status = 200\n  force = true\n\n# HTTP security headers\n[[headers]]\n  for = \"/*\"\n  [headers.values]\n    X-Frame-Options = \"DENY\"\n    X-Content-Type-Options = \"nosniff\"\n    Strict-Transport-Security = \"max-age=31536000; includeSubDomains\"\n\n# Cache static assets long-term\n[[headers]]\n  for = \"/assets/*\"\n  [headers.values]\n    Cache-Control = \"public, max-age=31536000, immutable\"\n\n# Environment-specific build settings\n[context.production]\n  command = \"npm run build:prod\"\n\n[context.branch-deploy]\n  command = \"npm run build:staging\""
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Netlify's unique features"
+    },
+    {
+      "type": "code",
+      "lang": "html",
+      "filename": "Netlify Forms — no backend needed",
+      "code": "<!-- Add data-netlify='true' to any form — Netlify handles submissions -->\n<form name=\"contact\" method=\"POST\" data-netlify=\"true\">\n  <input type=\"hidden\" name=\"form-name\" value=\"contact\" />\n  <label>Name: <input type=\"text\" name=\"name\" required /></label>\n  <label>Email: <input type=\"email\" name=\"email\" required /></label>\n  <label>Message: <textarea name=\"message\"></textarea></label>\n  <button type=\"submit\">Send</button>\n</form>\n\n<!-- That's it! Netlify:\n  - Intercepts form submissions\n  - Stores them in Netlify's form dashboard\n  - Sends email notifications\n  - Includes spam filtering\n  - Free up to 100 submissions/month\n-->"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "netlify/functions/hello.ts — Netlify Functions",
+      "code": "// Functions go in /netlify/functions/ directory\n// Called at: /.netlify/functions/hello\n\nimport type { Handler } from '@netlify/functions';\n\nexport const handler: Handler = async (event, context) => {\n  const name = event.queryStringParameters?.name ?? 'World';\n\n  return {\n    statusCode: 200,\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify({ message: `Hello, ${name}!` }),\n  };\n};\n\n// Call from frontend:\nfetch('/.netlify/functions/hello?name=Alice')"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>The <code>_redirects</code> file is the quickest way to configure SPA routing.</strong> Create a file named <code>_redirects</code> in your <code>public/</code> folder (or wherever your publish directory is) with one line: <code>/* /index.html 200</code>. This tells Netlify to serve <code>index.html</code> for any path that doesn't match a real file — exactly what React Router and Vue Router need."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "deployment-05-q1",
+          "question": "You deploy a React SPA to Netlify but navigating to '/dashboard' directly (or refreshing the page) returns a 404. What's missing?",
+          "type": "multiple-choice",
+          "options": [
+            "Netlify doesn't support React Router",
+            "You need to add a redirect rule: '/* /index.html 200' — Netlify doesn't know React Router routes; the browser needs to load index.html first",
+            "The React build output is wrong",
+            "You need to enable SPA mode in the Netlify dashboard"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Netlify serves static files — when you request '/dashboard', it looks for a file called 'dashboard.html' (or dashboard/index.html) and finds nothing, returning 404. React Router handles routing in JavaScript, but JavaScript only runs after index.html loads. The fix: tell Netlify to serve index.html for all paths that don't match a real file. Add '/* /index.html 200' to _redirects or netlify.toml. The '200' status (not 301) means it's a rewrite, not a redirect — the URL stays as '/dashboard'."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Vercel vs Netlify — which should I choose?",
+      "a": "Both are excellent — you can't go wrong with either. Prefer Vercel for: Next.js apps (Vercel made it), better edge performance, faster deployments. Prefer Netlify for: built-in form handling, split testing, identity management, or if you prefer their dashboard UX. For a static React app with no Next.js, flip a coin — both have generous free tiers and nearly identical DX."
+    }
+  ],
+  "sources": [
+    { "name": "Netlify documentation", "url": "https://docs.netlify.com", "verified": "2026-10-09" }
+  ],
+  "realWorld": {
+    "usedIn": ["marketing sites", "portfolios", "documentation sites", "Jamstack apps"],
+    "examples": [
+      "Netlify hosts the official React documentation (react.dev uses a successor but was on Netlify for years), numerous open-source project docs, and millions of personal and business sites",
+      "Netlify's form handling has saved thousands of agency projects from needing a backend just for a contact form — many small business sites have zero backend thanks to this feature"
+    ]
+  }
+}

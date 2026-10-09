@@ -1,0 +1,96 @@
+{
+  "id": "07-railway-and-render",
+  "version": "1.0.0",
+  "technology": "deployment",
+  "module": "backend-hosting",
+  "title": "Railway & Render",
+  "subtitle": "Deploy Node.js, Python, and Docker backends with zero server management — databases included",
+  "difficulty": "beginner",
+  "estimatedMinutes": 13,
+  "status": "published",
+  "prerequisites": ["deployment/06-cloudflare-pages"],
+  "skillsTaught": ["deployment.railway", "deployment.render", "deployment.paas", "deployment.managed-postgres", "deployment.background-workers"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Platform as a Service — the Heroku successors"
+    },
+    {
+      "type": "paragraph",
+      "text": "Railway and Render are modern Platform as a Service (PaaS) providers — you give them your code or a Docker image, they handle everything else: provisioning servers, load balancing, auto-restart on crash, SSL, logging, and monitoring. Unlike EC2 (where you manage the OS) or ECS (where you manage container orchestration), PaaS requires near-zero ops knowledge. They're the fastest way to get a Node.js API or Python service into production with a real database."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Railway — deploy in 60 seconds"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Railway deployment",
+      "code": "# Install Railway CLI\nnpm install -g @railway/cli\n\n# Login\nrailway login\n\n# Initialize a new project\nrailway init\n# Or link to existing: railway link\n\n# Deploy current directory\nrailway up\n# Railway detects your framework automatically:\n# - Node.js: runs 'npm start' (set in package.json)\n# - Python: runs gunicorn or uvicorn\n# - Dockerfile: builds and runs your container\n# - No Dockerfile? Railway buildpacks detect your runtime\n\n# Add a PostgreSQL database (one command):\nrailway add --plugin postgresql\n# Sets DATABASE_URL in your environment automatically!\n\n# Add Redis:\nrailway add --plugin redis\n# Sets REDIS_URL automatically\n\n# Run a one-off command (migrations, seeds):\nrailway run npm run db:migrate\n\n# View logs:\nrailway logs\n\n# Open your deployed app:\nrailway open\n\n# Environment variables:\nrailway variables set NODE_ENV=production\nrailway variables set JWT_SECRET=mysecretkey\nrailway variables list"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Render — free tier, auto-sleep"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "render.yaml — Infrastructure as Code",
+      "code": "# render.yaml in your repo root\n# Defines all your services declaratively\n\nservices:\n  # Web service (your Node.js API)\n  - type: web\n    name: myapp-api\n    runtime: node\n    plan: starter  # $7/month, or 'free' (sleeps after 15min inactive)\n    buildCommand: npm ci && npm run build\n    startCommand: npm start\n    healthCheckPath: /health\n    envVars:\n      - key: NODE_ENV\n        value: production\n      - key: DATABASE_URL\n        fromDatabase:\n          name: myapp-db\n          property: connectionString\n      - key: JWT_SECRET\n        generateValue: true  # Render generates a random secret\n\n  # Background worker\n  - type: worker\n    name: myapp-worker\n    runtime: node\n    buildCommand: npm ci\n    startCommand: node workers/email.js\n    envVars:\n      - fromService:\n          name: myapp-api\n          type: web\n          envVarKey: DATABASE_URL\n\ndatabases:\n  - name: myapp-db\n    plan: starter  # $7/month for persistent PostgreSQL\n    databaseName: myapp\n    user: myapp"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Railway vs Render — comparison"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Railway vs Render decision guide",
+      "code": "RAILWAY:\n  Pricing: Pay for what you use (usage-based, not plans)\n           ~$0.000231/vCPU-minute, ~$0.0000128/MB-minute\n           $5 free credit/month on Hobby plan\n  Database: PostgreSQL, MySQL, Redis, MongoDB as plugins\n  DX:       Best-in-class — 'railway up' is 1 command deploy\n  Best for: Rapid prototyping, startups, any language/framework\n  No sleep: Services stay awake always (unlike Render free tier)\n\nRENDER:\n  Pricing:  Starter web service: $7/month\n            Free tier: web services (sleep after 15min)\n  Database: Managed PostgreSQL, Redis\n  DX:       render.yaml IaC, GitHub auto-deploy\n  Best for: Simpler projects, teams wanting predictable pricing\n  Free tier: Good for personal projects that tolerate cold starts\n\nBOTH:\n  ✓ Automatic HTTPS\n  ✓ GitHub/GitLab deploy on push\n  ✓ Environment variables\n  ✓ PostgreSQL and Redis\n  ✓ Custom domains\n  ✓ Zero server management\n\nHEROKU COMPARISON:\n  Railway and Render are what Heroku used to be before price changes\n  Both offer better value and similar or better DX"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Render's free tier web services sleep after 15 minutes of inactivity.</strong> When the first request arrives after sleeping, the service cold-starts (taking 30-60 seconds). This is fine for personal projects and portfolios. For anything with real users, use a paid tier or keep the service awake with a periodic ping (a health check every 10 minutes). Railway's free tier doesn't sleep, but has $5/month credit limits."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "deployment-07-q1",
+          "question": "You add a PostgreSQL plugin to Railway. Where does the DATABASE_URL connection string go?",
+          "type": "multiple-choice",
+          "options": [
+            "You must manually copy it from the Railway dashboard and add it to your .env file",
+            "Railway automatically injects DATABASE_URL as an environment variable into all services in the same project",
+            "The connection string is stored in a separate config file you must reference",
+            "Railway emails you the connection string"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Railway automatically injects service variables (like DATABASE_URL from a PostgreSQL plugin) into all services in the same project. Your Node.js code reads process.env.DATABASE_URL — no manual configuration needed. This is Railway's 'service variables' feature: any variable a plugin service exposes is automatically available to all other services in the project. It's one of the reasons Railway's DX is so smooth."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Should I use Railway/Render or AWS for my startup?",
+      "a": "Start with Railway or Render. They're 10x faster to get running, require no AWS knowledge, and cost $5-20/month for a typical small app. Migrate to AWS when: you need specific AWS services (SQS, Lambda at scale, custom VPC networking), your bill exceeds $100/month and AWS would be cheaper, or you need compliance certifications that AWS has but PaaS doesn't. Most startups are on PaaS until well after product-market fit."
+    }
+  ],
+  "sources": [
+    { "name": "Railway documentation", "url": "https://docs.railway.app", "verified": "2026-10-09" },
+    { "name": "Render documentation", "url": "https://render.com/docs", "verified": "2026-10-09" }
+  ],
+  "realWorld": {
+    "usedIn": ["startup backends", "APIs", "background workers", "full-stack apps"],
+    "examples": [
+      "Dozens of YC startups ship their initial product on Railway. The ability to have a full backend + database running in < 5 minutes lets teams validate products faster — infrastructure isn't the bottleneck",
+      "Pocketbase, Supabase, and many developer tool companies run their own deployments on Railway for dogfooding and demos — Railway's simplicity makes it easy to spin up isolated environments"
+    ]
+  }
+}

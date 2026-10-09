@@ -1,0 +1,102 @@
+{
+  "id": "03-ssl-and-https",
+  "version": "1.0.0",
+  "technology": "deployment",
+  "module": "deployment-fundamentals",
+  "title": "SSL/TLS & HTTPS",
+  "subtitle": "How HTTPS encrypts web traffic, how certificates work, and how to get free certificates for your domain",
+  "difficulty": "beginner",
+  "estimatedMinutes": 13,
+  "status": "published",
+  "prerequisites": ["deployment/02-dns-deep-dive"],
+  "skillsTaught": ["deployment.ssl", "deployment.tls", "deployment.https", "deployment.certificates", "deployment.lets-encrypt", "deployment.hsts"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Why HTTPS is mandatory"
+    },
+    {
+      "type": "paragraph",
+      "text": "HTTP sends all data in plain text — anyone between you and the server (your ISP, a coffee shop's Wi-Fi router, a government network) can read your passwords, form submissions, and session cookies. HTTPS adds TLS encryption that makes intercepted traffic unreadable. Beyond security, HTTPS is now required: browsers mark HTTP sites as 'Not Secure', Google ranks HTTPS sites higher in search, and modern browser APIs (geolocation, push notifications, service workers) require HTTPS."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "How TLS works (simplified)"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "TLS handshake explained",
+      "code": "BEFORE THE HANDSHAKE:\n  Server has a certificate (like a passport):\n  - Contains the server's public key\n  - Signed by a Certificate Authority (CA) that browsers trust\n  - Proves the server really owns myapp.com\n\nTHE TLS 1.3 HANDSHAKE (1 round trip):\n\n  Client → Server:\n    'Hello! I support TLS 1.3. Here are my cipher preferences.\n     Here's my key share (Diffie-Hellman public key).'\n\n  Server → Client:\n    'Great! I'll use [chosen cipher].\n     Here's my certificate (so you can verify I own myapp.com).\n     Here's my key share.\n     Here's the first encrypted data (server can start immediately)'\n\n  Client:\n    - Verifies the certificate is valid and signed by a trusted CA\n    - Verifies the certificate is for 'myapp.com' (matches domain)\n    - Verifies the certificate hasn't expired\n    - Both sides derive the same symmetric encryption key\n      (using Diffie-Hellman math — no secret transmitted!)\n\n  All subsequent data is encrypted with symmetric key (AES-256)\n\nCERTIFICATE AUTHORITIES (CAs):\n  Trusted organizations that verify you own a domain before signing\n  Browsers and OSes come with a list of ~150 trusted CAs\n  If a CA signs your certificate → browsers trust your site\n  Major CAs: Let's Encrypt (free), DigiCert, Comodo, GlobalSign"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Getting free certificates — Let's Encrypt"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Let's Encrypt with Certbot (on a VPS)",
+      "code": "# Let's Encrypt is a free, automated CA backed by Mozilla, Google, and others\n# Certbot is the official Let's Encrypt client\n\n# Install Certbot on Ubuntu\nsudo apt install certbot python3-certbot-nginx\n\n# Get certificate + configure Nginx automatically\nsudo certbot --nginx -d myapp.com -d www.myapp.com\n# Certbot:\n# 1. Verifies you control myapp.com (places a file on your server)\n# 2. CA verifies the file exists via HTTP\n# 3. Issues a 90-day certificate\n# 4. Configures Nginx to use it\n# 5. Sets up auto-renewal (checks twice daily, renews 30 days before expiry)\n\n# After certbot, your Nginx config will have:\n# listen 443 ssl;\n# ssl_certificate /etc/letsencrypt/live/myapp.com/fullchain.pem;\n# ssl_certificate_key /etc/letsencrypt/live/myapp.com/privkey.pem;\n# include /etc/letsencrypt/options-ssl-nginx.conf;\n\n# Test auto-renewal:\nsudo certbot renew --dry-run\n\n# Manual renewal (usually not needed):\nsudo certbot renew"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Platform-managed certificates — zero-config HTTPS"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Automatic HTTPS by platform",
+      "code": "VERCEL:\n  Add your domain → HTTPS is automatic\n  Uses Let's Encrypt behind the scenes\n  Zero configuration needed\n\nNETLIFY:\n  Same — custom domain → free TLS certificate\n  One-click force HTTPS (redirects HTTP → HTTPS)\n\nCLOUDFLARE:\n  Two options:\n  1. Full: Cloudflare ↔ Origin (your server must have ANY valid cert)\n  2. Full (Strict): Cloudflare ↔ Origin (origin must have valid cert)\n  Cloudflare issues free certs for the browser ↔ Cloudflare leg\n  Optional: Cloudflare Origin CA cert (free, 15-year validity)\n\nAWS:\n  ACM (AWS Certificate Manager) → free certs for CloudFront/ALB\n  Works via DNS validation (add a CNAME record to prove domain ownership)\n  Certs auto-renew\n\nFor any platform-hosted app: just point your domain → use the platform's\nHTTPS support. You never need to run Certbot manually."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "HTTPS best practices"
+    },
+    {
+      "type": "code",
+      "lang": "nginx",
+      "filename": "HTTPS Nginx configuration",
+      "code": "server {\n    listen 80;\n    server_name myapp.com www.myapp.com;\n    # Redirect all HTTP to HTTPS\n    return 301 https://$host$request_uri;\n}\n\nserver {\n    listen 443 ssl http2;\n    server_name myapp.com www.myapp.com;\n\n    ssl_certificate /etc/letsencrypt/live/myapp.com/fullchain.pem;\n    ssl_certificate_key /etc/letsencrypt/live/myapp.com/privkey.pem;\n\n    # Modern TLS configuration\n    ssl_protocols TLSv1.2 TLSv1.3;\n    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256;\n    ssl_prefer_server_ciphers off;\n\n    # HSTS: tell browsers to ALWAYS use HTTPS for 1 year\n    add_header Strict-Transport-Security \"max-age=31536000; includeSubDomains\" always;\n\n    # Security headers\n    add_header X-Frame-Options DENY;\n    add_header X-Content-Type-Options nosniff;\n    add_header Referrer-Policy strict-origin-when-cross-origin;\n\n    location / {\n        proxy_pass http://localhost:3000;\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n    }\n}"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "deployment-03-q1",
+          "question": "A user visits http://myapp.com (HTTP, not HTTPS). With the Nginx config above, what happens?",
+          "type": "multiple-choice",
+          "options": [
+            "Nginx serves the page over HTTP — the redirect only applies to new visitors",
+            "Nginx sends a 301 redirect to https://myapp.com — the browser re-requests over HTTPS",
+            "The browser automatically upgrades to HTTPS without a redirect",
+            "Nginx returns an error — HTTP is blocked"
+          ],
+          "correctAnswer": 1,
+          "explanation": "The first server block catches all port 80 (HTTP) requests and returns a 301 (permanent redirect) to the HTTPS version of the same URL. The browser then makes a new request to https://myapp.com. After the HSTS header is received (from a first HTTPS visit), the browser will refuse to make HTTP requests to that domain at all — going straight to HTTPS even without the redirect. A 301 (permanent) tells browsers and search engines this redirect is permanent."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between SSL and TLS?",
+      "a": "SSL (Secure Sockets Layer) is the older protocol (last version: SSL 3.0, 1996). TLS (Transport Layer Security) is its successor — TLS 1.0 replaced SSL 3.0. All modern connections use TLS 1.2 or 1.3. But the industry still says 'SSL certificate' colloquially, even though every certificate is technically used with TLS. SSL 2.0 and 3.0 are deprecated and insecure — your server should only accept TLS 1.2 and TLS 1.3."
+    }
+  ],
+  "sources": [
+    { "name": "Let's Encrypt documentation", "url": "https://letsencrypt.org/docs/", "verified": "2026-10-09" }
+  ],
+  "realWorld": {
+    "usedIn": ["every production web application", "API security", "GDPR compliance"],
+    "examples": [
+      "Let's Encrypt issues over 3 million certificates per day — it single-handedly made HTTPS the default for the web. Before Let's Encrypt (launched 2015), certificates cost $50-200/year. Now: free, automated, and universal",
+      "The HSTS Preload List is a list of domains hardcoded into browsers to always use HTTPS — even for the first visit. Once submitted to hstspreload.org, there's no going back to HTTP for that domain. Major browsers all ship with this list"
+    ]
+  }
+}

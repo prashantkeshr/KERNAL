@@ -1,0 +1,106 @@
+{
+  "id": "07-ec2",
+  "version": "1.0.0",
+  "technology": "aws",
+  "module": "compute",
+  "title": "EC2 — Virtual Machines",
+  "subtitle": "Launch, connect, and manage virtual machines — AMIs, instance types, security groups, and key pairs",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 16,
+  "status": "published",
+  "prerequisites": ["aws/03-aws-cli"],
+  "skillsTaught": ["aws.ec2", "aws.ami", "aws.instance-types", "aws.security-groups", "aws.key-pairs", "aws.user-data"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "EC2 — rent a computer in the cloud"
+    },
+    {
+      "type": "paragraph",
+      "text": "EC2 (Elastic Compute Cloud) is a virtual machine running in AWS's data center. You choose the operating system (Amazon Linux, Ubuntu, Windows), the hardware size (CPU, RAM, storage), and the region. Within minutes, you have a full Linux server you can SSH into, install software on, and run anything — exactly like a physical server, but billed by the hour."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Instance types and families"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "EC2 instance type reference",
+      "code": "FORMAT: family.size\nExamples: t3.micro, m7g.large, c7i.2xlarge, r6i.4xlarge\n\nFAMILIES:\n  t3/t4g  — General purpose, burstable        → dev/test, low-traffic apps\n  m7g/m6i — General purpose, balanced          → most production apps\n  c7i/c6g — Compute optimized (more CPU/RAM)   → CPU-intensive workloads\n  r7i/r6g — Memory optimized (more RAM/CPU)    → databases, caching\n  g4dn    — GPU instances                      → ML inference, video\n  i3/i4i  — Storage optimized (NVMe SSDs)      → databases, big data\n\n  Suffix 'g' = Graviton (ARM) — 20-40% cheaper, same performance\n\nSIZES (within a family, each size doubles resources):\n  nano → micro → small → medium → large → xlarge → 2xlarge → 4xlarge...\n\nPRACTICAL SIZING (2026 pricing, us-east-1, on-demand):\n  t4g.micro   → 2 vCPU, 1GB    → $6/month   (free tier: 750h/month)\n  t4g.small   → 2 vCPU, 2GB    → $12/month  (small API, hobby project)\n  t4g.medium  → 2 vCPU, 4GB    → $24/month  (Node.js app + workers)\n  m7g.large   → 2 vCPU, 8GB    → $56/month  (production API)\n  m7g.xlarge  → 4 vCPU, 16GB   → $112/month (higher traffic)\n\n  Spot instances: up to 90% off on-demand, can be interrupted\n  Reserved instances: commit to 1-3 years, save 30-60%"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Launching your first EC2 instance"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Launch and connect to an EC2 instance",
+      "code": "# 1. Create a key pair (to SSH into the instance)\naws ec2 create-key-pair \\\n  --key-name myapp-key \\\n  --query 'KeyMaterial' \\\n  --output text > myapp-key.pem\nchmod 400 myapp-key.pem   # restrict permissions\n\n# 2. Create a security group (instance-level firewall)\naws ec2 create-security-group \\\n  --group-name myapp-sg \\\n  --description 'MyApp security group'\n# Allow SSH from your IP only:\naws ec2 authorize-security-group-ingress \\\n  --group-name myapp-sg \\\n  --protocol tcp --port 22 \\\n  --cidr $(curl -s ifconfig.me)/32\n# Allow HTTP/HTTPS from anywhere:\naws ec2 authorize-security-group-ingress --group-name myapp-sg --protocol tcp --port 80 --cidr 0.0.0.0/0\naws ec2 authorize-security-group-ingress --group-name myapp-sg --protocol tcp --port 443 --cidr 0.0.0.0/0\n\n# 3. Launch the instance\n# AMI IDs change by region — get latest Ubuntu 24.04 in your region:\naws ssm get-parameters \\\n  --names /aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp2/ami-id \\\n  --query 'Parameters[0].Value' --output text\n\naws ec2 run-instances \\\n  --image-id ami-0xxxxxxxxxxxxxxxx \\\n  --instance-type t4g.small \\\n  --key-name myapp-key \\\n  --security-groups myapp-sg \\\n  --count 1 \\\n  --user-data file://startup.sh   # optional: runs on first boot\n\n# 4. Get the public IP\naws ec2 describe-instances \\\n  --filters Name=instance-state-name,Values=running \\\n  --query 'Reservations[*].Instances[*].[InstanceId,PublicIpAddress]' \\\n  --output table\n\n# 5. SSH in\nssh -i myapp-key.pem ubuntu@54.x.x.x"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "User data — bootstrap on first boot"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "startup.sh — user data script",
+      "code": "#!/bin/bash\n# This script runs as root on the first boot of the instance\n# Use it to install software and configure the server\n\nset -e   # exit on error\n\n# Update packages\napt-get update -y\napt-get upgrade -y\n\n# Install Node.js 20\ncurl -fsSL https://deb.nodesource.com/setup_20.x | bash -\napt-get install -y nodejs\n\n# Install Nginx\napt-get install -y nginx\n\n# Install Docker\ncurl -fsSL https://get.docker.com | sh\nusermod -aG docker ubuntu\n\n# Clone and start the app\ngit clone https://github.com/myorg/myapp.git /app\ncd /app\nnpm ci --production\n\n# Install PM2 to manage the Node.js process\nnpm install -g pm2\npm2 start server.js --name myapp\npm2 startup ubuntu -u ubuntu --hp /home/ubuntu  # auto-start on reboot\npm2 save\n\necho 'Server setup complete'"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Security groups — the instance firewall"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Security group rules for a web server",
+      "code": "INBOUND RULES (what traffic can reach the instance):\n  Type    Protocol  Port  Source\n  SSH     TCP       22    Your IP only (x.x.x.x/32) — NEVER 0.0.0.0/0\n  HTTP    TCP       80    0.0.0.0/0 (anywhere)\n  HTTPS   TCP       443   0.0.0.0/0 (anywhere)\n  Custom  TCP       3000  sg-xxxxxxxxx (allow traffic from app LB only)\n\nOUTBOUND RULES (what traffic can leave the instance):\n  By default: all outbound is allowed\n  Restrict: specific IPs/ports for locked-down environments\n\nSecurity group rules are STATEFUL:\n  If you allow inbound on port 80, the response traffic is\n  automatically allowed out — you don't need to add an outbound rule\n\nNever:\n  - Allow SSH (port 22) from 0.0.0.0/0 — bots scan for this constantly\n  - Use security groups as your only security layer\n  - Forget to revoke rules when they're no longer needed"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Use AWS Systems Manager Session Manager instead of SSH.</strong> Session Manager gives you a shell in your EC2 instance from the AWS console or CLI — no key pairs, no open port 22, no SSH firewall rules. Access is controlled by IAM. It logs sessions to CloudWatch. It works even in private subnets with no internet gateway. It's strictly better than SSH for production access."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "aws-07-q1",
+          "question": "You add an inbound security group rule allowing port 80 from 0.0.0.0/0. Do you also need to add an outbound rule for port 80?",
+          "type": "multiple-choice",
+          "options": [
+            "Yes — you must explicitly allow both directions",
+            "No — security groups are stateful; response traffic for allowed inbound connections is automatically allowed out",
+            "Yes — but only if the instance sends large responses",
+            "Outbound rules don't exist in security groups"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Security groups are stateful. When an inbound connection is allowed, the return traffic for that connection is automatically permitted regardless of outbound rules. This is different from Network ACLs (NACLs), which are stateless and require explicit rules in both directions. This means you only need to think about 'what traffic do I want to allow IN' when configuring security groups — responses take care of themselves."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "EC2 vs Lambda vs ECS — which compute service should I use?",
+      "a": "EC2: you manage the OS, best for long-running processes, VMs, or when you need full control. Lambda: for short-lived functions triggered by events, pay-per-invocation, zero servers to manage. ECS/Fargate: for containerized applications, managed container scheduling. Start with Lambda for event-driven code, Fargate for containerized apps, EC2 only when you need specific OS-level control."
+    }
+  ],
+  "sources": [
+    { "name": "EC2 user guide", "url": "https://docs.aws.amazon.com/ec2/", "verified": "2026-10-09" }
+  ],
+  "realWorld": {
+    "usedIn": ["web servers", "ML training", "gaming servers", "CI/CD runners", "databases"],
+    "examples": [
+      "GitHub's CI runners are EC2 Spot instances — they use Spot (up to 90% cheaper) because CI jobs can tolerate interruption: if a job gets interrupted, it just restarts",
+      "Spot instances saved Netflix an estimated $300M/year when they used them for encoding video — if an encoding job gets interrupted, it restarts from a checkpoint"
+    ]
+  }
+}

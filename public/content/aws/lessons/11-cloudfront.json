@@ -1,0 +1,95 @@
+{
+  "id": "11-cloudfront",
+  "version": "1.0.0",
+  "technology": "aws",
+  "module": "networking",
+  "title": "CloudFront — CDN & Edge",
+  "subtitle": "Serve content from 450+ edge locations worldwide — cache, compress, protect, and deliver at the speed of light",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "prerequisites": ["aws/04-s3", "aws/10-vpc"],
+  "skillsTaught": ["aws.cloudfront", "aws.cdn", "aws.edge-locations", "aws.cache-behaviors", "aws.cloudfront-functions", "aws.https"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Why CDNs exist"
+    },
+    {
+      "type": "paragraph",
+      "text": "Physics sets a hard limit on response time: data can travel no faster than the speed of light. Mumbai to New York is ~140ms at the speed of light; realistic internet latency adds another 50-100ms. If your server is in us-east-1 and a user is in Mumbai, every request has a 200-300ms baseline latency — before your application does anything. A CDN solves this by caching your content at edge locations near users: Mumbai user hits a Mumbai edge location, response in 5ms."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "CloudFront distribution — setup"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Create a CloudFront distribution for S3 website",
+      "code": "# Most teams use the console for CloudFront (complex config)\n# Here's the CLI approach for a simple S3 + HTTPS setup:\n\n# Create distribution pointing to S3 bucket website endpoint\naws cloudfront create-distribution --distribution-config '{\n  \"Comment\": \"My App CDN\",\n  \"DefaultRootObject\": \"index.html\",\n  \"Origins\": {\n    \"Quantity\": 1,\n    \"Items\": [{\n      \"Id\": \"S3-myapp\",\n      \"DomainName\": \"myapp-bucket.s3-website-ap-south-1.amazonaws.com\",\n      \"CustomOriginConfig\": {\n        \"HTTPPort\": 80,\n        \"OriginProtocolPolicy\": \"http-only\"\n      }\n    }]\n  },\n  \"DefaultCacheBehavior\": {\n    \"TargetOriginId\": \"S3-myapp\",\n    \"ViewerProtocolPolicy\": \"redirect-to-https\",\n    \"CachePolicyId\": \"658327ea-f89d-4fab-a63d-7e88639e58f6\",\n    \"Compress\": true\n  },\n  \"ViewerCertificate\": {\n    \"CloudFrontDefaultCertificate\": true\n  },\n  \"Enabled\": true,\n  \"PriceClass\": \"PriceClass_All\"\n}'\n\n# Result: CloudFront domain like abc123.cloudfront.net\n# Point your custom domain's CNAME to this\n\n# Invalidate cache after deploying new files\naws cloudfront create-invalidation \\\n  --distribution-id EXXXXXXXXXX \\\n  --paths '/*'   # invalidate all cached files\n  # or specific: '/index.html' '/static/*'"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Cache behaviors — the power of CloudFront"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Cache behavior configuration",
+      "code": "A CloudFront distribution can have multiple 'behaviors' based on URL path:\n\nPATH PATTERN         TTL           BEHAVIOR\n/static/*            31536000s     Long cache (1 year) — hashed filenames\n/*.js                31536000s     JS bundles with content hash in name\n/*.css               31536000s     CSS with content hash in name\n/api/*               0s            Never cache (proxy to API server)\n/index.html          0s            Never cache (always fresh)\n/* (default)         86400s        Cache 1 day\n\nWHY DIFFERENT TTLs:\n  Static assets (app.abc123.js) — filename includes content hash\n  If content changes, filename changes → automatic cache bust\n  So you can safely cache forever\n\n  HTML files — reference the JS/CSS files by name\n  Must be fresh so users get the latest js/css filenames\n  Cache for 0 seconds (or very short)\n\n  API responses — dynamic, must never be cached (unless you explicitly\n  want edge caching for specific endpoints like public pricing pages)"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "HTTPS with CloudFront + ACM"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Free HTTPS certificate via AWS Certificate Manager",
+      "code": "# ACM (Certificate Manager) provides free SSL/TLS certificates\n# For CloudFront, the certificate MUST be in us-east-1 (global service)\n\n# Request a certificate\naws acm request-certificate \\\n  --domain-name myapp.com \\\n  --subject-alternative-names www.myapp.com \\\n  --validation-method DNS \\\n  --region us-east-1  # required for CloudFront\n\n# ACM returns a CNAME record to add to your DNS\n# Once validated, the certificate auto-renews forever\n\n# In CloudFront distribution config:\n# ViewerCertificate:\n#   AcmCertificateArn: arn:aws:acm:us-east-1:xxx:certificate/xxx\n#   SslSupportMethod: sni-only\n#   MinimumProtocolVersion: TLSv1.2_2021\n\n# ViewerProtocolPolicy: redirect-to-https\n# → All HTTP requests are 301 redirected to HTTPS automatically"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Always use CloudFront in front of your S3 website, not S3 directly.</strong> S3 website hosting doesn't support HTTPS for custom domains (only HTTP). CloudFront + ACM gives you free HTTPS with modern TLS. It also protects your S3 bucket from direct access (use OAC — Origin Access Control — to restrict S3 to only CloudFront). This prevents people from accessing the S3 URL directly and bypassing CloudFront."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "aws-11-q1",
+          "question": "You deploy a new version of your React app to S3. Users are still seeing the old version. What's the most likely cause?",
+          "type": "multiple-choice",
+          "options": [
+            "S3 hasn't finished replicating the files to all regions",
+            "CloudFront is serving a cached version of the old files — run a cache invalidation",
+            "The React app needs to be rebuilt for CloudFront compatibility",
+            "CloudFront automatically refreshes every 24 hours — wait for next refresh"
+          ],
+          "correctAnswer": 1,
+          "explanation": "CloudFront caches responses at edge locations for the TTL you configured. After deploying new files to S3, cached edges still serve the old version until their TTL expires. To force an immediate refresh, run a cache invalidation: 'aws cloudfront create-invalidation --distribution-id E... --paths /*'. A better long-term strategy: use content-hashed filenames (Vite does this by default — app.a1b2c3d4.js) so new files have new names, never conflicting with cached old files. Only index.html needs invalidating."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How much does CloudFront cost?",
+      "a": "CloudFront's pricing: $0.0085 per GB data transfer (first 10TB), $0.0075 per 10,000 HTTPS requests. For a typical small website serving 100GB/month, that's $0.85/month in transfer + ~$0.075 in requests = under $1/month. For most apps, CloudFront + S3 is cheaper than any other hosting option and faster for global users."
+    }
+  ],
+  "sources": [
+    { "name": "CloudFront documentation", "url": "https://docs.aws.amazon.com/cloudfront/", "verified": "2026-10-09" }
+  ],
+  "realWorld": {
+    "usedIn": ["static sites", "video streaming", "API acceleration", "DDoS protection"],
+    "examples": [
+      "Amazon Prime Video uses CloudFront to stream to 200+ countries. The 450+ edge locations mean your video starts buffering from a server within ~50km of you, regardless of where Amazon's origin servers are",
+      "CloudFront's AWS Shield Standard (free, included) protects all distributions from common DDoS attacks — absorbing up to Tbps of volumetric traffic at the edge before it reaches your origin"
+    ]
+  }
+}

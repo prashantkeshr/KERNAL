@@ -1,0 +1,110 @@
+{
+  "id": "02-iam-and-security",
+  "version": "1.0.0",
+  "technology": "aws",
+  "module": "aws-foundations",
+  "title": "IAM & Security",
+  "subtitle": "Users, roles, policies, and least-privilege access — the security foundation every AWS account must get right",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 16,
+  "status": "published",
+  "prerequisites": ["aws/01-what-is-aws"],
+  "skillsTaught": ["aws.iam", "aws.users", "aws.roles", "aws.policies", "aws.least-privilege", "aws.mfa"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "IAM — the gatekeeper of your AWS account"
+    },
+    {
+      "type": "paragraph",
+      "text": "IAM (Identity and Access Management) is the service that controls <em>who</em> can do <em>what</em> in your AWS account. Every API call to AWS — whether from the console, CLI, or your application code — is checked against IAM policies before it's allowed. Getting IAM right is the single most important thing you can do for AWS security."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The four IAM concepts"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "IAM building blocks",
+      "code": "1. USERS — A person or application with long-term credentials\n   - Has a username + password (for console access)\n   - Has an Access Key ID + Secret Access Key (for CLI/SDK access)\n   - Example: 'alice' (a developer), 'deploy-bot' (a CI/CD service account)\n   ⚠  Never use root user for daily work — create IAM users instead\n\n2. GROUPS — A collection of users with shared permissions\n   - 'Developers' group → can read/write S3 and EC2\n   - 'Admins' group → full access\n   - Assign a user to a group instead of attaching policies to each user\n\n3. ROLES — A temporary identity that can be assumed\n   - An EC2 instance assumes a role to access S3 without storing credentials\n   - A Lambda function assumes a role to write to DynamoDB\n   - A GitHub Actions workflow assumes a role to deploy to ECS\n   ✓ Preferred over users for application/service access — no long-term secrets\n\n4. POLICIES — JSON documents that define permissions\n   - Attached to users, groups, or roles\n   - Allow or Deny specific actions on specific resources"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Writing IAM policies"
+    },
+    {
+      "type": "code",
+      "lang": "json",
+      "filename": "IAM policy — read-only S3 access to one bucket",
+      "code": "{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [\n    {\n      \"Effect\": \"Allow\",\n      \"Action\": [\n        \"s3:GetObject\",\n        \"s3:ListBucket\"\n      ],\n      \"Resource\": [\n        \"arn:aws:s3:::my-app-bucket\",\n        \"arn:aws:s3:::my-app-bucket/*\"\n      ]\n    }\n  ]\n}\n\n// ARN format: arn:partition:service:region:account-id:resource\n// arn:aws:s3:::my-app-bucket  ← S3 bucket (no region/account — S3 is global)\n// arn:aws:s3:::my-app-bucket/* ← all objects INSIDE the bucket\n// Both lines needed: one for the bucket itself, one for objects inside\n\n// Common actions:\n// s3:GetObject, s3:PutObject, s3:DeleteObject, s3:ListBucket\n// ec2:DescribeInstances, ec2:StartInstances, ec2:StopInstances\n// lambda:InvokeFunction\n// rds:DescribeDBInstances\n// Use '*' for all actions (only for admin roles)"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "IAM Roles for applications — the right way"
+    },
+    {
+      "type": "code",
+      "lang": "json",
+      "filename": "EC2 instance role — access S3 without credentials in code",
+      "code": "// 1. Create a role with a Trust Policy (who can assume this role):\n{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [{\n    \"Effect\": \"Allow\",\n    \"Principal\": { \"Service\": \"ec2.amazonaws.com\" },\n    \"Action\": \"sts:AssumeRole\"\n  }]\n}\n// This says: EC2 instances can assume this role\n\n// 2. Attach a Permission Policy (what they can do):\n{\n  \"Statement\": [{\n    \"Effect\": \"Allow\",\n    \"Action\": \"s3:GetObject\",\n    \"Resource\": \"arn:aws:s3:::my-bucket/*\"\n  }]\n}\n\n// 3. Attach the role to the EC2 instance at launch\n\n// 4. In your application code — NO credentials needed:\nimport { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';\n// SDK automatically uses the EC2 instance role credentials\nconst s3 = new S3Client({ region: 'us-east-1' });\nconst result = await s3.send(new GetObjectCommand({ Bucket: 'my-bucket', Key: 'file.txt' }));\n\n// The SDK fetches temporary credentials from the EC2 metadata service\n// (http://169.254.169.254/latest/meta-data/iam/security-credentials/)\n// They auto-rotate every hour — no manual secret management needed"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Least privilege — the golden rule"
+    },
+    {
+      "type": "paragraph",
+      "text": "Grant only the minimum permissions needed to perform a task. A Lambda function that reads from DynamoDB should have <code>dynamodb:GetItem</code> and <code>dynamodb:Query</code> permissions on that specific table — not <code>dynamodb:*</code> on all tables, and definitely not <code>*:*</code> (full admin). This limits the blast radius if credentials are ever compromised."
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Securing your root account — critical first steps",
+      "code": "# Day 1 AWS security checklist:\n\n# 1. NEVER use root for daily work\n#    Root: the god account created when you sign up\n#    Create an IAM admin user for yourself, then don't touch root\n\n# 2. Enable MFA on root (and all IAM users)\n#    AWS Console → IAM → Security credentials → MFA\n\n# 3. Don't create root access keys\n#    If they exist, delete them immediately\n\n# 4. Create IAM users for people, roles for services\n#    Never put AWS credentials in code or environment variables\n#    on servers — use IAM roles instead\n\n# 5. Use IAM Access Analyzer to find over-permissive policies\naws accessanalyzer list-analyzers\n\n# 6. Enable CloudTrail (audit log of all API calls)\n#    Free for management events — see who did what and when\naws cloudtrail describe-trails"
+    },
+    {
+      "type": "warning",
+      "text": "<strong>Never commit AWS credentials to git.</strong> Access Key IDs and Secret Access Keys in a public GitHub repository are scraped by bots within minutes. The attacker spins up EC2 instances for crypto mining, and you get a $10,000 AWS bill. Use IAM roles for services, <code>aws configure</code> for local dev (stores in <code>~/.aws/credentials</code>), and environment secrets for CI/CD. If you accidentally commit credentials, delete the key in IAM <em>immediately</em>, then rotate all affected secrets."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "aws-02-q1",
+          "question": "Your Node.js app running on EC2 needs to upload files to S3. What is the correct way to give it access?",
+          "type": "multiple-choice",
+          "options": [
+            "Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables on the EC2 instance",
+            "Hardcode the credentials in the Node.js source code",
+            "Create an IAM role with S3 PutObject permission, attach it to the EC2 instance — no credentials needed in code",
+            "Add the IAM user's credentials to a .env file on the server"
+          ],
+          "correctAnswer": 2,
+          "explanation": "IAM roles for EC2 instances (called 'instance profiles') are the correct approach. The EC2 instance automatically receives temporary, rotating credentials from the IAM role via the instance metadata service. The AWS SDK reads these automatically — no credential configuration in code or environment variables. Options A, B, and D all involve long-lived credentials that could be exposed via a file read, env dump, or git commit."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is the difference between IAM policies and S3 bucket policies?",
+      "a": "IAM policies are attached to identities (users, roles) and say what that identity can do. S3 bucket policies are attached to the bucket and say who can access that bucket. They work together: both must allow for access to succeed (unless one is explicitly denied). Bucket policies are necessary for cross-account access or allowing public read access to a bucket."
+    }
+  ],
+  "sources": [
+    { "name": "IAM Best Practices", "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html", "verified": "2026-10-09" }
+  ],
+  "realWorld": {
+    "usedIn": ["every AWS account", "security compliance", "DevSecOps"],
+    "examples": [
+      "Capital One's 2019 data breach exposed 100 million records due to a misconfigured WAF that allowed an SSRF attack to reach the EC2 metadata service and retrieve IAM role credentials. The role had too-broad S3 permissions — a least-privilege policy would have contained the blast radius",
+      "IAM Identity Center (formerly SSO) lets teams log into multiple AWS accounts with one set of credentials, assigning different roles per account — developers get read-only in production, full access in dev"
+    ]
+  }
+}

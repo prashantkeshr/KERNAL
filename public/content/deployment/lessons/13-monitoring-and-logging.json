@@ -1,0 +1,107 @@
+{
+  "id": "13-monitoring-and-logging",
+  "version": "1.0.0",
+  "technology": "deployment",
+  "module": "production-operations",
+  "title": "Monitoring & Logging",
+  "subtitle": "Know when things break before your users do — uptime monitoring, structured logging, and error tracking with Sentry",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 14,
+  "status": "published",
+  "prerequisites": ["deployment/12-caching-and-cdn"],
+  "skillsTaught": ["deployment.monitoring", "deployment.structured-logging", "deployment.sentry", "deployment.uptime", "deployment.alerting"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The monitoring stack"
+    },
+    {
+      "type": "paragraph",
+      "text": "Production monitoring has three layers: uptime monitoring (is the site responding?), error tracking (what errors are users hitting?), and logging (what happened before the error?). You need all three — a site can be 'up' (health check passes) while throwing errors on specific endpoints. And logs tell you the context around errors that error tracking alone can't capture. Most production incidents are diagnosed through logs."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Uptime monitoring — BetterStack & UptimeRobot"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Uptime monitoring options",
+      "code": "BETTERSTACK (recommended):\n  Free: 10 monitors, 3-minute check interval\n  Checks your URL from multiple regions (Australia, Europe, US)\n  Alerts via: email, SMS, Slack, PagerDuty\n  Status page: status.myapp.com (public or private)\n  Incident management built in\n  Free tier is sufficient for most apps\n\nUPTIMEROBOT (popular free option):\n  Free: 50 monitors, 5-minute intervals\n  Simpler than BetterStack\n  Good starting point\n\nWHAT TO MONITOR:\n  / (homepage)\n  /health (app health check)\n  /api/products (critical API endpoint)\n  /login (authentication flow)\n\nALERT FLOW:\n  Check from Australia: https://myapp.com/health → 200?\n  → YES: All good\n  → NO (3 consecutive failures):\n      1. Email: 'Alert: myapp.com is down'\n      2. SMS to on-call engineer\n      3. Slack: #incidents channel\n      4. Auto-create incident in BetterStack\n      5. Start incident timer\n\nGOAL:\n  You should know your site is down BEFORE your users tell you"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Structured logging — JSON logs"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "Structured logging with Pino",
+      "code": "// Pino is the fastest Node.js logger (100,000+ ops/sec)\n// 'pino' and 'pino-pretty' packages\n\nimport pino from 'pino';\n\nconst logger = pino({\n  level: process.env.LOG_LEVEL ?? 'info',\n  // In production: JSON output (easy to parse)\n  // In development: use pino-pretty for human-readable output\n  transport: process.env.NODE_ENV === 'development'\n    ? { target: 'pino-pretty', options: { colorize: true } }\n    : undefined,\n  // Base fields added to every log line\n  base: {\n    pid: process.pid,\n    service: 'myapp-api',\n    version: process.env.APP_VERSION,\n  },\n});\n\n// Use structured data (NOT string interpolation)\n\n// Bad: hard to query\nlogger.info(`User ${userId} purchased product ${productId} for $${price}`);\n\n// Good: queryable JSON fields\nlogger.info(\n  { userId, productId, price, orderId: newOrder.id, event: 'purchase' },\n  'Order created'\n);\n\n// JSON output (one line per log):\n// {\"level\":30,\"time\":1234567890,\"service\":\"myapp-api\",\n//  \"userId\":42,\"productId\":123,\"price\":49.99,\n//  \"orderId\":\"ord_abc\",\"event\":\"purchase\",\"msg\":\"Order created\"}\n\n// Log levels:\nlogger.trace('Very detailed debugging');     // level: 10\nlogger.debug('Debugging information');        // level: 20\nlogger.info('Normal operation');             // level: 30\nlogger.warn('Something unexpected, not critical');  // level: 40\nlogger.error({ err }, 'Request failed');     // level: 50 (include error object)\nlogger.fatal('Unrecoverable error, crashing'); // level: 60"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Sentry — error tracking"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "Sentry setup for Node.js + React",
+      "code": "// Install: npm install @sentry/node @sentry/react\n\n// === Backend (src/instrument.ts — import FIRST, before anything else) ===\nimport * as Sentry from '@sentry/node';\n\nSentry.init({\n  dsn: process.env.SENTRY_DSN,\n  environment: process.env.NODE_ENV,  // 'production', 'staging'\n  release: process.env.APP_VERSION,   // e.g. 'v1.2.3' from git tag\n  tracesSampleRate: 0.1,              // trace 10% of requests (performance)\n  // profilesSampleRate: 0.1,         // optional: CPU profiling\n});\n\n// Add Sentry to Express (must be after all routes)\napp.use(Sentry.Handlers.requestHandler());\napp.use(Sentry.Handlers.tracingHandler());\n// ... all your routes ...\napp.use(Sentry.Handlers.errorHandler());  // captures errors thrown in routes\n\n// Manual error capture:\ntry {\n  await processPayment(order);\n} catch (error) {\n  Sentry.captureException(error, {\n    extra: { orderId: order.id, userId: order.userId },\n    tags: { component: 'payment' },\n  });\n  throw error;  // re-throw to let the error handler respond to user\n}\n\n// Add user context (shows which user experienced the error):\nSentry.setUser({ id: String(req.user.id), email: req.user.email });\n\n// === Frontend (src/main.tsx) ===\nimport * as Sentry from '@sentry/react';\n\nSentry.init({\n  dsn: import.meta.env.VITE_SENTRY_DSN,\n  integrations: [Sentry.browserTracingIntegration()],\n  tracesSampleRate: 0.1,\n  // Add source maps for readable stack traces:\n  // sentry.io/settings/myorg/myapp/source-maps/\n});"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Request logging middleware"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "HTTP request logging",
+      "code": "import { randomUUID } from 'crypto';\n\n// Add request ID to every request for correlation\napp.use((req, res, next) => {\n  req.id = randomUUID();\n  res.setHeader('X-Request-ID', req.id);\n  next();\n});\n\n// Log every request with timing\napp.use((req, res, next) => {\n  const start = Date.now();\n  res.on('finish', () => {\n    const duration = Date.now() - start;\n    const level = res.statusCode >= 500 ? 'error'\n                : res.statusCode >= 400 ? 'warn'\n                : 'info';\n    logger[level]({\n      requestId: req.id,\n      method: req.method,\n      path: req.path,\n      statusCode: res.statusCode,\n      durationMs: duration,\n      userAgent: req.get('user-agent'),\n      // Never log: Authorization header, passwords, payment data\n    }, `${req.method} ${req.path} ${res.statusCode} ${duration}ms`);\n  });\n  next();\n});\n\n// Output:\n// {\"level\":30,\"requestId\":\"abc-123\",\"method\":\"GET\",\"path\":\"/api/products\",\n//  \"statusCode\":200,\"durationMs\":42,\"msg\":\"GET /api/products 200 42ms\"}"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Never log sensitive data.</strong> Authorization headers, passwords, full credit card numbers, SSNs, health data. Once it's in your logs, it's hard to remove — logs are often aggregated, shipped to third-party services, and retained for months. Add a log sanitizer that scrubs known-sensitive field names before writing. A common pattern: <code>const SENSITIVE = new Set(['password', 'token', 'authorization', 'secret'])</code> — replace any object value whose key is in this set with <code>'[REDACTED]'</code>."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "deployment-13-q1",
+          "question": "Sentry shows an error: 'TypeError: Cannot read properties of undefined'. The stack trace points to a minified file: 'bundle.min.js:1:245832'. How do you make this readable?",
+          "type": "multiple-choice",
+          "options": [
+            "You can't — minified code is unreadable by design",
+            "Turn off minification in production builds",
+            "Upload source maps to Sentry — they map minified positions back to original TypeScript source lines",
+            "Set Sentry's debug mode to true"
+          ],
+          "correctAnswer": 2,
+          "explanation": "Vite (and most bundlers) generate source map files (.js.map) that contain the mapping from minified positions to original source. Sentry has a source map upload step in your CI/CD pipeline (using sentry-cli or the Sentry Vite plugin). Once uploaded, Sentry automatically translates 'bundle.min.js:1:245832' to 'src/components/ProductCard.tsx:47' — the exact line in your TypeScript. Never turn off minification in production: it makes your JavaScript smaller and harder to reverse-engineer. Source maps give you readable stack traces without sacrificing production optimization."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "What logging service should I use for log aggregation?",
+      "a": "For small apps: BetterStack Logs (free tier: 1GB/month, 3-day retention) or Logtail. For larger apps: Datadog (expensive but powerful), Grafana Loki (self-hosted, free), or AWS CloudWatch Logs. The key is centralized storage — logs on your server are lost when you replace it, and you can't query across multiple servers. Any service that accepts log shipping (via Pino transports or a log shipper like Vector) works."
+    }
+  ],
+  "sources": [
+    { "name": "Pino documentation", "url": "https://getpino.io/", "verified": "2026-10-09" },
+    { "name": "Sentry documentation", "url": "https://docs.sentry.io/", "verified": "2026-10-09" }
+  ],
+  "realWorld": {
+    "usedIn": ["every production application", "debugging", "incident response"],
+    "examples": [
+      "During the 2021 Facebook outage (6 hours of downtime), engineers were locked out of their own systems and had to physically access data centers. The incident was diagnosed through logs — every second of that 6-hour outage was documented in logs showing what failed and in what order",
+      "Sentry processes 50+ billion errors per month across millions of apps. Their 'issues' view groups similar errors — so instead of seeing 10,000 individual 'Cannot read property of undefined' events, you see one issue with 10,000 occurrences and the exact user context for each"
+    ]
+  }
+}

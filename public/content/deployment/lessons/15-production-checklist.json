@@ -1,0 +1,118 @@
+{
+  "id": "15-production-checklist",
+  "version": "1.0.0",
+  "technology": "deployment",
+  "module": "production-operations",
+  "title": "Production Launch Checklist",
+  "subtitle": "Every item to verify before going live — security, performance, monitoring, backups, and the final pre-launch walkthrough",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 16,
+  "status": "published",
+  "prerequisites": ["deployment/14-backups-and-recovery"],
+  "skillsTaught": ["deployment.production-checklist", "deployment.security-headers", "deployment.launch-readiness", "deployment.performance-baseline"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Why a checklist?"
+    },
+    {
+      "type": "paragraph",
+      "text": "Aviation uses checklists not because pilots are incompetent, but because humans forget things under pressure. Launching a product involves dozens of steps, many of which interact with each other. A single missed step — HTTPS redirect not enabled, error tracking not configured, backups pointing at the wrong database — can cost you users, data, or credibility. This checklist covers everything we've learned in this track, organized as a pre-launch runthrough."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Security checklist"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Security: must-have before launch",
+      "code": "HTTPS:\n  [ ] HTTPS enabled — no HTTP-only responses\n  [ ] HTTP → HTTPS redirect (301) is configured\n  [ ] HSTS header set (Strict-Transport-Security: max-age=31536000)\n  [ ] Certificate is valid and auto-renews\n\nHEADERS:\n  [ ] X-Frame-Options: DENY (or SAMEORIGIN if embedding needed)\n  [ ] X-Content-Type-Options: nosniff\n  [ ] Content-Security-Policy configured (prevents XSS injection)\n  [ ] Referrer-Policy: strict-origin-when-cross-origin\n  [ ] Permissions-Policy set (disable unused browser features)\n\nSECRETS:\n  [ ] No secrets in git history (check: git log -p | grep -i secret)\n  [ ] .env NOT committed (check: git ls-files | grep .env)\n  [ ] .env.example committed with empty values\n  [ ] Production secrets stored in platform secrets manager\n  [ ] Different secrets for staging vs production\n\nAUTHENTICATION:\n  [ ] Password hashed with bcrypt/argon2 (NEVER plain text or MD5)\n  [ ] JWT secrets are long (32+ random bytes), not 'mysecret'\n  [ ] Session tokens are httpOnly cookies (not localStorage for auth)\n  [ ] Rate limiting on login endpoint (prevent brute force)\n  [ ] CSRF protection on state-changing endpoints\n\nDATABASE:\n  [ ] Database not exposed to internet (only accessible from app server)\n  [ ] DB user has minimum required permissions (not superuser)\n  [ ] SQL queries use parameterized queries (prevent SQL injection)"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Performance checklist"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Performance: meet these before launch",
+      "code": "STATIC ASSETS:\n  [ ] Gzip/Brotli compression enabled on Nginx or CDN\n  [ ] CSS and JS minified (Vite does this in production build)\n  [ ] Images compressed and in modern format (WebP, AVIF)\n  [ ] Cache-Control: immutable, max-age=31536000 on hashed assets\n  [ ] Cache-Control: no-cache on index.html\n\nCDN:\n  [ ] Static files served from CDN (Cloudflare, CloudFront, Vercel Edge)\n  [ ] CDN configured for your domain (not origin-only serving)\n\nDATABASE:\n  [ ] Indexes on all foreign keys\n  [ ] Indexes on columns used in WHERE clauses (check query plan)\n  [ ] N+1 query problem absent (use eager loading, not per-row queries)\n  [ ] Database connection pooling enabled\n\nPAGE SPEED:\n  [ ] Lighthouse score: Performance > 80 (run: npm run build && serve -s dist)\n  [ ] LCP (Largest Contentful Paint) < 2.5 seconds\n  [ ] CLS (Cumulative Layout Shift) < 0.1\n  [ ] Bundle size checked: npm run build (Vite shows sizes)\n  [ ] No unused dependencies included in bundle"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Monitoring and reliability checklist"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Monitoring: be the first to know",
+      "code": "UPTIME:\n  [ ] Uptime monitoring configured (BetterStack, UptimeRobot)\n  [ ] Health check endpoint (/health) responding with 200\n  [ ] Alert goes to email AND Slack (or phone for critical apps)\n  [ ] Status page configured (optional but professional)\n\nERROR TRACKING:\n  [ ] Sentry (or equivalent) initialized in both frontend and backend\n  [ ] Error alerts configured (notify on new issues)\n  [ ] Source maps uploaded for readable stack traces\n  [ ] User context set in Sentry (so you know which users are affected)\n\nLOGGING:\n  [ ] Structured JSON logging enabled\n  [ ] Logs being stored somewhere queryable (not just stdout)\n  [ ] Request IDs added to all log lines\n  [ ] Sensitive data NOT being logged (passwords, tokens, card numbers)\n  [ ] Log retention policy set (auto-delete after 30-90 days)\n\nBACKUPS:\n  [ ] Automated database backup scheduled (at minimum: daily)\n  [ ] Backup restoration has been TESTED (not just configured)\n  [ ] Backup files stored outside the production server\n  [ ] Recovery runbook documented"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Security headers implementation"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "Adding all security headers in Express",
+      "code": "import helmet from 'helmet';  // npm install helmet\n\n// Helmet sets most security headers automatically\napp.use(helmet({\n  contentSecurityPolicy: {\n    directives: {\n      defaultSrc: [\"'self'\"],\n      scriptSrc: [\"'self'\", \"'unsafe-inline'\"],  // adjust for your CDN\n      styleSrc: [\"'self'\", \"'unsafe-inline'\", \"https://fonts.googleapis.com\"],\n      fontSrc: [\"'self'\", \"https://fonts.gstatic.com\"],\n      imgSrc: [\"'self'\", \"data:\", \"https:\"],\n      connectSrc: [\"'self'\", \"https://api.myapp.com\"],\n    },\n  },\n  // Prevents clickjacking\n  frameguard: { action: 'deny' },\n  // Forces HTTPS for 1 year\n  hsts: { maxAge: 31536000, includeSubDomains: true },\n}));\n\n// Verify headers at: https://securityheaders.com\n// Also: https://observatory.mozilla.org/analyze/myapp.com"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Day-of-launch checklist"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Day-of-launch: final walkthrough",
+      "code": "BEFORE LAUNCH (1-2 days before):\n  [ ] Deploy to staging and test all critical flows manually\n  [ ] Run Lighthouse audit on staging\n  [ ] Confirm all environment variables are set in production\n  [ ] Test sending an alert (verify Slack/email notifications work)\n  [ ] Take a database backup and test restoration\n  [ ] Review error tracking — resolve any pre-existing errors\n\nLAUNCH DAY:\n  [ ] Deploy latest build to production\n  [ ] Verify health check is green\n  [ ] Walk through critical user flows:\n      - Sign up / login\n      - Core feature (make a purchase, submit a form, etc.)\n      - Error state (invalid input, 404 page)\n  [ ] Check error tracking: no new errors immediately post-deploy\n  [ ] Check uptime monitoring: green status\n  [ ] Verify DNS, HTTPS, redirects all working\n\nPOST-LAUNCH (24 hours after):\n  [ ] Review error tracking for any new issues users encountered\n  [ ] Review logs for any suspicious patterns\n  [ ] Check database query performance (any slow queries?)\n  [ ] Confirm backups have been running\n  [ ] Take note of real traffic patterns for capacity planning\n\nEMERGENCY ROLLBACK:\n  [ ] Documented: how to roll back to previous version\n  [ ] Previous version's Docker image or git tag recorded\n  [ ] Everyone who can deploy knows how to roll back"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Check your security headers at securityheaders.com after launch.</strong> Enter your domain and get an instant grade (A+ to F) with explanations for what's missing. Mozilla Observatory (observatory.mozilla.org) gives a more detailed security scan including CORS policy, cookie settings, and CSP analysis. Both are free. An A or A+ grade means your headers are correctly configured. Aim for at least a B before launch."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "deployment-15-q1",
+          "question": "You launch your app and users report that navigating to pages directly gives a 404 error, but the homepage loads fine. What checklist item did you miss?",
+          "type": "multiple-choice",
+          "options": [
+            "HTTPS redirect not configured",
+            "SPA routing rule not set — server needs to serve index.html for all paths (/* → /index.html 200)",
+            "CDN cache needs to be purged",
+            "Missing security headers"
+          ],
+          "correctAnswer": 1,
+          "explanation": "This is the classic SPA routing bug. React Router handles routes in JavaScript — but the JavaScript only runs after index.html loads. When a user navigates directly to '/dashboard', the server looks for a file at that path and finds nothing, returning 404. The fix: configure your server to serve index.html for all paths that don't match actual files. In Nginx: 'try_files $uri $uri/ /index.html'. In Netlify: '/* /index.html 200' in _redirects. This should be in your checklist under frontend routing configuration."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "How long should a production launch take with this checklist?",
+      "a": "For a new app: the security and performance items take 2-4 hours to implement the first time. After that, subsequent launches take 30 minutes for the day-of checklist. The monitoring and backup setup is one-time work. For an experienced team, everything on this checklist is standard practice that's built into the development workflow — you're not adding it at launch, you're verifying it's in place."
+    }
+  ],
+  "sources": [
+    { "name": "OWASP Security Headers", "url": "https://owasp.org/www-project-secure-headers/", "verified": "2026-10-09" },
+    { "name": "Web Vitals", "url": "https://web.dev/vitals/", "verified": "2026-10-09" }
+  ],
+  "realWorld": {
+    "usedIn": ["every production launch", "security audits", "SRE teams"],
+    "examples": [
+      "Helth startup breaches consistently trace back to items on this list: hardcoded secrets, missing HTTPS, no rate limiting on auth endpoints. The OWASP Top 10 (10 most common security vulnerabilities) is essentially a list of 'items missed on this checklist'. Companies spending millions on security still get breached due to basics like missing headers or exposed secrets",
+      "High-profile launches (Product Hunt launches, HN Show HN posts) often expose bugs that only surface under real traffic. Teams that go through a launch checklist systematically — especially testing critical flows on staging — avoid the most painful launch-day incidents"
+    ]
+  }
+}

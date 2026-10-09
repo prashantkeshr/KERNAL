@@ -211,7 +211,7 @@
     "order": 17,
     "stage": 13,
     "playground": "terminal",
-    "enabled": false,
+    "enabled": true,
     "description": "Cloud infrastructure, S3, EC2, Lambda, IAM, and VPC",
     "estimatedHours": 30
   },
@@ -223,7 +223,7 @@
     "order": 18,
     "stage": 13,
     "playground": "terminal",
-    "enabled": false,
+    "enabled": true,
     "description": "Vercel, Railway, Fly.io — deploy full-stack apps at any scale",
     "estimatedHours": 8
   },

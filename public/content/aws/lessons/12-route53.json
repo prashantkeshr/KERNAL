@@ -1,0 +1,95 @@
+{
+  "id": "12-route53",
+  "version": "1.0.0",
+  "technology": "aws",
+  "module": "networking",
+  "title": "Route53 — DNS & Routing",
+  "subtitle": "Domain registration, DNS records, health checks, and intelligent traffic routing across regions",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 13,
+  "status": "published",
+  "prerequisites": ["aws/11-cloudfront"],
+  "skillsTaught": ["aws.route53", "aws.dns-records", "aws.hosted-zone", "aws.alias-records", "aws.health-checks", "aws.routing-policies"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Route53 — more than just DNS"
+    },
+    {
+      "type": "paragraph",
+      "text": "Route53 is AWS's DNS service and domain registrar. It resolves domain names to IP addresses with 100% SLA uptime — the only AWS service with this guarantee. Beyond basic DNS, Route53 supports intelligent routing: send 10% of traffic to a new version (weighted routing), route users to the closest region (latency-based routing), or fail over to a backup when the primary is down (failover routing)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "DNS record types — the essential ones"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "DNS record type reference",
+      "code": "A RECORD      → Maps a hostname to an IPv4 address\n  example.com → 1.2.3.4\n\nAAAA RECORD   → Maps a hostname to an IPv6 address\n  example.com → 2001:db8::1\n\nCNAME         → Maps a hostname to another hostname (canonical name)\n  www.example.com → example.com\n  Cannot use CNAME at the zone apex (example.com itself — use ALIAS)\n  Cannot use CNAME for the root domain\n\nALIAS         → AWS-specific, like CNAME but works at zone apex\n  example.com → d123.cloudfront.net    ✓ works\n  example.com → my-alb.us-east-1.elb.amazonaws.com  ✓ works\n  Free of charge (no query charges for ALIAS records)\n  Auto-updates if target IP changes\n\nMX RECORD     → Mail server for the domain\n  example.com → 10 mail.example.com (priority 10)\n\nTXT RECORD    → Text data — domain verification, SPF/DKIM for email\n  example.com → 'v=spf1 include:mailgun.org ~all'\n\nNS RECORD     → Which nameservers are authoritative for the domain\n  Set automatically by Route53 when you create a hosted zone\n\nSOA RECORD    → Start of Authority — metadata about the zone"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Setting up a domain in Route53"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Configure DNS for myapp.com",
+      "code": "# 1. Create a hosted zone (public — accessible from internet)\naws route53 create-hosted-zone \\\n  --name myapp.com \\\n  --caller-reference $(date +%s)\n\n# Note the 4 NS records returned — add them to your domain registrar\n# (If domain is registered in Route53, this is automatic)\n\n# 2. Create DNS records\n# Use change-resource-record-sets for all record operations:\naws route53 change-resource-record-sets \\\n  --hosted-zone-id Z1234567890 \\\n  --change-batch '{\n    \"Changes\": [\n      {\n        \"Action\": \"UPSERT\",\n        \"ResourceRecordSet\": {\n          \"Name\": \"myapp.com\",\n          \"Type\": \"A\",\n          \"AliasTarget\": {\n            \"HostedZoneId\": \"Z2FDTNDATAQYW2\",\n            \"DNSName\": \"d1234567890.cloudfront.net\",\n            \"EvaluateTargetHealth\": false\n          }\n        }\n      },\n      {\n        \"Action\": \"UPSERT\",\n        \"ResourceRecordSet\": {\n          \"Name\": \"www.myapp.com\",\n          \"Type\": \"CNAME\",\n          \"TTL\": 300,\n          \"ResourceRecords\": [{\"Value\": \"myapp.com\"}]\n        }\n      }\n    ]\n  }'"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Routing policies — intelligent traffic distribution"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Route53 routing policies",
+      "code": "SIMPLE:          Single record, one destination (default)\n  api.myapp.com → 1.2.3.4\n\nWEIGHTED:        Distribute traffic by percentage\n  api.myapp.com → 1.2.3.4 (weight 90)  ← v1 (90% of traffic)\n  api.myapp.com → 5.6.7.8 (weight 10)  ← v2 canary (10% of traffic)\n  Use: canary deployments, A/B testing\n\nLATENCY-BASED:   Route to the lowest-latency region for each user\n  api.myapp.com → ALB in us-east-1    (for North American users)\n  api.myapp.com → ALB in ap-south-1   (for Asian users)\n  api.myapp.com → ALB in eu-west-1    (for European users)\n  Use: global applications, latency-sensitive APIs\n\nFAILOVER:        Primary/secondary with health check\n  api.myapp.com → Primary (health check every 30s)\n  api.myapp.com → Secondary (only used if primary fails health check)\n  Use: disaster recovery, active-passive HA\n\nGEOLOCATION:     Route based on user's geographic location\n  api.myapp.com → EU endpoint  (for EU users — GDPR compliance)\n  api.myapp.com → US endpoint  (for US users)\n  Use: data sovereignty, language/content routing\n\nMULTI-VALUE:     Return multiple IPs, DNS-level load balancing\n  Returns up to 8 healthy IPs — client picks one\n  Use: simple round-robin without a load balancer"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Health checks make your routing intelligent.</strong> Attach a Route53 health check to your records. Route53 pings your endpoint every 10-30 seconds. If it fails 3 consecutive checks, Route53 automatically removes that record from DNS responses. Combined with failover routing, this gives you automatic DNS-level failover when a region goes down."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "aws-12-q1",
+          "question": "You want to route users in India to an API server in ap-south-1 (Mumbai) and users in the US to us-east-1 (Virginia), to minimize latency. Which Route53 routing policy should you use?",
+          "type": "multiple-choice",
+          "options": [
+            "Geolocation routing — route based on the user's country",
+            "Latency-based routing — automatically routes each user to the lowest-latency region",
+            "Weighted routing — send 50% of traffic to each region",
+            "Failover routing — primary in one region, backup in another"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Latency-based routing is the right choice. It measures actual network latency between the user and each configured region, then routes to the fastest one. Unlike geolocation (which routes by country and may not reflect actual latency), latency-based routing dynamically optimizes for real network conditions. If a user in India has better latency to Singapore than Mumbai on a given day, latency routing would correctly route them to Singapore."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Should I register my domain in Route53 or another registrar?",
+      "a": "Registering in Route53 is convenient — DNS is set up automatically, renewals are managed in AWS, and you can use ALIAS records at the apex. Cost is competitive (~$12/year for .com). But if you have an existing registrar you prefer, you can keep the domain there and just use Route53 for DNS by updating the nameservers to Route53's NS records. Most teams eventually consolidate to Route53 for simplicity."
+    }
+  ],
+  "sources": [
+    { "name": "Route53 developer guide", "url": "https://docs.aws.amazon.com/route53/", "verified": "2026-10-09" }
+  ],
+  "realWorld": {
+    "usedIn": ["domain management", "global routing", "disaster recovery", "A/B testing"],
+    "examples": [
+      "Netflix uses latency-based routing to serve content from the nearest region. During a US-East-1 incident in 2012, failover routing would have redirected traffic to EU/US-West — they've since built this capability",
+      "Weighted routing with 1%/99% split is how teams do canary deployments at the DNS level — expose 1% of users to a new version, monitor error rates, then gradually increase the weight to 100%"
+    ]
+  }
+}

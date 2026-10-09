@@ -1,0 +1,90 @@
+{
+  "id": "13-cloudformation-cdk",
+  "version": "1.0.0",
+  "technology": "aws",
+  "module": "production-aws",
+  "title": "CloudFormation & CDK",
+  "subtitle": "Infrastructure as Code — define your entire AWS infrastructure in TypeScript or YAML, version-controlled and reproducible",
+  "difficulty": "advanced",
+  "estimatedMinutes": 16,
+  "status": "published",
+  "prerequisites": ["aws/09-ecs-fargate", "aws/10-vpc"],
+  "skillsTaught": ["aws.cloudformation", "aws.cdk", "aws.iac", "aws.stacks", "aws.constructs", "aws.cdk-deploy"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Why Infrastructure as Code?"
+    },
+    {
+      "type": "paragraph",
+      "text": "Clicking through the AWS console to create resources is fine for learning. In production, it's a liability: no audit trail, hard to reproduce, easy to make mistakes, impossible to diff between environments. Infrastructure as Code (IaC) solves this by describing your infrastructure in code files — versioned in git, reviewed in PRs, automatically applied. Destroying and recreating an entire environment takes minutes, not days."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "CloudFormation — AWS native IaC"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "cloudformation-template.yml — S3 bucket + CloudFront",
+      "code": "AWSTemplateFormatVersion: '2010-09-09'\nDescription: Static website hosting with S3 and CloudFront\n\nParameters:\n  DomainName:\n    Type: String\n    Description: Domain name for the website\n    Default: myapp.com\n\nResources:\n  # S3 bucket for website content\n  WebsiteBucket:\n    Type: AWS::S3::Bucket\n    Properties:\n      BucketName: !Sub '${DomainName}-website'\n      PublicAccessBlockConfiguration:\n        BlockPublicAcls: true\n        BlockPublicPolicy: true\n        IgnorePublicAcls: true\n        RestrictPublicBuckets: true\n\n  # SSL certificate (must be us-east-1 for CloudFront)\n  Certificate:\n    Type: AWS::CertificateManager::Certificate\n    Properties:\n      DomainName: !Ref DomainName\n      ValidationMethod: DNS\n\n  # CloudFront distribution\n  Distribution:\n    Type: AWS::CloudFront::Distribution\n    Properties:\n      DistributionConfig:\n        DefaultRootObject: index.html\n        Enabled: true\n        Origins:\n          - Id: S3Origin\n            DomainName: !GetAtt WebsiteBucket.RegionalDomainName\n        DefaultCacheBehavior:\n          TargetOriginId: S3Origin\n          ViewerProtocolPolicy: redirect-to-https\n          Compress: true\n        ViewerCertificate:\n          AcmCertificateArn: !Ref Certificate\n          SslSupportMethod: sni-only\n\nOutputs:\n  DistributionURL:\n    Value: !GetAtt Distribution.DomainName\n    Description: CloudFront URL\n\n# Deploy:\n# aws cloudformation deploy --template-file template.yml --stack-name myapp-website"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "AWS CDK — CloudFormation in TypeScript"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "lib/website-stack.ts — CDK stack",
+      "code": "import * as cdk from 'aws-cdk-lib';\nimport * as s3 from 'aws-cdk-lib/aws-s3';\nimport * as cloudfront from 'aws-cdk-lib/aws-cloudfront';\nimport * as origins from 'aws-cdk-lib/aws-cloudfront-origins';\nimport * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';\n\nexport class WebsiteStack extends cdk.Stack {\n  constructor(scope: cdk.App, id: string, props?: cdk.StackProps) {\n    super(scope, id, props);\n\n    // S3 bucket for website files\n    const bucket = new s3.Bucket(this, 'WebsiteBucket', {\n      removalPolicy: cdk.RemovalPolicy.DESTROY,  // delete bucket when stack is deleted\n      autoDeleteObjects: true,\n      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,\n    });\n\n    // CloudFront distribution\n    const distribution = new cloudfront.Distribution(this, 'Distribution', {\n      defaultBehavior: {\n        origin: origins.S3BucketOrigin.withOriginAccessControl(bucket),\n        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,\n        compress: true,\n      },\n      defaultRootObject: 'index.html',\n      errorResponses: [\n        // SPA routing: 404 → serve index.html (React Router handles it)\n        { httpStatus: 404, responseHttpStatus: 200, responsePagePath: '/index.html' },\n      ],\n    });\n\n    // Deploy website files from local dist/ directory\n    new s3deploy.BucketDeployment(this, 'DeployWebsite', {\n      sources: [s3deploy.Source.asset('./dist')],\n      destinationBucket: bucket,\n      distribution,\n      distributionPaths: ['/*'],  // invalidate CloudFront cache on deploy\n    });\n\n    // Outputs\n    new cdk.CfnOutput(this, 'URL', {\n      value: `https://${distribution.distributionDomainName}`,\n    });\n  }\n}\n\n// bin/app.ts\nconst app = new cdk.App();\nnew WebsiteStack(app, 'MyAppWebsite', {\n  env: { region: 'us-east-1' },\n});"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "CDK workflow",
+      "code": "# Install CDK\nnpm install -g aws-cdk\nnpm install aws-cdk-lib constructs\n\n# Bootstrap (one-time per account/region setup)\ncdk bootstrap aws://123456789012/us-east-1\n\n# Preview changes (like terraform plan)\ncdk diff\n# Output: shows what will be created, modified, or deleted\n\n# Deploy\ncdk deploy\n# Creates/updates the CloudFormation stack\n\n# Destroy all resources\ncdk destroy\n\n# Synthesize CloudFormation template (see what CDK generates)\ncdk synth"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>CDK is CloudFormation with superpowers.</strong> CDK compiles to CloudFormation YAML under the hood — <code>cdk synth</code> shows you exactly what CloudFormation template it generates. You get all CloudFormation's reliability and state management, plus the ability to use TypeScript: loops to create multiple similar resources, abstractions (Constructs), type-safe props, and reusable patterns shared as npm packages."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "aws-13-q1",
+          "question": "You use CloudFormation to create an EC2 instance. You then manually change the instance type in the console. What happens when you run 'cloudformation deploy' again?",
+          "type": "multiple-choice",
+          "options": [
+            "Nothing — CloudFormation only adds new resources, never modifies existing ones",
+            "CloudFormation detects the drift and reverts the instance type back to what the template specifies",
+            "CloudFormation fails — it won't deploy if manual changes were detected",
+            "CloudFormation ignores the manual change and keeps the console-modified instance type"
+          ],
+          "correctAnswer": 1,
+          "explanation": "CloudFormation uses the template as the source of truth. When you deploy, it compares the desired state (template) to the current state and applies changes to reach the desired state. If you manually changed the instance type from t3.micro to t3.small, the next deploy will change it back to t3.micro. This 'configuration drift' — where reality diverges from the IaC definition — is exactly why IaC enforces consistency. Run 'aws cloudformation detect-stack-drift' to see drifted resources."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "CDK vs Terraform — which should I learn?",
+      "a": "Both are excellent. CDK is AWS-only but lets you use TypeScript. Terraform is multi-cloud (AWS, GCP, Azure) with its own HCL language. For AWS-only projects: CDK gives better type safety and access to all new AWS services immediately (no waiting for provider updates). For multi-cloud or existing Terraform organizations: Terraform. Many teams use both: CDK for application infrastructure, Terraform for org-level resources."
+    }
+  ],
+  "sources": [
+    { "name": "AWS CDK documentation", "url": "https://docs.aws.amazon.com/cdk/", "verified": "2026-10-09" }
+  ],
+  "realWorld": {
+    "usedIn": ["production deployments", "infrastructure automation", "disaster recovery"],
+    "examples": [
+      "Slack manages thousands of AWS resources with CDK. All infrastructure changes go through code review — no one manually clicks in the console. If a region has an outage, they can recreate the entire infrastructure in another region by running 'cdk deploy' with a different region parameter",
+      "CDK Constructs are shareable patterns: aws-cdk-lib includes constructs like 'ApplicationLoadBalancedFargateService' that creates an ECS service, task definition, ALB, target group, and security groups in one line of TypeScript"
+    ]
+  }
+}

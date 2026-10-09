@@ -1,0 +1,114 @@
+{
+  "id": "09-docker-on-vps",
+  "version": "1.0.0",
+  "technology": "deployment",
+  "module": "backend-hosting",
+  "title": "Docker on a VPS",
+  "subtitle": "Run containerized apps on your own server with Docker Compose, auto-updating containers, and Nginx proxying",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 15,
+  "status": "published",
+  "prerequisites": ["deployment/08-vps-and-nginx", "docker/05-docker-compose"],
+  "skillsTaught": ["deployment.docker-compose-production", "deployment.watchtower", "deployment.container-networking", "deployment.nginx-docker"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Docker Compose on a VPS"
+    },
+    {
+      "type": "paragraph",
+      "text": "Docker Compose on a VPS combines the best of both worlds: the reproducibility and isolation of containers with the simplicity and cost of a single VPS. You get the same docker-compose.yml that runs locally to also run in production. No Kubernetes. No ECS. One file describes your entire stack — app, database, Redis, worker — and a single command starts everything."
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Install Docker on Ubuntu",
+      "code": "# Install Docker via the official script (simplest method)\ncurl -fsSL https://get.docker.com | sh\n\n# Add your user to the docker group (avoids sudo for docker commands)\nsudo usermod -aG docker deploy\nnewgrp docker  # apply group change without logout\n\n# Verify\ndocker --version   # Docker 27.x.x\ndocker compose version  # Docker Compose v2.x.x\n\n# Docker Compose v2 is built into Docker — no separate install needed\n# Use 'docker compose' (with a space) not 'docker-compose' (hyphen)"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Production Docker Compose file"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "docker-compose.prod.yml",
+      "code": "services:\n  app:\n    image: ghcr.io/myorg/myapp:latest  # Pull from GitHub Container Registry\n    restart: always\n    environment:\n      NODE_ENV: production\n      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/myapp\n      REDIS_URL: redis://redis:6379\n      JWT_SECRET: ${JWT_SECRET}\n    depends_on:\n      db:\n        condition: service_healthy\n      redis:\n        condition: service_started\n    # Don't expose port externally — Nginx proxies to it\n    expose:\n      - \"3000\"\n    networks:\n      - app-net\n\n  db:\n    image: postgres:16-alpine\n    restart: always\n    volumes:\n      - postgres-data:/var/lib/postgresql/data\n    environment:\n      POSTGRES_DB: myapp\n      POSTGRES_USER: postgres\n      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}\n    healthcheck:\n      test: [\"CMD-SHELL\", \"pg_isready -U postgres\"]\n      interval: 10s\n      timeout: 5s\n      retries: 5\n    networks:\n      - app-net\n\n  redis:\n    image: redis:7-alpine\n    restart: always\n    volumes:\n      - redis-data:/data\n    networks:\n      - app-net\n\nnetworks:\n  app-net:\n    driver: bridge\n\nvolumes:\n  postgres-data:\n  redis-data:"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Deploying and managing the stack",
+      "code": "# Clone repo to server\ngit clone https://github.com/myorg/myapp.git /home/deploy/myapp\ncd /home/deploy/myapp\n\n# Create .env file with secrets (NEVER commit this)\ncat > .env << 'EOF'\nPOSTGRES_PASSWORD=supersecretpassword\nJWT_SECRET=anothersecretvalue\nEOF\nchmod 600 .env\n\n# Start the stack\ndocker compose -f docker-compose.prod.yml up -d\n\n# View logs\ndocker compose -f docker-compose.prod.yml logs -f app\n\n# Run database migrations (one-off command)\ndocker compose -f docker-compose.prod.yml exec app npm run db:migrate\n\n# Update to latest image\ndocker compose -f docker-compose.prod.yml pull\ndocker compose -f docker-compose.prod.yml up -d\n# Docker Compose performs a rolling update (stops old, starts new)\n\n# View running containers\ndocker compose -f docker-compose.prod.yml ps"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Nginx proxy to Docker containers"
+    },
+    {
+      "type": "code",
+      "lang": "nginx",
+      "filename": "/etc/nginx/sites-available/myapp — Docker setup",
+      "code": "# Docker Compose containers are on a bridge network\n# From the host, reach them via localhost + the exposed port\n# (or container name if using host networking)\n\nupstream app_backend {\n    server 127.0.0.1:3000;  # Nginx is on the host, app is in a container\n    # If app exposes port 3000: ports: [\"127.0.0.1:3000:3000\"]\n    # Binding to 127.0.0.1 means ONLY Nginx can reach it, not the internet\n}\n\nserver {\n    listen 80;\n    server_name myapp.com www.myapp.com;\n    return 301 https://$host$request_uri;\n}\n\nserver {\n    listen 443 ssl http2;\n    server_name myapp.com www.myapp.com;\n\n    ssl_certificate /etc/letsencrypt/live/myapp.com/fullchain.pem;\n    ssl_certificate_key /etc/letsencrypt/live/myapp.com/privkey.pem;\n\n    location / {\n        proxy_pass http://app_backend;\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n    }\n}"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "docker-compose.prod.yml — expose port to Nginx",
+      "code": "# In docker-compose.prod.yml, expose the app to localhost only:\nservices:\n  app:\n    image: ghcr.io/myorg/myapp:latest\n    ports:\n      # Bind to 127.0.0.1 — only Nginx on this host can reach port 3000\n      # 0.0.0.0:3000:3000 would expose it to the internet (don't do this)\n      - \"127.0.0.1:3000:3000\"\n    # ... rest of config"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Watchtower — automatic container updates"
+    },
+    {
+      "type": "code",
+      "lang": "yaml",
+      "filename": "Adding Watchtower to docker-compose.prod.yml",
+      "code": "services:\n  # ... your existing services ...\n\n  watchtower:\n    image: containrrr/watchtower\n    restart: always\n    volumes:\n      - /var/run/docker.sock:/var/run/docker.sock\n      # If pulling from GitHub Container Registry:\n      - /home/deploy/.docker/config.json:/config.json\n    environment:\n      WATCHTOWER_POLL_INTERVAL: 300      # check every 5 minutes\n      WATCHTOWER_CLEANUP: \"true\"         # remove old images\n      WATCHTOWER_INCLUDE_STOPPED: \"false\"\n      WATCHTOWER_NOTIFICATIONS: \"email\"  # optional notifications\n    command: --interval 300 app           # only watch the 'app' service"
+    },
+    {
+      "type": "tip",
+      "text": "<strong>Use Watchtower only for services where instant updates are safe.</strong> For databases and stateful services, update manually so you can run migrations first. For your application container, Watchtower is great — it detects when a new image is pushed to the registry and redeploys automatically. Combined with your CI/CD pipeline pushing to GitHub Container Registry on every merge, you get automatic deploys to your VPS without any extra orchestration."
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "deployment-09-q1",
+          "question": "In the docker-compose.prod.yml above, the app service uses 'expose: [\"3000\"]' not 'ports: [\"3000:3000\"]'. What's the difference?",
+          "type": "multiple-choice",
+          "options": [
+            "No difference — both make port 3000 accessible the same way",
+            "'expose' documents the port but doesn't publish it outside Docker's network; 'ports' publishes to the host — required for Nginx to reach it from outside the container network",
+            "'expose' is for HTTP only; 'ports' supports all protocols",
+            "'expose' is deprecated; always use 'ports'"
+          ],
+          "correctAnswer": 1,
+          "explanation": "'expose' only makes the port accessible to OTHER containers on the same Docker network — not to the host machine or the internet. It's useful for inter-container communication when your proxy (Nginx) also runs as a container (in which case it can reach the app via container name on the Docker network). In our setup, Nginx runs directly on the host (not in Docker), so we actually need 'ports: [\"127.0.0.1:3000:3000\"]' to expose the port to the host — but bound to 127.0.0.1 only, preventing direct internet access."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Should I run Nginx in Docker too, or on the host?",
+      "a": "Either works. Running Nginx on the host is simpler for beginners — Certbot can manage certificates directly. Running Nginx in Docker (with jwilder/nginx-proxy or Traefik) is more portable. For a single VPS, host-installed Nginx is less moving parts. For multiple apps on the same VPS, Traefik as a reverse proxy container that auto-discovers other containers and handles SSL is worth learning."
+    }
+  ],
+  "sources": [
+    { "name": "Docker Compose documentation", "url": "https://docs.docker.com/compose/", "verified": "2026-10-09" },
+    { "name": "Watchtower documentation", "url": "https://containrrr.dev/watchtower/", "verified": "2026-10-09" }
+  ],
+  "realWorld": {
+    "usedIn": ["self-hosted apps", "indie hackers", "internal tools", "small-scale production"],
+    "examples": [
+      "Many self-hosted tools (Plausible Analytics, Umami, Gitea, Mattermost) are designed to run on a VPS with Docker Compose. Their documentation gives you a docker-compose.yml and you're live in 10 minutes",
+      "The 'Ship Your App' movement popularized by Kamal and Rails showed that Docker on a single VPS can handle significant traffic. Prime Day-scale? No. 10,000 daily active users? Absolutely"
+    ]
+  }
+}

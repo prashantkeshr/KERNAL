@@ -1,0 +1,113 @@
+{
+  "id": "08-lambda",
+  "version": "1.0.0",
+  "technology": "aws",
+  "module": "compute",
+  "title": "Lambda — Serverless Functions",
+  "subtitle": "Write code, forget servers — event-driven functions that scale to zero and cost nothing when idle",
+  "difficulty": "intermediate",
+  "estimatedMinutes": 15,
+  "status": "published",
+  "prerequisites": ["aws/07-ec2"],
+  "skillsTaught": ["aws.lambda", "aws.lambda-triggers", "aws.lambda-layers", "aws.cold-start", "aws.lambda-pricing", "aws.serverless"],
+  "content": [
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "What makes Lambda different"
+    },
+    {
+      "type": "paragraph",
+      "text": "With EC2, you pay for a server even when it's doing nothing. With Lambda, you pay only when your code runs — and only for the duration it runs (billed in 1ms increments). Lambda scales from 0 to 10,000 concurrent executions automatically, with no configuration. There's no OS to patch, no server to maintain, no auto-scaling groups to configure. You upload code; AWS handles everything else."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Writing your first Lambda function"
+    },
+    {
+      "type": "code",
+      "lang": "typescript",
+      "filename": "handler.ts — Lambda function structure",
+      "code": "// Lambda receives an event and returns a response\n// The event shape depends on the trigger (API Gateway, S3, SQS, etc.)\n\n// Example: HTTP API trigger via API Gateway\nimport { APIGatewayProxyHandlerV2 } from 'aws-lambda';\n\nexport const handler: APIGatewayProxyHandlerV2 = async (event) => {\n  console.log('Event:', JSON.stringify(event, null, 2));\n\n  const name = event.queryStringParameters?.name ?? 'World';\n\n  return {\n    statusCode: 200,\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify({ message: `Hello, ${name}!` }),\n  };\n};\n\n// Example: S3 trigger — runs when a file is uploaded\nimport { S3Handler } from 'aws-lambda';\nexport const processUpload: S3Handler = async (event) => {\n  for (const record of event.Records) {\n    const bucket = record.s3.bucket.name;\n    const key = record.s3.object.key;\n    console.log(`Processing: s3://${bucket}/${key}`);\n    // resize image, extract metadata, trigger workflow...\n  }\n};\n\n// Example: Scheduled trigger (like cron) — runs on a schedule\nimport { ScheduledHandler } from 'aws-lambda';\nexport const dailyReport: ScheduledHandler = async (event) => {\n  // Runs daily at 8am UTC\n  console.log('Generating daily report...');\n};"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Deploying Lambda functions"
+    },
+    {
+      "type": "code",
+      "lang": "bash",
+      "filename": "Deploy a Lambda function",
+      "code": "# Method 1: Direct zip upload\nnpm run build   # compile TypeScript to JS\nzip -r function.zip dist/ node_modules/\n\naws lambda create-function \\\n  --function-name my-api \\\n  --runtime nodejs20.x \\\n  --handler dist/handler.handler \\\n  --zip-file fileb://function.zip \\\n  --role arn:aws:iam::123456789:role/lambda-execution-role\n\n# Update after code changes:\naws lambda update-function-code \\\n  --function-name my-api \\\n  --zip-file fileb://function.zip\n\n# Method 2: Container image (for complex dependencies)\n# Build and push to ECR, then point Lambda at the image:\naws lambda update-function-code \\\n  --function-name my-api \\\n  --image-uri 123456789.dkr.ecr.ap-south-1.amazonaws.com/my-app:latest\n\n# Invoke manually for testing\naws lambda invoke \\\n  --function-name my-api \\\n  --payload '{\"queryStringParameters\":{\"name\":\"Alice\"}}' \\\n  response.json\ncat response.json\n\n# View logs (Lambda logs go to CloudWatch)\naws logs tail /aws/lambda/my-api --follow"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Common Lambda triggers"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Lambda trigger reference",
+      "code": "TRIGGER              WHEN INVOKED                  COMMON USE\n─────────────────────────────────────────────────────────────────\nAPI Gateway HTTP    HTTP request to your endpoint  REST/GraphQL APIs\nAPI Gateway WebSocket WebSocket connect/message    Real-time features\nS3                 File uploaded/deleted/modified  Image processing, ETL\nSQS                Message added to queue         Async job processing\nSNS                Notification published         Fan-out, alerts\nEventBridge        Scheduled or custom event      Cron jobs, workflows\nDynamoDB Streams   Table item changed             Real-time sync, CDC\nCognito            User auth event               Post-confirmation flows\nCloudFront         Edge location request         Edge compute\nALB                Load balancer request         API endpoints"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Cold starts and performance"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Cold start explained",
+      "code": "COLD START: The first invocation after a period of inactivity\n\nWhat happens:\n  1. AWS allocates a compute environment (container)\n  2. Loads your function code and dependencies\n  3. Runs the initialization code (outside handler)\n  4. THEN runs your handler\n\nCold start duration (2026 benchmarks):\n  - Node.js 20 with simple handler: 50-200ms\n  - Node.js with heavy dependencies (AWS SDK, ORM): 500ms-2s\n  - Java / .NET: 2-10s (JVM warmup)\n  - Container-based Lambda: 1-5s\n\nMitigation strategies:\n  1. Provisioned concurrency: pre-warm N instances\n     → Always warm, no cold starts, higher cost\n  2. Minimize package size (tree-shake, remove unused deps)\n  3. Move expensive init (DB connections) OUTSIDE the handler:\n\n  // Init outside handler = runs once per container, not per invocation\n  const db = new DatabasePool({ ... });  // ← OUTSIDE\n\n  export const handler = async (event) => {\n    // db is already connected on warm invocations\n    const users = await db.query('SELECT * FROM users');\n  };"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Pricing — when Lambda saves money"
+    },
+    {
+      "type": "code",
+      "lang": "text",
+      "filename": "Lambda pricing math",
+      "code": "PRICING (2026):\n  Requests: $0.20 per 1M invocations (first 1M/month FREE)\n  Duration: $0.0000166667 per GB-second\n             (128MB function running 100ms = 0.0128 GB-sec = $0.000000213)\n\nEXAMPLE: API with 10M requests/month, avg 200ms, 256MB memory\n  Requests: 10M × $0.20/M = $2.00\n  Duration: 10M × 0.2s × 0.256GB × $0.0000166667 = $8.53\n  Total: ~$10.53/month\n\nCOMPARISON: EC2 t4g.small running 24/7 = $12/month\n  → Lambda is cheaper for sporadic traffic\n  → EC2 is cheaper for constant high-throughput traffic\n\n  Lambda wins at:\n    < 1M requests/month (nearly free)\n    Spiky/unpredictable traffic (auto-scales, no idle cost)\n    Event-driven workloads (S3, queues, schedules)\n\n  EC2 wins at:\n    Constant high-throughput APIs (1000+ req/sec steady state)\n    Long-running processes (> 15 minutes — Lambda max timeout)\n    Stateful workloads (WebSocket servers, etc.)"
+    },
+    {
+      "type": "quiz",
+      "questions": [
+        {
+          "id": "aws-08-q1",
+          "question": "You initialize a database connection pool inside the Lambda handler function body. What performance problem does this cause?",
+          "type": "multiple-choice",
+          "options": [
+            "No problem — Lambda handles connection pooling automatically",
+            "A new connection pool is created on every invocation, adding 100-500ms latency to each request",
+            "Lambda functions cannot connect to databases",
+            "The connection pool persists forever causing memory leaks"
+          ],
+          "correctAnswer": 1,
+          "explanation": "Moving initialization code inside the handler means it runs on every invocation — creating a new pool, TCP handshake, TLS negotiation, and auth on every single request. This adds 100-500ms to every invocation. The correct pattern: initialize outside the handler. On a warm Lambda container, the code outside the handler runs once when the container starts. All subsequent invocations on the same container reuse the existing pool — dramatically reducing latency."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Can Lambda replace all my backend servers?",
+      "a": "For many use cases, yes. Lambda is excellent for REST APIs, async processing, scheduled jobs, and event handlers. But Lambda has hard limits: 15-minute max execution time, 10GB max memory, ephemeral filesystem. It's also not ideal for WebSocket servers (connection state), very high throughput (cold starts, pricing), or workloads needing persistent local filesystem access. Lambda + API Gateway covers 80% of web API use cases."
+    }
+  ],
+  "sources": [
+    { "name": "Lambda developer guide", "url": "https://docs.aws.amazon.com/lambda/", "verified": "2026-10-09" }
+  ],
+  "realWorld": {
+    "usedIn": ["serverless APIs", "image processing", "data pipelines", "scheduled jobs", "event-driven systems"],
+    "examples": [
+      "Coca-Cola's vending machines worldwide send events to Lambda functions that process purchases, check inventory, and update analytics — all without any servers managed by their team. The architecture handles millions of transactions daily",
+      "Airbnb's image upload pipeline: user uploads a photo → hits API Gateway → Lambda → stores original on S3 → triggers another Lambda (via S3 event) → generates thumbnails → stores on S3 → invalidates CloudFront cache. All in serverless, auto-scaling."
+    ]
+  }
+}
